@@ -1,0 +1,11 @@
+name = "troubadour-auth"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+REPO = "arthurvangeersdaele/Troubadour"
+REGISTRY_PATH = "docs/recueil/troubadours.json"
+ALLOWED_ORIGINS = "https://arthurvangeersdaele.github.io,http://localhost:8776"
+# CLIENT_ID is set by the deploy workflow from the repository variable TROUBADOUR_GITHUB_CLIENT_ID.
+# REGISTRY_TOKEN is a secret, set by the deploy workflow from the repository secret TROUBADOUR_REGISTRY_TOKEN.

@@ -1,0 +1,81 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "auth-worker/**"
+      - ".github/workflows/auth-worker.yml"
+      - "**.md"
+      - ".github/scripts/**"
+      - ".github/workflows/sound-library.yml"
+      - ".github/workflows/recueil.yml"
+      - "TROUBADOUR_FORMAT.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build debug APK
+        run: |
+          set -o pipefail
+          if ! gradle assembleDebug --stacktrace 2>&1 | tee build.log; then
+            # Report the compiler errors as one annotation, readable from the GitHub API.
+            msg=$(grep -E "^e: |error:|warning: unused|\* What went wrong|^> " build.log | grep -v "^> Task" | head -90 \
+              | sed -e 's/%/%25/g' -e 's#file:///home/runner/work/[^/]*/[^/]*/##' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Build errors::${msg}"
+            exit 1
+          fi
+
+      - name: Name the APK
+        id: apk
+        run: |
+          NAME="$(date +%y%m%d)_troubadour.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: troubadour-apk
+          path: ${{ steps.apk.outputs.name }}
+
+      - name: Publish as the latest dev build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The release is replaced on every build, which resets GitHub's download count.
+          # Carry the running total over in a hidden marker of the release notes (read by the project page).
+          BEFORE=0
+          if OLD="$(gh release view dev-latest --json body,assets 2>/dev/null)"; then
+            CARRIED="$(echo "$OLD" | jq -r '.body' | grep -o 'downloads-before: [0-9]*' | grep -o '[0-9]*$' || true)"
+            COUNT="$(echo "$OLD" | jq '[.assets[] | select(.name | endswith(".apk")) | .downloadCount] | add // 0')"
+            BEFORE=$(( ${CARRIED:-0} + ${COUNT:-0} ))
+          fi
+          gh release delete dev-latest --yes --cleanup-tag || true
+          gh release create dev-latest "${{ steps.apk.outputs.name }}" \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Latest dev build" \
+            --notes "Automatic build of commit ${GITHUB_SHA::7}. Download the APK on your Android phone and open it to install (allow installs from your browser when asked).
+
+          <!-- downloads-before: $BEFORE -->"

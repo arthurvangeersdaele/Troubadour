@@ -1,0 +1,18 @@
+{
+  "name": "Troubadour Ballade",
+  "short_name": "Troubadour Ballade",
+  "description": "Prepare the exact timing of your story's sounds, then follow the golden wire at the table.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0D",
+  "theme_color": "#15151B",
+  "icons": [
+    { "src": "icons/261017_troubadour_ballade_180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/261017_troubadour_ballade_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/261017_troubadour_ballade_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/261017_troubadour_ballade_icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -1,0 +1,42 @@
+name: Troubadour auth worker
+
+# Deploys auth-worker/ (Connect with GitHub, troubadour name registry) to Cloudflare Workers.
+# Needs, in the repository settings:
+#   secrets   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, TROUBADOUR_REGISTRY_TOKEN
+#   variable  TROUBADOUR_GITHUB_CLIENT_ID
+# Until they are set, the job is skipped and Troubadour shows every troubadour as Forgotten Troubadour.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "auth-worker/**"
+      - ".github/workflows/auth-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && vars.TROUBADOUR_GITHUB_CLIENT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the worker
+        run: node --test auth-worker/test/worker.test.js
+      - name: Skip (Cloudflare not set up yet)
+        if: env.HAS_CF != 'true'
+        run: echo "Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, TROUBADOUR_REGISTRY_TOKEN and TROUBADOUR_GITHUB_CLIENT_ID to deploy."
+      - name: Deploy to Cloudflare
+        if: env.HAS_CF == 'true'
+        uses: cloudflare/wrangler-action@v3
+        env:
+          REGISTRY_TOKEN: ${{ secrets.TROUBADOUR_REGISTRY_TOKEN }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: auth-worker
+          secrets: |
+            REGISTRY_TOKEN
+          command: deploy --var CLIENT_ID:${{ vars.TROUBADOUR_GITHUB_CLIENT_ID }}

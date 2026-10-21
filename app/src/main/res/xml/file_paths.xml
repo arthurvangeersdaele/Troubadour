@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Forged .troubadour files waiting to be shared. -->
+    <cache-path name="exports" path="exports/" />
+    <!-- A downloaded update, handed to the Android installer. -->
+    <cache-path name="updates" path="updates/" />
+</paths>
