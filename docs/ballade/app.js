@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261021.15';
+  const VERSION = '261021.16';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -31,7 +31,7 @@
       b.addEventListener('click', pickFile);
       e.append(b);
       list.append(e);
-      list.append(discoveryCard());
+      DISCOVERIES.forEach((d) => list.append(discoveryCard(d)));
       return;
     }
     recs.forEach((r) => {
@@ -69,22 +69,27 @@
       list.append(card);
     });
     // Offered until this revision of it is on the device (a newer one replaces the old).
-    if (!recs.some((r) => r.flow.id === DISCOVERY.id && (r.flow.revision || 0) >= DISCOVERY.revision)) list.append(discoveryCard());
+    DISCOVERIES.forEach((d) => { if (!recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision)) list.append(discoveryCard(d)); });
   }
 
   /* ================= Discovery tale ================= */
-  const DISCOVERY = { id: '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', revision: 2, file: 'discovery/261017_underwater-adventure.troubadour-ballade', title: 'Underwater Adventure' };
-  function discoveryCard() {
+  const DISCOVERIES = [
+    { id: '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', revision: 2, file: 'discovery/261017_underwater-adventure.troubadour-ballade', title: 'Underwater Adventure',
+      blurb: 'Five chapters already timed, from a lazy beach to the Kraken. About 32 MB.' },
+    { id: '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', revision: 1, file: 'discovery/261021_treasure-island-choices.troubadour-ballade', title: 'Treasure Island, by your choices',
+      blurb: 'Two chapters where the players decide: choices within choices, three deep. A music in every scene, effects, some at random. About 17 MB.' },
+  ];
+  function discoveryCard(d) {
     const b = el('button', 'fl-discovery');
     b.type = 'button';
-    b.innerHTML = `<span>Discovery tale</span><b>${DISCOVERY.title}</b><small>Five chapters already timed, from a lazy beach to the Kraken. About 32 MB.</small>`;
-    b.addEventListener('click', addDiscovery);
+    b.innerHTML = `<span>Discovery tale</span><b>${d.title}</b><small>${d.blurb}</small>`;
+    b.addEventListener('click', () => addDiscovery(d));
     return b;
   }
-  async function addDiscovery() {
+  async function addDiscovery(d) {
     try {
-      busy(`Downloading ${DISCOVERY.title}`, '', 0);
-      const res = await fetch(DISCOVERY.file);
+      busy(`Downloading ${d.title}`, '', 0);
+      const res = await fetch(d.file);
       if (!res.ok) throw new Error(`the server answered ${res.status}`);
       const total = Number(res.headers.get('content-length')) || 0;
       const reader = res.body.getReader();
@@ -95,12 +100,12 @@
         if (done) break;
         parts.push(value);
         got += value.length;
-        busy(`Downloading ${DISCOVERY.title}`, total ? `${window.Troubadour.formatSize(got)} of ${window.Troubadour.formatSize(total)}` : window.Troubadour.formatSize(got), total ? got / total : null);
+        busy(`Downloading ${d.title}`, total ? `${window.Troubadour.formatSize(got)} of ${window.Troubadour.formatSize(total)}` : window.Troubadour.formatSize(got), total ? got / total : null);
       }
-      await importFile(new File(parts, DISCOVERY.file.split('/').pop()));
+      await importFile(new File(parts, d.file.split('/').pop()));
     } catch (e) {
       idle();
-      toast(`${DISCOVERY.title} could not be downloaded (${e.message || e}). Check your connection and try again.`, 5200);
+      toast(`${d.title} could not be downloaded (${e.message || e}). Check your connection and try again.`, 5200);
     }
   }
 
