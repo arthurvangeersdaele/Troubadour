@@ -16,21 +16,35 @@
     rec: null, ch: 0, steps: [], buffers: new Map(), blobs: null, loading: 0,
     voices: [], starts: [], gate: null, end: null, forced: new Set(), paused: false, bus: null, sbBus: null,
     dom: null, raf: 0, focus: -1, touched: 0, onLeave: null, chapterToken: 0,
-    // A chapter may end on a choice (silver): its trunk plays first, then the way the bard picks.
-    chapter: null, trunk: [], answer: null, choiceAt: null,
+    // A chapter may end on a choice (silver), and every way on a choice of its own: its trunk plays first,
+    // then the way the bard picks, then the way picked at its end, and so on. `path` holds the answers picked.
+    chapter: null, trunk: [], path: [], segs: [], choiceAt: null,
   };
 
-  /** The chapter's choice, if it has one worth asking (two answers or more). */
-  const choiceOf = () => {
-    const c = P.chapter && P.chapter.choice;
-    return c && Array.isArray(c.answers) && c.answers.length >= 2 ? c : null;
-  };
-  /** The steps on the wire: the trunk, then the chosen way (whose first step is always a gate). */
+  const validChoice = (c) => (c && Array.isArray(c.answers) && c.answers.length >= 2 ? c : null);
+  /** The lists on the wire, one per depth: { start (index in P.steps), steps, choice (at its end, or null) }. */
+  function segmentsOf() {
+    const segs = [];
+    let holder = P.chapter || { steps: [] };
+    let start = 0;
+    for (let d = 0; ; d++) {
+      const steps = holder.steps || [];
+      const choice = validChoice(holder.choice);
+      segs.push({ start, steps, choice });
+      start += steps.length;
+      if (!choice || P.path[d] == null || !choice.answers[P.path[d]]) break;
+      holder = choice.answers[P.path[d]];
+    }
+    return segs;
+  }
+  /** The choice the wire will stop at next (the last list's, not picked yet), or null. */
+  const choiceOf = () => { const l = P.segs[P.segs.length - 1]; return l && l.choice && P.path.length < P.segs.length ? l.choice : null; };
+  /** Its depth: how many choices come before it. */
+  const choiceDepth = () => P.segs.length - 1;
+  /** The steps on the wire: the trunk, then each chosen way (whose first step is always a gate). */
   function pathSteps() {
-    const ch = choiceOf();
-    if (!ch || P.answer == null) return P.trunk;
-    const way = (ch.answers[P.answer].steps || []).map((s, k) => (k === 0 ? Object.assign({}, s, { gate: true }) : s));
-    return P.trunk.concat(way);
+    P.segs = segmentsOf();
+    return P.segs.flatMap((g, d) => (d === 0 ? g.steps : g.steps.map((s, k) => (k === 0 ? Object.assign({}, s, { gate: true }) : s))));
   }
 
   /* ---------- Opening and closing ---------- */
@@ -65,7 +79,7 @@
     P.ch = i;
     P.chapter = P.rec.flow.chapters[i] || { steps: [] };
     P.trunk = P.chapter.steps || [];
-    P.answer = null; P.choiceAt = null;
+    P.path = []; P.choiceAt = null;
     P.steps = pathSteps();
     P.starts = []; P.gate = null; P.end = null; P.focus = -1; P.touched = 0; P.forced.clear();
     renderChapters();
@@ -73,9 +87,8 @@
     toTop();
     // Decode the sounds of this chapter (and the soundbox) before the first tap.
     const want = new Set();
-    P.steps.forEach((s) => s.cards.forEach((c) => want.add(c.file)));
-    // Every way of the choice is ready before it is picked.
-    if (choiceOf()) choiceOf().answers.forEach((a) => (a.steps || []).forEach((s) => s.cards.forEach((c) => want.add(c.file))));
+    // Every way of every choice is ready before it is picked.
+    F.allSteps(P.chapter).forEach((s) => (s.cards || []).forEach((c) => want.add(c.file)));
     (P.rec.story.soundbox || []).forEach((s) => want.add(s.file));
     const missing = [...want].filter((f) => !P.buffers.has(f));
     P.loading = missing.length;
@@ -167,7 +180,7 @@
     if (i + 1 < P.steps.length) {
       if (P.steps[i + 1].gate) P.gate = { i: i + 1, t: endT };
       else schedule(i + 1, endT);
-    } else if (choiceOf() && P.answer == null && i === P.trunk.length - 1) {
+    } else if (choiceOf() && i === P.steps.length - 1) {
       P.choiceAt = endT; // the wire stops at the silver gate: the bard picks the way
     } else {
       // Sounds that hold go on after the end: they stop with the chapter.
@@ -175,21 +188,36 @@
     }
   }
 
-  /** The bard picks a way. Picked when the wire waits at the choice, it starts at once;
-   *  picked ahead of time, its first gate waits like any other. A way already playing is kept. */
-  function choose(a) {
-    const ch = choiceOf();
-    if (!ch || !ch.answers[a]) return;
-    const b = P.trunk.length;
-    if (P.answer != null && P.starts[b] != null) { if (a !== P.answer) toast('This way is already playing. Stop the chapter to choose again.'); return; }
+  /** The bard picks answer a of the choice at depth d. Picked when the wire waits at it, its way starts at once;
+   *  picked ahead of time, its first gate waits like any other. A way already playing is kept; a way picked
+   *  ahead and not started yet can still be changed (what came after it is forgotten). */
+  function choose(d, a) {
+    const seg = P.segs[d];
+    if (!seg || !seg.choice || !seg.choice.answers[a]) return;
+    const b = seg.start + seg.steps.length; // where its way starts on the wire
+    if (P.path[d] != null && P.starts[b] != null) { if (a !== P.path[d]) toast('This way is already playing. Stop the chapter to choose again.'); return; }
     if (P.loading) { toast('The sounds of this chapter are still loading.'); return; }
-    const waiting = state().mode === 'choice';
-    P.answer = a;
+    const st = state();
+    const waiting = st.mode === 'choice' && choiceDepth() === d;
+    const at = P.path.length > d ? (P.gate && P.gate.i >= b ? P.gate.t : null) : P.choiceAt;
+    P.path = P.path.slice(0, d).concat(a);
     P.steps = pathSteps();
+    // Steps after b were never started (the way did not run yet): forget them.
+    P.starts.length = Math.min(P.starts.length, b);
+    if (P.gate && P.gate.i >= b) P.gate = null;
     renderCascade();
-    if (!P.steps[b]) { P.end = P.choiceAt ?? now(); P.choiceAt = null; paintDock(); return; }
-    if (waiting) go(b);
-    else if (P.choiceAt != null) { P.gate = { i: b, t: P.choiceAt }; P.choiceAt = null; }
+    if (P.steps[b]) {
+      P.choiceAt = null;
+      if (waiting) { go(b); return; }
+      if (at != null) P.gate = { i: b, t: at };
+    } else if (choiceOf()) {
+      // An empty way that ends on another choice: the wire waits at that one now.
+      P.choiceAt = at;
+    } else {
+      // An empty way that ends the chapter: the chapter ends where the choice was (if the wire got there).
+      P.choiceAt = null;
+      if (at != null) P.end = P.voices.reduce((m, v) => (v.hold && v.cut == null ? m : Math.max(m, v.cut ?? v.end)), waiting ? now() : at);
+    }
     paintDock();
   }
 
@@ -280,7 +308,7 @@
     P.voices = [];
     P.starts = []; P.gate = null; P.end = null; P.focus = -1; P.forced.clear(); P.choiceAt = null;
     // Back to the start: the choice is open again.
-    if (P.answer != null) { P.answer = null; P.steps = pathSteps(); if (P.rec && P.dom) renderCascade(); }
+    if (P.path.length) { P.path = []; P.steps = pathSteps(); if (P.rec && P.dom) renderCascade(); }
     paintDock();
   }
 
@@ -298,7 +326,7 @@
     let cur = -1;
     P.starts.forEach((s, i) => { if (s != null && s <= t) cur = i; });
     const started = P.starts.some((s) => s != null);
-    if (!started) return !P.trunk.length && choiceOf() && P.answer == null ? { mode: 'choice', cur: -1, t } : { mode: 'idle', cur: -1, t };
+    if (!started) return !P.steps.length && choiceOf() ? { mode: 'choice', cur: -1, t } : { mode: 'idle', cur: -1, t };
     if (P.choiceAt != null && t >= P.choiceAt) return { mode: 'choice', cur, t };
     if (P.gate && t >= P.gate.t) return { mode: 'wait', cur, gate: P.gate.i, t };
     if (P.end != null && t >= P.end) return { mode: 'done', cur, t };
@@ -385,9 +413,9 @@
    * Inside a run, time flows down: every card starts at the height of its start and is as tall as it lasts
    * (long sounds squeezed, short ones stretched to stay readable), so sounds that overlap sit side by side.
    * The golden wire runs down the left, a thread branches to each card, and a playhead sweeps down with time. */
-  const GUTTER = 34;   // the wire's column
-  const WIRE_X = 14;
   const PAD = 40;      // room above the first sounds of a run, for the lane wires to branch off
+  /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
+  const padOf = (lanes) => Math.max(PAD, 16 + BRANCH * (lanes - 1));
   const RUN_PX = 420;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
@@ -452,44 +480,44 @@
     return { items, lanes: Math.max(1, lanes.length), end, own, pps, height, map, y: map };
   }
 
-  /* The whole chapter shares one golden wire, drawn as a single SVG over the cascade: the spine runs
-   * through every gate down to Next chapter, a bus under each gate feeds the lanes, and every card's
-   * frame melts into its wire by a rounded corner. Lighting is one clip that grows down, so the gold
-   * flows like a liquid: no seams between pieces, no glow doubled where two strokes meet. */
-  const BUS = 14;      // the bus sits this far under a gate
-  // Every bend of the wire is a quarter ellipse, taller than wide: the gold leans out gently, like the logo.
-  const BEND_X = 16, BEND_Y = 26;
-  const CARD_RX = 12, CARD_RY = 22;
-  const K = 0.5523;    // a cubic that follows a quarter ellipse
-  /** Bend from a vertical wire into a horizontal one: from (x, y) down-and-across by (dx, dy). */
-  const bendOut = (f, x, y, dx, dy) => `C${f(x)} ${f(y + K * dy)} ${f(x + dx - K * dx)} ${f(y + dy)} ${f(x + dx)} ${f(y + dy)}`;
-  /** Bend from a horizontal wire down into a vertical one. */
-  const bendDown = (f, x, y, dx, dy) => `C${f(x + K * dx)} ${f(y)} ${f(x + dx)} ${f(y + dy - K * dy)} ${f(x + dx)} ${f(y + dy)}`;
-  const GAP = 14;      // between a card and the next lane's wire
+  /* The whole chapter shares one golden wire, drawn as a single SVG over the cascade. The spine runs down the
+   * left, through every gate and every choice, to Next chapter. A sound hangs on the right of its wire like a
+   * flag: its outline leaves the wire in a soft S, runs down its right side and comes back into the wire, which
+   * goes on straight through it. The first lane hangs on the spine itself; every other lane is a rail that
+   * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
+   * liquid: no seams between pieces, no glow doubled where two strokes meet. */
+  const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
+  const BRANCH = 26;   // a rail leaves the wire before it over this height
+  const SLOPE = 13;    // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
     const box = $('#fl-cascade');
     box.textContent = '';
-    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choice: null };
-    const choice = choiceOf();
-    const choiceSec = choice ? renderChoice(choice) : null;
-    if (!P.steps.length && !choice) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade editor, on a computer.'));
+    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [] };
+    const pending = choiceOf();
+    if (!P.steps.length && !pending) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade editor, on a computer.'));
     P.offsets = F.runOffsets(P.steps);
     const runs = runsOf(P.steps);
     const cs = getComputedStyle(box);
     const width = Math.max(240, (box.clientWidth || 360) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
     const NS = 'http://www.w3.org/2000/svg';
+    const under = document.createElementNS(NS, 'svg');
+    under.setAttribute('class', 'fl-under');
+    under.setAttribute('aria-hidden', 'true');
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'fl-flow');
     svg.setAttribute('aria-hidden', 'true');
-    box.append(svg);
+    box.append(under, svg);
+    // Every choice on the path sits right after the steps of its list, before the way it opens.
+    const forks = P.segs.map((g, d) => (g.choice ? { at: g.start + g.steps.length, sec: renderChoice(g.choice, d) } : null)).filter(Boolean);
+    const placeForks = (upto) => forks.forEach((fk) => { if (!fk.sec.parentNode && fk.at <= upto) box.append(fk.sec); });
+    const wayFrom = P.segs.length > 1 ? P.segs[1].start : Infinity;
     runs.forEach((run, r) => {
-      if (choiceSec && run.gate === P.trunk.length) box.append(choiceSec);
-      // A run of single sounds one after the other sits on the spine; it gets a little more room per sound.
-      let L = layoutRun(run, P.offsets, r === runs.length - 1);
-      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, r === runs.length - 1, 62); if (L1.lanes === 1) L = L1; }
-      const straddle = L.lanes === 1;
-      const sec = el('section', `fl-run${choice && run.gate >= P.trunk.length ? ' way' : ''}`);
+      placeForks(run.gate);
+      const lastRun = r === runs.length - 1;
+      let L = layoutRun(run, P.offsets, lastRun);
+      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 62); if (L1.lanes === 1) L = L1; }
+      const sec = el('section', `fl-run${run.gate >= wayFrom ? ' way' : ''}`);
       const g = P.steps[run.gate];
       const row = el('div', 'fl-node-row');
       const node = el('button', 'fl-node gate');
@@ -506,37 +534,28 @@
       sec.append(row);
 
       const area = el('div', 'fl-area');
-      const H = L.height + PAD + 9;
+      const pad = padOf(L.lanes);
+      const H = L.height + pad + 9;
       area.style.height = `${H}px`;
-      // The spine runs down the middle, as in the Troubadour Ballade logo. Lanes take turns right and left of it:
-      // the first lane on each side hangs from the spine itself, the next ones from rails fed by a bus.
-      const X = width / 2;
-      const nR = Math.ceil(L.lanes / 2), nL = Math.floor(L.lanes / 2);
-      const colR = (X - 2) / nR, colL = nL ? (X - 2) / nL : 0;
-      const narrow = !straddle && Math.min(colR, colL || colR) < 118;
-      const gap = narrow ? 10 : GAP;
-      const place = (l) => {
-        if (straddle) { const w = Math.min(width - 16, 440); return { side: 'c', rail: X, left: X - w / 2, w }; }
-        if (l % 2 === 0) { const k = l / 2; const rail = X + k * colR; const w = colR - (k === nR - 1 ? 2 : gap); return { side: 'r', rail, left: rail, w }; }
-        const k = (l - 1) / 2; const rail = X - k * colL; const w = colL - (k === nL - 1 ? 2 : gap); return { side: 'l', rail, left: rail - w, w };
-      };
+      // Lanes side by side, left to right: the first on the spine, the others on their rails.
+      const col = (width - SPINE - 2) / L.lanes;
+      const narrow = col < 118;
+      const gap = narrow ? 8 : 12;
+      const place = (l) => { const rail = SPINE + l * col; return { rail, left: rail, w: col - (l === L.lanes - 1 ? 2 : gap) }; };
       if (narrow) area.classList.add('narrow');
       const cards = [];
       L.items.forEach((x) => {
-        const top = x.y0 + PAD;
+        const top = x.y0 + pad;
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        const left = pl.left;
-        const cardW = pl.w;
-        const rad = Math.min(CARD_RX, ch / 2);
-        const rady = Math.min(CARD_RY, ch / 2);
+        const d = Math.round(Math.min(SLOPE, ch * 0.2));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
-        const card = el('button', `fl-card ${pl.side}${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
+        const card = el('button', `fl-card r${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
         card.type = 'button';
-        card.style.cssText = `top:${top}px;left:${left}px;width:${cardW}px;height:${ch}px;border-radius:${rad}px / ${rady}px`;
+        card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${d}px`;
         card.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
         const head = el('div', 'fl-ch');
         head.append(el('b', '', c.name));
@@ -557,33 +576,26 @@
           if (v && !v.done && v.cut == null && v.t0 <= now()) { fadeVoice(v, settings.fade); toast(`Fading out ${c.name}.`, 1600); }
         });
         area.append(card);
-        // Start now: a bead on the wire, where the gold flows into the card (its top corner, or the top of a card on the spine).
-        // A short sound: on its wire, half-way down. Otherwise on its top edge, just past the corner the gold comes round
-        // (two sounds hanging either side of the spine never share a bead's place).
+        // Start now: a bead on the wire, where the card leaves it.
         const size = short ? 22 : 24;
-        const dir = pl.side === 'l' ? -1 : 1;
-        const bx = pl.side === 'c' ? pl.rail : short ? pl.rail : pl.rail + dir * (rad + size / 2 + 3);
-        const cy = pl.side === 'c' || !short ? top : top + ch / 2;
         const pb = el('button', 'fl-force');
         pb.type = 'button';
-        pb.style.cssText = `left:${bx - size / 2}px;top:${cy - size / 2}px;width:${size}px;height:${size}px`;
+        pb.style.cssText = `left:${pl.rail - size / 2}px;top:${top - size / 2 + (short ? ch / 2 : 2)}px;width:${size}px;height:${size}px`;
         pb.setAttribute('aria-label', `Start ${c.name} now`);
         pb.innerHTML = ICON.go;
         pb.addEventListener('click', (e) => { e.stopPropagation(); force(x.i, x.k); });
         area.append(pb);
-        const info = { lastRun: r === runs.length - 1 && !(choice && run.gate < P.trunk.length), card, fill, time, c, pb, top, left, w: cardW, ch, rad, rady, side: pl.side, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: (x.y1 - x.y0) / L.pps, extra: -1, spent: false, path: null };
+        const info = { lastRun: lastRun && !pending, card, fill, time, c, pb, top, left: pl.left, w: pl.w, ch, d, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: (x.y1 - x.y0) / L.pps, extra: -1, spent: false, path: null, under: null };
         cards.push(info);
         P.dom.cards.set(`${x.i}:${x.k}`, info);
       });
-      // The steps that follow on their own: a dot on the wire, tap to jump there.
+      // The steps that follow on their own: a dot on the spine, tap to jump there.
       run.steps.slice(1).forEach((i) => {
         const d = el('button', 'fl-dot');
         d.type = 'button';
-        const y = L.y(P.offsets[i]) + PAD;
+        const y = L.y(P.offsets[i]) + pad;
         d.style.top = `${y}px`;
-        // On the spine; inside a sound that sits on the spine, on that sound's edge.
-        const over = cards.find((c) => c.side === 'c' && y > c.top && y < c.top + c.ch);
-        d.style.left = `${over ? over.left : X}px`;
+        d.style.left = `${SPINE}px`;
         d.title = stepLabel(P.steps[i], i);
         d.setAttribute('aria-label', `Jump to ${stepLabel(P.steps[i], i)}`);
         d.addEventListener('click', () => go(i));
@@ -595,9 +607,9 @@
       area.append(head);
       sec.append(area);
       box.append(sec);
-      P.dom.runs.push({ run, L, sec, node, sub, area, head, total: H, cards, X, top: 0, cy: 0 });
+      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
     });
-    if (choiceSec && !choiceSec.parentNode) box.append(choiceSec);
+    placeForks(Infinity);
     const end = el('div', 'fl-end');
     const btn = el('button', 'fl-nextch');
     btn.type = 'button';
@@ -615,42 +627,60 @@
     P.dom.end = { end, btn, node: enode, cy: 0 };
     P.dom.width = width;
     P.dom.svg = svg;
+    P.dom.under = under;
     measure();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => measure());
   }
 
-  /** The silver gate of a choice: its question, and one button per way. */
-  function renderChoice(choice) {
+  /** A silver gate: its question, and one button per way. A choice already passed shows the way picked
+   *  (still open to change while that way has not started). */
+  function renderChoice(choice, depth) {
     const sec = el('section', 'fl-choice');
+    const seg = P.segs[depth];
+    const b = seg.start + seg.steps.length;
+    const picked = P.path[depth];
+    const locked = picked != null && P.starts[b] != null;
+    if (picked != null) sec.classList.add('picked');
     const row = el('div', 'fl-node-row');
     const node = el('span', 'fl-node gate silver');
     node.innerHTML = ICON.fork;
     const meta = el('div', 'fl-meta');
-    meta.append(el('span', 'k', 'Choice'), el('b', '', choice.question || 'Which way?'));
+    meta.append(el('span', 'k', depth ? `Choice ${depth + 1}` : 'Choice'), el('b', '', choice.question || 'Which way?'));
     row.append(node, meta);
     const answers = el('div', 'fl-answers');
-    const b = P.trunk.length;
-    const locked = P.answer != null && P.starts[b] != null;
     const btns = choice.answers.map((a, k) => {
-      const btn = el('button', `fl-answer${P.answer === k ? ' chosen' : P.answer != null ? ' other' : ''}`);
+      const btn = el('button', `fl-answer${picked === k ? ' chosen' : picked != null ? ' other' : ''}`);
       btn.type = 'button';
-      btn.disabled = locked && P.answer !== k;
+      btn.disabled = locked && picked !== k;
       const first = (a.steps || [])[0];
       btn.append(el('b', '', a.label || `Way ${k + 1}`));
+      const more = validChoice(a.choice);
       if (first) btn.append(el('small', '', stepLabel(first, b)));
-      btn.addEventListener('click', () => choose(k));
+      else if (more) btn.append(el('small', '', more.question || 'Another choice'));
+      btn.addEventListener('click', () => choose(depth, k));
       answers.append(btn);
       return btn;
     });
     sec.append(row, answers);
-    P.dom.choice = { sec, node, btns, cy: 0 };
+    P.dom.choices.push({ sec, node, btns, cy: 0, depth, b });
     return sec;
+  }
+
+  /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
+   *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
+  function flag(f, x0, y, w, h, d, close) {
+    const r = Math.min(10, (h - 2 * d) / 2, w / 4);
+    const sx = Math.min(w * 0.42, 64);
+    return `M${f(x0)} ${f(y)}C${f(x0 + sx * 0.5)} ${f(y)} ${f(x0 + sx * 0.5)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
+      + `H${f(x0 + w - r)}Q${f(x0 + w)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r)}V${f(y + h - d - r)}`
+      + `Q${f(x0 + w)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}H${f(x0 + sx)}`
+      + `C${f(x0 + sx * 0.5)} ${f(y + h - d)} ${f(x0 + sx * 0.5)} ${f(y + h)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
   function measure() {
     const D = P.dom;
-    if (!D || !D.svg || (!D.runs.length && !D.choice)) { if (D && D.svg) D.svg.innerHTML = ''; return; }
+    if (!D || !D.svg || (!D.runs.length && !D.choices.length)) { if (D && D.svg) { D.svg.innerHTML = ''; D.under.innerHTML = ''; } return; }
     const box = $('#fl-cascade');
     const b = box.getBoundingClientRect();
     const rel = (e) => { const r = e.getBoundingClientRect(); return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height }; };
@@ -659,52 +689,45 @@
     const f = (n) => Math.round(n * 10) / 10;
     const wires = [];
     const frames = [];
-    const holes = []; // the spine opens around a sound that sits on it: the gold flows round its frame
-    let X = 0;
-    D.runs.forEach((R, r) => {
+    let X = null;
+    D.runs.forEach((R) => {
       const a = rel(R.area);
       const n = rel(R.node);
       R.top = a.y; R.left = a.x; R.cy = n.y + n.h / 2;
-      if (r === 0) X = a.x + R.X;
-      D.dots.forEach((o) => { if (o.run === r) o.gy = a.y + o.y; });
-      // Rails beyond the spine: a bus leaves the spine under the gate on each side, each rail drops off it to its last card.
+      if (X == null) X = n.x + n.w / 2;
+      D.dots.forEach((o) => { if (o.run === D.runs.indexOf(R)) o.gy = a.y + o.y; });
+      // Rails: each lane past the first leaves the wire on its left in an S, a stair lower, then runs down to its last card.
       const ends = new Map();
-      R.cards.forEach((c) => { if (c.side !== 'c' && Math.abs(c.rail - R.X) > 1) ends.set(c.rail, Math.max(ends.get(c.rail) || 0, c.top + c.rady)); });
-      const by = a.y + BUS;
-      [1, -1].forEach((dir) => {
-        const rails = [...ends.keys()].filter((x) => (x - R.X) * dir > 0).sort((p, q) => (p - q) * dir);
-        if (!rails.length) return;
-        const xl = (x) => a.x + x;
-        const last = rails[rails.length - 1];
-        // Bends never wider than half the way between two wires.
-        const bx = Math.min(BEND_X, Math.abs(xl(rails[0]) - X) / 2 - 1);
-        const down = (x) => Math.max(a.y + ends.get(x), by + BEND_Y);
-        wires.push(`M${f(X)} ${f(by - BEND_Y)}${bendOut(f, X, by - BEND_Y, dir * bx, BEND_Y)}H${f(xl(last) - dir * bx)}${bendDown(f, xl(last) - dir * bx, by, dir * bx, BEND_Y)}V${f(down(last))}`);
-        rails.slice(0, -1).forEach((x) => wires.push(`M${f(xl(x) - dir * bx)} ${f(by)}${bendDown(f, xl(x) - dir * bx, by, dir * bx, BEND_Y)}V${f(down(x))}`));
+      R.cards.forEach((c) => { if (c.lane > 0) ends.set(c.lane, { x: a.x + c.rail, y: Math.max((ends.get(c.lane) || { y: 0 }).y, a.y + c.top + c.ch) }); });
+      const lanes = [...ends.keys()].sort((p, q) => p - q);
+      const deepest = Math.max(0, ...lanes);
+      // A rail goes down at least as far as the rails it feeds leave it.
+      for (let l = deepest; l >= 1; l--) { const e = ends.get(l); const nx = ends.get(l + 1); if (e && nx) e.y = Math.max(e.y, a.y + 4 + BRANCH * l + 2); }
+      const xOf = (l) => (l === 0 ? X : ends.has(l) ? ends.get(l).x : null);
+      lanes.forEach((l) => {
+        // Fed by the closest lane on its left that has a rail (the spine for the first).
+        let from = l - 1; while (from > 0 && xOf(from) == null) from--;
+        const x0 = xOf(from), x1 = ends.get(l).x;
+        const y0 = a.y + 4 + BRANCH * from, y1 = y0 + BRANCH;
+        wires.push(`M${f(x0)} ${f(y0)}C${f(x0)} ${f(y0 + BRANCH * 0.55)} ${f(x1)} ${f(y1 - BRANCH * 0.55)} ${f(x1)} ${f(y1)}V${f(ends.get(l).y + 8)}`);
       });
-      R.cards.forEach((c) => { if (c.side === 'c') holes.push([a.y + c.top, a.y + c.top + c.ch]); });
-      // Each card's frame: its left edge is the wire, its rounded corners melt into it.
       R.cards.forEach((c) => {
-        const x = a.x + c.left, y = a.y + c.top, w = c.w, h = c.ch, q = c.rad, qy = c.rady;
+        const x = a.x + c.rail, y = a.y + c.top;
         c.gy = y; c.gx = x;
-        // Rounded at every corner, always (a sound that waits for the next Go too).
-        const d = `M${f(x)} ${f(y + qy)}A${q} ${qy} 0 0 1 ${f(x + q)} ${f(y)}H${f(x + w - q)}A${q} ${qy} 0 0 1 ${f(x + w)} ${f(y + qy)}V${f(y + h - qy)}A${q} ${qy} 0 0 1 ${f(x + w - q)} ${f(y + h)}H${f(x + q)}A${q} ${qy} 0 0 1 ${f(x)} ${f(y + h - qy)}Z`;
-        frames.push({ c, d });
+        frames.push({ c, d: flag(f, x, y, c.w, c.ch, c.d, false), fill: flag(f, x, y, c.w, c.ch, c.d, true) });
       });
     });
     const en = rel(D.end.node);
     D.end.cy = en.y + en.h / 2;
-    if (D.choice) { const cn = rel(D.choice.node); D.choice.cy = cn.y + cn.h / 2; if (!D.runs.length) X = cn.x + cn.w / 2; }
-    // The spine: straight down the middle from the first gate to Next chapter, through every gate.
-    let y0 = D.runs.length ? D.runs[0].cy : D.choice.cy;
-    const spine = [];
-    holes.sort((p, q) => p[0] - q[0]).forEach(([t, bt]) => { if (t > y0) spine.push(`M${f(X)} ${f(y0)}V${f(t)}`); y0 = Math.max(y0, bt); });
-    if (D.end.cy > y0) spine.push(`M${f(X)} ${f(y0)}V${f(D.end.cy)}`);
-    wires.unshift(...spine);
+    D.choices.forEach((C) => { const cn = rel(C.node); C.cy = cn.y + cn.h / 2; if (X == null) X = cn.x + cn.w / 2; });
+    if (X == null) X = en.x + en.w / 2;
+    // The spine: straight down from the first gate (or choice) to Next chapter, through every gate and choice.
+    const y0 = Math.min(D.runs.length ? D.runs[0].cy : Infinity, D.choices.length ? D.choices[0].cy : Infinity);
+    wires.unshift(`M${f(X)} ${f(y0)}V${f(D.end.cy)}`);
     const id = `fl-${P.chapterToken}`;
     const svg = D.svg;
-    svg.setAttribute('width', W); svg.setAttribute('height', Ht);
-    svg.setAttribute('viewBox', `0 0 ${W} ${Ht}`);
+    [svg, D.under].forEach((g) => { g.setAttribute('width', W); g.setAttribute('height', Ht); g.setAttribute('viewBox', `0 0 ${W} ${Ht}`); });
+    D.under.innerHTML = frames.map((o) => `<path d="${o.fill}" style="--z:${o.c.card.style.getPropertyValue('--z')}"/>`).join('');
     svg.innerHTML = `<defs>`
       + `<g id="${id}-w">${wires.map((d) => `<path d="${d}"/>`).join('')}</g>`
       + `<g id="${id}-f">${frames.map((o) => `<path d="${o.d}"/>`).join('')}</g>`
@@ -721,7 +744,8 @@
     const rects = svg.querySelectorAll('clipPath rect');
     D.clip = rects[0];
     const fpaths = svg.querySelectorAll(`#${id}-g path`);
-    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.extra = -1; o.c.spent = false; });
+    const fills = D.under.querySelectorAll('path');
+    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.under = fills[k]; o.c.extra = -1; o.c.spent = false; });
     D.lit = -1;
     D.H = Ht;
   }
@@ -756,18 +780,19 @@
     D.runs.forEach((R, r) => {
       const rt = curRun > r && runTime(R, t) != null ? Math.max(runTime(R, t), R.L.end + 1) : runTime(R, t);
       R.rt = rt;
-      if (rt != null) target = Math.max(target, rt >= R.L.end ? R.top + R.total : R.top + PAD + R.L.map(rt));
+      if (rt != null) target = Math.max(target, rt >= R.L.end ? R.top + R.total : R.top + R.pad + R.L.map(rt));
       if (s.mode === 'wait' && s.gate === R.run.gate) target = Math.max(target, R.cy);
       // A gate just opened: the gold runs from it down to the top of its sounds, which start as it arrives.
       const st = P.starts[R.run.gate];
       if (st != null && st > t) {
         const u = Math.min(1, Math.max(0, 1 - (st - t) / POUR));
         const e = u * u * (3 - 2 * u);
-        target = Math.max(target, R.cy + e * (R.top + PAD - R.cy));
+        target = Math.max(target, R.cy + e * (R.top + R.pad - R.cy));
       }
     });
     if (s.mode === 'idle') target = 0;
-    if (s.mode === 'choice' && D.choice) target = Math.max(target, D.choice.cy);
+    const waitAt = s.mode === 'choice' ? D.choices.find((C) => C.depth === choiceDepth()) : null;
+    if (waitAt) target = Math.max(target, waitAt.cy);
     if (s.mode === 'done') target = D.end.cy;
     // The gold flows: it follows the playhead exactly; along bare wire (a run's end down to the next gate,
     // a jump ahead) it runs at an easy pace the eye can follow, slowing as it arrives.
@@ -818,6 +843,7 @@
       const over = done && !on;
       setCls(x.card, 'spent', forced && done);
       if (x.path && over !== x.spent) { x.spent = over; x.path.style.opacity = over ? '0' : ''; }
+      if (x.under) { setCls(x.under, 'on', on); setCls(x.under, 'done', over); }
       // The bar moves with the wire (a card started by hand, off the wire, follows its own sound).
       const R = D.runs[x.run];
       let p = frac;
@@ -835,12 +861,12 @@
       if (x.time.textContent !== txt) x.time.textContent = txt;
     });
     D.dots.forEach(({ d, i, gy }) => setCls(d, 'lit', P.starts[i] != null && P.starts[i] <= t && Y >= (gy || 0) - 1));
-    if (D.choice) {
-      const at = s.mode === 'choice';
-      setCls(D.choice.sec, 'waiting', at);
-      setCls(D.choice.sec, 'lit', Y >= D.choice.cy - 2 || P.answer != null && P.starts[P.trunk.length] != null);
-      if (at) focusY = D.choice.cy - 30;
-    }
+    D.choices.forEach((C) => {
+      const at = C === waitAt;
+      setCls(C.sec, 'waiting', at);
+      setCls(C.sec, 'lit', Y >= C.cy - 2 || (P.path[C.depth] != null && P.starts[C.b] != null));
+      if (at) focusY = C.cy - 30;
+    });
     const arrived = s.mode === 'done' && Y >= D.end.cy - 2;
     setCls(D.end.end, 'lit', arrived);
     setCls(D.end.btn, 'ready', arrived || (s.mode === 'run' && P.end != null && P.end - t < 5));
@@ -923,7 +949,8 @@
     const s = state();
     if (s.mode === 'choice') {
       // The answers are on the wire: bring them into view.
-      if (P.dom && P.dom.choice) { P.touched = 0; P.scrolling = 0; follow(P.dom.choice.cy - 30); P.dom.choice.sec.classList.remove('nudge'); void P.dom.choice.sec.offsetWidth; P.dom.choice.sec.classList.add('nudge'); }
+      const C = P.dom && P.dom.choices.find((x) => x.depth === choiceDepth());
+      if (C) { P.touched = 0; P.scrolling = 0; follow(C.cy - 30); C.sec.classList.remove('nudge'); void C.sec.offsetWidth; C.sec.classList.add('nudge'); }
       return;
     }
     if (s.mode === 'done') { if (P.ch + 1 < P.rec.story.chapters.length) openChapter(P.ch + 1, !!settings.autoNext); return; }

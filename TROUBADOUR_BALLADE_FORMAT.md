@@ -97,18 +97,24 @@ A **card**:
 | `fadeIn`, `fadeOut` | number | Seconds, 0 for none. |
 | `volume` | number | 0 to 1. |
 
-A chapter may end on a **choice** (drawn in silver): `chapters[].choice` holds a `question` and 2 to 3 `answers`, each `{ "label", "steps" }`. The chapter's own `steps` play first; when they end, the wire stops at the silver gate and asks the question. Picking an answer plays that answer's `steps` (the first one is always a gate), which end the chapter. Ways do not join again.
+A chapter may end on a **choice** (drawn in silver): `chapters[].choice` holds a `question` and 2 to 12 `answers`, each `{ "label", "steps" }`. The chapter's own `steps` play first; when they end, the wire stops at the silver gate and asks the question. Picking an answer plays that answer's `steps` (the first one is always a gate). An answer may end on a **choice of its own** (`answers[].choice`, same shape), and so on, up to 24 choices deep: choices nest as deep as the story needs. A way that ends with no choice ends the chapter. Ways do not join again.
 
 ```json
-"choice": { "question": "Did the boy survive?",
-  "answers": [ { "label": "Yes", "steps": [ ... ] }, { "label": "No", "steps": [ ... ] } ] }
+"choice": { "question": "Do they open the crypt?",
+  "answers": [
+    { "label": "Yes", "steps": [ ... ],
+      "choice": { "question": "Fight or flee?",
+        "answers": [ { "label": "Fight", "steps": [ ... ] }, { "label": "Flee", "steps": [] } ] } },
+    { "label": "No", "steps": [ ... ] } ] }
 ```
+
+In the player, only the ways picked are drawn, one after the other on the spine, each choice in silver where it is asked. A choice already passed shows the answer picked; while its way has not started yet, another answer can still be picked (what was picked after it is forgotten). Picking an answer works like a gate: whatever still plays fades out.
 
 Unknown fields must be kept when a tool re-saves a file.
 
 ## Playing
 
-In the player, time flows down: inside a run (a gate and the steps that follow it on their own) the run has one speed (about 420 px for the whole run, 2 to 36 px per second), each card sits at the height where it starts and is exactly as tall as it lasts at that speed (only a sound under a second or so keeps a readable minimum), so sounds that overlap stand side by side, sized alike. The time line, the gold on the cards and their progress bars move together at that speed. Like the app icon, the wire is drawn with straight lines and round corners only: one spine runs through every gate down to Next chapter, under each gate a bus leaves it and turns down into one rail per lane, each card's left edge is its lane's wire and its frame keeps round corners at all times, and the gold comes down both sides of the card as the sound plays, level with its progress bar, closing its bottom edge when the sound ends. Each card has a start button, to start it by hand ahead of the wire; once the wire has reached it, or left its run behind, the button is gone. A card started by hand is greyed out once it has played.
+In the player, time flows down: inside a run (a gate and the steps that follow it on their own) the run has one speed (about 420 px for the whole run, 2 to 36 px per second), each card sits at the height where it starts and is exactly as tall as it lasts at that speed (only a sound under a second or so keeps a readable minimum), so sounds that overlap stand side by side, sized alike. The time line, the gold on the cards and their progress bars move together at that speed. One spine runs down the left through every gate and every choice to Next chapter. A sound hangs on the right of its wire like a flag: its outline leaves the wire in a soft S, runs down its right side and comes back into the wire in an S, while the wire goes on straight through it. The first lane hangs on the spine; each further lane is a rail that leaves the lane before it in an S under the gate, a stair lower. The gold flows down the wire and round each card as the sound plays. Each card has a start button, to start it by hand ahead of the wire; once the wire has reached it, or left its run behind, the button is gone. A card started by hand is greyed out once it has played.
 
 A chapter opens on its first gate. Tapping a gate fades out the sounds of the run before it (its pending sounds are called off): loops and random cards that `hold` stop there, and so does anything else still playing. Picking an answer of a choice does the same. A step that follows on its own never cuts a sound: whatever plays carries on under it. Starting a step starts each of its cards after its `offset`; when the step ends (`next`, or its last card), the following step starts on its own, unless it is a gate, where the wire waits. After the last step, the wire waits for **Next chapter**. Tapping a step's node jumps the wire there; tapping a playing card fades it out.
 

@@ -12,12 +12,12 @@
   const ZCOL = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
   const ZNAME = { music: 'Music', ambience: 'Ambiances', events: 'Events', soundbox: 'Soundbox' };
 
-  const E = { rec: null, ch: 0, way: null, sel: null, tab: 'chapter', buffers: new Map(), blobs: null, preview: null, onLeave: null, onPlay: null, saveT: 0 };
+  const E = { rec: null, ch: 0, path: [], sel: null, tab: 'chapter', buffers: new Map(), blobs: null, preview: null, onLeave: null, onPlay: null, saveT: 0 };
 
   async function open(rec, opts = {}) {
     E.rec = rec;
     E.ch = Math.min(opts.chapter || 0, rec.story.chapters.length - 1);
-    E.way = null;
+    E.path = [];
     E.sel = null;
     E.onLeave = opts.onLeave; E.onPlay = opts.onPlay;
     E.blobs = await global.FlowDB.filesOf(rec);
@@ -29,13 +29,24 @@
   function close() { closeHelp(); stopPreview(); flush(); E.rec = null; E.buffers.clear(); E.blobs = null; }
 
   const chapter = () => E.rec.flow.chapters[E.ch];
-  const choice = () => { const c = chapter().choice; return c && Array.isArray(c.answers) && c.answers.length ? c : null; };
-  /** The steps being edited: the chapter's trunk, or one way of its choice (E.way). */
-  const steps = () => {
-    const c = choice();
-    if (c && E.way != null && c.answers[E.way]) { c.answers[E.way].steps = c.answers[E.way].steps || []; return c.answers[E.way].steps; }
-    return chapter().steps;
-  };
+  const validC = (c) => (c && Array.isArray(c.answers) && c.answers.length ? c : null);
+  /** The list of steps a path leads to: the chapter itself ([]), or a way, found by its answers from the top. */
+  function holderAt(path) {
+    let h = chapter();
+    for (const k of path) { const c = validC(h.choice); if (!c || !c.answers[k]) return null; h = c.answers[k]; }
+    return h;
+  }
+  /** What is being edited (E.path): the chapter's start, or a way, however deep. */
+  const holder = () => { const h = holderAt(E.path); if (h) return h; E.path = []; return chapter(); };
+  /** The choice at the end of the list being edited. */
+  const choice = () => validC(holder().choice);
+  /** The choice the way being edited comes from, and its answer. */
+  const parentChoice = () => (E.path.length ? validC(holderAt(E.path.slice(0, -1)).choice) : null);
+  const wayLabel = (a, k) => (a && a.label) || `Way ${k + 1}`;
+  const steps = () => { const h = holder(); h.steps = h.steps || []; return h.steps; };
+  const samePath = (p, q) => p.length === q.length && p.every((v, i) => v === q[i]);
+  /** Opens a list of steps in the cascade. */
+  function goTo(path) { E.path = path; E.sel = null; closeHelp(); stopPreview(); renderAll(); $('#fe-main').scrollTop = 0; }
 
   /* ---------- Saving ---------- */
   function changed(redraw = true) {
@@ -129,7 +140,12 @@
       <p>The chapter can end on a question for the table, with two or three answers. It is a <b>silver gate</b>.</p>
       <p>The steps <b>before the choice</b> play first. Then the wire stops and shows the answers. You tap the one your players picked: its <b>way</b>, a list of steps of its own, plays and ends the chapter.</p>
       <p>Picking an answer works like a gate: everything still playing fades out, and the first step of the way starts. Ways never join again.</p>
-      <p>Edit a way with the tabs at the top of the chapter.</p>`],
+      <p>A way can end on a choice of its own, and its answers on choices of theirs, as deep as your story goes.</p>
+      <p>To edit a way, use its button under the question, or the map of ways on the left.</p>`],
+    ways: ['The ways of a chapter', `
+      <p>Every list of steps of the chapter, as a tree. <b>Chapter start</b> is the list that plays first. Under each <span class="fe-pop-fork">question</span> come its answers, each with its own steps, and maybe a question of its own.</p>
+      <p>Click a line to open it in the cascade. The number is how many steps it holds. The ways that lead to the one open are marked in silver.</p>
+      <p>At the table, only the ways actually picked are drawn on the wire, one after the other.</p>`],
   };
   let pop = null;
   function closeHelp() { if (pop) { pop.remove(); pop = null; } }
@@ -216,7 +232,7 @@
   function sceneEnd(st, i) {
     const g = gateAfter(st, i);
     if (g >= 0) return `you tap the gate of ${stepName(st, g)}`;
-    if (E.way == null && choice()) return 'you pick an answer of the choice';
+    if (choice()) return 'you pick an answer of the choice';
     return 'you leave the chapter';
   }
   /** Sounds of the scene still playing when step i hands over to the next one. */
@@ -279,7 +295,7 @@
       const sceneLen = offs[last] + F.stepLength(st[last]);
       if (end > sceneLen + 0.05) {
         const gA = gateAfter(st, last);
-        const how = gA >= 0 ? `you tap the gate of ${stepName(st, gA)}` : E.way == null && choice() ? 'you pick an answer of the choice' : 'you leave the chapter';
+        const how = gA >= 0 ? `you tap the gate of ${stepName(st, gA)}` : choice() ? 'you pick an answer of the choice' : 'you leave the chapter';
         parts.push(`If ${how} before then, it fades out early.`);
       }
     }
@@ -299,9 +315,11 @@
       b.setAttribute('aria-current', String(i === E.ch));
       const n = F.allSteps(E.rec.flow.chapters[i]).length;
       b.append(el('span', 'n', String(i + 1)), el('span', 't', c.title || `Chapter ${i + 1}`), el('small', 'fe-count', `${n} step${n === 1 ? '' : 's'}`));
-      b.addEventListener('click', () => { E.ch = i; E.way = null; E.sel = null; stopPreview(); closeHelp(); renderAll(); $('#fe-main').scrollTop = 0; });
+      b.addEventListener('click', () => { E.ch = i; E.path = []; E.sel = null; stopPreview(); closeHelp(); renderAll(); $('#fe-main').scrollTop = 0; });
       nav.append(b);
     });
+    const tree = waysTree();
+    if (tree) nav.append(tree);
     const tools = el('div', 'fe-tools');
     const reset = el('button', 'btn small', 'Rebuild this chapter');
     reset.type = 'button';
@@ -310,7 +328,7 @@
       const ok = await ask('Rebuild this chapter?', 'Its steps, and its choice, are replaced by a first Ballade made from its sounds: music and ambiances together, then every other sound behind its own gate.', [{ label: 'Cancel', value: false }, { label: 'Rebuild', value: true, cls: 'primary' }]);
       if (!ok) return;
       E.rec.flow.chapters[E.ch] = F.defaultChapter(E.rec.story.chapters[E.ch], E.rec.lengths);
-      E.sel = null; E.way = null;
+      E.sel = null; E.path = [];
       changed();
     });
     tools.append(reset);
@@ -339,37 +357,89 @@
     return g;
   }
 
-  /** The tabs over a chapter that has a choice: the steps before it, and each way. */
-  function waysBar() {
-    const c = choice();
-    if (!c) return null;
-    const bar = el('div', 'fe-ways');
-    const tab = (txt, way, n) => {
-      const b = el('button', `fe-way${E.way === way ? ' on' : ''}${way != null ? ' silver' : ''}`);
+  /** The map of the chapter's ways, in the rail: every list of steps, every choice, as deep as they go. */
+  function waysTree() {
+    if (!validC(chapter().choice)) return null;
+    const box = el('div', 'fe-tree');
+    const h = el('div', 'fe-flabel'); h.append(el('h3', '', 'Ways of this chapter'), help('ways'));
+    box.append(h);
+    const walk = (hold, path) => {
+      const n = (hold.steps || []).length;
+      const on = samePath(path, E.path);
+      const trail = !on && path.length < E.path.length && samePath(path, E.path.slice(0, path.length));
+      const row = el('button', `fe-tnode${on ? ' on' : trail ? ' trail' : ''}${path.length ? ' way' : ''}`);
+      row.type = 'button';
+      row.style.setProperty('--depth', String(path.length));
+      const pc = path.length ? validC(holderAt(path.slice(0, -1)).choice) : null;
+      row.append(el('span', 't', path.length ? wayLabel(pc.answers[path[path.length - 1]], path[path.length - 1]) : 'Chapter start'), el('small', '', `${n}`));
+      row.title = `${n} step${n === 1 ? '' : 's'}`;
+      row.addEventListener('click', () => goTo(path));
+      box.append(row);
+      const c = validC(hold.choice);
+      if (!c) return;
+      const q = el('div', 'fe-tq');
+      q.style.setProperty('--depth', String(path.length));
+      q.innerHTML = ICON.fork;
+      q.append(el('span', '', c.question || 'A choice'));
+      box.append(q);
+      c.answers.forEach((a, k) => walk(a, path.concat(k)));
+    };
+    walk(chapter(), []);
+    return box;
+  }
+
+  /** Over the cascade, when a way is open: the path that leads to it, and the other answers of its choice. */
+  function navBar() {
+    if (!E.path.length) return null;
+    const bar = el('div', 'fe-crumbs');
+    const crumb = (txt, path, q) => {
+      const b = el('button', `fe-crumb${samePath(path, E.path) ? ' on' : ''}`);
       b.type = 'button';
-      b.append(el('span', '', txt), el('small', '', `${n} step${n === 1 ? '' : 's'}`));
-      b.addEventListener('click', () => { E.way = way; E.sel = null; closeHelp(); renderSteps(); renderInspector(); renderSounds(); $('#fe-main').scrollTop = 0; });
+      if (q) b.append(el('small', '', q));
+      b.append(el('span', '', txt));
+      b.addEventListener('click', () => goTo(path));
       return b;
     };
-    bar.append(tab('Before the choice', null, (chapter().steps || []).length));
-    const fork = el('span', 'fe-fork'); fork.innerHTML = ICON.fork;
-    bar.append(fork);
-    c.answers.forEach((a, k) => bar.append(tab(a.label || `Way ${k + 1}`, k, (a.steps || []).length)));
-    bar.append(help('choice'));
-    return bar;
+    bar.append(crumb('Chapter start', []));
+    E.path.forEach((k, d) => {
+      const c = validC(holderAt(E.path.slice(0, d)).choice);
+      const sep = el('span', 'fe-sep'); sep.innerHTML = ICON.fork;
+      bar.append(sep, crumb(wayLabel(c.answers[k], k), E.path.slice(0, d + 1), c.question || 'Choice'));
+    });
+    const box = el('div', 'fe-nav');
+    box.append(bar);
+    const pc = parentChoice();
+    if (pc && pc.answers.length > 1) {
+      const sib = el('div', 'fe-sibs');
+      sib.append(el('span', 'muted small', 'Other answers:'));
+      const up = E.path.slice(0, -1);
+      pc.answers.forEach((a, k) => {
+        if (k === E.path[E.path.length - 1]) return;
+        const b = el('button', 'fe-way silver'); b.type = 'button';
+        const n = (a.steps || []).length;
+        b.append(el('span', '', wayLabel(a, k)), el('small', '', `${n} step${n === 1 ? '' : 's'}${validC(a.choice) ? ', then a choice' : ''}`));
+        b.addEventListener('click', () => goTo(up.concat(k)));
+        sib.append(b);
+      });
+      box.append(sib);
+    }
+    return box;
   }
 
   /** The node above the first step: what starts the list. */
   function startNode() {
-    const c = choice();
-    const box = el('div', `fe-start${E.way != null ? ' silver' : ''}`);
+    const pc = parentChoice();
+    const box = el('div', `fe-start${pc ? ' silver' : ''}`);
     const node = el('span', 'fe-node');
-    node.innerHTML = E.way != null ? ICON.fork : ICON.go;
+    node.innerHTML = pc ? ICON.fork : ICON.go;
     const txt = el('div', 'fe-start-t');
-    if (E.way != null) {
-      const a = c.answers[E.way];
-      txt.append(el('b', '', `Starts when you pick "${a.label || `Way ${E.way + 1}`}"`));
+    if (pc) {
+      const k = E.path[E.path.length - 1];
+      txt.append(el('b', '', `Starts when you pick "${wayLabel(pc.answers[k], k)}"${pc.question ? `, to "${pc.question}"` : ''}`));
       txt.append(el('span', 'muted small', 'Like a gate: everything still playing before the choice fades out, then the first step of this way starts.'));
+      const up = el('button', 'btn small fe-up', 'Back to the steps before this choice'); up.type = 'button';
+      up.addEventListener('click', () => goTo(E.path.slice(0, -1)));
+      txt.append(up);
     } else {
       txt.append(el('b', '', 'Starts when you tap Play'));
       txt.append(el('span', 'muted small', 'The first step always waits for you.'));
@@ -434,7 +504,7 @@
     const last = st.length - 1;
     const { live } = last >= 0 ? liveAfter(st, last) : { live: [] };
     const names = list(live.map((x) => q(x.c)));
-    if (E.way == null && c) {
+    if (c) {
       box.classList.add('silver');
       const node = el('span', 'fe-node'); node.innerHTML = ICON.fork;
       const body = el('div', 'fe-link-b');
@@ -445,11 +515,12 @@
       qi.value = c.question || ''; qi.placeholder = 'The question, e.g. Do they open the crypt?'; qi.maxLength = 140;
       qi.setAttribute('aria-label', 'Question of the choice');
       qi.addEventListener('input', () => { c.question = qi.value; changed(false); });
+      qi.addEventListener('change', () => renderChapters());
       const del = el('button', 'ico small'); del.type = 'button'; del.innerHTML = ICON.trash; del.title = 'Remove the choice and its ways';
       del.addEventListener('click', async () => {
         const ok = await ask('Remove this choice?', 'Its question and every way after it leave the chapter, with their steps.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
         if (!ok) return;
-        delete chapter().choice; E.way = null; E.sel = null; changed();
+        delete holder().choice; E.sel = null; changed();
       });
       qrow.append(qi, del);
       const answers = el('div', 'fe-answers');
@@ -458,11 +529,12 @@
         const name = el('input', 'fe-alabel'); name.value = a.label || ''; name.maxLength = 40; name.placeholder = `Answer ${k + 1}`;
         name.setAttribute('aria-label', `Answer ${k + 1}`);
         name.addEventListener('input', () => { a.label = name.value; changed(false); });
-        name.addEventListener('change', () => { renderSteps(); });
+        name.addEventListener('change', () => { renderSteps(); renderChapters(); });
         const n = (a.steps || []).length;
-        const go = el('button', 'btn small fe-silver', n ? `Edit its ${n} step${n === 1 ? '' : 's'}` : 'Add its steps');
+        const sub = validC(a.choice);
+        const go = el('button', 'btn small fe-silver', `${n ? `Edit its ${n} step${n === 1 ? '' : 's'}` : 'Add its steps'}${sub ? ' and its choice' : ''}`);
         go.type = 'button';
-        go.addEventListener('click', () => { E.way = k; E.sel = null; closeHelp(); renderSteps(); renderInspector(); renderSounds(); $('#fe-main').scrollTop = 0; });
+        go.addEventListener('click', () => goTo(E.path.concat(k)));
         row.append(name, go);
         if (c.answers.length > 2) {
           const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.title = 'Remove this answer and its way';
@@ -484,18 +556,18 @@
     }
     const node = el('span', 'fe-node'); node.innerHTML = ICON.stop;
     const body = el('div', 'fe-link-b');
-    body.append(el('span', 'fe-link-q', E.way != null ? 'End of this way, and of the chapter' : 'End of the chapter'));
+    body.append(el('span', 'fe-link-q', E.path.length ? 'End of this way, and of the chapter' : 'End of the chapter'));
     const say = el('p', 'fe-say');
     say.innerHTML = live.length
       ? `Still playing here: ${names}. ${live.some((x) => x.c.hold) ? 'Loops and random sounds go on until you open the next chapter or stop; the others play to their end.' : 'They play to their end.'}`
       : 'Every sound has ended by then. At the table, Next chapter lights up.';
     body.append(say);
-    if (E.way == null && st.length) {
+    {
       const add = el('button', 'btn small fe-silver', 'Add a choice here');
       add.type = 'button';
       add.title = 'A silver gate with a question: each answer leads to its own end of the chapter';
       add.addEventListener('click', () => {
-        chapter().choice = { question: '', answers: [{ label: 'Yes', steps: [] }, { label: 'No', steps: [] }] };
+        holder().choice = { question: '', answers: [{ label: 'Yes', steps: [] }, { label: 'No', steps: [] }] };
         E.sel = null; changed();
       });
       const row = el('div', 'fe-row'); row.append(add, help('choice'));
@@ -518,10 +590,10 @@
     const how = el('div', 'fe-how');
     how.append(el('span', 'muted', 'Steps play from top to bottom. Between two steps, you choose how the next one starts.'), help('chapter'));
     head.append(how);
-    const ways = waysBar();
-    if (ways) head.append(ways);
+    const nav = navBar();
+    if (nav) head.append(nav);
     main.append(head);
-    const col = el('div', `fe-cascade${E.way != null ? ' way' : ''}`);
+    const col = el('div', `fe-cascade${E.path.length ? ' way' : ''}`);
     col.append(startNode());
     st.forEach((s, i) => {
       col.append(gap(i));

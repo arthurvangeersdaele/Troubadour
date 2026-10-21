@@ -513,3 +513,56 @@ a.ico { color: var(--text); text-decoration: none; }
 .fe-fate { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px; }
 .fe-fate p { margin: 0; font-size: 14px; line-height: 1.45; }
 .fe-tabs button { padding-left: 6px; padding-right: 6px; white-space: nowrap; }
+
+/* ---------- Sounds as flags on their wire (player) ----------
+ * The card's body is drawn in an SVG under the cards: its left side is the wire, its outline leaves it in an S.
+ * The button above it is only the text and the tap target. */
+.fl-under { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 0; }
+.fl-under path { fill: color-mix(in srgb, var(--z) 7%, var(--card)); transition: fill .3s, opacity .3s; }
+.fl-under path.on { fill: color-mix(in srgb, var(--z) 16%, var(--card)); }
+.fl-under path.done { opacity: .45; }
+.fl-area .fl-card, .fl-area .fl-card.on { background: transparent; box-shadow: none; border-radius: 0; }
+.fl-area .fl-card:not(.short), .fl-area.narrow .fl-card:not(.short) { padding: calc(var(--d, 10px) + 5px) 10px 6px 14px; }
+.fl-area .fl-card.short, .fl-area.narrow .fl-card.short { padding: 2px 8px 2px 16px; }
+.fl-area .fl-card.r:not(.short) { padding-left: 14px; }
+.fl-area .fl-stick { top: calc(var(--d, 10px) + 4px); }
+.fl-area .fl-card .fl-cont { background: none; }
+
+/* The spine runs down the left: gates, choices and Next chapter sit on it, their words to its right. */
+.fl-run .fl-node-row, .fl-nextch, .fl-choice .fl-node-row { padding-left: 0; margin-left: 0; }
+.fl-choice { text-align: left; }
+.fl-answers { justify-content: flex-start; margin: 12px 0 0 58px; }
+.fl-answer { max-width: 100%; }
+.fl-choice.picked .fl-answers { margin-top: 8px; }
+.fl-choice.picked .fl-answer:not(.chosen) { padding: 6px 14px 7px; min-width: 0; }
+.fl-choice.picked .fl-answer:not(.chosen) small { display: none; }
+
+/* ---------- Editor: the ways of a chapter ---------- */
+.fe-tree { display: grid; gap: 2px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.fe-tree h3 { margin: 0; }
+.fe-tree .fe-flabel { margin-bottom: 4px; }
+.fe-tnode { --depth: 0; display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 5px 8px 5px calc(10px + var(--depth) * 14px); cursor: pointer; position: relative; }
+.fe-tnode .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.fe-tnode small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.fe-tnode.way::before { content: ""; position: absolute; box-sizing: border-box; left: calc(var(--depth) * 14px - 6px); top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--silver) 60%, var(--line)); background: var(--bg); }
+.fe-tnode:hover { color: var(--text); background: var(--card); }
+.fe-tnode.trail { color: var(--silver); }
+.fe-tnode.trail::before { background: var(--silver); }
+.fe-tnode.on { color: var(--text); border-color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, var(--card)); }
+.fe-tnode.on::before { border-color: var(--gold); background: var(--gold); }
+.fe-tq { --depth: 0; display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px calc(10px + var(--depth) * 14px); font-size: 12px; font-style: italic; color: var(--silver); }
+.fe-tq svg { flex: none; width: 13px; height: 13px; }
+.fe-tq span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fe-nav { display: grid; gap: 8px; margin: 6px 0 10px; }
+.fe-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.fe-crumb { display: grid; text-align: left; font: inherit; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; cursor: pointer; }
+.fe-crumb small { font-size: 11px; color: var(--silver); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fe-crumb span { font-weight: 600; font-size: 14px; }
+.fe-crumb:hover { color: var(--text); border-color: var(--muted); }
+.fe-crumb.on { color: var(--text); border-color: var(--silver); box-shadow: 0 0 0 1px var(--silver) inset; }
+.fe-sep { color: var(--silver); display: grid; }
+.fe-sep svg { width: 16px; height: 16px; }
+.fe-sibs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fe-up { justify-self: start; margin-top: 6px; }
+.fe-pop-fork { color: var(--silver); font-style: italic; }
+.fl-choice.picked .fl-answer:not(.chosen) { min-width: 80px; }

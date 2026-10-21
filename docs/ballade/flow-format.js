@@ -70,20 +70,37 @@
     return out;
   }
 
-  /** A choice at the end of a chapter: a question and 2 to 3 ways, each with its own steps. */
-  const MAX_ANSWERS = 3;
-  function cleanChoice(c) {
-    if (!c || !Array.isArray(c.answers)) return null;
+  /** A choice at the end of a list of steps: a question and 2 or more ways, each with its own steps,
+   *  and maybe a choice of its own at its end (choices nest as deep as the story needs). */
+  const MAX_ANSWERS = 12;
+  const MAX_DEPTH = 24;
+  function cleanChoice(c, depth = 0) {
+    if (!c || !Array.isArray(c.answers) || depth > MAX_DEPTH) return null;
     const out = Object.assign({}, c);
     out.question = String(c.question || '').slice(0, 140);
-    out.answers = c.answers.slice(0, MAX_ANSWERS).map((a, k) => Object.assign({}, a, { label: String((a && a.label) || `Way ${k + 1}`).slice(0, 40), steps: (a && a.steps) || [] }));
+    out.answers = c.answers.slice(0, MAX_ANSWERS).map((a, k) => {
+      const w = Object.assign({}, a, { label: String((a && a.label) || `Way ${k + 1}`).slice(0, 40), steps: (a && a.steps) || [] });
+      const sub = cleanChoice(a && a.choice, depth + 1);
+      if (sub) w.choice = sub; else delete w.choice;
+      return w;
+    });
     return out.answers.length >= 2 ? out : null;
   }
-  /** Every step of a chapter: its trunk, then every way of its choice. */
-  function allSteps(ch) {
-    const out = (ch.steps || []).slice();
-    if (ch.choice && Array.isArray(ch.choice.answers)) ch.choice.answers.forEach((a) => (a.steps || []).forEach((s) => out.push(s)));
+  /** Every list of steps of a chapter (its trunk and every way, however deep), each with the way that leads to it:
+   *  { steps, path (answer indices from the chapter's choice down), holder (the object that owns `steps` and `choice`) }. */
+  function allLists(ch) {
+    const out = [];
+    const walk = (holder, path) => {
+      out.push({ steps: holder.steps || [], path, holder });
+      const c = holder.choice;
+      if (c && Array.isArray(c.answers) && path.length <= MAX_DEPTH) c.answers.forEach((a, k) => walk(a, path.concat(k)));
+    };
+    walk(ch, []);
     return out;
+  }
+  /** Every step of a chapter: its trunk, then every way of every choice. */
+  function allSteps(ch) {
+    return allLists(ch).flatMap((l) => l.steps);
   }
 
   /** The step's own length: until `next` if set, else until its last card ends. Cards that hold until the
@@ -167,7 +184,8 @@
       ch.steps = clean(fc.steps);
       if (ch.steps[0]) ch.steps[0].gate = true;
       const choice = cleanChoice(fc.choice);
-      if (choice) { choice.answers.forEach((a) => { a.steps = clean(a.steps); if (a.steps[0]) a.steps[0].gate = true; }); ch.choice = choice; } else delete ch.choice;
+      const ways = (c) => c.answers.forEach((a) => { a.steps = clean(a.steps); if (a.steps[0]) a.steps[0].gate = true; if (a.choice) ways(a.choice); });
+      if (choice) { ways(choice); ch.choice = choice; } else delete ch.choice;
       return ch;
     });
     return out;
@@ -250,7 +268,7 @@
   }
 
   global.TroubadourBallade = {
-    MAX_ANSWERS, cleanChoice, allSteps, PLAYS, playOf, holds, card,
+    MAX_ANSWERS, cleanChoice, allSteps, allLists, PLAYS, playOf, holds, card,
     FLOW_VERSION, LANES, ZONES, soundsOf, cleanCard, cleanStep, stepLength, runOffsets,
     defaultFlow, defaultChapter, normalize, read, pack, packTroubadour, yymmdd, clock,
   };
