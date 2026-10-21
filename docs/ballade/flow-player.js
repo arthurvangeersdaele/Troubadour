@@ -418,11 +418,11 @@
   /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
   const splitOf = (dx) => Math.round(Math.min(190, 40 + dx * 0.75));
   const padOf = (lanes, col) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(col * (lanes - 1)) + 12) : PAD);
-  const RUN_PX = 420;   // a run is drawn about this tall...
+  const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
   const SILENT_PX = 26; // a silence is drawn no longer than this
-  const MIN_PX = 30;    // a sound shorter than that still shows its name
+  const MIN_PX = 50;    // a sound shorter than that still shows its name
 
   function runsOf(steps) {
     const runs = [];
@@ -502,7 +502,7 @@
    * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
    * liquid: no seams between pieces, no glow doubled where two strokes meet. */
   const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
-  const SLOPE = 28;    // a card's outline leaves its wire over at most this height
+  const SLOPE = 42;    // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
     const box = $('#fl-cascade');
@@ -530,7 +530,7 @@
       placeForks(run.gate);
       const lastRun = r === runs.length - 1;
       let L = layoutRun(run, P.offsets, lastRun);
-      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 62); if (L1.lanes === 1) L = L1; }
+      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 84); if (L1.lanes === 1) L = L1; }
       const sec = el('section', `fl-run${run.gate >= wayFrom ? ' way' : ''}`);
       const g = P.steps[run.gate];
       const row = el('div', 'fl-node-row');
@@ -564,7 +564,8 @@
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        const d = Math.round(Math.min(SLOPE, ch * 0.26));
+        // The lean stays slight: never steeper than about 1 down for 3 across, however narrow the card.
+        const d = Math.round(Math.min(SLOPE, ch * 0.3, Math.min(pl.w * 0.82, 240) * 0.3));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
@@ -686,12 +687,13 @@
   function flag(f, x0, y, w, h, d, close) {
     // It leaves the wire along it, like a split of the logo: straight down, a slow lean, then flat along its top.
     const r = Math.max(2, Math.min(18, (h - 2 * d) / 2, w / 5));
-    const sx = Math.min(w * 0.55, 120);
+    // A long, gentle lean: across most of the card's width.
+    const sx = Math.min(w * 0.82, 240);
     const k = 0.5523;
-    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.55)} ${f(x0 + sx * 0.45)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
+    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.3)} ${f(x0 + sx * 0.5)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
       + `H${f(x0 + w - r)}C${f(x0 + w - r + k * r)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r - k * r)} ${f(x0 + w)} ${f(y + d + r)}`
       + `V${f(y + h - d - r)}C${f(x0 + w)} ${f(y + h - d - r + k * r)} ${f(x0 + w - r + k * r)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}`
-      + `H${f(x0 + sx)}C${f(x0 + sx * 0.45)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.45)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
+      + `H${f(x0 + sx)}C${f(x0 + sx * 0.5)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.3)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
