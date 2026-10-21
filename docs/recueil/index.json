@@ -1,6 +1,86 @@
 {
- "updated": "2026-10-21T16:19:36Z",
+ "updated": "2026-10-21T16:22:02Z",
  "tales": [
+  {
+   "file": "261015_ai_year_2100.troubadour",
+   "title": "AI Year 2100",
+   "id": "c94060fe-2202-5e35-a0be-4e4a7026db76",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "2100. Neo-Lyon is run by HALCYON, the city's AI. When it starts deleting people from the records, a crew of runners goes into the machine. Cyberpunk in four chapters. Sounds from Zero-K, Colobot: Gold Edition, Pioneer Space Simulator, Red Eclipse, /tg/station 13, OpenSFX (OpenTTD), Mindustry, Hypersomnia, Stendhal and Cataclysm: DDA CC-Sounds (see the Troubadour sound credits).",
+   "chapters": [
+    "Neo-Lyon, 2100",
+    "The Data Center",
+    "HALCYON Awakens",
+    "The Robot Uprising"
+   ],
+   "sounds": 56,
+   "size": 45154252
+  },
+  {
+   "file": "261015_le_camping_rondin_des_bois.troubadour",
+   "title": "Le Camping Rondin des Bois",
+   "id": "84f98f43-80cf-5b84-9fa2-f066bfe1b5d3",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "August at the Rondin des Bois campsite, by a lake in the Ardennes forest. Barbecues, swims and siestas, but every night something raids the tents. A summer mystery in four chapters. Sounds from Stendhal, 0 A.D., Battle for Wesnoth, Cataclysm: DDA CC-Sounds, Red Eclipse, OpenClonk, /tg/station 13, Flare and Hypersomnia (see the Troubadour sound credits).",
+   "chapters": [
+    "Arrival at the Campsite",
+    "The Lake and the Woods",
+    "Around the Campfire",
+    "The Night of the Storm"
+   ],
+   "sounds": 56,
+   "size": 35166798
+  },
+  {
+   "file": "261015_railway_in_the_southwest.troubadour",
+   "title": "Railway in the Southwest",
+   "id": "74b43c77-5d79-5b18-bd42-cbfd7e6c9eb9",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "1878, New Mexico Territory. The heroes guard a gold shipment on the Santa Fe line while the Vargas gang waits in the canyons. A western in four chapters. Sounds from FreeCol, 0 A.D., Red Eclipse, OpenSFX (OpenTTD), OpenRCT2 OpenMusic, Stendhal, OpenRCT2 OpenSoundEffects, Flare, /tg/station 13, OpenClonk, Cataclysm: DDA CC-Sounds, Hypersomnia and Battle for Wesnoth (see the Troubadour sound credits).",
+   "chapters": [
+    "Dust Creek Station",
+    "Riding the Santa Fe Line",
+    "The Canyon Robbery",
+    "Showdown at Sundown"
+   ],
+   "sounds": 56,
+   "size": 36631931
+  },
+  {
+   "file": "261015_seaside_story.troubadour",
+   "title": "Seaside Story",
+   "id": "e974e6a8-5a75-57af-88c9-d61d993a5b68",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "Summer in the fishing village of Port-Lumière: a message in a bottle, a lighthouse gone dark and smugglers in the sea caves. A gentle coastal adventure in four chapters. Sounds from Unknown Horizons, 0 A.D., /tg/station 13, OpenSFX (OpenTTD), Stendhal, OpenClonk, Pioneer Space Simulator, Red Eclipse, Flare, Battle for Wesnoth, Cataclysm: DDA CC-Sounds, Hypersomnia and OpenRCT2 OpenSoundEffects (see the Troubadour sound credits).",
+   "chapters": [
+    "Morning at the Harbour",
+    "The Beach and the Lighthouse",
+    "Storm at Sea",
+    "The Smugglers' Cove"
+   ],
+   "sounds": 56,
+   "size": 47956439
+  },
+  {
+   "file": "261015_space_odyssey.troubadour",
+   "title": "Space Odyssey",
+   "id": "82a3737e-827b-53fa-9691-82cdfc9eeea0",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "2061. The deep space ship Odyssey answers a signal from the edge of the solar system: a black monolith orbiting a dead moon. Hard science fiction in four chapters. Sounds from Pioneer Space Simulator, /tg/station 13, OpenRCT2 OpenSoundEffects, Red Eclipse, Hypersomnia, Endless Sky and OpenSFX (OpenTTD) (see the Troubadour sound credits).",
+   "chapters": [
+    "Leaving Tycho Station",
+    "The Long Voyage",
+    "The Derelict",
+    "Beyond the Monolith"
+   ],
+   "sounds": 56,
+   "size": 36857083
+  },
   {
    "file": "261015_the_1950_asylum.troubadour",
    "title": "The 1950 Asylum",
@@ -32,6 +112,22 @@
    ],
    "sounds": 56,
    "size": 30215447
+  },
+  {
+   "file": "261015_the_heist.troubadour",
+   "title": "The Heist (le casse du siècle)",
+   "id": "a17e42cc-0bc2-570c-9aa7-7bbf4bc1ad88",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "Paris, one rainy night. A crew of specialists, the vault of the Banque Lavalière and one chance at the heist of the century. A modern caper in four chapters. Sounds from OpenClonk, Pioneer Space Simulator, /tg/station 13, Red Eclipse, Cataclysm: DDA CC-Sounds, Hypersomnia, Stendhal, Flare, Zero-K, Mindustry and OpenSFX (OpenTTD) (see the Troubadour sound credits).",
+   "chapters": [
+    "The Plan",
+    "Infiltration",
+    "The Vault",
+    "The Getaway"
+   ],
+   "sounds": 56,
+   "size": 33736105
   },
   {
    "file": "werewolf.troubadour",
