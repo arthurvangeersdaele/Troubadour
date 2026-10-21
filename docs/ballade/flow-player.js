@@ -417,7 +417,7 @@
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
   /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
   const splitOf = (dx) => Math.round(Math.min(190, 40 + dx * 0.75));
-  const padOf = (lanes, col) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(col * (lanes - 1)) + 12) : PAD);
+  const padOf = (lanes, step) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(step * Math.ceil((lanes - 1) / 2)) + 12) : PAD);
   const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
@@ -501,7 +501,6 @@
    * goes on straight through it. The first lane hangs on the spine itself; every other lane is a rail that
    * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
    * liquid: no seams between pieces, no glow doubled where two strokes meet. */
-  const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
   const SLOPE = 190;   // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
@@ -548,15 +547,18 @@
       sec.append(row);
 
       const area = el('div', 'fl-area');
-      // Lanes side by side, left to right: the first on the spine, the others on their rails. A rail leans
-      // across to its lane over a height that grows with the way it travels, so the curve stays soft.
-      const col = (width - SPINE - 2) / L.lanes;
-      const pad = padOf(L.lanes, col);
+      // Symmetric, like the logo: the spine runs down the middle, the first lane on it, the next ones take turns
+      // right and left of it. Every sound is a quarter of the screen wide (less only if the lanes would not fit).
+      const X = width / 2;
+      const gap = 10;
+      const m = Math.ceil((L.lanes - 1) / 2);
+      const cw = Math.floor(Math.min(width / 4, (width / 2 - 2 - m * gap) / (m + 0.5)));
+      const step = cw + gap;
+      const pad = padOf(L.lanes, step);
       const H = L.height + pad + 9;
       area.style.height = `${H}px`;
-      const narrow = col < 118;
-      const gap = narrow ? 8 : 12;
-      const place = (l) => { const rail = SPINE + l * col; return { rail, left: rail, w: col - (l === L.lanes - 1 ? 2 : gap) }; };
+      const narrow = cw < 118;
+      const place = (l) => { const rail = X + (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2) * step); return { rail, left: rail - cw / 2, w: cw }; };
       if (narrow) area.classList.add('narrow');
       const cards = [];
       L.items.forEach((x) => {
@@ -564,13 +566,13 @@
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        // The card swells out of its wire like the logo's split, over a long height (about twice its width,
-        // at most a third of the card), and melts back into it the same way at its bottom.
+        // The wire splits round the sound like the logo: both sides lean out over a long height (about four
+        // times their own width, at most a third of the card), and meet again the same way at its bottom.
         const d = Math.round(Math.max(10, Math.min(ch * 0.34, pl.w * 2, SLOPE)));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
-        const card = el('button', `fl-card r${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
+        const card = el('button', `fl-card c${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
         card.type = 'button';
         // Its words start where the card is nearly full width.
         card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px`;
@@ -613,7 +615,8 @@
         d.type = 'button';
         const y = L.y(P.offsets[i]) + pad;
         d.style.top = `${y}px`;
-        d.style.left = `${SPINE}px`;
+        const over = cards.find((k) => k.lane === 0 && y > k.top && y < k.top + k.ch);
+        d.style.left = `${over ? over.left : X}px`;
         d.title = stepLabel(P.steps[i], i);
         d.setAttribute('aria-label', `Jump to ${stepLabel(P.steps[i], i)}`);
         d.addEventListener('click', () => go(i));
@@ -625,7 +628,7 @@
       area.append(head);
       sec.append(area);
       box.append(sec);
-      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
+      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X, top: 0, cy: 0 });
     });
     placeForks(Infinity);
     const end = el('div', 'fl-end');
@@ -686,11 +689,15 @@
 
   /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
    *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
-  function flag(f, x0, y, w, h, d, close) {
-    // Out of the wire like the logo's split: straight down along it, a long lean, then straight down at full
-    // width; at the bottom, the same lean back into the wire. No corner anywhere.
-    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.42)} ${f(x0 + w)} ${f(y + d * 0.45)} ${f(x0 + w)} ${f(y + d)}`
-      + `V${f(y + h - d)}C${f(x0 + w)} ${f(y + h - d * 0.45)} ${f(x0)} ${f(y + h - d * 0.42)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
+  function flag(f, xc, y, w, h, d, close) {
+    // The wire splits round the sound: each side straight down along it, a long lean out, straight down at the
+    // card's edge, then the same lean back in. Open, it is the two sides; closed, the body between them.
+    const side = (hw) => `C${f(xc)} ${f(y + d * 0.42)} ${f(xc + hw)} ${f(y + d * 0.45)} ${f(xc + hw)} ${f(y + d)}`
+      + `V${f(y + h - d)}C${f(xc + hw)} ${f(y + h - d * 0.45)} ${f(xc)} ${f(y + h - d * 0.42)} ${f(xc)} ${f(y + h)}`;
+    const hw = w / 2;
+    if (!close) return `M${f(xc)} ${f(y)}${side(hw)}M${f(xc)} ${f(y)}${side(-hw)}`;
+    return `M${f(xc)} ${f(y)}${side(hw)}C${f(xc)} ${f(y + h - d * 0.42)} ${f(xc - hw)} ${f(y + h - d * 0.45)} ${f(xc - hw)} ${f(y + h - d)}`
+      + `V${f(y + d)}C${f(xc - hw)} ${f(y + d * 0.45)} ${f(xc)} ${f(y + d * 0.42)} ${f(xc)} ${f(y)}Z`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
@@ -714,18 +721,27 @@
       D.dots.forEach((o) => { if (o.run === D.runs.indexOf(R)) o.gy = a.y + o.y; });
       // Rails: like the logo, every lane splits from the spine at one point under the gate, each in a long S
       // (straight down, a slow lean across, straight down again), then runs down past its last card.
-      const ends = new Map();
-      R.cards.forEach((c) => { if (c.lane > 0) ends.set(c.lane, { x: a.x + c.rail, y: Math.max((ends.get(c.lane) || { y: 0 }).y, a.y + c.top + c.ch) }); });
+      // A wire is not drawn through a sound: it splits round it (the sound's outline is the wire there).
+      const holesOf = (lane) => R.cards.filter((c) => c.lane === lane).map((c) => [a.y + c.top, a.y + c.top + c.ch]).sort((p, q) => p[0] - q[0]);
+      const vert = (x, yA, yB, holes) => {
+        let y = yA;
+        let d = '';
+        holes.forEach(([t, bt]) => { if (bt <= y) return; if (t > y) d += `V${f(t)}`; d += `M${f(x)} ${f(bt)}`; y = bt; });
+        if (yB > y) d += `V${f(yB)}`;
+        return d;
+      };
+      R.holes = holesOf(0);
+      const lanes = [...new Set(R.cards.map((c) => c.lane))].filter((l) => l > 0).sort((p, q) => p - q);
       const ys = a.y + 6;
-      [...ends.keys()].sort((p, q) => p - q).forEach((l) => {
-        const x1 = ends.get(l).x;
-        const B = splitOf(x1 - X);
+      lanes.forEach((l) => {
+        const x1 = a.x + R.cards.find((c) => c.lane === l).rail;
+        const B = splitOf(Math.abs(x1 - X));
         const y1 = ys + B;
-        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}V${f(Math.max(y1, ends.get(l).y + 8, a.y + R.total - 4))}`);
+        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}${vert(x1, y1, a.y + R.total - 4, holesOf(l))}`);
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
-        c.gy = y; c.gx = x;
+        c.gy = y; c.gx = a.x + c.left;
         frames.push({ c, d: flag(f, x, y, c.w, c.ch, c.d, false), fill: flag(f, x, y, c.w, c.ch, c.d, true) });
       });
     });
@@ -735,7 +751,12 @@
     if (X == null) X = en.x + en.w / 2;
     // The spine: straight down from the first gate (or choice) to Next chapter, through every gate and choice.
     const y0 = Math.min(D.runs.length ? D.runs[0].cy : Infinity, D.choices.length ? D.choices[0].cy : Infinity);
-    wires.unshift(`M${f(X)} ${f(y0)}V${f(D.end.cy)}`);
+    const spineHoles = D.runs.flatMap((R) => R.holes || []).sort((p, q) => p[0] - q[0]);
+    let sp = `M${f(X)} ${f(y0)}`;
+    let yy = y0;
+    spineHoles.forEach(([t, bt]) => { if (bt <= yy) return; if (t > yy) sp += `V${f(t)}`; sp += `M${f(X)} ${f(bt)}`; yy = bt; });
+    if (D.end.cy > yy) sp += `V${f(D.end.cy)}`;
+    wires.unshift(sp);
     const id = `fl-${P.chapterToken}`;
     const svg = D.svg;
     [svg, D.under].forEach((g) => { g.setAttribute('width', W); g.setAttribute('height', Ht); g.setAttribute('viewBox', `0 0 ${W} ${Ht}`); });

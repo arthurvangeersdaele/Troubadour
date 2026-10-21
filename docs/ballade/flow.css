@@ -529,9 +529,6 @@ a.ico { color: var(--text); text-decoration: none; }
 .fl-area .fl-card .fl-cont { background: none; }
 
 /* The spine runs down the left: gates, choices and Next chapter sit on it, their words to its right. */
-.fl-run .fl-node-row, .fl-nextch, .fl-choice .fl-node-row { padding-left: 0; margin-left: 0; }
-.fl-choice { text-align: left; }
-.fl-answers { justify-content: flex-start; margin: 12px 0 0 58px; }
 .fl-answer { max-width: 100%; }
 .fl-choice.picked .fl-answers { margin-top: 8px; }
 .fl-choice.picked .fl-answer:not(.chosen) { padding: 6px 14px 7px; min-width: 0; }
@@ -566,3 +563,10 @@ a.ico { color: var(--text); text-decoration: none; }
 .fe-up { justify-self: start; margin-top: 6px; }
 .fe-pop-fork { color: var(--silver); font-style: italic; }
 .fl-choice.picked .fl-answer:not(.chosen) { min-width: 80px; }
+
+/* A sound is a quarter of the screen wide, centred on its wire, its words centred too. */
+.fl-area .fl-card.c:not(.short), .fl-area.narrow .fl-card.c:not(.short) { padding: calc(var(--d, 10px) + 4px) 8px 6px; text-align: center; }
+.fl-area .fl-card.c .fl-ch b { text-align: center; }
+.fl-area .fl-card.c .fl-tags { justify-content: center; gap: 6px; }
+.fl-area .fl-card.c.short, .fl-area.narrow .fl-card.c.short { padding: 2px 6px; }
+.fl-area.narrow .fl-card.c .fl-zone { display: none; }
