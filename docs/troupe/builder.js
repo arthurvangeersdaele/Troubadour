@@ -552,7 +552,7 @@
       box.querySelector('[data-close]').onclick = closeVeil;
       return;
     }
-    const box = veil('<h2>Rhythming…</h2><p>Packing your chapters and sounds into one file. Everything happens on this computer.</p><div class="bar"><i></i></div>');
+    const box = veil('<h2>Exporting the story…</h2><p>Packing your chapters and sounds into one file. Everything happens on this computer.</p><div class="bar"><i></i></div>');
     $('#veil').dataset.busy = '1';
     try {
       const out = await pack(state, bard, (f) => { box.querySelector('.bar i').style.width = `${Math.round(f * 100)}%`; });
@@ -563,7 +563,7 @@
       await clearEditor();
       showForged(out);
     } catch (err) {
-      const b = veil('<h2>The rhythm failed</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
+      const b = veil('<h2>The export failed</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
       b.querySelector('.err').textContent = err.message || String(err);
       b.querySelector('[data-close]').onclick = closeVeil;
     }
