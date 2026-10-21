@@ -502,7 +502,7 @@
    * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
    * liquid: no seams between pieces, no glow doubled where two strokes meet. */
   const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
-  const SLOPE = 42;    // a card's outline leaves its wire over at most this height
+  const SLOPE = 190;   // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
     const box = $('#fl-cascade');
@@ -564,14 +564,16 @@
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        // The lean stays slight: never steeper than about 1 down for 3 across, however narrow the card.
-        const d = Math.round(Math.min(SLOPE, ch * 0.3, Math.min(pl.w * 0.82, 240) * 0.3));
+        // The card swells out of its wire like the logo's split, over a long height (about twice its width,
+        // at most a third of the card), and melts back into it the same way at its bottom.
+        const d = Math.round(Math.max(10, Math.min(ch * 0.34, pl.w * 2, SLOPE)));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
         const card = el('button', `fl-card r${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
         card.type = 'button';
-        card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${d}px`;
+        // Its words start where the card is nearly full width.
+        card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px`;
         card.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
         const head = el('div', 'fl-ch');
         head.append(el('b', '', c.name));
@@ -685,15 +687,10 @@
   /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
    *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
   function flag(f, x0, y, w, h, d, close) {
-    // It leaves the wire along it, like a split of the logo: straight down, a slow lean, then flat along its top.
-    const r = Math.max(2, Math.min(18, (h - 2 * d) / 2, w / 5));
-    // A long, gentle lean: across most of the card's width.
-    const sx = Math.min(w * 0.82, 240);
-    const k = 0.5523;
-    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.3)} ${f(x0 + sx * 0.5)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
-      + `H${f(x0 + w - r)}C${f(x0 + w - r + k * r)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r - k * r)} ${f(x0 + w)} ${f(y + d + r)}`
-      + `V${f(y + h - d - r)}C${f(x0 + w)} ${f(y + h - d - r + k * r)} ${f(x0 + w - r + k * r)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}`
-      + `H${f(x0 + sx)}C${f(x0 + sx * 0.5)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.3)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
+    // Out of the wire like the logo's split: straight down along it, a long lean, then straight down at full
+    // width; at the bottom, the same lean back into the wire. No corner anywhere.
+    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.42)} ${f(x0 + w)} ${f(y + d * 0.45)} ${f(x0 + w)} ${f(y + d)}`
+      + `V${f(y + h - d)}C${f(x0 + w)} ${f(y + h - d * 0.45)} ${f(x0)} ${f(y + h - d * 0.42)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
@@ -724,7 +721,7 @@
         const x1 = ends.get(l).x;
         const B = splitOf(x1 - X);
         const y1 = ys + B;
-        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}V${f(Math.max(y1, ends.get(l).y + 8))}`);
+        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}V${f(Math.max(y1, ends.get(l).y + 8, a.y + R.total - 4))}`);
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
