@@ -415,7 +415,9 @@
    * The golden wire runs down the left, a thread branches to each card, and a playhead sweeps down with time. */
   const PAD = 40;      // room above the first sounds of a run, for the lane wires to branch off
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
-  const padOf = (lanes, branch) => Math.max(PAD, 16 + branch * (lanes - 1));
+  /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
+  const splitOf = (dx) => Math.round(Math.min(190, 40 + dx * 0.75));
+  const padOf = (lanes, col) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(col * (lanes - 1)) + 12) : PAD);
   const RUN_PX = 420;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
@@ -500,8 +502,7 @@
    * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
    * liquid: no seams between pieces, no glow doubled where two strokes meet. */
   const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
-  const BRANCH = 34;   // a rail leaves the wire before it over at least this height
-  const SLOPE = 20;    // a card's outline leaves its wire over at most this height
+  const SLOPE = 28;    // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
     const box = $('#fl-cascade');
@@ -550,8 +551,7 @@
       // Lanes side by side, left to right: the first on the spine, the others on their rails. A rail leans
       // across to its lane over a height that grows with the way it travels, so the curve stays soft.
       const col = (width - SPINE - 2) / L.lanes;
-      const branch = Math.round(Math.min(58, Math.max(BRANCH, col * 0.42)));
-      const pad = padOf(L.lanes, branch);
+      const pad = padOf(L.lanes, col);
       const H = L.height + pad + 9;
       area.style.height = `${H}px`;
       const narrow = col < 118;
@@ -564,7 +564,7 @@
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        const d = Math.round(Math.min(SLOPE, ch * 0.24));
+        const d = Math.round(Math.min(SLOPE, ch * 0.26));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
@@ -622,7 +622,7 @@
       area.append(head);
       sec.append(area);
       box.append(sec);
-      P.dom.runs.push({ run, L, pad, branch, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
+      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
     });
     placeForks(Infinity);
     const end = el('div', 'fl-end');
@@ -684,14 +684,14 @@
   /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
    *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
   function flag(f, x0, y, w, h, d, close) {
-    // It leaves the wire along it (no corner where they meet), leans out, and lies flat by sx; the same back in.
-    const r = Math.max(2, Math.min(16, (h - 2 * d) / 2, w / 5));
-    const sx = Math.min(w * 0.5, 96);
+    // It leaves the wire along it, like a split of the logo: straight down, a slow lean, then flat along its top.
+    const r = Math.max(2, Math.min(18, (h - 2 * d) / 2, w / 5));
+    const sx = Math.min(w * 0.55, 120);
     const k = 0.5523;
-    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.62)} ${f(x0 + sx * 0.38)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
+    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.55)} ${f(x0 + sx * 0.45)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
       + `H${f(x0 + w - r)}C${f(x0 + w - r + k * r)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r - k * r)} ${f(x0 + w)} ${f(y + d + r)}`
       + `V${f(y + h - d - r)}C${f(x0 + w)} ${f(y + h - d - r + k * r)} ${f(x0 + w - r + k * r)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}`
-      + `H${f(x0 + sx)}C${f(x0 + sx * 0.38)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.38)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
+      + `H${f(x0 + sx)}C${f(x0 + sx * 0.45)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.45)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
@@ -713,21 +713,16 @@
       R.top = a.y; R.left = a.x; R.cy = n.y + n.h / 2;
       if (X == null) X = n.x + n.w / 2;
       D.dots.forEach((o) => { if (o.run === D.runs.indexOf(R)) o.gy = a.y + o.y; });
-      // Rails: each lane past the first leaves the wire on its left in an S, a stair lower, then runs down to its last card.
+      // Rails: like the logo, every lane splits from the spine at one point under the gate, each in a long S
+      // (straight down, a slow lean across, straight down again), then runs down past its last card.
       const ends = new Map();
       R.cards.forEach((c) => { if (c.lane > 0) ends.set(c.lane, { x: a.x + c.rail, y: Math.max((ends.get(c.lane) || { y: 0 }).y, a.y + c.top + c.ch) }); });
-      const lanes = [...ends.keys()].sort((p, q) => p - q);
-      const deepest = Math.max(0, ...lanes);
-      // A rail goes down at least as far as the rails it feeds leave it.
-      for (let l = deepest; l >= 1; l--) { const e = ends.get(l); const nx = ends.get(l + 1); if (e && nx) e.y = Math.max(e.y, a.y + 4 + R.branch * l + 2); }
-      const xOf = (l) => (l === 0 ? X : ends.has(l) ? ends.get(l).x : null);
-      lanes.forEach((l) => {
-        // Fed by the closest lane on its left that has a rail (the spine for the first).
-        let from = l - 1; while (from > 0 && xOf(from) == null) from--;
-        const x0 = xOf(from), x1 = ends.get(l).x;
-        const B = R.branch;
-        const y0 = a.y + 4 + B * from, y1 = y0 + B;
-        wires.push(`M${f(x0)} ${f(y0)}C${f(x0)} ${f(y0 + B * 0.5)} ${f(x1)} ${f(y1 - B * 0.5)} ${f(x1)} ${f(y1)}V${f(ends.get(l).y + 8)}`);
+      const ys = a.y + 6;
+      [...ends.keys()].sort((p, q) => p - q).forEach((l) => {
+        const x1 = ends.get(l).x;
+        const B = splitOf(x1 - X);
+        const y1 = ys + B;
+        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}V${f(Math.max(y1, ends.get(l).y + 8))}`);
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
