@@ -415,7 +415,7 @@
    * The golden wire runs down the left, a thread branches to each card, and a playhead sweeps down with time. */
   const PAD = 40;      // room above the first sounds of a run, for the lane wires to branch off
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
-  const padOf = (lanes) => Math.max(PAD, 16 + BRANCH * (lanes - 1));
+  const padOf = (lanes, branch) => Math.max(PAD, 16 + branch * (lanes - 1));
   const RUN_PX = 420;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
@@ -457,17 +457,30 @@
     });
     const busyT = busy.reduce((n, [a, b]) => n + (Math.min(b, end) - Math.max(0, a)), 0);
     const pps = Math.min(MAX_PPS, Math.max(MIN_PPS, RUN_PX / Math.max(busyT, 0.1)));
-    const segs = [];
-    let tc = 0, yc = 0;
-    const push = (t1, dense) => { if (t1 <= tc) return; const full = (t1 - tc) * pps; const len = dense ? full : Math.min(full, SILENT_PX); segs.push({ t0: tc, t1, y0: yc, len }); yc += len; tc = t1; };
-    busy.forEach(([a, b]) => { push(Math.min(a, end), false); push(Math.min(b, end), true); });
-    push(end, false);
+    // The map from time to height, cut at every start and end of a sound. A sound too short to read gets the
+    // room it needs by stretching its own stretch of time: the gold then slows down across it, so it still reaches
+    // the bottom of every card exactly when its sound ends, at the same height on every lane.
+    const top = Math.max(end, ...items.map((x) => x.e));
+    const ts = [...new Set([0, end, top, ...items.flatMap((x) => [Math.max(0, x.s0), x.e])])].sort((p, q) => p - q);
+    const segs = ts.slice(1).map((t1, k) => {
+      const t0 = ts[k];
+      const dense = busy.some(([p, q]) => p < t1 - 1e-6 && q > t0 + 1e-6);
+      const full = (t1 - t0) * pps;
+      return { t0, t1, len: dense ? full : Math.min(full, SILENT_PX) };
+    }).filter((g) => g.t1 - g.t0 > 1e-6);
+    items.slice().sort((p, q) => p.s0 - q.s0).forEach((x) => {
+      const inside = segs.filter((g) => g.t0 >= x.s0 - 1e-6 && g.t1 <= x.e + 1e-6);
+      const span = inside.reduce((n, g) => n + g.len, 0);
+      if (inside.length && span < minPx) inside.forEach((g) => { g.len += span > 0 ? (minPx - span) * (g.len / span) : (minPx - span) / inside.length; });
+    });
+    let yc = 0;
+    segs.forEach((g) => { g.y0 = yc; yc += g.len; });
     const map = (t) => {
-      t = Math.max(0, Math.min(t, end));
-      for (const g of segs) if (t <= g.t1) return g.y0 + (g.t1 > g.t0 ? (t - g.t0) / (g.t1 - g.t0) : 0) * g.len;
+      t = Math.max(0, Math.min(t, top));
+      for (const g of segs) if (t <= g.t1) return g.y0 + (t - g.t0) / (g.t1 - g.t0) * g.len;
       return yc;
     };
-    items.forEach((x) => { x.y0 = map(x.s0); x.y1 = Math.max(map(x.e), x.y0 + minPx); });
+    items.forEach((x) => { x.y0 = map(x.s0); x.y1 = Math.max(map(x.e), x.y0 + 1); });
     // Lanes: each card takes the first lane free at its top (a very short card keeps a readable height).
     const lanes = [];
     items.sort((a, b) => a.s0 - b.s0 || a.i - b.i || a.k - b.k).forEach((x) => {
@@ -476,7 +489,7 @@
       lanes[l] = x.y1 + 4;
       x.lane = l;
     });
-    const height = Math.max(map(end), ...items.map((x) => x.y1), 24);
+    const height = Math.max(map(top), 24);
     return { items, lanes: Math.max(1, lanes.length), end, own, pps, height, map, y: map };
   }
 
@@ -487,8 +500,8 @@
    * leaves the spine in an S under the gate. Lighting is one clip that grows down, so the gold flows like a
    * liquid: no seams between pieces, no glow doubled where two strokes meet. */
   const SPINE = 23;    // the spine, from the left of the cascade (the middle of a gate)
-  const BRANCH = 26;   // a rail leaves the wire before it over this height
-  const SLOPE = 13;    // a card's outline leaves its wire over at most this height
+  const BRANCH = 34;   // a rail leaves the wire before it over at least this height
+  const SLOPE = 20;    // a card's outline leaves its wire over at most this height
 
   function renderCascade() {
     const box = $('#fl-cascade');
@@ -534,11 +547,13 @@
       sec.append(row);
 
       const area = el('div', 'fl-area');
-      const pad = padOf(L.lanes);
+      // Lanes side by side, left to right: the first on the spine, the others on their rails. A rail leans
+      // across to its lane over a height that grows with the way it travels, so the curve stays soft.
+      const col = (width - SPINE - 2) / L.lanes;
+      const branch = Math.round(Math.min(58, Math.max(BRANCH, col * 0.42)));
+      const pad = padOf(L.lanes, branch);
       const H = L.height + pad + 9;
       area.style.height = `${H}px`;
-      // Lanes side by side, left to right: the first on the spine, the others on their rails.
-      const col = (width - SPINE - 2) / L.lanes;
       const narrow = col < 118;
       const gap = narrow ? 8 : 12;
       const place = (l) => { const rail = SPINE + l * col; return { rail, left: rail, w: col - (l === L.lanes - 1 ? 2 : gap) }; };
@@ -549,7 +564,7 @@
         const h = x.y1 - x.y0;
         const ch = Math.max(24, h - 4);
         const pl = place(x.lane);
-        const d = Math.round(Math.min(SLOPE, ch * 0.2));
+        const d = Math.round(Math.min(SLOPE, ch * 0.24));
         const c = x.c;
         // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
         const short = ch < 76;
@@ -580,12 +595,12 @@
         const size = short ? 22 : 24;
         const pb = el('button', 'fl-force');
         pb.type = 'button';
-        pb.style.cssText = `left:${pl.rail - size / 2}px;top:${top - size / 2 + (short ? ch / 2 : 2)}px;width:${size}px;height:${size}px`;
+        pb.style.cssText = `left:${pl.rail - size / 2}px;top:${top - size / 2}px;width:${size}px;height:${size}px`;
         pb.setAttribute('aria-label', `Start ${c.name} now`);
         pb.innerHTML = ICON.go;
         pb.addEventListener('click', (e) => { e.stopPropagation(); force(x.i, x.k); });
         area.append(pb);
-        const info = { lastRun: lastRun && !pending, card, fill, time, c, pb, top, left: pl.left, w: pl.w, ch, d, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: (x.y1 - x.y0) / L.pps, extra: -1, spent: false, path: null, under: null };
+        const info = { lastRun: lastRun && !pending, card, fill, time, c, pb, top, left: pl.left, w: pl.w, ch, d, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: Math.max(0.05, x.e - x.s0), extra: -1, spent: false, path: null, under: null };
         cards.push(info);
         P.dom.cards.set(`${x.i}:${x.k}`, info);
       });
@@ -607,7 +622,7 @@
       area.append(head);
       sec.append(area);
       box.append(sec);
-      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
+      P.dom.runs.push({ run, L, pad, branch, sec, node, sub, area, head, total: H, cards, X: SPINE, top: 0, cy: 0 });
     });
     placeForks(Infinity);
     const end = el('div', 'fl-end');
@@ -669,12 +684,14 @@
   /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
    *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
   function flag(f, x0, y, w, h, d, close) {
-    const r = Math.min(10, (h - 2 * d) / 2, w / 4);
-    const sx = Math.min(w * 0.42, 64);
-    return `M${f(x0)} ${f(y)}C${f(x0 + sx * 0.5)} ${f(y)} ${f(x0 + sx * 0.5)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
-      + `H${f(x0 + w - r)}Q${f(x0 + w)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r)}V${f(y + h - d - r)}`
-      + `Q${f(x0 + w)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}H${f(x0 + sx)}`
-      + `C${f(x0 + sx * 0.5)} ${f(y + h - d)} ${f(x0 + sx * 0.5)} ${f(y + h)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
+    // It leaves the wire along it (no corner where they meet), leans out, and lies flat by sx; the same back in.
+    const r = Math.max(2, Math.min(16, (h - 2 * d) / 2, w / 5));
+    const sx = Math.min(w * 0.5, 96);
+    const k = 0.5523;
+    return `M${f(x0)} ${f(y)}C${f(x0)} ${f(y + d * 0.62)} ${f(x0 + sx * 0.38)} ${f(y + d)} ${f(x0 + sx)} ${f(y + d)}`
+      + `H${f(x0 + w - r)}C${f(x0 + w - r + k * r)} ${f(y + d)} ${f(x0 + w)} ${f(y + d + r - k * r)} ${f(x0 + w)} ${f(y + d + r)}`
+      + `V${f(y + h - d - r)}C${f(x0 + w)} ${f(y + h - d - r + k * r)} ${f(x0 + w - r + k * r)} ${f(y + h - d)} ${f(x0 + w - r)} ${f(y + h - d)}`
+      + `H${f(x0 + sx)}C${f(x0 + sx * 0.38)} ${f(y + h - d)} ${f(x0)} ${f(y + h - d * 0.38)} ${f(x0)} ${f(y + h)}${close ? 'Z' : ''}`;
   }
 
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
@@ -702,14 +719,15 @@
       const lanes = [...ends.keys()].sort((p, q) => p - q);
       const deepest = Math.max(0, ...lanes);
       // A rail goes down at least as far as the rails it feeds leave it.
-      for (let l = deepest; l >= 1; l--) { const e = ends.get(l); const nx = ends.get(l + 1); if (e && nx) e.y = Math.max(e.y, a.y + 4 + BRANCH * l + 2); }
+      for (let l = deepest; l >= 1; l--) { const e = ends.get(l); const nx = ends.get(l + 1); if (e && nx) e.y = Math.max(e.y, a.y + 4 + R.branch * l + 2); }
       const xOf = (l) => (l === 0 ? X : ends.has(l) ? ends.get(l).x : null);
       lanes.forEach((l) => {
         // Fed by the closest lane on its left that has a rail (the spine for the first).
         let from = l - 1; while (from > 0 && xOf(from) == null) from--;
         const x0 = xOf(from), x1 = ends.get(l).x;
-        const y0 = a.y + 4 + BRANCH * from, y1 = y0 + BRANCH;
-        wires.push(`M${f(x0)} ${f(y0)}C${f(x0)} ${f(y0 + BRANCH * 0.55)} ${f(x1)} ${f(y1 - BRANCH * 0.55)} ${f(x1)} ${f(y1)}V${f(ends.get(l).y + 8)}`);
+        const B = R.branch;
+        const y0 = a.y + 4 + B * from, y1 = y0 + B;
+        wires.push(`M${f(x0)} ${f(y0)}C${f(x0)} ${f(y0 + B * 0.5)} ${f(x1)} ${f(y1 - B * 0.5)} ${f(x1)} ${f(y1)}V${f(ends.get(l).y + 8)}`);
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
@@ -854,7 +872,6 @@
       // A card lights with the wire; one started by hand, or a sound already over, has its own gold.
       let extra = 0;
       if (forced && started) extra = Math.max(3, p * x.ch) + 8;
-      else if (done && !x.cont && Y >= x.gy) extra = x.ch + 16;
       extra = Math.round(extra);
       if (x.rect && extra !== x.extra) { x.extra = extra; x.rect.setAttribute('height', String(extra)); }
       const txt = c.hold ? (on ? (x.lastRun ? '∞' : 'till Go') : holdLabel(c)) : on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
