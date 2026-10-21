@@ -1,4 +1,51 @@
 {
- "updated": "2026-10-21T16:18:31Z",
- "tales": []
+ "updated": "2026-10-21T16:19:36Z",
+ "tales": [
+  {
+   "file": "261015_the_1950_asylum.troubadour",
+   "title": "The 1950 Asylum",
+   "id": "97f722bd-df55-59fc-8085-53bbe22fd196",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "October 1950. Investigators enter Blackwood Asylum, where patients vanish at night and Dr. Hale's treatments go far beyond medicine. A horror quest in four chapters. Sounds from Shattered Pixel Dungeon, Stendhal, Battle for Wesnoth, Cataclysm: DDA CC-Sounds, /tg/station 13, Red Eclipse, Flare, OpenSFX (OpenTTD) and Hypersomnia (see the Troubadour sound credits).",
+   "chapters": [
+    "Arrival at Blackwood",
+    "The Night Ward",
+    "The Treatment Wing",
+    "The Doctor's Secret"
+   ],
+   "sounds": 56,
+   "size": 27875391
+  },
+  {
+   "file": "261015_the_haunted_church.troubadour",
+   "title": "The Haunted Church",
+   "id": "220eeeb6-4e61-51f3-a42b-3128551fb32d",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "The bells of Saint-Aubin have been silent for forty years. Tonight they ring at midnight. A ghost story in four chapters, from the nave to the bell tower. Sounds from Battle for Wesnoth, Stendhal, Cataclysm: DDA CC-Sounds, /tg/station 13, Hypersomnia, Flare, Shattered Pixel Dungeon, Red Eclipse, OpenClonk and Unknown Horizons (see the Troubadour sound credits).",
+   "chapters": [
+    "Midnight Bells",
+    "The Nave",
+    "The Crypt",
+    "The Bell Tower"
+   ],
+   "sounds": 56,
+   "size": 30215447
+  },
+  {
+   "file": "werewolf.troubadour",
+   "title": "Werewolf",
+   "id": "4b6496f4-0cf2-4887-b720-1fa2ebd8a1a9",
+   "bard": "Troubadour",
+   "revision": 2,
+   "description": "Run a game of Loup Garou: the village debates and votes by day, the werewolves hunt by night. Sounds from Stendhal, Battle for Wesnoth, 0 A.D. and Flare (see the Troubadour sound credits).",
+   "chapters": [
+    "Day: the village and the vote",
+    "Night"
+   ],
+   "sounds": 49,
+   "size": 13319757
+  }
+ ]
 }
