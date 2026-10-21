@@ -268,6 +268,10 @@
     if (!v) return;
     P.voices.push(v);
     P.forced.add(key);
+    // A ripple runs through the card as it starts.
+    const info = P.dom && P.dom.cards.get(key);
+    if (info) { info.card.classList.remove('kick'); void info.card.offsetWidth; info.card.classList.add('kick'); if (info.hand) { info.hand.classList.remove('kick'); void info.hand.getBBox(); info.hand.classList.add('kick'); }
+      setTimeout(() => { info.card.classList.remove('kick'); if (info.hand) info.hand.classList.remove('kick'); }, 750); }
     if (P.end != null && !v.hold) P.end = Math.max(P.end, v.end);
     global.FlowApp && global.FlowApp.wake();
     paintDock();
@@ -583,7 +587,9 @@
         tags.append(el('span', 'fl-zone', ZNAME[c.zone] || ''));
         if (c.repeat) { const rp = el('span', 'fl-rep'); rp.innerHTML = c.play === 'random' ? ICON.random : ICON.repeat; tags.append(rp); }
         const time = el('span', 'fl-time', c.hold ? holdLabel(c) : F.clock(c.duration));
-        tags.append(time);
+        // Shown when the troubadour starts the sound by hand, ahead of the wire.
+        const hand = el('span', 'fl-hand'); hand.innerHTML = ICON.hand; hand.title = 'Started by hand';
+        tags.append(hand, time);
         const track = el('div', 'fl-track');
         const fill = el('i');
         track.append(fill);
@@ -760,7 +766,9 @@
     const id = `fl-${P.chapterToken}`;
     const svg = D.svg;
     [svg, D.under].forEach((g) => { g.setAttribute('width', W); g.setAttribute('height', Ht); g.setAttribute('viewBox', `0 0 ${W} ${Ht}`); });
-    D.under.innerHTML = frames.map((o) => `<path d="${o.fill}" style="--z:${o.c.card.style.getPropertyValue('--z')}"/>`).join('');
+    // Under each sound: its body, and the gold that fills it when it is started by hand (clipped to its own level).
+    D.under.innerHTML = `<defs>${frames.map((o, k) => `<clipPath id="${id}-h${k}" clipPathUnits="userSpaceOnUse"><rect x="${f(o.c.gx - 2)}" y="${f(o.c.gy)}" width="${f(o.c.w + 4)}" height="0"/></clipPath>`).join('')}</defs>`
+      + frames.map((o, k) => `<path class="body" d="${o.fill}" style="--z:${o.c.card.style.getPropertyValue('--z')}"/><path class="by-hand" d="${o.fill}" clip-path="url(#${id}-h${k})"/>`).join('');
     svg.innerHTML = `<defs>`
       + `<g id="${id}-w">${wires.map((d) => `<path d="${d}"/>`).join('')}</g>`
       + `<g id="${id}-f">${frames.map((o) => `<path d="${o.d}"/>`).join('')}</g>`
@@ -777,8 +785,10 @@
     const rects = svg.querySelectorAll('clipPath rect');
     D.clip = rects[0];
     const fpaths = svg.querySelectorAll(`#${id}-g path`);
-    const fills = D.under.querySelectorAll('path');
-    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.under = fills[k]; o.c.extra = -1; o.c.spent = false; });
+    const fills = D.under.querySelectorAll('path.body');
+    const hands = D.under.querySelectorAll('path.by-hand');
+    const handRects = D.under.querySelectorAll('clipPath rect');
+    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.under = fills[k]; o.c.hand = hands[k]; o.c.handRect = handRects[k]; o.c.hh = -1; o.c.extra = -1; o.c.spent = false; });
     D.lit = -1;
     D.H = Ht;
   }
@@ -864,7 +874,7 @@
         frac = Math.min(1, Math.max(0, (t - v.t0) / Math.max(0.01, v.end - v.t0)));
         left = Math.max(0, v.end - Math.max(t, v.t0));
         started = t >= v.t0;
-      } else if (st != null && st <= t) { done = true; started = true; }
+      } else if ((st != null && st <= t) || P.forced.has(key)) { done = true; started = true; }
       const forced = P.forced.has(key);
       const reached = !!(on || done || forced || (st != null && st + c.offset <= t) || (s.cur >= 0 && runIndex(i) < runIndex(s.cur)));
       setCls(x.card, 'on', on);
@@ -882,14 +892,26 @@
       let p = frac;
       if (!forced && R.rt != null && !(done && !x.cont)) p = Math.min(1, Math.max(0, (R.rt - x.s0) / Math.max(0.01, x.span)));
       if (done) p = 1;
-      if (x.cont && on) left = Math.max(0, x.s0 + x.span - R.rt);
+      if (x.cont && on && !forced && R.rt != null) left = Math.max(0, x.s0 + x.span - R.rt);
       x.fill.style.width = `${p * 100}%`;
       // A card lights with the wire; one started by hand, or a sound already over, has its own gold.
       let extra = 0;
-      if (forced && started) extra = Math.max(3, p * x.ch) + 8;
+      // Started by hand, ahead of the wire: the sound runs on its own little wire. Its outline lights from its
+      // top down and its body fills with gold, both at the pace of its own sound; when it ends, the gold drains away
+      // and the card rests, dimmed, until the wire comes by.
+      const own = forced && started && (on || !done);
+      const lvl = own ? (c.hold ? 1 : p) : 0;
+      if (own) extra = Math.max(3, lvl * x.ch) + 8;
       extra = Math.round(extra);
       if (x.rect && extra !== x.extra) { x.extra = extra; x.rect.setAttribute('height', String(extra)); }
-      const txt = c.hold ? (on ? (x.lastRun ? '∞' : 'till Go') : holdLabel(c)) : on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
+      if (x.handRect) {
+        const hh = forced && started ? Math.round((done ? 1 : lvl) * x.ch) : 0;
+        if (hh !== x.hh) { x.hh = hh; x.handRect.setAttribute('height', String(hh)); }
+        setCls(x.hand, 'on', forced && on);
+        setCls(x.hand, 'hold', forced && on && !!c.hold);
+      }
+      setCls(x.card, 'hand', forced);
+      const txt = forced && done && !on ? 'played' : c.hold ? (on ? (x.lastRun ? '∞' : 'till Go') : holdLabel(c)) : on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
       if (x.time.textContent !== txt) x.time.textContent = txt;
     });
     D.dots.forEach(({ d, i, gy }) => setCls(d, 'lit', P.starts[i] != null && P.starts[i] <= t && Y >= (gy || 0) - 1));

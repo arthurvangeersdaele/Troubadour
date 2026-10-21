@@ -570,3 +570,22 @@ a.ico { color: var(--text); text-decoration: none; }
 .fl-area .fl-card.c .fl-tags { justify-content: center; gap: 6px; }
 .fl-area .fl-card.c.short, .fl-area.narrow .fl-card.c.short { padding: 2px 6px; }
 .fl-area.narrow .fl-card.c .fl-zone { display: none; }
+
+/* ---------- A sound started by hand, ahead of the wire ----------
+ * It runs on its own: a gold that fills its body to the level of its own sound, a hand on its tags,
+ * a ripple as it starts. When it is over the gold drains and the card rests, dimmed, marked played. */
+.fl-under path.by-hand { fill: var(--gold); opacity: 0; transition: opacity .6s ease; pointer-events: none; }
+.fl-under path.by-hand.on { opacity: .2; }
+.fl-under path.by-hand.hold { animation: by-hand 2.4s ease-in-out infinite; }
+.fl-under path.by-hand.kick { animation: by-hand-kick .7s ease-out; }
+@keyframes by-hand { 0%, 100% { opacity: .14; } 50% { opacity: .26; } }
+@keyframes by-hand-kick { 0% { opacity: .5; } 100% { opacity: .2; } }
+.fl-hand { display: none; color: var(--gold); line-height: 0; }
+.fl-hand svg { width: 13px; height: 13px; }
+.fl-card.hand .fl-hand { display: inline-grid; }
+.fl-area .fl-card.hand.on .fl-ch b { color: var(--gold-hot); }
+.fl-area .fl-card.kick .fl-stick { animation: card-kick .6s ease-out; }
+@keyframes card-kick { 0% { transform: scale(1.08); } 60% { transform: scale(.98); } 100% { transform: none; } }
+.fl-card.spent, .fl-area .fl-card.spent { filter: grayscale(.85); opacity: .5; }
+.fl-area .fl-card.spent .fl-time { font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .fl-under path.by-hand.hold, .fl-under path.by-hand.kick, .fl-area .fl-card.kick .fl-stick { animation: none !important; } }
