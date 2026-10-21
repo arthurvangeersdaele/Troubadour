@@ -11,11 +11,12 @@
   const F = global.TroubadourBallade;
   const LEAD = 0.06; // seconds between a tap and the sound
   const POUR = 0.5;  // a gate opens: the gold runs down from it to the sounds, which start as it arrives
+  const TRAVEL = 340; // px per second: the gold's pace along bare wire (gates, splits, merges, jumps)
 
   const P = {
     rec: null, ch: 0, steps: [], buffers: new Map(), blobs: null, loading: 0,
     voices: [], starts: [], gate: null, end: null, forced: new Set(), paused: false, bus: null, sbBus: null,
-    dom: null, raf: 0, focus: -1, touched: 0, onLeave: null, chapterToken: 0,
+    dom: null, raf: 0, pours: {}, focus: -1, touched: 0, onLeave: null, chapterToken: 0,
     // A chapter may end on a choice (silver), and every way on a choice of its own: its trunk plays first,
     // then the way the bard picks, then the way picked at its end, and so on. `path` holds the answers picked.
     chapter: null, trunk: [], path: [], segs: [], choiceAt: null,
@@ -240,11 +241,19 @@
     for (let j = 0; j < P.starts.length; j++) if (j >= i || P.starts[j] > t) P.starts[j] = undefined;
     P.gate = null; P.end = null; P.choiceAt = null;
     // Opening a gate: the gold first runs down from the gate to the sounds, then they start.
-    schedule(i, t + (P.steps[i].gate || i === 0 ? POUR : LEAD));
+    schedule(i, t + (P.steps[i].gate || i === 0 ? pourOf(i) : LEAD));
     P.focus = -1;
     P.touched = 0;
     global.FlowApp && global.FlowApp.wake();
     paintDock();
+  }
+
+  /** How long the gold takes from gate i down to its sounds, at its steady pace (the sounds start as it arrives). */
+  function pourOf(i) {
+    const R = P.dom && P.dom.runs.find((x) => x.run.gate === i);
+    const dur = R && R.cy ? Math.min(1.2, Math.max(0.12, (R.top + R.pad - R.cy) / TRAVEL)) : POUR;
+    P.pours[i] = dur;
+    return dur;
   }
 
   /** The gate a step hangs from: steps share a run until the next gate. */
@@ -425,7 +434,6 @@
   const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
-  const SILENT_PX = 26; // a silence is drawn no longer than this
   const MIN_PX = 50;    // a sound shorter than that still shows its name
 
   function runsOf(steps) {
@@ -435,7 +443,7 @@
   }
 
   /** Lays out one run: card positions (seconds), lanes, and the time-to-pixel map. */
-  function layoutRun(run, offsets, last, minPx = MIN_PX) {
+  function layoutRun(run, offsets, last, minPx = MIN_PX, fixedPps = 0) {
     const items = [];
     let stepsEnd = 0;
     run.steps.forEach((i) => { stepsEnd = Math.max(stepsEnd, offsets[i] + F.stepLength(P.steps[i])); });
@@ -462,31 +470,13 @@
       if (lastB && a <= lastB[1] + 0.05) lastB[1] = Math.max(lastB[1], b); else busy.push([a, b]);
     });
     const busyT = busy.reduce((n, [a, b]) => n + (Math.min(b, end) - Math.max(0, a)), 0);
-    const pps = Math.min(MAX_PPS, Math.max(MIN_PPS, RUN_PX / Math.max(busyT, 0.1)));
-    // The map from time to height, cut at every start and end of a sound. A sound too short to read gets the
-    // room it needs by stretching its own stretch of time: the gold then slows down across it, so it still reaches
-    // the bottom of every card exactly when its sound ends, at the same height on every lane.
+    const pps = fixedPps || Math.min(MAX_PPS, Math.max(MIN_PPS, RUN_PX / Math.max(busyT, 0.1)));
+    // The map from time to height: one speed for the whole chapter, silences included, so the gold always flows
+    // at the same pace down the screen. A sound too short to read is drawn taller than it lasts; the gold does not
+    // slow down for it (the card turns grey when its sound is over, the gold carries on at its pace).
     const top = Math.max(end, ...items.map((x) => x.e));
-    const ts = [...new Set([0, end, top, ...items.flatMap((x) => [Math.max(0, x.s0), x.e])])].sort((p, q) => p - q);
-    const segs = ts.slice(1).map((t1, k) => {
-      const t0 = ts[k];
-      const dense = busy.some(([p, q]) => p < t1 - 1e-6 && q > t0 + 1e-6);
-      const full = (t1 - t0) * pps;
-      return { t0, t1, len: dense ? full : Math.min(full, SILENT_PX) };
-    }).filter((g) => g.t1 - g.t0 > 1e-6);
-    items.slice().sort((p, q) => p.s0 - q.s0).forEach((x) => {
-      const inside = segs.filter((g) => g.t0 >= x.s0 - 1e-6 && g.t1 <= x.e + 1e-6);
-      const span = inside.reduce((n, g) => n + g.len, 0);
-      if (inside.length && span < minPx) inside.forEach((g) => { g.len += span > 0 ? (minPx - span) * (g.len / span) : (minPx - span) / inside.length; });
-    });
-    let yc = 0;
-    segs.forEach((g) => { g.y0 = yc; yc += g.len; });
-    const map = (t) => {
-      t = Math.max(0, Math.min(t, top));
-      for (const g of segs) if (t <= g.t1) return g.y0 + (t - g.t0) / (g.t1 - g.t0) * g.len;
-      return yc;
-    };
-    items.forEach((x) => { x.y0 = map(x.s0); x.y1 = Math.max(map(x.e), x.y0 + 1); });
+    const map = (t) => Math.max(0, Math.min(t, top)) * pps;
+    items.forEach((x) => { x.y0 = map(x.s0); x.y1 = Math.max(map(x.e), x.y0 + minPx); });
     // Lanes: each card takes the first lane free at its top (a very short card keeps a readable height).
     const lanes = [];
     items.sort((a, b) => a.s0 - b.s0 || a.i - b.i || a.k - b.k).forEach((x) => {
@@ -510,7 +500,8 @@
   function renderCascade() {
     const box = $('#fl-cascade');
     box.textContent = '';
-    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [] };
+    // Redrawn (a way picked, a font loaded): the gold takes its place at once instead of running from the top.
+    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [], fresh: true };
     const pending = choiceOf();
     if (!P.steps.length && !pending) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade editor, on a computer.'));
     P.offsets = F.runOffsets(P.steps);
@@ -529,11 +520,13 @@
     const forks = P.segs.map((g, d) => (g.choice ? { at: g.start + g.steps.length, sec: renderChoice(g.choice, d) } : null)).filter(Boolean);
     const placeForks = (upto) => forks.forEach((fk) => { if (!fk.sec.parentNode && fk.at <= upto) box.append(fk.sec); });
     const wayFrom = P.segs.length > 1 ? P.segs[1].start : Infinity;
+    // One speed for the whole chapter: the slowest any of its runs would need to fit about RUN_PX.
+    const chPps = runs.reduce((m, run, r) => Math.min(m, layoutRun(run, P.offsets, r === runs.length - 1).pps), MAX_PPS);
     runs.forEach((run, r) => {
       placeForks(run.gate);
       const lastRun = r === runs.length - 1;
-      let L = layoutRun(run, P.offsets, lastRun);
-      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 84); if (L1.lanes === 1) L = L1; }
+      let L = layoutRun(run, P.offsets, lastRun, MIN_PX, chPps);
+      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 84, chPps); if (L1.lanes === 1) L = L1; }
       const sec = el('section', `fl-run${run.gate >= wayFrom ? ' way' : ''}`);
       const g = P.steps[run.gate];
       const row = el('div', 'fl-node-row');
@@ -834,9 +827,8 @@
       // A gate just opened: the gold runs from it down to the top of its sounds, which start as it arrives.
       const st = P.starts[R.run.gate];
       if (st != null && st > t) {
-        const u = Math.min(1, Math.max(0, 1 - (st - t) / POUR));
-        const e = u * u * (3 - 2 * u);
-        target = Math.max(target, R.cy + e * (R.top + R.pad - R.cy));
+        const u = Math.min(1, Math.max(0, 1 - (st - t) / (P.pours[R.run.gate] || POUR)));
+        target = Math.max(target, R.cy + u * (R.top + R.pad - R.cy));
       }
     });
     if (s.mode === 'idle') target = 0;
@@ -846,11 +838,13 @@
     // The gold flows: it follows the playhead exactly; along bare wire (a run's end down to the next gate,
     // a jump ahead) it runs at an easy pace the eye can follow, slowing as it arrives.
     const ms = performance.now();
-    const dt = D.last ? Math.min(0.1, (ms - D.last) / 1000) : 0;
+    const dt = D.last ? Math.min(0.5, (ms - D.last) / 1000) : 0;
     D.last = ms;
+    // Along bare wire the gold runs at one steady pace (no rush, no braking); inside a run it is the playhead.
+    if (D.fresh) { D.fresh = false; D.shown = target; }
     const gap = target - D.shown;
-    if (gap <= 0 || gap < 12) D.shown = target;
-    else D.shown += Math.min(gap, Math.max(90 * dt, gap * (1 - Math.exp(-dt / 0.24))));
+    if (gap <= TRAVEL * dt + 0.5 || gap <= 0) D.shown = target;
+    else D.shown = Math.max(D.shown + TRAVEL * dt, target - 700); // never more than a screen behind
     const Y = D.shown;
     const yr = Math.round(Y * 2) / 2;
     if (D.clip && yr !== D.lit) { D.lit = yr; D.clip.setAttribute('height', String(yr)); }
@@ -891,7 +885,6 @@
       // A sound that has finished turns grey at once, its frame too; the wire it hangs from stays gold.
       const over = done && !on;
       setCls(x.card, 'spent', forced && done);
-      if (x.path && over !== x.spent) { x.spent = over; x.path.style.opacity = over ? '0' : ''; }
       if (x.under) { setCls(x.under, 'on', on); setCls(x.under, 'done', over); }
       // The bar moves with the wire (a card started by hand, off the wire, follows its own sound).
       const R = D.runs[x.run];

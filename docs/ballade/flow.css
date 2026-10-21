@@ -589,3 +589,6 @@ a.ico { color: var(--text); text-decoration: none; }
 .fl-card.spent, .fl-area .fl-card.spent { filter: grayscale(.85); opacity: .5; }
 .fl-area .fl-card.spent .fl-time { font-style: italic; }
 @media (prefers-reduced-motion: reduce) { .fl-under path.by-hand.hold, .fl-under path.by-hand.kick, .fl-area .fl-card.kick .fl-stick { animation: none !important; } }
+
+/* A sound the wire has played: its body and words turn grey, the gold wire still runs round it. */
+.fl-under path.body.done { opacity: 1; fill: color-mix(in srgb, var(--muted) 10%, var(--bg)); }
