@@ -479,15 +479,15 @@
     await flush();
     const bard = global.Troubadour.bardName();
     try {
-      busy('Forging the .troubadour-ballade', '', 0);
-      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Forging the .troubadour-ballade', '', f), 'Troubadour Ballade editor (web)');
+      busy('Rhythming the .troubadour-ballade', '', 0);
+      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Rhythming the .troubadour-ballade', '', f), 'Troubadour Ballade editor (web)');
       E.rec.flow = out.flow;
       await global.FlowDB.put(E.rec);
       idle();
       $('#fe-sub').textContent = `Ballade editor, revision ${out.flow.revision}, ${out.flow.bard}`;
       await deliver(out.blob, out.fileName);
-      toast(`${out.fileName} forged, revision ${out.flow.revision}. Open it in Troubadour Ballade on your phone.`, 4200);
-    } catch (e) { idle(); toast(`Could not forge: ${e.message || e}`, 4200); }
+      toast(`${out.fileName} rhythmed, revision ${out.flow.revision}. Open it in Troubadour Ballade on your phone.`, 4200);
+    } catch (e) { idle(); toast(`Could not rhythm: ${e.message || e}`, 4200); }
   }
   async function exportTroubadour() {
     try {

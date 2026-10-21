@@ -1,6 +1,6 @@
 # Recueil sound credits
 
-The tales below were forged by Troubadour for the Recueil of La Troupe. Every sound comes from an open-source game or sound project, used under its original licence.
+The tales below were rhythmed by Troubadour for the Recueil of La Troupe. Every sound comes from an open-source game or sound project, used under its original licence.
 
 | Project | Licence | Source |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ The tales below were forged by Troubadour for the Recueil of La Troupe. Every so
 
 ## The 1950 Asylum
 
-Tale `261015_the_1950_asylum.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_the_1950_asylum.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ Tale `261015_the_1950_asylum.troubadour` in the Recueil, forged by Troubadour.
 
 ## Treasure Island
 
-Tale `261015_treasure_island.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_treasure_island.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -147,7 +147,7 @@ Tale `261015_treasure_island.troubadour` in the Recueil, forged by Troubadour.
 
 ## The Heist (le casse du siècle)
 
-Tale `261015_the_heist.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_the_heist.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -206,7 +206,7 @@ Tale `261015_the_heist.troubadour` in the Recueil, forged by Troubadour.
 
 ## The Sandworm's Desert
 
-Tale `261015_the_sandworms_desert.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_the_sandworms_desert.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -265,7 +265,7 @@ Tale `261015_the_sandworms_desert.troubadour` in the Recueil, forged by Troubado
 
 ## Seaside Story
 
-Tale `261015_seaside_story.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_seaside_story.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -324,7 +324,7 @@ Tale `261015_seaside_story.troubadour` in the Recueil, forged by Troubadour.
 
 ## Railway in the Southwest
 
-Tale `261015_railway_in_the_southwest.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_railway_in_the_southwest.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -383,7 +383,7 @@ Tale `261015_railway_in_the_southwest.troubadour` in the Recueil, forged by Trou
 
 ## AI Year 2100
 
-Tale `261015_ai_year_2100.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_ai_year_2100.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -442,7 +442,7 @@ Tale `261015_ai_year_2100.troubadour` in the Recueil, forged by Troubadour.
 
 ## Space Odyssey
 
-Tale `261015_space_odyssey.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_space_odyssey.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -501,7 +501,7 @@ Tale `261015_space_odyssey.troubadour` in the Recueil, forged by Troubadour.
 
 ## Le Camping Rondin des Bois
 
-Tale `261015_le_camping_rondin_des_bois.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_le_camping_rondin_des_bois.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |
@@ -560,7 +560,7 @@ Tale `261015_le_camping_rondin_des_bois.troubadour` in the Recueil, forged by Tr
 
 ## The Haunted Church
 
-Tale `261015_the_haunted_church.troubadour` in the Recueil, forged by Troubadour.
+Tale `261015_the_haunted_church.troubadour` in the Recueil, rhythmed by Troubadour.
 
 | File | From | Author | Licence |
 | --- | --- | --- | --- |

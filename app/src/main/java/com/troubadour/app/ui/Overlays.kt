@@ -143,7 +143,7 @@ private fun SheetHost(m: AppModel, sheet: Sheet) {
         is Sheet.Recueil -> Panel("The Recueil", close) { RecueilBody(m, sheet) }
         is Sheet.StoryInfo -> Panel("Story details", close) { StoryInfoBody(m) }
         is Sheet.Picker -> Panel("Add to ${sheet.target.label}", close) { PickerBody(m, sheet.target) }
-        is Sheet.Exported -> Panel(if (sheet.files.size > 1) "${sheet.files.size} stories forged" else "Your .troubadour is ready", close) {
+        is Sheet.Exported -> Panel(if (sheet.files.size > 1) "${sheet.files.size} stories rhythmed" else "Your .troubadour is ready", close) {
             ExportedBody(m, sheet)
         }
     }
@@ -176,7 +176,7 @@ private fun ListRow(title: String, meta: String, blurb: String?, action: @Compos
 @Composable
 private fun DiscoveryBody(m: AppModel, s: Sheet.Discovery) {
     val stories by Library.stories.collectAsState()
-    Muted("The three stories of the web edition, with their sounds. Each one downloads once, then lives on your phone like any story you forge, ready to edit and play offline.")
+    Muted("The three stories of the web edition, with their sounds. Each one downloads once, then lives on your phone like any story you rhythm, ready to edit and play offline.")
     val data = s.data
     when {
         s.error != null -> Muted(s.error!!)
@@ -198,7 +198,7 @@ private fun DiscoveryBody(m: AppModel, s: Sheet.Discovery) {
 @Composable
 private fun RecueilBody(m: AppModel, s: Sheet.Recueil) {
     val stories by Library.stories.collectAsState()
-    Muted("Tales forged by La Troupe. Adding one downloads it to your phone, sounds included: it then plays without a connection.")
+    Muted("Tales rhythmed by La Troupe. Adding one downloads it to your phone, sounds included: it then plays without a connection.")
     val tales = s.tales
     when {
         s.error != null -> Muted(s.error!!)
@@ -252,7 +252,7 @@ private fun StoryInfoBody(m: AppModel) {
         },
     )
     val facts = buildList {
-        add(if (s.revision > 0) "Exported as revision ${s.revision}${if (s.bard.isNotBlank()) ", signed by ${s.bard}" else ""}." else "Not exported yet: the first export forges revision 1.")
+        add(if (s.revision > 0) "Exported as revision ${s.revision}${if (s.bard.isNotBlank()) ", signed by ${s.bard}" else ""}." else "Not exported yet: the first export rhythms revision 1.")
         if (s.source.startsWith("discovery")) add("A discovery story of the web edition.")
         add("${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))} on this phone.")
     }
@@ -390,6 +390,21 @@ private fun SettingsPanel(m: AppModel) {
         SetSection("Troubadour name")
         BardAccountBlock(m)
 
+        SetSection("Screen")
+        SetRow("Lock landscape", "Off: Troubadour turns with the phone, upright too") {
+            Toggle(st.landscape) { st.changeLandscape(it) }
+        }
+        SetRow("Keep screen awake", "While a story is open, so the screen stays on at the table") {
+            Toggle(st.keepAwake) { st.changeKeepAwake(it) }
+        }
+
+        SetSection("Player interface")
+        Muted("Hidden keeps the cards narrow. Simple adds two buttons that move the volume by 25 % steps, smoothly over 2 s. Full adds a slider. Each sound starts at the volume set in the story editor.", 13)
+        val volModes = com.troubadour.app.settings.VolumeMode.values().map { it to it.label }
+        SetRow("Music", null) { Segmented(volModes, st.volMusic) { st.changeVolMusic(it) } }
+        SetRow("Ambiances", null) { Segmented(volModes, st.volAmbience) { st.changeVolAmbience(it) } }
+        SetRow("Events", null) { Segmented(volModes, st.volEvents) { st.changeVolEvents(it) } }
+
         SetSection("Playback")
         SetRow("Fade-out on stop", null) {
             Segmented(listOf(500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeMs) { st.changeFade(it) }
@@ -400,9 +415,6 @@ private fun SettingsPanel(m: AppModel) {
         SetRow("Silence between chapters", "Opening another chapter fades out the sounds of the previous one over 4 s") {
             Toggle(st.silenceChapters) { st.changeSilenceChapters(it) }
         }
-        SetRow("Keep screen awake", "While a story is open, so the screen stays on at the table") {
-            Toggle(st.keepAwake) { st.changeKeepAwake(it) }
-        }
         SetRow("Random sounds", "Events and ambiances set to random play again after a pause of 0.5 s to ${st.randomMax} s") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconBtn(BIcons.left, "Shorter", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax > 1) { st.changeRandomMax(st.randomMax - 1) }
@@ -411,18 +423,6 @@ private fun SettingsPanel(m: AppModel) {
             }
         }
         Muted("The sounds keep playing with the screen off or Troubadour in the background.", 13)
-
-        SetSection("Volume on the cards")
-        Muted("Hidden keeps the cards narrow. Simple adds two buttons that move the volume by 25 % steps, smoothly over 2 s. Full adds a slider. Each sound starts at the volume set in the story editor.", 13)
-        val volModes = com.troubadour.app.settings.VolumeMode.values().map { it to it.label }
-        SetRow("Music", null) { Segmented(volModes, st.volMusic) { st.changeVolMusic(it) } }
-        SetRow("Ambiances", null) { Segmented(volModes, st.volAmbience) { st.changeVolAmbience(it) } }
-        SetRow("Events", null) { Segmented(volModes, st.volEvents) { st.changeVolEvents(it) } }
-
-        SetSection("Screen")
-        SetRow("Lock landscape", "Off: Troubadour turns with the phone, upright too") {
-            Toggle(st.landscape) { st.changeLandscape(it) }
-        }
 
         SetSection("Storage")
         var bytes by remember { mutableLongStateOf(-1L) }
@@ -479,7 +479,7 @@ private fun BardAccountBlock(m: AppModel) {
     }
     when {
         m.ghOpen == false -> {
-            Muted("Every story forged here is signed Forgotten Troubadour.", 14)
+            Muted("Every story rhythmed here is signed Forgotten Troubadour.", 14)
             Muted("Connecting a GitHub account to register your own troubadour name opens soon.", 13)
         }
         registered -> {

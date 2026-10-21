@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261021.2';
+  const VERSION = '261021.4';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -296,7 +296,7 @@
     if (!STORIES.length) {
       const hello = el('div', 'hello');
       hello.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
-      hello.append(el('h1', '', 'Your table awaits'), el('p', 'lead', 'Forge a story with your own sounds, import a .troubadour file, or start from a tale of La Troupe.'));
+      hello.append(el('h1', '', 'Your table awaits'), el('p', 'lead', 'Rhythm a story with your own sounds, import a .troubadour file, or start from a tale of La Troupe.'));
       grid.append(hello);
     }
     // Two rows of same-size tiles: the stories on the phone, then the four ways to add one.
@@ -311,7 +311,7 @@
     doors.append(
       door('new', ICON.plus, 'New story', 'With your own sounds, from Files', () => newStory()),
       door('discovery', ICON.compass, 'Discovery', 'Three ready stories, sounds included', () => openDiscovery()),
-      door('recueil', ICON.book, 'The Recueil', 'Tales forged by other troubadours', () => openRecueil()),
+      door('recueil', ICON.book, 'The Recueil', 'Tales rhythmed by other troubadours', () => openRecueil()),
       door('import', ICON.files, 'Import .troubadour', 'From Files, iCloud Drive or AirDrop', () => pickTroubadour()),
     );
     grid.append(doors);
@@ -543,7 +543,7 @@
   async function openRecueil() {
     const body = openSheet('The Recueil');
     body.className = 'rec-sheet';
-    body.append(el('p', 'muted', `Tales forged by La Troupe. Adding one downloads it to your ${DEV}, sounds included: it then plays without a connection.`));
+    body.append(el('p', 'muted', `Tales rhythmed by La Troupe. Adding one downloads it to your ${DEV}, sounds included: it then plays without a connection.`));
     const list = el('div', 'rlist');
     list.append(el('p', 'muted', 'Fetching the Recueil…'));
     body.append(list);
@@ -589,7 +589,7 @@
   /* ---------- Discovery stories (the web edition's three stories) ---------- */
   async function openDiscovery() {
     const body = openSheet('Discovery stories');
-    body.append(el('p', 'muted', `The three stories of the web edition, with their sounds. Each one downloads once, then lives on your ${DEV} like any story you forge, ready to edit and play offline.`));
+    body.append(el('p', 'muted', `The three stories of the web edition, with their sounds. Each one downloads once, then lives on your ${DEV} like any story you rhythm, ready to edit and play offline.`));
     const list = el('div', 'rlist');
     list.append(el('p', 'muted', 'Fetching the stories…'));
     body.append(list);
@@ -707,11 +707,11 @@
         if (ed && ed.story.uid === list[i].uid) saveSoon.flush();
         const story = (await liveStory(list[i].uid)) || list[i];
         const label = list.length > 1 ? `${story.title} (${i + 1} of ${list.length})` : story.title;
-        busy('Forging the .troubadour', label, 0);
+        busy('Rhythming the .troubadour', label, 0);
         const draft = await draftOf(story);
         const errors = FMT.validate(draft, bard);
         if (errors.length) { idle(); await ask(`“${story.title}” cannot be exported yet`, errors.join(' '), [{ label: 'OK', value: 'ok', cls: 'primary' }]); continue; }
-        const out = await FMT.pack(draft, bard, (f) => busy('Forging the .troubadour', label, f), { generator: `Troubadour web app (${DEV}) ${VERSION}` });
+        const out = await FMT.pack(draft, bard, (f) => busy('Rhythming the .troubadour', label, f), { generator: `Troubadour web app (${DEV}) ${VERSION}` });
         story.id = out.story.id;
         story.revision = out.story.revision;
         story.created = out.story.created;
@@ -732,7 +732,7 @@
   }
 
   function offerFiles(files) {
-    const body = openSheet(files.length > 1 ? `${files.length} stories forged` : 'Your .troubadour is ready');
+    const body = openSheet(files.length > 1 ? `${files.length} stories rhythmed` : 'Your .troubadour is ready');
     const total = files.reduce((a, f) => a + f.size, 0);
     body.append(el('p', 'muted', `${files.map((f) => f.name).join(', ')} (${size(total)}). Save it to Files or iCloud Drive as a backup, or AirDrop it to another troubadour.`));
     if (files.some((f) => f.size > FMT.SHARE_LIMIT)) body.append(el('p', 'warn', 'Over 100 MB: fine for a backup or AirDrop, too big for the Recueil.'));
@@ -781,7 +781,7 @@
     // Once per story each time the app opens (not again when coming back from the table).
     if (settings.noForgeTip || !ed || tipShown.has(ed.story.uid)) return;
     tipShown.add(ed.story.uid);
-    const v = await ask('Forging a story?', 'For creating a story, the Story builder of the Troubadour website, on a computer, is the most comfortable: room for every chapter and your MP3s dropped in with the mouse. Forge it there, then import the .troubadour here. The editor of this app is made for quick changes.', [
+    const v = await ask('Rhythming a story?', 'For creating a story, the Story builder of the Troubadour website, on a computer, is the most comfortable: room for every chapter and your MP3s dropped in with the mouse. Rhythm it there, then import the .troubadour here. The editor of this app is made for quick changes.', [
       { label: 'Do not show again', value: 'never' }, { label: 'Got it', value: 'ok', cls: 'primary' },
     ]);
     if (v === 'never') { settings.noForgeTip = true; save(); }
@@ -1020,7 +1020,7 @@
     f.append(ta);
     body.append(f);
     const facts = [];
-    facts.push(s.revision ? `Exported as revision ${s.revision}${s.bard ? `, signed by ${s.bard}` : ''}.` : 'Not exported yet: the first export forges revision 1.');
+    facts.push(s.revision ? `Exported as revision ${s.revision}${s.bard ? `, signed by ${s.bard}` : ''}.` : 'Not exported yet: the first export rhythms revision 1.');
     if (s.source && s.source.startsWith('discovery')) facts.push('A discovery story of the web edition.');
     facts.push(`${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}, ${size(storyBytes(s))} on this ${DEV}.`);
     body.append(el('p', 'muted small', facts.join(' ')));

@@ -24,7 +24,7 @@ sounds/1/music/01-tavern-hearth.mp3
   "id": "0d6b7e7a-2f0c-4c55-9f43-3c6f1f0c1a7e",
   "story": "6f1c2a7e-4b8d-4f3a-9a51-2d0c8e7b1f42",
   "revision": 2,
-  "troubadour": "Arthur",
+  "bard": "Arthur",
   "created": "2026-10-17T07:40:00Z",
   "forged": "2026-10-17T08:12:09Z",
   "generator": "Troubadour Ballade editor (web)",
@@ -61,10 +61,10 @@ sounds/1/music/01-tavern-hearth.mp3
 | --- | --- | --- |
 | `format` | string | Always `"troubadour-ballade"`. |
 | `version` | integer | `1`. A reader refuses versions it does not know. |
-| `id` | string | UUID of the Ballade, created the first time it is forged, kept by every later revision. |
+| `id` | string | UUID of the Ballade, created the first time it is rhythmed, kept by every later revision. |
 | `story` | string | `id` of the story in `story.json`. |
-| `revision` | integer | Hidden counter, +1 every time the Ballade is forged. |
-| `troubadour` | string | Troubadour name of whoever forged this revision (registered name, or `"Forgotten Troubadour"`). |
+| `revision` | integer | Hidden counter, +1 every time the Ballade is rhythmed. |
+| `bard` | string | Troubadour name of whoever rhythmed this revision (registered name, or `"Forgotten Troubadour"`). |
 | `created`, `forged`, `generator` | string | As in `story.json`. |
 | `chapters` | array | One entry per chapter of `story.json`, in the same order. |
 | `chapters[].steps` | array of steps | Played from top to bottom. |

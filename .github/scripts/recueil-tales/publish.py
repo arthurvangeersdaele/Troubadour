@@ -1,4 +1,4 @@
-"""Copies the forged tales into the Troubadour repo's Recueil and writes their credits."""
+"""Copies the rhythmed tales into the Troubadour repo's Recueil and writes their credits."""
 import os, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from plan import STORIES

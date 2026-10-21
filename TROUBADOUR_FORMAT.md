@@ -23,13 +23,15 @@ The folder layout above is what the builder writes, but readers find sounds **on
 
 ## `story.json`
 
+The field `bard` keeps its name from the Bardic days: it holds the troubadour name.
+
 ```json
 {
   "format": "troubadour",
   "version": 2,
   "id": "6f1c2a7e-4b8d-4f3a-9a51-2d0c8e7b1f42",
   "revision": 3,
-  "troubadour": "Arthur",
+  "bard": "Arthur",
   "title": "The Drowned Abbey",
   "description": "A flooded monastery, a choir of ghosts and a very angry abbot.",
   "created": "2026-10-13T18:40:00Z",
@@ -55,12 +57,12 @@ The folder layout above is what the builder writes, but readers find sounds **on
 | --- | --- | --- | --- |
 | `format` | string | yes | Always `"troubadour"`. |
 | `version` | integer | yes | `2`. A reader refuses versions it does not know. |
-| `id` | string | yes | UUID of the story, created at the first forge and kept by every later revision. Lets the app recognise a newer revision of a story it already has. |
-| `revision` | integer | yes | Hidden counter, 1 for the first forge, +1 every time the story is forged again. Never typed by hand. |
-| `troubadour` | string | yes | Troubadour name of whoever forged this revision: the name registered with a GitHub account in the settings (app or web), or `"Forgotten Troubadour"` for a troubadour who has not connected one. 1 to 60 characters. |
+| `id` | string | yes | UUID of the story, created at the first rhythm and kept by every later revision. Lets the app recognise a newer revision of a story it already has. |
+| `revision` | integer | yes | Hidden counter, 1 for the first rhythm, +1 every time the story is rhythmed again. Never typed by hand. |
+| `bard` | string | yes | Troubadour name of whoever rhythmed this revision: the name registered with a GitHub account in the settings (app or web), or `"Forgotten Troubadour"` for a troubadour who has not connected one. 1 to 60 characters. |
 | `title` | string | yes | Story title, 1 to 120 characters. |
 | `description` | string | no | One or two sentences. |
-| `created` | string | no | ISO 8601 date of the first forge, kept across revisions. |
+| `created` | string | no | ISO 8601 date of the first rhythm, kept across revisions. |
 | `forged` | string | no | ISO 8601 date of this revision. |
 | `generator` | string | no | Tool that wrote the file. |
 | `chapters` | array | yes | At least one chapter, in play order. |
@@ -84,17 +86,17 @@ The JSON keys stay `music`, `ambience` and `events`; the apps show the rows as M
 
 Unknown fields must be kept when a tool re-saves a file, so later versions can add things without breaking older ones.
 
-Known optional extras: a sound taken from the Recueil's sound library by the Story builder carries `"recueil": { "tale": "Werewolf", "troubadour": "Troubadour" }`, the tale it comes from, so it can be credited.
+Known optional extras: a sound taken from the Recueil's sound library by the Story builder carries `"recueil": { "tale": "Werewolf", "bard": "Troubadour" }`, the tale it comes from, so it can be credited.
 
 The Recueil's sound library (`docs/recueil/sounds.json`) relies on stored entries: a sound's bytes are one contiguous range of the `.troubadour` file, which the Story builder downloads on its own. Deflated entries still work, they are inflated after download.
 
 ## Versioning a story
 
-Every tool that writes a `.troubadour` file (web Story builder, Android app, Troubadour for iPhone) does the same thing when it forges:
+Every tool that writes a `.troubadour` file (web Story builder, Android app, Troubadour for iPhone) does the same thing when it rhythms:
 
 1. keep `id` and `created` from the opened file, or create them for a new story;
 2. set `revision` to the opened revision + 1 (1 for a new story);
-3. set `troubadour` to the registered troubadour name (or `Forgotten Troubadour`), and `forged` to now.
+3. set `bard` to the registered troubadour name (or `Forgotten Troubadour`), and `forged` to now.
 
 Nobody has to sign in. Without a GitHub connection, every file is signed **Forgotten Troubadour**. In the settings of any Troubadour (Android, iPhone, web player, Story builder), a troubadour can connect a GitHub account and register a troubadour name **once and for all**: it cannot be changed, and no other account can take it (case, accents and spacing do not make a different name). The registry is [`docs/recueil/troubadours.json`](docs/recueil/troubadours.json), written only by the sign-in helper ([`auth-worker/`](auth-worker/)).
 
@@ -102,4 +104,4 @@ The Recueil checks every pull request: a registered name only signs tales sent b
 
 ## Version 1
 
-Version 1 files (October 2026) have no `id`, `revision` or `troubadour`, and an optional `author`. Readers still accept them: `author` becomes `troubadour`, `revision` counts as 1 and a new `id` is created when they are forged again, which writes version 2.
+Version 1 files (October 2026) have no `id`, `revision` or `bard`, and an optional `author`. Readers still accept them: `author` becomes `bard`, `revision` counts as 1 and a new `id` is created when they are rhythmed again, which writes version 2.

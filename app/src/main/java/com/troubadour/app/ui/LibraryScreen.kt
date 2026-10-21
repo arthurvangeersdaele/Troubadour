@@ -99,7 +99,7 @@ fun LibraryScreen(m: AppModel) {
                     Eq(height = 18.dp, bar = 5.dp, modifier = Modifier.padding(bottom = 4.dp))
                     Title("Your table awaits", 32)
                     T(
-                        "Forge a story with your own sounds, import a .troubadour file, or start from a tale of La Troupe.",
+                        "Rhythm a story with your own sounds, import a .troubadour file, or start from a tale of La Troupe.",
                         color = C.muted, size = 16.sp,
                     )
                 }
@@ -116,7 +116,7 @@ fun LibraryScreen(m: AppModel) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Door(BIcons.plus, "New story", "With your own sounds, from your files", DoorKind.NEW, Modifier.weight(1f)) { m.newStory() }
                     Door(BIcons.compass, "Discovery", "Three ready stories, sounds included", DoorKind.DISCOVERY, Modifier.weight(1f)) { m.openDiscovery() }
-                    Door(BIcons.book, "The Recueil", "Tales forged by other troubadours", DoorKind.RECUEIL, Modifier.weight(1f)) { m.openRecueil() }
+                    Door(BIcons.book, "The Recueil", "Tales rhythmed by other troubadours", DoorKind.RECUEIL, Modifier.weight(1f)) { m.openRecueil() }
                     Door(BIcons.files, "Import .troubadour", "From your files, a cloud drive or a download", DoorKind.IMPORT, Modifier.weight(1f)) { m.importTroubadour() }
                 }
             }

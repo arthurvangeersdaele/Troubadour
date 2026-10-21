@@ -150,7 +150,7 @@
     const zoneLabel = ZONE_LABEL[opts.zone] || 'the story';
     const v = el('div', 'veil');
     v.id = 'veil';
-    const box = el('div', 'forge crop');
+    const box = el('div', 'rhythm crop');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.innerHTML = `

@@ -563,7 +563,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
                     tell("“${s.title}” cannot be exported yet", problems.joinToString(" "))
                     return@forEachIndexed
                 }
-                busy("Forging the .troubadour", label)
+                busy("Rhythming the .troubadour", label)
                 val (file, updated) = withContext(Dispatchers.IO) {
                     val r = TroubadourIO.forge(app, s, bard)
                     Library.putStory(r.second, touch = false)
@@ -651,8 +651,8 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         if (!settings.forgeTip || !tipShown.add(storyUid)) return
         scope.launch {
             val r = ask(
-                "Forging a story?",
-                "For creating a story, the Story builder of the Troubadour website, on a computer, is the most comfortable: room for every chapter and your MP3s dropped in with the mouse. Forge it there, then import the .troubadour here. The editor of this app is made for quick changes.",
+                "Rhythming a story?",
+                "For creating a story, the Story builder of the Troubadour website, on a computer, is the most comfortable: room for every chapter and your MP3s dropped in with the mouse. Rhythm it there, then import the .troubadour here. The editor of this app is made for quick changes.",
                 listOf(AskButton("Do not show again", "never"), AskButton("Got it", "ok", BtnKind.PRIMARY)),
             )
             if (r?.value == "never") settings.hideForgeTip()

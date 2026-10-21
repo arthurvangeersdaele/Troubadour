@@ -157,7 +157,7 @@
    *  id, revision and created are kept from an opened file and never edited by hand. */
   function validate(draft, bard) {
     const errors = [];
-    if (!bard || !bard.trim()) errors.push('Set your troubadour name: it signs every file you forge.');
+    if (!bard || !bard.trim()) errors.push('Set your troubadour name: it signs every file you rhythm.');
     if (!draft.title || !draft.title.trim()) errors.push('Give your story a title.');
     if (!draft.chapters.length) errors.push('Add at least one chapter.');
     draft.chapters.forEach((c, i) => { if (!c.title || !c.title.trim()) errors.push(`Chapter ${i + 1} needs a title.`); });

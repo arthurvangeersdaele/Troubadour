@@ -173,7 +173,7 @@
     <span class="fe-saved" id="fe-saved" aria-live="polite"></span>
     <button class="btn slim" type="button" id="fe-troubadour" title="The story alone, without its Ballade">Export .troubadour</button>
     <button class="btn slim" type="button" id="fe-play">Play here</button>
-    <button class="btn slim primary" type="button" id="fe-forge">Forge .troubadour-ballade</button>
+    <button class="btn slim primary" type="button" id="fe-forge">Rhythm .troubadour-ballade</button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
   <div class="fe-body">
@@ -198,6 +198,7 @@
     <h3>Theme</h3>
     <div class="themes" id="theme-pick" role="radiogroup" aria-label="Theme"></div>
   </section>
+
   <section>
     <h3>Appearance</h3>
     <div class="seg" id="mode-pick" role="radiogroup" aria-label="Appearance">
@@ -206,10 +207,17 @@
       <button type="button" role="radio" data-v="system">System</button>
     </div>
   </section>
+
   <section>
     <h3>Troubadour name</h3>
     <div class="troubadour-account" id="troubadour-account"></div>
   </section>
+
+<section>
+  <h3>Screen</h3>
+    <label class="row-set toggle"><span>Keep screen awake<small>While a story plays, so the wire never stops with the screen</small></span><input type="checkbox" id="opt-awake"><i></i></label>
+</section>
+
   <section>
     <h3>Playback</h3>
     <div class="row-set">
@@ -222,17 +230,18 @@
       </div>
     </div>
     <label class="row-set toggle"><span>Next chapter starts at once<small>Off: Next chapter opens the chapter and waits for your Begin. On: its first sounds start right away</small></span><input type="checkbox" id="opt-autonext"><i></i></label>
-    <label class="row-set toggle"><span>Keep screen awake<small>While a story plays, so the wire never stops with the screen</small></span><input type="checkbox" id="opt-awake"><i></i></label>
     <label class="row-set toggle iphone-only"><span>Play with the silent switch on<small>Sounds still play when your iPhone is set to silent</small></span><input type="checkbox" id="opt-silent"><i></i></label>
   </section>
+
   <section>
     <h3>Storage</h3>
     <div class="store-info muted small" id="store-info">Checking…</div>
     <div class="set-acts">
       <button class="btn danger" type="button" data-action="wipe">Erase everything</button>
     </div>
-    <p class="muted small">Your Ballades live on this device only. Keep the .troubadour-ballade files you forge: they are your backup.</p>
+    <p class="muted small">Your Ballades live on this device only. Keep the .troubadour-ballade files you rhythm: they are your backup.</p>
   </section>
+
   <section class="about">
     <h3>About</h3>
     <p class="muted">Troubadour Ballade, <span id="app-version"></span>. <a href="../" target="_blank" rel="noopener">Troubadour page</a>, <a href="https://discord.gg/EkcyrgKQT" target="_blank" rel="noopener">Discord</a></p>

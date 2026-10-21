@@ -1,4 +1,4 @@
-# Recueil tales forged by Troubadour
+# Recueil tales rhythmed by Troubadour
 
 Scripts that built the ten tales signed **Troubadour** in `docs/recueil/` (October 2026).
 

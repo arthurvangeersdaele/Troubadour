@@ -1,4 +1,4 @@
-"""Forges out/<slug>.troubadour from the built sounds and writes credits.md sections."""
+"""Rhythms out/<slug>.troubadour from the built sounds and writes credits.md sections."""
 import json, os, sys, uuid, zipfile, subprocess
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -60,7 +60,7 @@ def forge(story, now):
         'format': 'troubadour', 'version': 2,
         'id': str(uuid.uuid5(NS, story['slug'])), 'revision': 1, 'bard': 'Troubadour',
         'title': story['title'], 'description': desc,
-        'created': now, 'forged': now, 'generator': 'Troubadour tale forge',
+        'created': now, 'forged': now, 'generator': 'Troubadour tale rhythm',
         'chapters': out_ch, 'soundbox': soundbox,
     }
     path = os.path.join(OUT, story['slug'] + '.troubadour')
@@ -77,7 +77,7 @@ def forge(story, now):
                     z.writestr(zi, open(os.path.join(OUT, story['slug'], s['file']), 'rb').read())
     # credits section
     md = [f"## {story['title']}", '',
-          f"Tale `{story['slug']}.troubadour` in the Recueil, forged by Troubadour.", '',
+          f"Tale `{story['slug']}.troubadour` in the Recueil, rhythmed by Troubadour.", '',
           '| File | From | Author | Licence |', '| --- | --- | --- | --- |']
     for f, edited, creds in rows:
         frm = '<br>'.join(f"{cr['project']}: [{cr['file']}]({cr['url']})" + (f" ([original]({cr['origin']}))" if cr['origin'].startswith('http') else '') for cr in creds)

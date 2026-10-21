@@ -280,30 +280,13 @@
     </section>
 
     <section>
-      <h3>Playback</h3>
-      <div class="row-set">
-        <span>Fade-out on stop</span>
-        <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
-          <button type="button" role="radio" data-v="500">0.5 s</button>
-          <button type="button" role="radio" data-v="1000">1 s</button>
-          <button type="button" role="radio" data-v="2000">2 s</button>
-          <button type="button" role="radio" data-v="4000">4 s</button>
-        </div>
-      </div>
-      <div class="row-set">
-        <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
-        <div class="stepper" role="group" aria-label="Longest pause of random sounds">
-          <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
-        </div>
-      </div>
-      <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
-      <label class="row-set toggle"><span>Silence between chapters<small>Opening another chapter fades out the sounds of the previous one over 4 s</small></span><input type="checkbox" id="opt-silence"><i></i></label>
+      <h3>Screen</h3>
+      <label class="row-set toggle"><span>Lock landscape<small>Off: Troubadour also works with the phone upright</small></span><input type="checkbox" id="opt-landscape"><i></i></label>
       <label class="row-set toggle"><span>Keep screen awake<small>While a story is open, so the music never stops with the screen</small></span><input type="checkbox" id="opt-awake"><i></i></label>
-      <label class="row-set toggle"><span>Play with the silent switch on<small>Sounds still play when your iPhone or iPad is set to silent</small></span><input type="checkbox" id="opt-silent"><i></i></label>
-    </section>
+</section>
 
     <section>
-      <h3>Volume on the cards</h3>
+      <h3>Player interface</h3>
       <p class="muted small set-note">Hidden keeps the cards narrow. Simple adds two buttons that move the volume by 25&nbsp;% steps, smoothly over 2&nbsp;s. Full adds a slider. Each sound starts at the volume set in the story editor.</p>
       <div class="row-set">
         <span>Music</span>
@@ -332,8 +315,25 @@
     </section>
 
     <section>
-      <h3>Screen</h3>
-      <label class="row-set toggle"><span>Lock landscape<small>Off: Troubadour also works with the phone upright</small></span><input type="checkbox" id="opt-landscape"><i></i></label>
+      <h3>Playback</h3>
+      <div class="row-set">
+        <span>Fade-out on stop</span>
+        <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
+          <button type="button" role="radio" data-v="500">0.5 s</button>
+          <button type="button" role="radio" data-v="1000">1 s</button>
+          <button type="button" role="radio" data-v="2000">2 s</button>
+          <button type="button" role="radio" data-v="4000">4 s</button>
+        </div>
+      </div>
+      <div class="row-set">
+        <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
+        <div class="stepper" role="group" aria-label="Longest pause of random sounds">
+          <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
+        </div>
+      </div>
+      <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
+      <label class="row-set toggle"><span>Silence between chapters<small>Opening another chapter fades out the sounds of the previous one over 4 s</small></span><input type="checkbox" id="opt-silence"><i></i></label>
+      <label class="row-set toggle"><span>Play with the silent switch on<small>Sounds still play when your iPhone or iPad is set to silent</small></span><input type="checkbox" id="opt-silent"><i></i></label>
     </section>
 
     <section>

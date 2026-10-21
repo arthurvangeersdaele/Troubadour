@@ -88,13 +88,13 @@ def ownership(entries, author, base, maintainer):
                 errs.append(f'is signed "{troubadour}", a name kept for Troubadour itself')
         else:
             errs.append(f'is signed "{troubadour}", which is not a registered troubadour name: connect GitHub in Troubadour\'s settings '
-                        f'and register it, or forge the tale as {FORGOTTEN}')
+                        f'and register it, or rhythm the tale as {FORGOTTEN}')
         old = known.get(e["id"])
         if old:
             if name_key(old.get("bard")) != key and not is_maintainer:
-                errs.append(f'updates "{old.get("title")}" by {old.get("troubadour")}: a tale keeps its troubadour, forge yours with a new id')
+                errs.append(f'updates "{old.get("title")}" by {old.get("troubadour")}: a tale keeps its troubadour, rhythm yours with a new id')
             elif isinstance(e.get("revision"), int) and e["revision"] <= int(old.get("revision") or 0):
-                errs.append(f"is revision {e['revision']}, the Recueil already has revision {old.get('revision')}: forge it again")
+                errs.append(f"is revision {e['revision']}, the Recueil already has revision {old.get('revision')}: rhythm it again")
     return {k: v for k, v in errors.items() if v}
 
 

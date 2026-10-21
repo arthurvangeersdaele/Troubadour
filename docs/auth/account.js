@@ -119,13 +119,13 @@
       if (!ready) { box.innerHTML = nameLine(name(), 'Signs your stories', false); return; }
       if (!worker) {
         box.innerHTML = `${nameLine(FORGOTTEN, 'Signs your stories', false)}
-          <p>Every story forged here is signed <b>${FORGOTTEN}</b>.</p>
+          <p>Every story rhythmed here is signed <b>${FORGOTTEN}</b>.</p>
           <p class="fine">Connecting a GitHub account to register your own troubadour name opens soon.</p>`;
         return;
       }
       if (a.token && a.name) {
         box.innerHTML = `${nameLine(a.name, 'Registered', true)}
-          <p>Your troubadour name, registered to the GitHub account <b>@${esc(a.login)}</b>. It signs every story you forge on this device, and only you can sign tales with it in the Recueil.</p>
+          <p>Your troubadour name, registered to the GitHub account <b>@${esc(a.login)}</b>. It signs every story you rhythm on this device, and only you can sign tales with it in the Recueil.</p>
           <div class="bacc-row"><button type="button" class="quiet" data-a="out">Disconnect GitHub</button></div>
           <p class="fine">Disconnecting signs your next stories ${FORGOTTEN} on this device. Your name stays yours: connect again to sign with it.</p>`;
         return;
@@ -158,7 +158,7 @@
         return;
       }
       box.innerHTML = `${nameLine(FORGOTTEN, 'Signs your stories', false)}
-        <p>Every story you forge is signed <b>${FORGOTTEN}</b>. To sign with your own troubadour name, connect a GitHub account: it proves the name is yours, so no one else can sign a tale with it in the Recueil.</p>
+        <p>Every story you rhythm is signed <b>${FORGOTTEN}</b>. To sign with your own troubadour name, connect a GitHub account: it proves the name is yours, so no one else can sign a tale with it in the Recueil.</p>
         <div class="bacc-row"><button type="button" class="go" data-a="connect"${busy ? ' disabled' : ''}>${GH} Connect with GitHub</button></div>
         ${error ? `<p class="err">${esc(error)}</p>` : ''}
         <p class="fine">Optional and free. Troubadour only reads your public GitHub username: no email, no access to your repositories. You can disconnect at any time.</p>`;

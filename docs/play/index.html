@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=261021.1">
+<link rel="stylesheet" href="style.css?v=261021.2">
 <script src="../themes.js"></script>
 <script>
   // Apply the saved theme before first paint (no flash).
@@ -55,7 +55,7 @@
     <a class="more-tales" href="../troupe/">
       <span class="kick">More tales</span>
       <b>La Troupe</b>
-      <span>Stories forged by other game masters wait in its Recueil.<span class="pc-only"> On this computer, you can also play your own .troubadour files.</span></span>
+      <span>Stories rhythmed by other game masters wait in its Recueil.<span class="pc-only"> On this computer, you can also play your own .troubadour files.</span></span>
     </a>
     <p class="note">Music and sounds: Battle for Wesnoth, 0 A.D., Flare and Stendhal (<a href="https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/play/sounds/CREDITS.md" target="_blank" rel="noopener">credits</a>).</p>
   </div>
@@ -75,7 +75,7 @@
     <p class="kicker">La Troupe des Troubadours</p>
     <h1>Play a tale</h1>
     <div class="pc-only">
-      <p class="lead">Open a .troubadour file from your computer, forged in the Story builder or the Troubadour app, and run it on the mixing table.</p>
+      <p class="lead">Open a .troubadour file from your computer, rhythmed in the Story builder or the Troubadour app, and run it on the mixing table.</p>
       <label class="dropbig" id="troubadour-drop">
         <input type="file" id="troubadour-input" accept=".troubadour,.bardic,application/zip" hidden>
         <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -149,29 +149,17 @@
   </section>
 
   <section>
-    <h3>Playback</h3>
-    <div class="row-set">
-      <span>Fade-out on stop</span>
-      <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
-        <button role="radio" data-v="500">0.5 s</button>
-        <button role="radio" data-v="1000">1 s</button>
-        <button role="radio" data-v="2000">2 s</button>
-        <button role="radio" data-v="4000">4 s</button>
-      </div>
-    </div>
-    <div class="row-set">
-      <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
-      <div class="stepper" role="group" aria-label="Longest pause of random sounds">
-        <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
-      </div>
-    </div>
-    <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
-    <label class="row-set toggle"><span>Silence between chapters<small>Opening another chapter fades out the sounds of the previous one over 4 s</small></span><input type="checkbox" id="opt-silence"><i></i></label>
-    <label class="row-set toggle"><span>Keep screen awake<small>While a story is open</small></span><input type="checkbox" id="opt-awake"><i></i></label>
+    <h3>Troubadour name</h3>
+    <div class="troubadour-account" id="troubadour-account"></div>
   </section>
 
+<section>
+  <h3>Screen</h3>
+    <label class="row-set toggle"><span>Keep screen awake<small>While a story is open</small></span><input type="checkbox" id="opt-awake"><i></i></label>
+</section>
+
   <section>
-    <h3>Volume on the cards</h3>
+    <h3>Player interface</h3>
     <p class="muted set-note">Hidden keeps the cards narrow. Simple adds two buttons that move the volume by 25&nbsp;% steps, smoothly over 2&nbsp;s. Full adds a slider.</p>
     <div class="row-set">
       <span>Music</span>
@@ -200,8 +188,24 @@
   </section>
 
   <section>
-    <h3>Troubadour name</h3>
-    <div class="troubadour-account" id="troubadour-account"></div>
+    <h3>Playback</h3>
+    <div class="row-set">
+      <span>Fade-out on stop</span>
+      <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
+        <button role="radio" data-v="500">0.5 s</button>
+        <button role="radio" data-v="1000">1 s</button>
+        <button role="radio" data-v="2000">2 s</button>
+        <button role="radio" data-v="4000">4 s</button>
+      </div>
+    </div>
+    <div class="row-set">
+      <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
+      <div class="stepper" role="group" aria-label="Longest pause of random sounds">
+        <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
+    <label class="row-set toggle"><span>Silence between chapters<small>Opening another chapter fades out the sounds of the previous one over 4 s</small></span><input type="checkbox" id="opt-silence"><i></i></label>
   </section>
 
   <section class="about">
@@ -214,6 +218,6 @@
 
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../auth/account.js"></script>
-<script src="app.js?v=261021.1"></script>
+<script src="app.js?v=261021.2"></script>
 </body>
 </html>

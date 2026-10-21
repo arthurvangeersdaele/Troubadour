@@ -68,7 +68,7 @@ Ajoutez des sons dans chaque zone : depuis vos fichiers, ou en réutilisant ceux
 
 18
 00:02:18,466 --> 00:02:23,519
-Pour la partager, touchez Partager : Bardic forge un fichier .bardic.
+Pour la partager, touchez Partager : Bardic rhythm un fichier .bardic.
 
 19
 00:02:23,469 --> 00:02:28,520
@@ -80,7 +80,7 @@ La Compagnie des bardes, c'est la communauté de Bardic sur le web.
 
 21
 00:02:38,937 --> 00:02:44,200
-Son Story builder forge des fichiers .bardic depuis un ordinateur.
+Son Story builder rhythm des fichiers .bardic depuis un ordinateur.
 
 22
 00:02:45,972 --> 00:02:50,824
