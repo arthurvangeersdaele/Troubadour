@@ -956,7 +956,7 @@
     setCls(D.end.end, 'lit', arrived);
     setCls(D.end.btn, 'ready', arrived || (s.mode === 'run' && P.end != null && P.end - t < 5));
     if (s.mode === 'done') focusY = D.end.cy - 40;
-    follow(focusY);
+    follow(focusY, dt);
     paintDock(s);
   }
 
@@ -975,18 +975,25 @@
 
   /** Keeps the wire in sight without chasing it: the page turns only when the gold nears the bottom
    * (or leaves the top), so a chapter that starts keeps its title on screen. */
-  function follow(y) {
-    if (y == null || Date.now() - P.touched < 5000) return;
+  /** The camera: it glides after the gold every frame (eased, never faster than a quick glance), keeping it about
+   *  a third down the screen. A touch hands the scroll to the troubadour for five seconds. */
+  function follow(y, dt) {
     const sc = $('#fl-scroll');
+    if (!sc) return;
+    if (y == null || Date.now() - P.touched < 5000) { P.cam = null; return; }
     const h = sc.clientHeight;
-    const pos = y - sc.scrollTop;
-    if (pos >= h * 0.1 && pos <= h * 0.62) return;
-    const want = Math.max(0, y - h * 0.25);
-    if (Math.abs(sc.scrollTop - want) < 48) return;
-    if (P.scrolling && Date.now() - P.scrolling < 700) return;
-    P.scrolling = Date.now();
-    const quiet = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    sc.scrollTo({ top: want, behavior: quiet ? 'auto' : 'smooth' });
+    const want = Math.min(Math.max(0, sc.scrollHeight - h), Math.max(0, y - h * 0.36));
+    // Taken over again (a jump, a new chapter, a scroll by hand): start from where the page really is.
+    if (P.cam == null || Math.abs(P.cam - sc.scrollTop) > 3) P.cam = sc.scrollTop;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { P.cam = want; sc.scrollTop = want; return; }
+    const step = Math.min(0.1, dt || 1 / 60);
+    let next = P.cam + (want - P.cam) * (1 - Math.exp(-step / 0.35));
+    const cap = 1100 * step;
+    next = P.cam + Math.max(-cap, Math.min(cap, next - P.cam));
+    if (Math.abs(want - next) < 0.25) next = want;
+    if (next === P.cam) return;
+    P.cam = next;
+    sc.scrollTop = next;
   }
 
   let lastDock = '';
