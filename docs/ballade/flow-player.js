@@ -578,7 +578,7 @@
         const card = el('button', `fl-card c${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
         card.type = 'button';
         // Its words start where the card is nearly full width.
-        card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px`;
+        card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px;--db:${Math.round(short ? 0 : d)}px`;
         card.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
         const head = el('div', 'fl-ch');
         head.append(el('b', '', c.name));
@@ -711,26 +711,6 @@
       + `V${f(y + d)}C${f(xc - hw)} ${f(y + d * 0.45)} ${f(xc)} ${f(y + d * 0.42)} ${f(xc)} ${f(y)}Z`;
   }
 
-  /** Reshapes a card's end so its words, slid down by a scroll, stay inside it (called every frame, cheap when idle). */
-  const DB_MIN = 10;
-  function fitEnd(x) {
-    if (!x.stick || !x.path || x.card.classList.contains('short')) return;
-    const cr = x.card.getBoundingClientRect();
-    if (cr.bottom < 0 || cr.top > innerHeight) return;
-    const sb = x.stick.getBoundingClientRect().bottom - cr.top;
-    const room = x.ch - sb - 6;
-    const db = Math.round(Math.max(DB_MIN, Math.min(x.d, room)));
-    if (db === x.db) return;
-    x.db = db;
-    const sq = x.d > DB_MIN ? Math.min(1, Math.max(0, (x.d - db) / (x.d - DB_MIN))) : 0;
-    const f = (n) => Math.round(n * 10) / 10;
-    const open = flag(f, x.gx + x.w / 2, x.gy, x.w, x.ch, x.d, false, db, sq);
-    const closed = flag(f, x.gx + x.w / 2, x.gy, x.w, x.ch, x.d, true, db, sq);
-    x.path.setAttribute('d', open);
-    if (x.base) x.base.setAttribute('d', open);
-    if (x.under) x.under.setAttribute('d', closed);
-    if (x.hand) x.hand.setAttribute('d', closed);
-  }
 
   /** How far the outline of a sound stands from its wire, `y` px below its top (the curves of flag(), sampled). */
   function lensEdge(hw, h, d, y) {
@@ -914,7 +894,6 @@
       if (waiting) focusY = R.cy - 30;
     });
     D.cards.forEach((x, key) => {
-      fitEnd(x);
       const [i, k] = key.split(':').map(Number);
       const st = P.starts[i];
       const v = voiceOf(i, k);

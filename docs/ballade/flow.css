@@ -592,3 +592,7 @@ a.ico { color: var(--text); text-decoration: none; }
 
 /* A sound the wire has played: its body and words turn grey, the gold wire still runs round it. */
 .fl-under path.body.done { opacity: 1; fill: color-mix(in srgb, var(--muted) 10%, var(--bg)); }
+
+/* The words of a tall card slide down with a scroll, but stop where its end starts to narrow:
+ * the card keeps its shape, the words never leave it. */
+.fl-area .fl-card.c:not(.short), .fl-area.narrow .fl-card.c:not(.short) { padding-bottom: calc(var(--db, 0px) + 4px); }
