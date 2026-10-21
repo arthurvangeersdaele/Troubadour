@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-21T16:22:02Z",
+ "updated": "2026-10-21T16:24:58Z",
  "tales": [
   {
    "file": "261015_ai_year_2100.troubadour",
@@ -128,6 +128,38 @@
    ],
    "sounds": 56,
    "size": 33736105
+  },
+  {
+   "file": "261015_the_sandworms_desert.troubadour",
+   "title": "The Sandworm's Desert",
+   "id": "ef01b1c6-8c39-5e1e-98c2-0234d09f82ff",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "A caravan must cross the Sea of Dunes, where colossal worms hunt anything that walks in rhythm. Spice, storms and giants under the sand, in four chapters. Sounds from 0 A.D., MegaGlest, Hypersomnia, Red Eclipse, Stendhal, /tg/station 13, Cataclysm: DDA CC-Sounds, OpenClonk, Flare and Battle for Wesnoth (see the Troubadour sound credits).",
+   "chapters": [
+    "The Oasis City of Qadir",
+    "Crossing the Sea of Dunes",
+    "The Sandstorm",
+    "The Worm Rises"
+   ],
+   "sounds": 56,
+   "size": 40109073
+  },
+  {
+   "file": "261015_treasure_island.troubadour",
+   "title": "Treasure Island",
+   "id": "db03fa4b-1995-5c35-b54c-7cd7f85627a1",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "A dead captain's sea chest, a map to Flint's gold and a one-legged cook with a parrot. Sail the Hispaniola to Skeleton Island in four chapters of pirate adventure. Sounds from FreeCol, Stendhal, Battle for Wesnoth, Flare, 0 A.D., Cataclysm: DDA CC-Sounds, /tg/station 13, Unknown Horizons, OpenClonk, Pioneer Space Simulator, OpenSFX (OpenTTD), Red Eclipse and Hypersomnia (see the Troubadour sound credits).",
+   "chapters": [
+    "The Admiral Benbow Inn",
+    "Aboard the Hispaniola",
+    "Mutiny!",
+    "The Treasure of Skeleton Island"
+   ],
+   "sounds": 56,
+   "size": 35075857
   },
   {
    "file": "werewolf.troubadour",
