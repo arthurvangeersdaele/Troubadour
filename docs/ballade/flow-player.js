@@ -559,7 +559,9 @@
       const cw = Math.floor(Math.min(width / 4, (width / 2 - 2 - m * gap) / (m + 0.5)));
       const step = cw + gap;
       const pad = padOf(L.lanes, step);
-      const H = L.height + pad + 9;
+      // Room under the sounds for every rail to lean back into the spine before the next gate.
+      const foot = L.lanes > 1 ? splitOf(step * m) + 10 : 0;
+      const H = L.height + pad + 9 + foot;
       area.style.height = `${H}px`;
       const narrow = cw < 118;
       const place = (l) => { const rail = X + (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2) * step); return { rail, left: rail - cw / 2, w: cw }; };
@@ -634,7 +636,7 @@
       area.append(head);
       sec.append(area);
       box.append(sec);
-      P.dom.runs.push({ run, L, pad, sec, node, sub, area, head, total: H, cards, X, top: 0, cy: 0 });
+      P.dom.runs.push({ run, L, pad, foot, sec, node, sub, area, head, total: H, cards, X, top: 0, cy: 0 });
     });
     placeForks(Infinity);
     const end = el('div', 'fl-end');
@@ -743,7 +745,11 @@
         const x1 = a.x + R.cards.find((c) => c.lane === l).rail;
         const B = splitOf(Math.abs(x1 - X));
         const y1 = ys + B;
-        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}${vert(x1, y1, a.y + R.total - 4, holesOf(l))}`);
+        // ...and comes back into the spine the same way under its sounds, so every wire ends on the next gate.
+        const ym = a.y + R.total + 2;
+        const yb = ym - B;
+        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}${vert(x1, y1, yb, holesOf(l))}`
+          + `C${f(x1)} ${f(yb + B * 0.55)} ${f(X)} ${f(ym - B * 0.42)} ${f(X)} ${f(ym)}`);
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
