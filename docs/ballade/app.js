@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261021.18';
+  const VERSION = '261021.19';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;

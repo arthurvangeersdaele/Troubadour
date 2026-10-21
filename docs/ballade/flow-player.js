@@ -201,12 +201,19 @@
     const st = state();
     const waiting = st.mode === 'choice' && choiceDepth() === d;
     const at = P.path.length > d ? (P.gate && P.gate.i >= b ? P.gate.t : null) : P.choiceAt;
+    // The page stays still: the choice tapped keeps its place on the screen while the cascade is redrawn.
+    const sc = $('#fl-scroll');
+    const old = P.dom && P.dom.choices.find((C) => C.depth === d);
+    const before = old ? old.sec.getBoundingClientRect().top : null;
     P.path = P.path.slice(0, d).concat(a);
     P.steps = pathSteps();
     // Steps after b were never started (the way did not run yet): forget them.
     P.starts.length = Math.min(P.starts.length, b);
     if (P.gate && P.gate.i >= b) P.gate = null;
     renderCascade();
+    const now_ = P.dom.choices.find((C) => C.depth === d);
+    if (before != null && now_) { sc.scrollTop += now_.sec.getBoundingClientRect().top - before; P.cam = sc.scrollTop; }
+    P.touched = Date.now();
     if (P.steps[b]) {
       P.choiceAt = null;
       if (waiting) { go(b); return; }
