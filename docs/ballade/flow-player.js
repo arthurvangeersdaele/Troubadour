@@ -430,7 +430,11 @@
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
   /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
   const splitOf = (dx) => Math.round(Math.min(190, 40 + dx * 0.75));
-  const padOf = (lanes, step) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(step * Math.ceil((lanes - 1) / 2)) + 12) : PAD);
+  /** Where lane l of n sits, in steps from the spine. An odd number of lanes puts the first on the spine and the others
+   *  in turns right and left; an even number leaves the spine free between them (two lanes: half a step either side). */
+  const laneOffset = (l, n) => (n % 2 ? (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2)) : (l % 2 ? -1 : 1) * (Math.floor(l / 2) + 0.5));
+  const maxOffset = (n) => (n % 2 ? (n - 1) / 2 : n / 2 - 0.5);
+  const padOf = (lanes, step) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(step * maxOffset(lanes)) + 12) : PAD);
   const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
@@ -548,7 +552,7 @@
       // right and left of it. Every sound is a quarter of the screen wide (less only if the lanes would not fit).
       const X = width / 2;
       const gap = 10;
-      const m = Math.ceil((L.lanes - 1) / 2);
+      const m = maxOffset(L.lanes);
       const cw = Math.floor(Math.min(width / 4, (width / 2 - 2 - m * gap) / (m + 0.5)));
       const step = cw + gap;
       const pad = padOf(L.lanes, step);
@@ -557,7 +561,7 @@
       const H = L.height + pad + 9 + foot;
       area.style.height = `${H}px`;
       const narrow = cw < 118;
-      const place = (l) => { const rail = X + (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2) * step); return { rail, left: rail - cw / 2, w: cw }; };
+      const place = (l) => { const rail = X + laneOffset(l, L.lanes) * step; return { rail, left: rail - cw / 2, w: cw }; };
       if (narrow) area.classList.add('narrow');
       const cards = [];
       L.items.forEach((x) => {
@@ -616,8 +620,9 @@
         d.type = 'button';
         const y = L.y(P.offsets[i]) + pad;
         d.style.top = `${y}px`;
-        const over = cards.find((k) => k.lane === 0 && y > k.top && y < k.top + k.ch);
-        d.style.left = `${over ? over.left : X}px`;
+        // Inside a sound that sits on the spine, the spine is that sound's outline: the dot sits on it, exactly.
+        const over = cards.find((k) => Math.abs(k.rail - X) < 1 && y > k.top && y < k.top + k.ch);
+        d.style.left = `${over ? X - lensEdge(over.w / 2, over.ch, over.d, y - over.top) : X}px`;
         d.title = stepLabel(P.steps[i], i);
         d.setAttribute('aria-label', `Jump to ${stepLabel(P.steps[i], i)}`);
         d.addEventListener('click', () => go(i));
@@ -701,6 +706,25 @@
       + `V${f(y + d)}C${f(xc - hw)} ${f(y + d * 0.45)} ${f(xc)} ${f(y + d * 0.42)} ${f(xc)} ${f(y)}Z`;
   }
 
+  /** How far the outline of a sound stands from its wire, `y` px below its top (the curves of flag(), sampled). */
+  function lensEdge(hw, h, d, y) {
+    const cub = (a, b, c, e, t) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * b + 3 * (1 - t) * t * t * c + t ** 3 * e;
+    const along = (x0, x1, y0, y1, yy) => {
+      let px = x0, py = y0;
+      for (let k = 1; k <= 32; k++) {
+        const t = k / 32;
+        const qx = cub(x0, x0, x1, x1, t), qy = cub(y0, y0 + (y1 - y0) * 0.42, y0 + (y1 - y0) * 0.45, y1, t);
+        if (qy >= yy) return px + (qx - px) * ((yy - py) / Math.max(1e-6, qy - py));
+        px = qx; py = qy;
+      }
+      return x1;
+    };
+    if (y <= 0 || y >= h) return 0;
+    if (y < d) return along(0, hw, 0, d, y);
+    if (y > h - d) return along(0, hw, 0, d, h - y); // the bottom is the top, upside down
+    return hw;
+  }
+
   /** Draws the wire from where things actually sit on the page (text may wrap, fonts may load late). */
   function measure() {
     const D = P.dom;
@@ -731,8 +755,9 @@
         if (yB > y) d += `V${f(yB)}`;
         return d;
       };
-      R.holes = holesOf(0);
-      const lanes = [...new Set(R.cards.map((c) => c.lane))].filter((l) => l > 0).sort((p, q) => p - q);
+      const onSpine = (c) => Math.abs(a.x + c.rail - X) < 1;
+      R.holes = R.cards.filter(onSpine).map((c) => [a.y + c.top, a.y + c.top + c.ch]).sort((p, q) => p[0] - q[0]);
+      const lanes = [...new Set(R.cards.filter((c) => !onSpine(c)).map((c) => c.lane))].sort((p, q) => p - q);
       const ys = a.y + 6;
       lanes.forEach((l) => {
         const x1 = a.x + R.cards.find((c) => c.lane === l).rail;
