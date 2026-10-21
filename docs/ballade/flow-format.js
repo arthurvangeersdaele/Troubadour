@@ -28,6 +28,14 @@
     return out;
   }
 
+  /** How a card plays: 'once' (the sound, or a part of it, one time), 'loop' (again and again without a break)
+   *  or 'random' (the sound, then a random pause, then again). A card that `hold`s plays until the next gate is
+   *  tapped, the choice is picked or the chapter ends; a random card always holds. Files from before `play` say
+   *  only `repeat`: a loop for `duration` seconds. */
+  const PLAYS = ['once', 'loop', 'random'];
+  const playOf = (c) => (PLAYS.includes(c.play) ? c.play : c.repeat ? 'loop' : 'once');
+  const holds = (c) => playOf(c) === 'random' || (playOf(c) === 'loop' && !!c.hold);
+
   /** A card cleaned up: known fields in range, unknown ones kept. */
   function cleanCard(c, length) {
     const out = Object.assign({}, c);
@@ -36,9 +44,17 @@
     out.zone = ['music', 'ambience', 'events', 'soundbox'].includes(c.zone) ? c.zone : 'events';
     out.offset = r1(num(c.offset, 0, 0, MAX_SECONDS));
     out.start = r1(num(c.start, 0, 0, MAX_SECONDS));
-    out.repeat = !!c.repeat;
+    out.play = playOf(c);
+    out.hold = holds(out);
+    // `repeat` stays for the players that came before `play`: they loop a loop or a random card for `duration`.
+    out.repeat = out.play !== 'once';
     const room = length ? Math.max(0.1, length - out.start) : MAX_SECONDS;
-    out.duration = r1(num(c.duration, room, 0.1, out.repeat ? MAX_SECONDS : room));
+    // A loop lasts `duration`; a sound played once, and each play of a random card, at most the sound itself.
+    out.duration = r1(num(c.duration, out.play === 'loop' && out.hold ? Math.max(room, 300) : room, 0.1, out.play === 'loop' ? MAX_SECONDS : room));
+    if (out.play === 'random') {
+      out.gapMin = r1(num(c.gapMin, 5, 0, 600));
+      out.gapMax = r1(num(c.gapMax, Math.max(out.gapMin, 30), out.gapMin, 600));
+    } else { delete out.gapMin; delete out.gapMax; }
     out.fadeIn = r1(num(c.fadeIn, 0, 0, Math.min(30, out.duration)));
     out.fadeOut = r1(num(c.fadeOut, 0, 0, Math.min(30, out.duration)));
     out.volume = r2(num(c.volume, 0.75, 0, 1));
@@ -70,10 +86,11 @@
     return out;
   }
 
-  /** The step's own length: until `next` if set, else until its last card ends. */
+  /** The step's own length: until `next` if set, else until its last card ends. Cards that hold until the
+   *  next gate never end on their own: they do not count (a step of such cards alone lasts 0 s). */
   function stepLength(step) {
     if (step.next != null) return step.next;
-    return step.cards.reduce((a, c) => Math.max(a, c.offset + c.duration), 0);
+    return step.cards.reduce((a, c) => (holds(c) ? a : Math.max(a, c.offset + c.duration)), 0);
   }
   /** Where every step starts, in seconds from the start of its run (a run begins at a gate). */
   function runOffsets(steps) {
@@ -88,18 +105,20 @@
 
   /* ---------- A first Flow, made from a plain .troubadour ---------- */
 
+  /** A card made from a sound of the story: its loop setting picks how it plays. Endless loops and random
+   *  sounds hold until the next gate; "twice" loops two lengths; the rest plays once. */
   function card(sound, length, opts = {}) {
     const len = length || 60;
-    const endless = sound.loop === 'infinite' || sound.loop === 'random';
-    const twice = sound.loop === 'twice';
-    let duration = len;
-    let repeat = false;
-    if (endless) { repeat = true; duration = Math.max(len, sound.zone === 'music' ? 180 : 300); }
-    else if (twice) { repeat = true; duration = len * 2; }
+    const z = sound.zone;
+    let play = 'once', hold = false, duration = len;
+    if (sound.loop === 'infinite') { play = 'loop'; hold = true; duration = Math.max(len, 300); }
+    else if (sound.loop === 'random') { play = 'random'; hold = true; }
+    else if (sound.loop === 'twice') { play = 'loop'; duration = len * 2; }
+    const soft = z === 'music' || z === 'ambience';
     return cleanCard({
-      name: sound.name, file: sound.file, zone: sound.zone, offset: opts.offset || 0, start: 0, duration, repeat,
-      fadeIn: sound.zone === 'events' ? 0 : Math.min(2, duration / 4),
-      fadeOut: sound.zone === 'events' ? 0 : Math.min(4, duration / 4),
+      name: sound.name, file: sound.file, zone: z, offset: opts.offset || 0, start: 0, duration, play, hold,
+      fadeIn: soft && play !== 'random' ? Math.min(2, duration / 4) : 0,
+      fadeOut: soft && play !== 'random' ? Math.min(4, duration / 4) : 0,
       volume: typeof sound.volume === 'number' ? sound.volume : 0.75,
     }, length);
   }
@@ -113,8 +132,8 @@
     if (music[0]) first.push(card(music[0], lengths[music[0].file]));
     amb.slice(0, LANES - first.length).forEach((a) => first.push(card(a, lengths[a.file])));
     const usedAmb = first.length - (music[0] ? 1 : 0);
-    // The opening sets the scene; the next cue is ready after 30 s even if its sounds go on much longer.
-    if (first.length) steps.push({ title: 'Opening', gate: true, next: first.some((c) => c.repeat) ? 30 : null, cards: first });
+    // The opening sets the scene: its loops hold until the next gate, which is ready as soon as its sounds that end have ended.
+    if (first.length) steps.push({ title: 'Opening', gate: true, next: null, cards: first });
     music.slice(1).forEach((m) => steps.push({ title: '', gate: true, next: null, cards: [card(m, lengths[m.file])] }));
     const rest = amb.slice(usedAmb);
     for (let i = 0; i < rest.length; i += LANES) steps.push({ title: '', gate: true, next: null, cards: rest.slice(i, i + LANES).map((a) => card(a, lengths[a.file])) });
@@ -231,7 +250,7 @@
   }
 
   global.TroubadourBallade = {
-    MAX_ANSWERS, cleanChoice, allSteps,
+    MAX_ANSWERS, cleanChoice, allSteps, PLAYS, playOf, holds, card,
     FLOW_VERSION, LANES, ZONES, soundsOf, cleanCard, cleanStep, stepLength, runOffsets,
     defaultFlow, defaultChapter, normalize, read, pack, packTroubadour, yymmdd, clock,
   };

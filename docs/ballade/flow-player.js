@@ -103,24 +103,54 @@
   function makeVoice(stepIdx, k, card, t0) {
     const buf = P.buffers.get(card.file);
     if (!buf) return null;
+    if (card.play === 'random') return randomVoice(stepIdx, k, card, t0, buf);
     const { ctx } = audio();
     const src = ctx.createBufferSource();
     src.buffer = buf;
     const start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
-    const dur = card.repeat ? card.duration : Math.min(card.duration, buf.duration - start);
+    // A loop that holds plays until a gate, the choice or the end of the chapter fades it out.
+    const hold = !!card.hold;
+    const dur = hold ? Infinity : card.repeat ? card.duration : Math.min(card.duration, buf.duration - start);
     if (card.repeat) { src.loop = true; src.loopStart = start; src.loopEnd = buf.duration; }
     const g = ctx.createGain();
     const vol = card.volume;
-    const fi = Math.min(card.fadeIn || 0, dur);
-    const fo = Math.min(card.fadeOut || 0, Math.max(0, dur - fi));
+    const fi = Math.min(card.fadeIn || 0, hold ? 30 : dur);
+    const fo = hold ? 0 : Math.min(card.fadeOut || 0, Math.max(0, dur - fi));
     g.gain.setValueAtTime(fi > 0 ? 0 : vol, t0);
     if (fi > 0) g.gain.linearRampToValueAtTime(vol, t0 + fi);
     if (fo > 0) { g.gain.setValueAtTime(vol, t0 + dur - fo); g.gain.linearRampToValueAtTime(0, t0 + dur); }
     src.connect(g).connect(P.bus);
     src.start(t0, start);
-    src.stop(t0 + dur + 0.03);
-    const v = { step: stepIdx, k, file: card.file, src, g, t0, end: t0 + dur, cut: null };
+    if (!hold) src.stop(t0 + dur + 0.03);
+    const v = { step: stepIdx, k, file: card.file, src, g, t0, end: t0 + dur, cut: null, hold };
     src.onended = () => { v.done = true; try { g.disconnect(); } catch (e) { /* gone */ } };
+    return v;
+  }
+
+  /** A random card: the sound, a pause of gapMin to gapMax seconds, the sound again, until it is faded out. */
+  function randomVoice(stepIdx, k, card, t0, buf) {
+    const { ctx } = audio();
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(card.volume, t0);
+    g.connect(P.bus);
+    const start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
+    const len = Math.max(0.05, Math.min(card.duration, buf.duration - start));
+    const lo = card.gapMin ?? 5, hi = Math.max(lo, card.gapMax ?? 30);
+    const v = { step: stepIdx, k, file: card.file, src: null, g, t0, end: Infinity, cut: null, hold: true, random: true };
+    const play = (at) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(g);
+      src.start(at, start);
+      src.stop(at + len + 0.03);
+      v.src = src;
+      src.onended = () => {
+        // Faded out, or the chapter was left: the chain ends here.
+        if (v.cut != null || !P.voices.includes(v)) { v.done = true; try { g.disconnect(); } catch (e) { /* gone */ } return; }
+        play(Math.max(ctx.currentTime + 0.05, at + len) + lo + Math.random() * (hi - lo));
+      };
+    };
+    play(t0);
     return v;
   }
 
@@ -140,7 +170,8 @@
     } else if (choiceOf() && P.answer == null && i === P.trunk.length - 1) {
       P.choiceAt = endT; // the wire stops at the silver gate: the bard picks the way
     } else {
-      P.end = P.voices.reduce((a, v) => Math.max(a, v.cut ?? v.end), endT);
+      // Sounds that hold go on after the end: they stop with the chapter.
+      P.end = P.voices.reduce((a, v) => (v.hold && v.cut == null ? a : Math.max(a, v.cut ?? v.end)), endT);
     }
   }
 
@@ -209,7 +240,7 @@
     if (!v) return;
     P.voices.push(v);
     P.forced.add(key);
-    if (P.end != null) P.end = Math.max(P.end, v.end);
+    if (P.end != null && !v.hold) P.end = Math.max(P.end, v.end);
     global.FlowApp && global.FlowApp.wake();
     paintDock();
   }
@@ -343,6 +374,8 @@
   const ZCOL = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
   const ZNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
 
+  const holdLabel = (c) => (c.play === 'random' ? 'random' : 'loop');
+
   function stepLabel(s, i) {
     if (s.title) return s.title;
     return s.cards.map((c) => c.name).join(' + ') || `Step ${i + 1}`;
@@ -371,14 +404,20 @@
   function layoutRun(run, offsets, last, minPx = MIN_PX) {
     const items = [];
     let stepsEnd = 0;
+    run.steps.forEach((i) => { stepsEnd = Math.max(stepsEnd, offsets[i] + F.stepLength(P.steps[i])); });
     run.steps.forEach((i) => {
       const s = P.steps[i];
-      stepsEnd = Math.max(stepsEnd, offsets[i] + F.stepLength(s));
-      s.cards.forEach((c, k) => items.push({ i, k, c, s0: offsets[i] + c.offset, s1: offsets[i] + c.offset + c.duration }));
+      // A sound that holds is drawn down to the end of its run, and carries on under the gate that cuts it.
+      s.cards.forEach((c, k) => {
+        const s0 = offsets[i] + c.offset;
+        items.push({ i, k, c, s0, s1: c.hold ? Math.max(stepsEnd, s0 + 12) + 1 : s0 + c.duration });
+      });
     });
     // A run that a gate follows ends with its steps: sounds still playing carry on under the next gate.
     const end = last ? Math.max(stepsEnd, ...items.map((x) => x.s1), 0) : stepsEnd;
-    items.forEach((x) => { x.e = Math.min(x.s1, Math.max(end, x.s0 + 0.1)); x.cont = x.s1 > x.e + 0.05; });
+    // How long the run plays on its own; sounds that hold go on after it, until the next gate.
+    const own = Math.max(stepsEnd, ...items.filter((x) => !x.c.hold).map((x) => (last ? x.s1 : 0)), 0);
+    items.forEach((x) => { x.e = Math.min(x.s1, Math.max(end, x.s0 + 0.1)); x.cont = x.s1 > x.e + 0.05 || !!x.c.hold; });
     // One speed for the whole run: so many pixels per second, the same for every card and for the time line.
     // A card is as tall as it lasts; sounds side by side are sized by the same rule.
     // Silence is not drawn to scale: where no sound plays the wire stays short (the gold still takes the time
@@ -410,7 +449,7 @@
       x.lane = l;
     });
     const height = Math.max(map(end), ...items.map((x) => x.y1), 24);
-    return { items, lanes: Math.max(1, lanes.length), end, pps, height, map, y: map };
+    return { items, lanes: Math.max(1, lanes.length), end, own, pps, height, map, y: map };
   }
 
   /* The whole chapter shares one golden wire, drawn as a single SVG over the cascade: the spine runs
@@ -461,7 +500,7 @@
       node.addEventListener('click', () => go(run.gate));
       const meta = el('div', 'fl-meta');
       meta.append(el('b', '', stepLabel(g, run.gate)));
-      const sub = el('span', 'fl-sub', `${run.gate === 0 ? 'Starts on your tap' : 'Waits for your tap'}, ${F.clock(L.end)}`);
+      const sub = el('span', 'fl-sub', `${run.gate === 0 ? 'Starts on your tap' : 'Waits for your tap'}${L.own > 0.5 ? `, ${F.clock(L.own)}` : ''}`);
       meta.append(sub);
       row.append(node, meta);
       sec.append(row);
@@ -503,8 +542,8 @@
         head.append(el('b', '', c.name));
         const tags = el('div', 'fl-tags');
         tags.append(el('span', 'fl-zone', ZNAME[c.zone] || ''));
-        if (c.repeat) { const rp = el('span', 'fl-rep'); rp.innerHTML = ICON.repeat; tags.append(rp); }
-        const time = el('span', 'fl-time', F.clock(c.duration));
+        if (c.repeat) { const rp = el('span', 'fl-rep'); rp.innerHTML = c.play === 'random' ? ICON.random : ICON.repeat; tags.append(rp); }
+        const time = el('span', 'fl-time', c.hold ? holdLabel(c) : F.clock(c.duration));
         tags.append(time);
         const track = el('div', 'fl-track');
         const fill = el('i');
@@ -532,7 +571,7 @@
         pb.innerHTML = ICON.go;
         pb.addEventListener('click', (e) => { e.stopPropagation(); force(x.i, x.k); });
         area.append(pb);
-        const info = { card, fill, time, c, pb, top, left, w: cardW, ch, rad, rady, side: pl.side, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: (x.y1 - x.y0) / L.pps, extra: -1, spent: false, path: null };
+        const info = { lastRun: r === runs.length - 1 && !(choice && run.gate < P.trunk.length), card, fill, time, c, pb, top, left, w: cardW, ch, rad, rady, side: pl.side, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: (x.y1 - x.y0) / L.pps, extra: -1, spent: false, path: null };
         cards.push(info);
         P.dom.cards.set(`${x.i}:${x.k}`, info);
       });
@@ -792,7 +831,7 @@
       else if (done && !x.cont && Y >= x.gy) extra = x.ch + 16;
       extra = Math.round(extra);
       if (x.rect && extra !== x.extra) { x.extra = extra; x.rect.setAttribute('height', String(extra)); }
-      const txt = on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
+      const txt = c.hold ? (on ? (x.lastRun ? '∞' : 'till Go') : holdLabel(c)) : on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
       if (x.time.textContent !== txt) x.time.textContent = txt;
     });
     D.dots.forEach(({ d, i, gy }) => setCls(d, 'lit', P.starts[i] != null && P.starts[i] <= t && Y >= (gy || 0) - 1));

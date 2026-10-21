@@ -1,6 +1,8 @@
 /* Troubadour Ballade: the editor, on a computer. Shapes every chapter of a story into steps:
- * up to three sounds side by side in a step, each with its own offset, length, trim and fades,
- * and gates where the wire waits for the bard's tap. */
+ * up to three sounds side by side in a step, each played once, looped or at random, with its own offset,
+ * trim and fades. Between two steps, a link says how the lower one starts: on the troubadour's tap (a gate,
+ * which fades out what still plays above), when the sounds above end, or after a set time. Sentences under
+ * every link and in the inspector say which sounds carry on and which stop. */
 (function (global) {
   'use strict';
 
@@ -24,7 +26,7 @@
     $('#fe-sub').textContent = `Ballade editor, revision ${rec.flow.revision || 0}, ${rec.flow.bard || ''}`;
     renderAll();
   }
-  function close() { stopPreview(); flush(); E.rec = null; E.buffers.clear(); E.blobs = null; }
+  function close() { closeHelp(); stopPreview(); flush(); E.rec = null; E.buffers.clear(); E.blobs = null; }
 
   const chapter = () => E.rec.flow.chapters[E.ch];
   const choice = () => { const c = chapter().choice; return c && Array.isArray(c.answers) && c.answers.length ? c : null; };
@@ -79,8 +81,10 @@
     const t = ctx.currentTime + 0.03;
     if (card) {
       const start = Math.min(card.start, b.duration - 0.05);
-      const dur = card.repeat ? card.duration : Math.min(card.duration, b.duration - start);
-      if (card.repeat) { src.loop = true; src.loopStart = start; src.loopEnd = b.duration; }
+      // A loop that holds is heard for 30 s; a random sound plays once.
+      const loop = card.play === 'loop';
+      const dur = loop ? (card.hold ? 30 : card.duration) : Math.min(card.duration, b.duration - start);
+      if (loop) { src.loop = true; src.loopStart = start; src.loopEnd = b.duration; }
       const fi = Math.min(card.fadeIn, dur); const fo = Math.min(card.fadeOut, dur - fi);
       g.gain.setValueAtTime(fi ? 0 : card.volume, t);
       if (fi) g.gain.linearRampToValueAtTime(card.volume, t + fi);
@@ -94,18 +98,78 @@
     renderSounds(false);
   }
 
+  /* ---------- Help: a (?) next to everything that needs a word ---------- */
+  const HELP = {
+    chapter: ['How a chapter plays', `
+      <p>A chapter is a list of <b>steps</b>, played from top to bottom. A step plays up to three sounds side by side.</p>
+      <p>Between two steps, you choose how the next one starts:</p>
+      <ul>
+        <li><b>On my tap</b>: a <b>gate</b>. The wire stops and waits for you to tap Go at the table.</li>
+        <li><b>When the sounds end</b>: the next step follows on its own, as soon as the sounds of the step above are over.</li>
+        <li><b>After a set time</b>: the next step follows on its own after so many seconds, even if the sounds above go on.</li>
+      </ul>
+      <p>The steps between two gates form one scene. Its sounds overlap freely. <b>Tapping a gate ends the scene</b>: everything still playing above fades out, and the step below starts.</p>`],
+    link: ['How the next step starts', `
+      <p><b>On my tap</b> puts a gate here. The wire waits for you, however long it takes. When you tap Go, every sound still playing above <b>fades out</b> (the fade length is in Settings), then the step below starts.</p>
+      <p><b>When the sounds end</b>: the step below starts as soon as the sounds of the step above that end on their own are over. Loops and random sounds that last until the next gate are not waited for: they go on under the next step.</p>
+      <p><b>After a set time</b>: the step below starts so many seconds after the step above began. Sounds still playing then are <b>not cut</b>: they carry on under it.</p>
+      <p>The sentence under these buttons always says which sounds stop and which carry on.</p>`],
+    plays: ['How a sound plays', `
+      <p><b>Once</b>: the sound plays one time, whole or the part you set, then stops on its own.</p>
+      <p><b>Loop</b>: the sound repeats without a break. It stops at the <b>next gate</b> (when you tap Go, pick an answer or leave the chapter), or after the time you set.</p>
+      <p><b>Random</b>: the sound plays, then waits a random pause, then plays again, and so on. Birds, drops, distant thunder. It goes on until the <b>next gate</b>.</p>
+      <p>A sound that lasts until the next gate never holds up the wire: the next step does not wait for it.</p>`],
+    starts: ['When the sound starts', `
+      <p>Seconds after the start of its step. 0 starts it with the step; 5 lets the step begin, then brings it in five seconds later.</p>
+      <p>At the table, you can always start a sound earlier by tapping the bead on its wire.</p>`],
+    fate: ['What happens to this sound', `
+      <p>This sentence follows the sound through the chapter: when it starts, whether the next steps begin while it plays, and what stops it.</p>
+      <p>Only a <b>gate</b> (your tap), the <b>choice</b> or the end of the chapter cuts a sound. A step that follows on its own never does.</p>`],
+    choice: ['A choice at the end of the chapter', `
+      <p>The chapter can end on a question for the table, with two or three answers. It is a <b>silver gate</b>.</p>
+      <p>The steps <b>before the choice</b> play first. Then the wire stops and shows the answers. You tap the one your players picked: its <b>way</b>, a list of steps of its own, plays and ends the chapter.</p>
+      <p>Picking an answer works like a gate: everything still playing fades out, and the first step of the way starts. Ways never join again.</p>
+      <p>Edit a way with the tabs at the top of the chapter.</p>`],
+  };
+  let pop = null;
+  function closeHelp() { if (pop) { pop.remove(); pop = null; } }
+  function help(key) {
+    const b = el('button', 'fe-help');
+    b.type = 'button';
+    b.innerHTML = ICON.help;
+    b.setAttribute('aria-label', `Help: ${HELP[key][0]}`);
+    b.title = HELP[key][0];
+    b.addEventListener('click', (e) => {
+      e.stopPropagation(); e.preventDefault();
+      const again = pop && pop.dataset.key === key;
+      closeHelp();
+      if (again) return;
+      pop = el('div', 'fe-pop');
+      pop.dataset.key = key;
+      pop.setAttribute('role', 'dialog');
+      const h = el('div', 'fe-pop-h');
+      h.append(el('b', '', HELP[key][0]));
+      const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.setAttribute('aria-label', 'Close');
+      x.addEventListener('click', closeHelp);
+      h.append(x);
+      const body = el('div', 'fe-pop-b');
+      body.innerHTML = HELP[key][1];
+      pop.append(h, body);
+      pop.addEventListener('click', (ev) => ev.stopPropagation());
+      document.body.append(pop);
+      const r = b.getBoundingClientRect();
+      const w = pop.offsetWidth, hgt = pop.offsetHeight;
+      const left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2));
+      const below = r.bottom + 8 + hgt < innerHeight - 8;
+      pop.style.left = `${left}px`;
+      pop.style.top = `${below ? r.bottom + 8 : Math.max(8, r.top - 8 - hgt)}px`;
+    });
+    return b;
+  }
+
   /* ---------- Cards ---------- */
   function newCard(snd) {
-    const len = lengthOf(snd.file);
-    const endless = snd.loop === 'infinite' || snd.loop === 'random';
-    const repeat = endless || snd.loop === 'twice';
-    const base = len || 60;
-    return F.cleanCard({
-      name: snd.name, file: snd.file, zone: snd.zone, offset: 0, start: 0,
-      duration: endless ? Math.max(base, snd.zone === 'music' ? 180 : 300) : snd.loop === 'twice' ? base * 2 : base,
-      repeat, fadeIn: snd.zone === 'events' || snd.zone === 'soundbox' ? 0 : 2, fadeOut: snd.zone === 'events' || snd.zone === 'soundbox' ? 0 : 4,
-      volume: typeof snd.volume === 'number' ? snd.volume : 0.75,
-    }, len);
+    return F.card(Object.assign({ zone: snd.zone }, snd), lengthOf(snd.file));
   }
   function addSound(snd, at, into) {
     const st = steps();
@@ -120,7 +184,7 @@
       E.sel = { i: pos, k: 0 };
     }
     changed();
-    if (!lengthOf(snd.file)) buffer(snd.file).then(() => renderAll()).catch(() => {});
+    if (!lengthOf(snd.file)) buffer(snd.file).then(() => { Object.assign(c, F.cleanCard(c, lengthOf(snd.file))); renderAll(); }).catch(() => {});
   }
   function moveCard(from, toStep, toIndex, newStepAt) {
     const st = steps();
@@ -129,13 +193,97 @@
       st.splice(newStepAt, 0, { title: '', gate: true, next: null, cards: [c] });
       E.sel = { i: newStepAt, k: 0 };
     } else {
-      let i = toStep;
+      const i = toStep;
       if (st[i].cards.length >= F.LANES) { st[from.i].cards.splice(from.k, 0, c); toast(`A step holds ${F.LANES} sounds side by side at most.`); return; }
       const k = toIndex == null ? st[i].cards.length : Math.min(toIndex, st[i].cards.length);
       st[i].cards.splice(k, 0, c);
       E.sel = { i, k };
     }
     changed();
+  }
+
+  /* ---------- Who plays when: the sentences that explain the cascade ---------- */
+  const q = (c) => `<b>${escapeHtml(c.name)}</b>`;
+  const list = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  function escapeHtml(t) { return String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+  const stepName = (st, i) => `step ${i + 1}${st[i] && st[i].title ? ` (${escapeHtml(st[i].title)})` : ''}`;
+
+  /** The step that opens the scene step i belongs to (a scene runs from a gate to the next one). */
+  function sceneOf(st, i) { let g = i; while (g > 0 && !st[g].gate) g--; return g; }
+  /** The first gate after step i, or -1 when the scene runs to the end of the list. */
+  function gateAfter(st, i) { for (let j = i + 1; j < st.length; j++) if (st[j].gate) return j; return -1; }
+  /** What ends the scene of step i, in words: the next gate, the choice, or the end of the chapter. */
+  function sceneEnd(st, i) {
+    const g = gateAfter(st, i);
+    if (g >= 0) return `you tap the gate of ${stepName(st, g)}`;
+    if (E.way == null && choice()) return 'you pick an answer of the choice';
+    return 'you leave the chapter';
+  }
+  /** Sounds of the scene still playing when step i hands over to the next one. */
+  function liveAfter(st, i) {
+    const offs = F.runOffsets(st);
+    const T = offs[i] + F.stepLength(st[i]);
+    const out = [];
+    for (let j = sceneOf(st, i); j <= i; j++) {
+      st[j].cards.forEach((c) => {
+        const end = c.hold ? Infinity : offs[j] + c.offset + c.duration;
+        if (end > T + 0.05) out.push({ c, j, end, late: end - T });
+      });
+    }
+    return { T, live: out };
+  }
+  /** The sound of step i that ends last, of those that end on their own. */
+  function lastEnding(s) {
+    let best = null;
+    s.cards.forEach((c) => { if (!c.hold && (!best || c.offset + c.duration > best.offset + best.duration)) best = c; });
+    return best;
+  }
+
+  /** Under a link: which sounds the next step finds still playing, and what becomes of them. */
+  function linkSentence(st, i) {
+    const nxt = st[i + 1];
+    const { live } = liveAfter(st, i);
+    if (nxt.gate) {
+      if (!live.length) return `The wire waits here for your tap. Nothing above is still playing by then, so ${stepName(st, i + 1)} starts in silence.`;
+      const holds = live.filter((x) => x.c.hold).map((x) => q(x.c));
+      const ends = live.filter((x) => !x.c.hold).map((x) => q(x.c));
+      let t = 'The wire waits here for your tap. When you tap Go, ';
+      if (holds.length) t += `${list(holds)} ${holds.length > 1 ? 'fade' : 'fades'} out`;
+      if (ends.length) t += `${holds.length ? ', and ' : ''}${list(ends)} ${ends.length > 1 ? 'fade' : 'fades'} out if still playing`;
+      return `${t}.`;
+    }
+    const start = st[i].next != null ? `${stepName(st, i + 1)} starts ${secs(st[i].next)} s after ${stepName(st, i)} began` : (() => {
+      const l = lastEnding(st[i]);
+      return l ? `${stepName(st, i + 1)} starts as soon as ${q(l)} ends (${F.clock(l.offset + l.duration)} into ${stepName(st, i)})` : `${stepName(st, i + 1)} starts at once, with ${stepName(st, i)}`;
+    })();
+    if (!live.length) return `No tap needed: ${start}.`;
+    const held = live.filter((x) => x.c.hold);
+    return `No tap needed: ${start}. Nothing is cut: ${list(live.map((x) => q(x.c)))} ${live.length > 1 ? 'carry' : 'carries'} on under it.${held.length ? ` ${held.length === live.length ? (held.length > 1 ? 'They' : 'It') : list(held.map((x) => q(x.c)))} ${held.length > 1 ? 'go' : 'goes'} on until ${sceneEnd(st, i)}.` : ''}`;
+  }
+
+  /** The life of one card, in words. */
+  function fateSentence(st, i, c) {
+    const offs = F.runOffsets(st);
+    const at = offs[i] + c.offset;
+    const parts = [];
+    parts.push(c.offset ? `Starts ${secs(c.offset)} s after ${stepName(st, i)} begins.` : `Starts with ${stepName(st, i)}.`);
+    const end = c.hold ? Infinity : at + c.duration;
+    // The steps of the same scene that begin while it still plays.
+    const under = [];
+    for (let j = i + 1; j < st.length && !st[j].gate; j++) if (offs[j] < end - 0.05 && offs[j] >= at - 0.05) under.push(j);
+    if (under.length) parts.push(`${under.length > 1 ? `Steps ${under[0] + 1} to ${under[under.length - 1] + 1} begin` : `${stepName(st, under[0])[0].toUpperCase()}${stepName(st, under[0]).slice(1)} begins`} while it plays: it carries on under ${under.length > 1 ? 'them' : 'it'}.`);
+    if (c.hold) parts.push(`${c.play === 'random' ? 'It comes back at random' : 'It loops'} until ${sceneEnd(st, i)}, then fades out.`);
+    else {
+      parts.push(`It ends on its own ${F.clock(c.duration)} later${c.play === 'loop' ? ', after looping' : ''}.`);
+      let last = i; while (last + 1 < st.length && !st[last + 1].gate) last++;
+      const sceneLen = offs[last] + F.stepLength(st[last]);
+      if (end > sceneLen + 0.05) {
+        const gA = gateAfter(st, last);
+        const how = gA >= 0 ? `you tap the gate of ${stepName(st, gA)}` : E.way == null && choice() ? 'you pick an answer of the choice' : 'you leave the chapter';
+        parts.push(`If ${how} before then, it fades out early.`);
+      }
+    }
+    return parts.filter(Boolean).join(' ');
   }
 
   /* ---------- Drawing ---------- */
@@ -150,19 +298,19 @@
       b.type = 'button';
       b.setAttribute('aria-current', String(i === E.ch));
       const n = F.allSteps(E.rec.flow.chapters[i]).length;
-      b.append(el('span', 'n', String(i + 1)), el('span', 't', c.title || `Chapter ${i + 1}`), el('small', 'fe-count', `${n}`));
-      b.addEventListener('click', () => { E.ch = i; E.way = null; E.sel = null; stopPreview(); renderAll(); $('#fe-main').scrollTop = 0; });
+      b.append(el('span', 'n', String(i + 1)), el('span', 't', c.title || `Chapter ${i + 1}`), el('small', 'fe-count', `${n} step${n === 1 ? '' : 's'}`));
+      b.addEventListener('click', () => { E.ch = i; E.way = null; E.sel = null; stopPreview(); closeHelp(); renderAll(); $('#fe-main').scrollTop = 0; });
       nav.append(b);
     });
     const tools = el('div', 'fe-tools');
-    const reset = el('button', 'btn small', 'Start this chapter again');
+    const reset = el('button', 'btn small', 'Rebuild this chapter');
     reset.type = 'button';
-    reset.title = 'Rebuild this chapter from its sounds, as a first Ballade';
+    reset.title = 'Replace its steps with a first Ballade made from its sounds';
     reset.addEventListener('click', async () => {
-      const ok = await ask('Start this chapter again?', 'Its steps are replaced by a first Ballade made from its sounds: music and ambiances together, then every other sound on its own cue.', [{ label: 'Cancel', value: false }, { label: 'Start again', value: true, cls: 'primary' }]);
+      const ok = await ask('Rebuild this chapter?', 'Its steps, and its choice, are replaced by a first Ballade made from its sounds: music and ambiances together, then every other sound behind its own gate.', [{ label: 'Cancel', value: false }, { label: 'Rebuild', value: true, cls: 'primary' }]);
       if (!ok) return;
       E.rec.flow.chapters[E.ch] = F.defaultChapter(E.rec.story.chapters[E.ch], E.rec.lengths);
-      E.sel = null;
+      E.sel = null; E.way = null;
       changed();
     });
     tools.append(reset);
@@ -185,138 +333,235 @@
   }
 
   function gap(at) {
-    const g = el('div', 'fe-gap');
-    g.append(el('span', '', at >= steps().length ? 'Drop a sound here for a new step' : 'Drop here: a new step'));
+    const g = el('div', `fe-gap${at >= steps().length ? ' end' : ''}`);
+    g.append(el('span', '', at >= steps().length ? 'Drop a sound here: a new step at the end' : 'Drop here: a new step'));
     dropZone(g, (d) => { if (d.kind === 'sound') addSound(d.snd, at); else moveCard(d.from, null, null, at); });
     return g;
   }
 
-  /** The silver choice of the chapter: its question, its ways, and which list of steps is being edited. */
-  function choicePanel() {
-    const box = el('div', 'fe-choice');
+  /** The tabs over a chapter that has a choice: the steps before it, and each way. */
+  function waysBar() {
     const c = choice();
-    if (!c) {
-      const add = el('button', 'btn small fe-silver', 'Add a choice at the end of this chapter');
+    if (!c) return null;
+    const bar = el('div', 'fe-ways');
+    const tab = (txt, way, n) => {
+      const b = el('button', `fe-way${E.way === way ? ' on' : ''}${way != null ? ' silver' : ''}`);
+      b.type = 'button';
+      b.append(el('span', '', txt), el('small', '', `${n} step${n === 1 ? '' : 's'}`));
+      b.addEventListener('click', () => { E.way = way; E.sel = null; closeHelp(); renderSteps(); renderInspector(); renderSounds(); $('#fe-main').scrollTop = 0; });
+      return b;
+    };
+    bar.append(tab('Before the choice', null, (chapter().steps || []).length));
+    const fork = el('span', 'fe-fork'); fork.innerHTML = ICON.fork;
+    bar.append(fork);
+    c.answers.forEach((a, k) => bar.append(tab(a.label || `Way ${k + 1}`, k, (a.steps || []).length)));
+    bar.append(help('choice'));
+    return bar;
+  }
+
+  /** The node above the first step: what starts the list. */
+  function startNode() {
+    const c = choice();
+    const box = el('div', `fe-start${E.way != null ? ' silver' : ''}`);
+    const node = el('span', 'fe-node');
+    node.innerHTML = E.way != null ? ICON.fork : ICON.go;
+    const txt = el('div', 'fe-start-t');
+    if (E.way != null) {
+      const a = c.answers[E.way];
+      txt.append(el('b', '', `Starts when you pick "${a.label || `Way ${E.way + 1}`}"`));
+      txt.append(el('span', 'muted small', 'Like a gate: everything still playing before the choice fades out, then the first step of this way starts.'));
+    } else {
+      txt.append(el('b', '', 'Starts when you tap Play'));
+      txt.append(el('span', 'muted small', 'The first step always waits for you.'));
+    }
+    box.append(node, txt);
+    return box;
+  }
+
+  /** Between two steps: how the lower one starts, and what it means for the sounds above. */
+  function link(i) {
+    const st = steps();
+    const s = st[i], nxt = st[i + 1];
+    const mode = nxt.gate ? 'tap' : s.next != null ? 'after' : 'end';
+    const box = el('div', `fe-link ${mode}`);
+    const node = el('span', 'fe-node');
+    node.innerHTML = mode === 'tap' ? ICON.gate : mode === 'after' ? ICON.clock : ICON.follow;
+    const body = el('div', 'fe-link-b');
+    const head = el('div', 'fe-link-h');
+    head.append(el('span', 'fe-link-q', `How does step ${i + 2} start?`), help('link'));
+    const opts = el('div', 'fe-opts');
+    const opt = (v, icon, txt, title) => {
+      const b = el('button', `fe-opt${mode === v ? ' on' : ''}`);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(mode === v));
+      b.title = title;
+      b.innerHTML = icon;
+      b.append(el('span', '', txt));
+      b.addEventListener('click', () => {
+        if (v === 'tap') { nxt.gate = true; s.next = null; }
+        else if (v === 'end') { nxt.gate = false; s.next = null; }
+        else { nxt.gate = false; s.next = secs(s.next != null ? s.next : Math.max(1, F.stepLength(Object.assign({}, s, { next: null })) || 10)); }
+        changed();
+      });
+      return b;
+    };
+    const l = lastEnding(s);
+    opts.append(
+      opt('tap', ICON.tap, 'On my tap (gate)', 'The wire waits for you; your tap fades out what still plays above'),
+      opt('end', ICON.follow, l ? `When ${s.cards.filter((c) => !c.hold).length > 1 ? 'its sounds end' : `"${l.name}" ends`}` : 'Straight away, under its loops', 'Follows on its own, when the sounds above that end on their own are over'),
+    );
+    const after = opt('after', ICON.clock, 'After', 'Follows on its own after a set time');
+    if (mode === 'after') {
+      const n = el('input', 'fe-secs'); n.type = 'number'; n.min = 0; n.step = 0.5; n.value = s.next;
+      n.setAttribute('aria-label', `Seconds before step ${i + 2} starts`);
+      n.addEventListener('click', (e) => e.stopPropagation());
+      n.addEventListener('change', () => { s.next = Math.max(0, secs(Number(n.value) || 0)); changed(); });
+      after.append(n, el('span', '', 's'));
+    } else after.querySelector('span').textContent = 'After a set time';
+    opts.append(after);
+    const say = el('p', 'fe-say');
+    say.innerHTML = linkSentence(st, i);
+    body.append(head, opts, say);
+    box.append(node, body);
+    return box;
+  }
+
+  /** After the last step: the choice, or the end of the chapter. */
+  function endNode() {
+    const st = steps();
+    const c = choice();
+    const box = el('div', 'fe-endnode');
+    const last = st.length - 1;
+    const { live } = last >= 0 ? liveAfter(st, last) : { live: [] };
+    const names = list(live.map((x) => q(x.c)));
+    if (E.way == null && c) {
+      box.classList.add('silver');
+      const node = el('span', 'fe-node'); node.innerHTML = ICON.fork;
+      const body = el('div', 'fe-link-b');
+      const head = el('div', 'fe-link-h');
+      head.append(el('span', 'fe-link-q', 'Then the choice'), help('choice'));
+      const qrow = el('div', 'fe-qrow');
+      const qi = el('input', 'fe-question');
+      qi.value = c.question || ''; qi.placeholder = 'The question, e.g. Do they open the crypt?'; qi.maxLength = 140;
+      qi.setAttribute('aria-label', 'Question of the choice');
+      qi.addEventListener('input', () => { c.question = qi.value; changed(false); });
+      const del = el('button', 'ico small'); del.type = 'button'; del.innerHTML = ICON.trash; del.title = 'Remove the choice and its ways';
+      del.addEventListener('click', async () => {
+        const ok = await ask('Remove this choice?', 'Its question and every way after it leave the chapter, with their steps.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
+        if (!ok) return;
+        delete chapter().choice; E.way = null; E.sel = null; changed();
+      });
+      qrow.append(qi, del);
+      const answers = el('div', 'fe-answers');
+      c.answers.forEach((a, k) => {
+        const row = el('div', 'fe-answer');
+        const name = el('input', 'fe-alabel'); name.value = a.label || ''; name.maxLength = 40; name.placeholder = `Answer ${k + 1}`;
+        name.setAttribute('aria-label', `Answer ${k + 1}`);
+        name.addEventListener('input', () => { a.label = name.value; changed(false); });
+        name.addEventListener('change', () => { renderSteps(); });
+        const n = (a.steps || []).length;
+        const go = el('button', 'btn small fe-silver', n ? `Edit its ${n} step${n === 1 ? '' : 's'}` : 'Add its steps');
+        go.type = 'button';
+        go.addEventListener('click', () => { E.way = k; E.sel = null; closeHelp(); renderSteps(); renderInspector(); renderSounds(); $('#fe-main').scrollTop = 0; });
+        row.append(name, go);
+        if (c.answers.length > 2) {
+          const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.title = 'Remove this answer and its way';
+          x.addEventListener('click', () => { c.answers.splice(k, 1); E.sel = null; changed(); });
+          row.append(x);
+        }
+        answers.append(row);
+      });
+      if (c.answers.length < F.MAX_ANSWERS) {
+        const more = el('button', 'btn small fe-silver', '+ Answer'); more.type = 'button';
+        more.addEventListener('click', () => { c.answers.push({ label: `Way ${c.answers.length + 1}`, steps: [] }); changed(); });
+        answers.append(more);
+      }
+      const say = el('p', 'fe-say');
+      say.innerHTML = `The wire stops here and shows the answers. When you pick one, ${live.length ? `${names} ${live.length > 1 ? 'fade' : 'fades'} out and ` : ''}its way starts.`;
+      body.append(head, qrow, answers, say);
+      box.append(node, body);
+      return box;
+    }
+    const node = el('span', 'fe-node'); node.innerHTML = ICON.stop;
+    const body = el('div', 'fe-link-b');
+    body.append(el('span', 'fe-link-q', E.way != null ? 'End of this way, and of the chapter' : 'End of the chapter'));
+    const say = el('p', 'fe-say');
+    say.innerHTML = live.length
+      ? `Still playing here: ${names}. ${live.some((x) => x.c.hold) ? 'Loops and random sounds go on until you open the next chapter or stop; the others play to their end.' : 'They play to their end.'}`
+      : 'Every sound has ended by then. At the table, Next chapter lights up.';
+    body.append(say);
+    if (E.way == null && st.length) {
+      const add = el('button', 'btn small fe-silver', 'Add a choice here');
       add.type = 'button';
       add.title = 'A silver gate with a question: each answer leads to its own end of the chapter';
       add.addEventListener('click', () => {
         chapter().choice = { question: '', answers: [{ label: 'Yes', steps: [] }, { label: 'No', steps: [] }] };
-        E.way = null; E.sel = null; changed();
+        E.sel = null; changed();
       });
-      box.append(add);
-      return box;
+      const row = el('div', 'fe-row'); row.append(add, help('choice'));
+      body.append(row);
     }
-    const q = el('input', 'fe-question');
-    q.value = c.question || ''; q.placeholder = 'The question, e.g. Did the boy survive?'; q.maxLength = 140;
-    q.setAttribute('aria-label', 'Question of the choice');
-    q.addEventListener('input', () => { c.question = q.value; changed(false); });
-    const qrow = el('div', 'fe-qrow');
-    const icon = el('span', 'fe-fork'); icon.innerHTML = ICON.fork || '';
-    const del = el('button', 'ico small'); del.type = 'button'; del.innerHTML = ICON.trash; del.title = 'Remove the choice and its ways';
-    del.addEventListener('click', async () => {
-      const ok = await ask('Remove this choice?', 'Its question and every way after it leave the chapter, with their steps.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
-      if (!ok) return;
-      delete chapter().choice; E.way = null; E.sel = null; changed();
-    });
-    qrow.append(icon, q, del);
-    box.append(qrow);
-    // Which steps the cascade below shows.
-    const ways = el('div', 'fe-ways');
-    const tab = (label, way, n) => {
-      const b = el('button', `fe-way${E.way === way ? ' on' : ''}${way != null ? ' silver' : ''}`);
-      b.type = 'button';
-      b.append(el('span', '', label), el('small', '', `${n} step${n === 1 ? '' : 's'}`));
-      b.addEventListener('click', () => { E.way = way; E.sel = null; renderSteps(); renderInspector(); renderSounds(); });
-      return b;
-    };
-    ways.append(tab('Before the choice', null, (chapter().steps || []).length));
-    c.answers.forEach((a, k) => {
-      const w = el('div', 'fe-answer');
-      w.append(tab(a.label || `Way ${k + 1}`, k, (a.steps || []).length));
-      if (E.way === k) {
-        const name = el('input', 'fe-alabel'); name.value = a.label || ''; name.maxLength = 40; name.placeholder = 'Answer';
-        name.setAttribute('aria-label', 'Answer');
-        name.addEventListener('input', () => { a.label = name.value; changed(false); });
-        name.addEventListener('change', () => renderSteps());
-        w.append(name);
-        if (c.answers.length > 2) {
-          const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.title = 'Remove this way';
-          x.addEventListener('click', () => { c.answers.splice(k, 1); E.way = null; E.sel = null; changed(); });
-          w.append(x);
-        }
-      }
-      ways.append(w);
-    });
-    if (c.answers.length < F.MAX_ANSWERS) {
-      const more = el('button', 'btn small fe-silver', '+ Answer'); more.type = 'button';
-      more.addEventListener('click', () => { c.answers.push({ label: `Way ${c.answers.length + 1}`, steps: [] }); E.way = c.answers.length - 1; E.sel = null; changed(); });
-      ways.append(more);
-    }
-    box.append(ways);
-    box.append(el('p', 'muted small', E.way == null
-      ? 'These steps play first. When they end, the wire stops at the silver gate and asks the question.'
-      : `The way "${c.answers[E.way].label}": it starts on its own gate when you pick this answer, and ends the chapter.`));
+    box.append(node, body);
     return box;
   }
+
+  const PLAY_TXT = (c) => (c.play === 'random' ? `Random, ${secs(c.gapMin)} to ${secs(c.gapMax)} s apart` : c.play === 'loop' ? (c.hold ? 'Loop, until the gate' : `Loop, ${F.clock(c.duration)}`) : `Once, ${F.clock(c.duration)}`);
 
   function renderSteps() {
     const main = $('#fe-main');
     const keep = main.scrollTop;
     main.textContent = '';
+    const st = steps();
     const head = el('div', 'fe-head');
     const t = E.rec.story.chapters[E.ch].title || `Chapter ${E.ch + 1}`;
     head.append(el('p', 'kicker', `Chapter ${E.ch + 1}`), el('h2', '', t));
-    const total = F.runOffsets(steps());
-    head.append(choicePanel());
-    head.append(el('p', 'muted', steps().length ? 'Steps run from top to bottom. A gate waits for your tap; the other steps follow on their own when the one above ends.' : 'Drag sounds from the right into the cascade to make the first step.'));
+    const how = el('div', 'fe-how');
+    how.append(el('span', 'muted', 'Steps play from top to bottom. Between two steps, you choose how the next one starts.'), help('chapter'));
+    head.append(how);
+    const ways = waysBar();
+    if (ways) head.append(ways);
     main.append(head);
-    const col = el('div', 'fe-cascade');
-    steps().forEach((s, i) => {
+    const col = el('div', `fe-cascade${E.way != null ? ' way' : ''}`);
+    col.append(startNode());
+    st.forEach((s, i) => {
       col.append(gap(i));
-      const art = el('article', `fe-step${s.gate ? ' gate' : ''}`);
+      const art = el('article', 'fe-step');
       const top = el('header', 'fe-step-top');
       const num = el('span', 'fe-num', String(i + 1));
       const title = el('input', 'fe-stitle');
-      title.value = s.title; title.placeholder = label(Object.assign({}, s, { title: '' }), i); title.maxLength = 80;
+      title.value = s.title; title.placeholder = `Name this step (${label(Object.assign({}, s, { title: '' }), i)})`; title.maxLength = 80;
       title.setAttribute('aria-label', `Name of step ${i + 1}`);
       title.addEventListener('input', () => { s.title = title.value; changed(false); });
       title.addEventListener('change', () => renderSteps());
-      const gateL = el('label', 'fe-gate');
-      const gateI = el('input'); gateI.type = 'checkbox'; gateI.checked = s.gate; gateI.disabled = i === 0;
-      gateI.addEventListener('change', () => { s.gate = gateI.checked; changed(); });
-      gateL.append(gateI, el('span', '', i === 0 ? (E.way != null ? 'Starts when picked' : 'Starts on my tap') : 'Wait for my tap'));
-      gateL.title = 'A gate: the wire stops before this step until you tap Go';
-      const nextL = el('label', 'fe-next');
-      const sel = el('select');
-      [['auto', 'Ends with its sounds'], ['after', 'Ends after']].forEach(([v, txt]) => { const o = el('option', '', txt); o.value = v; sel.append(o); });
-      sel.value = s.next == null ? 'auto' : 'after';
-      const nIn = el('input'); nIn.type = 'number'; nIn.min = 0; nIn.step = 0.5; nIn.value = s.next == null ? secs(F.stepLength(s)) : s.next; nIn.hidden = s.next == null;
-      nIn.setAttribute('aria-label', 'Step length in seconds');
-      sel.addEventListener('change', () => { s.next = sel.value === 'auto' ? null : secs(F.stepLength(s)); changed(); });
-      nIn.addEventListener('change', () => { s.next = Math.max(0, Number(nIn.value) || 0); changed(); });
-      nextL.append(sel, nIn, el('small', nIn.hidden ? 'fe-len' : 'fe-unit', nIn.hidden ? F.clock(F.stepLength(s)) : 's'));
-      nextL.title = 'When the next step starts, if it is not a gate. Sounds still playing carry on under it.';
       const acts = el('div', 'fe-acts');
       const mk = (icon, lbl, fn, dis) => { const b = el('button', 'ico small'); b.type = 'button'; b.innerHTML = icon; b.title = lbl; b.setAttribute('aria-label', lbl); b.disabled = !!dis; b.addEventListener('click', fn); return b; };
       acts.append(
-        mk(ICON.up, 'Move up', () => { const st = steps(); [st[i - 1], st[i]] = [st[i], st[i - 1]]; E.sel = null; changed(); }, i === 0),
-        mk(ICON.down, 'Move down', () => { const st = steps(); [st[i + 1], st[i]] = [st[i], st[i + 1]]; E.sel = null; changed(); }, i === steps().length - 1),
-        mk(ICON.trash, 'Remove this step', () => { steps().splice(i, 1); E.sel = null; changed(); }),
+        mk(ICON.up, 'Move up', () => { [st[i - 1], st[i]] = [st[i], st[i - 1]]; E.sel = null; changed(); }, i === 0),
+        mk(ICON.down, 'Move down', () => { [st[i + 1], st[i]] = [st[i], st[i + 1]]; E.sel = null; changed(); }, i === st.length - 1),
+        mk(ICON.trash, 'Remove this step', async () => {
+          if (s.cards.length) {
+            const ok = await ask('Remove this step?', `Step ${i + 1} and its ${s.cards.length} sound${s.cards.length > 1 ? 's' : ''} leave the chapter. The sounds stay in the story.`, [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
+            if (!ok) return;
+          }
+          st.splice(i, 1); E.sel = null; changed();
+        }),
       );
-      top.append(num, title, gateL, nextL, acts);
+      top.append(num, title, acts);
       art.append(top);
 
       const lanes = el('div', 'fe-lanes');
       s.cards.forEach((c, k) => {
-        const card = el('div', 'fe-card');
+        const card = el('div', `fe-card${c.hold ? ' hold' : ''}`);
         card.draggable = true;
         card.tabIndex = 0;
         card.style.setProperty('--z', ZCOL[c.zone]);
         if (E.sel && E.sel.i === i && E.sel.k === k) card.classList.add('sel');
         card.append(el('b', '', c.name));
-        const meta = el('span', 'fe-cmeta', `${c.offset ? `+${F.clock(c.offset)}, ` : ''}${F.clock(c.duration)}${c.repeat ? ', repeats' : ''}${c.start ? `, from ${F.clock(c.start)}` : ''}`);
+        const meta = el('span', 'fe-cmeta');
+        meta.innerHTML = c.play === 'random' ? ICON.random : c.play === 'loop' ? ICON.repeat : ICON.once;
+        meta.append(el('span', '', `${PLAY_TXT(c)}${c.offset ? `, from +${F.clock(c.offset)}` : ''}`));
         card.append(meta);
-        const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.setAttribute('aria-label', `Remove ${c.name}`);
+        const x = el('button', 'fe-x'); x.type = 'button'; x.innerHTML = ICON.x; x.setAttribute('aria-label', `Remove ${c.name}`); x.title = 'Remove from this step';
         x.addEventListener('click', (e) => { e.stopPropagation(); s.cards.splice(k, 1); E.sel = null; changed(); });
         card.append(x);
         card.addEventListener('click', () => { E.sel = { i, k }; renderSteps(); renderInspector(); });
@@ -333,40 +578,44 @@
         lanes.append(card);
       });
       if (s.cards.length < F.LANES) {
-        const slot = el('div', 'fe-slot', s.cards.length ? '+ side by side' : 'Drop a sound');
+        const slot = el('div', 'fe-slot', s.cards.length ? '+ Drop a sound to play it alongside' : 'Drop a sound here');
         dropZone(slot, (d) => { if (d.kind === 'sound') addSound(d.snd, null, i); else if (d.from.i !== i) moveCard(d.from, i, null); });
         lanes.append(slot);
       }
       dropZone(lanes, (d) => { if (d.kind === 'sound') addSound(d.snd, null, i); else if (d.from.i !== i) moveCard(d.from, i, null); });
       art.append(lanes);
 
-      // A small timeline of the step: when each sound starts and ends.
-      const len = Math.max(0.1, F.stepLength(s), ...s.cards.map((c) => c.offset + c.duration));
-      if (s.cards.length) {
+      // A small timeline of the step: when each sound starts, how long it plays; a held sound runs off the edge.
+      if (s.cards.some((c) => !c.hold || c.offset > 0)) {
+        const own = F.stepLength(s);
+        const len = Math.max(0.1, own, ...s.cards.map((c) => c.offset + (c.hold ? 0 : c.duration)), ...s.cards.map((c) => c.offset + 4));
         const ruler = el('div', 'fe-ruler');
         s.cards.forEach((c) => {
-          const bar = el('i');
+          const bar = el('i', c.hold ? 'hold' : '');
           bar.style.left = `${(c.offset / len) * 100}%`;
-          bar.style.width = `${Math.max(1, (c.duration / len) * 100)}%`;
-          bar.style.background = ZCOL[c.zone];
+          bar.style.width = c.hold ? `${100 - (c.offset / len) * 100}%` : `${Math.max(1, (c.duration / len) * 100)}%`;
+          bar.style.setProperty('--z', ZCOL[c.zone]);
           ruler.append(bar);
         });
-        if (s.next != null && s.next < len) { const m = el('b', 'fe-mark'); m.style.left = `${(s.next / len) * 100}%`; m.title = 'Next step'; ruler.append(m); }
-        art.append(ruler);
+        if (i + 1 < st.length && !st[i + 1].gate && own < len - 0.05) { const m = el('b', 'fe-mark'); m.style.left = `${(own / len) * 100}%`; m.title = `Step ${i + 2} starts here`; ruler.append(m); }
+        const cap = el('div', 'fe-rcap');
+        cap.append(el('span', '', '0:00'), el('span', '', s.cards.some((c) => c.hold) ? `${F.clock(len)}, loops go on` : F.clock(len)));
+        art.append(ruler, cap);
       }
-      const foot = el('div', 'fe-foot');
-      foot.textContent = i === 0 ? (E.way != null ? 'Starts when you pick this answer' : 'Opens the chapter on your tap') : s.gate ? 'Waits for your tap' : `Follows on its own, ${F.clock(total[i])} after the last gate`;
-      art.append(foot);
       col.append(art);
+      if (i + 1 < st.length) col.append(link(i));
     });
-    col.append(gap(steps().length));
+    col.append(gap(st.length));
+    col.append(endNode());
     main.append(col);
     main.scrollTop = keep;
   }
 
-  function field(lbl, input, hint) {
+  function field(lbl, input, hint, helpKey) {
     const l = el('label', 'fe-field');
-    l.append(el('span', '', lbl), input);
+    const top = el('span', 'fe-flabel', lbl);
+    if (helpKey) top.append(help(helpKey));
+    l.append(top, input);
     if (hint) l.append(el('small', '', hint));
     return l;
   }
@@ -379,17 +628,18 @@
   function renderInspector() {
     const box = $('#fe-inspector');
     box.textContent = '';
-    const s = E.sel && steps()[E.sel.i];
+    const st = steps();
+    const s = E.sel && st[E.sel.i];
     const c = s && s.cards[E.sel.k];
     if (!c) {
-      box.append(el('h3', '', 'Sound card'));
-      box.append(el('p', 'muted small', 'Select a card in the cascade to set when it starts, how long it plays and how it fades. Drag sounds from below into the cascade.'));
+      box.append(el('h3', '', 'Sound'));
+      box.append(el('p', 'muted small', 'Click a sound in the cascade to choose how it plays, when it starts and how it fades. To add one, drag it from the list below onto a step, or between two steps for a new step.'));
       return;
     }
     const len = lengthOf(c.file);
     const head = el('div', 'fe-ins-head');
     head.style.setProperty('--z', ZCOL[c.zone]);
-    head.append(el('h3', '', `Step ${E.sel.i + 1}, sound ${E.sel.k + 1}`));
+    head.append(el('h3', '', `Step ${E.sel.i + 1}, ${ZNAME[c.zone] || 'sound'}`));
     const pv = el('button', 'btn small'); pv.type = 'button'; pv.innerHTML = `${ICON.play}<span>Listen</span>`;
     pv.addEventListener('click', () => preview(c.file, c, pv));
     head.append(pv);
@@ -399,30 +649,70 @@
     name.addEventListener('change', () => renderSteps());
     box.append(field('Name at the table', name));
     const upd = (fn) => (v) => { fn(v); Object.assign(c, F.cleanCard(c, len)); changed(); };
-    box.append(field('Starts after', numIn(c.offset, 0.5, 0, null, upd((v) => { c.offset = v; })), 'seconds after the step begins'));
-    const durRow = el('div', 'fe-row');
-    durRow.append(numIn(c.duration, 0.5, 0.1, null, upd((v) => { c.duration = v; })));
-    if (len) {
-      const whole = el('button', 'btn small', 'Whole sound'); whole.type = 'button';
-      whole.addEventListener('click', upd(() => { c.repeat = false; c.duration = len - c.start; }));
-      durRow.append(whole);
+    const whole = () => (len ? secs(Math.max(0.1, len - c.start)) : c.duration);
+
+    // How it plays: once, loop, random.
+    const seg = el('div', 'fe-modes');
+    [['once', ICON.once, 'Once'], ['loop', ICON.repeat, 'Loop'], ['random', ICON.random, 'Random']].forEach(([v, icon, txt]) => {
+      const b = el('button', `fe-mode${c.play === v ? ' on' : ''}`);
+      b.type = 'button'; b.setAttribute('aria-pressed', String(c.play === v));
+      b.innerHTML = icon; b.append(el('span', '', txt));
+      b.addEventListener('click', upd(() => {
+        if (v === c.play) return;
+        if (v === 'once') { c.play = 'once'; c.hold = false; c.duration = whole(); }
+        else if (v === 'loop') { c.play = 'loop'; c.hold = true; c.duration = Math.max(c.duration, 300); }
+        else { c.play = 'random'; c.hold = true; c.duration = whole(); c.fadeIn = 0; c.fadeOut = 0; }
+      }));
+      seg.append(b);
+    });
+    box.append(field('How it plays', seg, null, 'plays'));
+    const sub = el('div', 'fe-sub');
+    if (c.play === 'once') {
+      sub.append(el('p', 'muted small', `Plays one time, then stops on its own.${len ? ` The sound lasts ${F.clock(len)}.` : ''}`));
+      const r = el('div', 'fe-row');
+      r.append(numIn(c.duration, 0.5, 0.1, len || null, upd((v) => { c.duration = v; })));
+      if (len && Math.abs(c.duration - whole()) > 0.05) { const w = el('button', 'btn small', 'Whole sound'); w.type = 'button'; w.addEventListener('click', upd(() => { c.duration = whole(); })); r.append(w); }
+      sub.append(field('Plays for (seconds)', r));
+    } else if (c.play === 'loop') {
+      sub.append(el('p', 'muted small', 'Repeats without a break. It stops:'));
+      const stops = el('div', 'fe-modes small');
+      const sb = (hold, txt) => { const b = el('button', `fe-mode${c.hold === hold ? ' on' : ''}`, txt); b.type = 'button'; b.setAttribute('aria-pressed', String(c.hold === hold)); b.addEventListener('click', upd(() => { c.hold = hold; })); return b; };
+      stops.append(sb(true, 'At the next gate'), sb(false, 'After a set time'));
+      sub.append(stops);
+      if (!c.hold) sub.append(field('Loops for (seconds)', numIn(c.duration, 1, 0.1, null, upd((v) => { c.duration = v; })), `${F.clock(c.duration)}, then it ends on its own`));
+    } else {
+      sub.append(el('p', 'muted small', 'Plays the sound, waits a random pause, plays it again, until the next gate.'));
+      const r = el('div', 'fe-row');
+      r.append(field('Pause from (s)', numIn(c.gapMin, 0.5, 0, 600, upd((v) => { c.gapMin = v; c.gapMax = Math.max(c.gapMax, v); }))), field('to (s)', numIn(c.gapMax, 0.5, 0, 600, upd((v) => { c.gapMax = Math.max(v, c.gapMin); }))));
+      sub.append(r);
+      const r2 = el('div', 'fe-row');
+      r2.append(numIn(c.duration, 0.5, 0.1, len || null, upd((v) => { c.duration = v; })));
+      if (len && Math.abs(c.duration - whole()) > 0.05) { const w = el('button', 'btn small', 'Whole sound'); w.type = 'button'; w.addEventListener('click', upd(() => { c.duration = whole(); })); r2.append(w); }
+      sub.append(field('Each time, plays for (seconds)', r2));
     }
-    box.append(field('Plays for', durRow, len ? `seconds (the sound lasts ${F.clock(len)})` : 'seconds'));
-    const rep = el('label', 'row-set toggle');
-    const ri = el('input'); ri.type = 'checkbox'; ri.checked = c.repeat;
-    ri.addEventListener('change', upd(() => { c.repeat = ri.checked; }));
-    rep.append(el('span', '', 'Repeat until it ends'), ri, el('i'));
-    box.append(rep);
-    box.append(field('Begins at', numIn(c.start, 0.5, 0, len || null, upd((v) => { c.start = v; })), 'seconds into the sound (trim the start)'));
-    const fades = el('div', 'fe-row');
-    fades.append(field('Fade in', numIn(c.fadeIn, 0.5, 0, 30, upd((v) => { c.fadeIn = v; }))), field('Fade out', numIn(c.fadeOut, 0.5, 0, 30, upd((v) => { c.fadeOut = v; }))));
-    box.append(fades);
+    box.append(sub);
+
+    box.append(field('Starts', numIn(c.offset, 0.5, 0, null, upd((v) => { c.offset = v; })), `seconds after step ${E.sel.i + 1} begins (0: with it)`, 'starts'));
+    box.append(field('Begins at', numIn(c.start, 0.5, 0, len || null, upd((v) => { c.start = v; })), 'seconds into the sound file, to skip its beginning'));
+    if (c.play !== 'random') {
+      const fades = el('div', 'fe-row');
+      fades.append(field('Fade in (s)', numIn(c.fadeIn, 0.5, 0, 30, upd((v) => { c.fadeIn = v; }))));
+      if (!c.hold) fades.append(field('Fade out (s)', numIn(c.fadeOut, 0.5, 0, 30, upd((v) => { c.fadeOut = v; }))));
+      box.append(fades);
+      if (c.hold) box.append(el('small', 'muted', 'It fades out at the gate that stops it, over the fade set in Settings.'));
+    }
     const vol = el('input'); vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
     vol.style.setProperty('--z', ZCOL[c.zone]); vol.style.setProperty('--p', `${c.volume * 100}%`);
     const vv = el('b', 'fe-vol', String(Math.round(c.volume * 100)));
     vol.addEventListener('input', () => { c.volume = Number(vol.value); vol.style.setProperty('--p', `${c.volume * 100}%`); vv.textContent = String(Math.round(c.volume * 100)); changed(false); });
     const vrow = el('div', 'fe-row'); vrow.append(vol, vv);
     box.append(field('Volume', vrow));
+    const fate = el('div', 'fe-fate');
+    const fh = el('div', 'fe-flabel'); fh.append(el('span', '', 'In the chapter'), help('fate'));
+    const fp = el('p', '');
+    fp.innerHTML = fateSentence(st, E.sel.i, c);
+    fate.append(fh, fp);
+    box.append(fate);
   }
 
   function renderSounds(full = true) {
@@ -507,6 +797,9 @@
     $('#fe-play').addEventListener('click', async () => { await flush(); if (E.onPlay) E.onPlay(E.ch); });
     $('#fe-forge').addEventListener('click', forge);
     $('#fe-troubadour').addEventListener('click', exportTroubadour);
+    document.addEventListener('click', closeHelp);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHelp(); });
+    $('#fe-main').addEventListener('scroll', closeHelp, { passive: true });
     document.addEventListener('keydown', (e) => {
       if (!E.rec || !E.sel || $('#editor').hidden) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {

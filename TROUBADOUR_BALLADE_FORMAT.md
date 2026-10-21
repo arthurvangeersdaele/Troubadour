@@ -39,7 +39,7 @@ sounds/1/music/01-tavern-hearth.mp3
             { "name": "Tavern hearth", "file": "sounds/1/music/01-tavern-hearth.mp3", "zone": "music",
               "offset": 0, "start": 0, "duration": 182.4, "repeat": false, "fadeIn": 2, "fadeOut": 4, "volume": 0.75 },
             { "name": "Rain on stone", "file": "sounds/1/ambience/01-rain-on-stone.mp3", "zone": "ambience",
-              "offset": 5, "start": 0, "duration": 300, "repeat": true, "fadeIn": 2, "fadeOut": 4, "volume": 0.6 }
+              "offset": 5, "start": 0, "duration": 300, "play": "loop", "hold": true, "repeat": true, "fadeIn": 2, "fadeOut": 4, "volume": 0.6 }
           ]
         },
         {
@@ -48,7 +48,9 @@ sounds/1/music/01-tavern-hearth.mp3
           "next": 12,
           "cards": [
             { "name": "Church bells", "file": "sounds/1/events/01-church-bells.mp3", "zone": "events",
-              "offset": 0, "start": 0, "duration": 8.2, "repeat": false, "fadeIn": 0, "fadeOut": 0, "volume": 0.75 }
+              "offset": 0, "start": 0, "duration": 8.2, "play": "once", "hold": false, "repeat": false, "fadeIn": 0, "fadeOut": 0, "volume": 0.75 },
+            { "name": "Crows", "file": "sounds/1/events/02-crows.mp3", "zone": "events",
+              "offset": 0, "start": 0, "duration": 3.1, "play": "random", "hold": true, "repeat": true, "gapMin": 5, "gapMax": 30, "fadeIn": 0, "fadeOut": 0, "volume": 0.6 }
           ]
         }
       ]
@@ -75,7 +77,7 @@ A **step**:
 | --- | --- | --- |
 | `title` | string | Shown on the wire. Empty: the names of its sounds. |
 | `gate` | boolean | `true`: the wire stops before this step and waits for the troubadour's tap. The first step of a chapter is always a gate. |
-| `next` | number or `null` | When the step after it starts, in seconds from the start of this one. `null`: when its last card ends. Cards still playing carry on under the next step. |
+| `next` | number or `null` | When the step after it starts, in seconds from the start of this one. `null`: when its last card that ends on its own ends (cards that `hold` are not waited for; a step of such cards alone hands over at once). Cards still playing carry on under the next step. Ignored when the next step is a gate, except to tell when the wire reaches it. |
 | `cards` | array of cards | 0 to 3 sounds side by side. |
 
 A **card**:
@@ -87,8 +89,11 @@ A **card**:
 | `zone` | string | `music`, `ambience`, `events` or `soundbox`: the colour of the card. |
 | `offset` | number | Seconds after the start of the step. |
 | `start` | number | Seconds into the sound where it begins (trim). |
-| `duration` | number | Seconds it plays. Without `repeat`, at most the length of the sound after `start`. |
-| `repeat` | boolean | Loops the sound (from `start`) until `duration` is reached. Replaces the ∞, 2× and random of Troubadour: a Ballade only knows lengths. |
+| `play` | string | `once`: the sound plays one time. `loop`: it repeats without a break. `random`: it plays, waits a random pause of `gapMin` to `gapMax` seconds, plays again, and so on. Missing (files from before it): `loop` if `repeat`, else `once`. |
+| `hold` | boolean | `true`: the card plays until the next gate is tapped, the choice is picked or the chapter is left, whatever its `duration`. Always `true` for `random`, never for `once`. |
+| `duration` | number | `once`: seconds it plays, at most the length of the sound after `start`. `loop` without `hold`: seconds it loops. `random`: seconds of each play, at most the sound after `start`. A `loop` that holds keeps a duration for older players (300 s by default). |
+| `repeat` | boolean | Written for the players that came before `play`: `true` for `loop` and `random`, which they loop for `duration`. |
+| `gapMin`, `gapMax` | number | `random` only: the shortest and longest pause between two plays, in seconds (default 5 and 30). |
 | `fadeIn`, `fadeOut` | number | Seconds, 0 for none. |
 | `volume` | number | 0 to 1. |
 
@@ -105,8 +110,12 @@ Unknown fields must be kept when a tool re-saves a file.
 
 In the player, time flows down: inside a run (a gate and the steps that follow it on their own) the run has one speed (about 420 px for the whole run, 2 to 36 px per second), each card sits at the height where it starts and is exactly as tall as it lasts at that speed (only a sound under a second or so keeps a readable minimum), so sounds that overlap stand side by side, sized alike. The time line, the gold on the cards and their progress bars move together at that speed. Like the app icon, the wire is drawn with straight lines and round corners only: one spine runs through every gate down to Next chapter, under each gate a bus leaves it and turns down into one rail per lane, each card's left edge is its lane's wire and its frame keeps round corners at all times, and the gold comes down both sides of the card as the sound plays, level with its progress bar, closing its bottom edge when the sound ends. Each card has a start button, to start it by hand ahead of the wire; once the wire has reached it, or left its run behind, the button is gone. A card started by hand is greyed out once it has played.
 
-A chapter opens on its first gate. Tapping a gate fades out the sounds of the run before it (its pending sounds are called off). Starting a step starts each of its cards after its `offset`; when the step ends (`next`, or its last card), the following step starts on its own, unless it is a gate, where the wire waits. After the last step, the wire waits for **Next chapter**. Tapping a step's node jumps the wire there; tapping a playing card fades it out.
+A chapter opens on its first gate. Tapping a gate fades out the sounds of the run before it (its pending sounds are called off): loops and random cards that `hold` stop there, and so does anything else still playing. Picking an answer of a choice does the same. A step that follows on its own never cuts a sound: whatever plays carries on under it. Starting a step starts each of its cards after its `offset`; when the step ends (`next`, or its last card), the following step starts on its own, unless it is a gate, where the wire waits. After the last step, the wire waits for **Next chapter**. Tapping a step's node jumps the wire there; tapping a playing card fades it out.
 
 ## A first Ballade from a `.troubadour`
 
-Importing a plain `.troubadour` builds a first Ballade for each chapter: the first music and up to two ambiances open the chapter together, then every other music, the other ambiances (three at a time) and each event get a gate of their own. Endless sounds repeat for 3 minutes (music) or 5 minutes (ambiances), sounds played twice last twice their length. When the opening holds sounds that repeat, its `next` is 30 s, so the following gate is ready without waiting for them.
+Importing a plain `.troubadour` builds a first Ballade for each chapter: the first music and up to two ambiances open the chapter together, then every other music, the other ambiances (three at a time) and each event get a gate of their own. Endless sounds become loops that hold until the next gate, random sounds become random cards (which hold too), sounds played twice loop for twice their length, the others play once.
+
+## In the editor
+
+Between two steps, the editor shows one link: **On my tap (gate)** sets `gate` on the lower step; **When the sounds end** clears it and sets `next` to `null`; **After a set time** clears it and sets `next`. Under every link, a sentence names the sounds the tap fades out, or those that carry on under the next step. The inspector of a card says the same for that card: when it starts, under which steps it carries on, and what stops it.
