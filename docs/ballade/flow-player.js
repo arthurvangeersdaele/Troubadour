@@ -610,7 +610,7 @@
         pb.innerHTML = ICON.go;
         pb.addEventListener('click', (e) => { e.stopPropagation(); force(x.i, x.k); });
         area.append(pb);
-        const info = { lastRun: lastRun && !pending, card, fill, time, c, pb, top, left: pl.left, w: pl.w, ch, d, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: Math.max(0.05, x.e - x.s0), extra: -1, spent: false, path: null, under: null };
+        const info = { stick, db: -1, lastRun: lastRun && !pending, card, fill, time, c, pb, top, left: pl.left, w: pl.w, ch, d, rail: pl.rail, lane: x.lane, run: r, s0: x.s0, e: x.e, cont: x.cont, span: Math.max(0.05, x.e - x.s0), extra: -1, spent: false, path: null, under: null };
         cards.push(info);
         P.dom.cards.set(`${x.i}:${x.k}`, info);
       });
@@ -695,15 +695,41 @@
 
   /** A card's outline, as a flag on its wire: out of the wire in a soft S, down its right side, back into the wire.
    *  Open along the wire (the wire draws that side); `close` closes it for the fill. */
-  function flag(f, xc, y, w, h, d, close) {
+  function flag(f, xc, y, w, h, d, close, db = d, sq = 0) {
     // The wire splits round the sound: each side straight down along it, a long lean out, straight down at the
     // card's edge, then the same lean back in. Open, it is the two sides; closed, the body between them.
-    const side = (hw) => `C${f(xc)} ${f(y + d * 0.42)} ${f(xc + hw)} ${f(y + d * 0.45)} ${f(xc + hw)} ${f(y + d)}`
-      + `V${f(y + h - d)}C${f(xc + hw)} ${f(y + h - d * 0.45)} ${f(xc)} ${f(y + h - d * 0.42)} ${f(xc)} ${f(y + h)}`;
+    // At the bottom, `db` (the height of the lean back in) and `sq` (0: a long point, 1: square) let the end of the
+    // card give way to its words when they slide down it on a scroll: it flattens into a square end that holds them.
+    const yb = y + h - db;
+    const lo = (hw) => [xc + hw, y + h - db * 0.45 * (1 - sq), xc + hw * 0.62 * sq, y + h - db * 0.42 * (1 - sq)];
+    const side = (hw) => { const [ax, ay, bx, by] = lo(hw); return `C${f(xc)} ${f(y + d * 0.42)} ${f(xc + hw)} ${f(y + d * 0.45)} ${f(xc + hw)} ${f(y + d)}`
+      + `V${f(yb)}C${f(ax)} ${f(ay)} ${f(bx)} ${f(by)} ${f(xc)} ${f(y + h)}`; };
     const hw = w / 2;
     if (!close) return `M${f(xc)} ${f(y)}${side(hw)}M${f(xc)} ${f(y)}${side(-hw)}`;
-    return `M${f(xc)} ${f(y)}${side(hw)}C${f(xc)} ${f(y + h - d * 0.42)} ${f(xc - hw)} ${f(y + h - d * 0.45)} ${f(xc - hw)} ${f(y + h - d)}`
+    const [ax, ay, bx, by] = lo(-hw);
+    return `M${f(xc)} ${f(y)}${side(hw)}C${f(bx)} ${f(by)} ${f(ax)} ${f(ay)} ${f(xc - hw)} ${f(yb)}`
       + `V${f(y + d)}C${f(xc - hw)} ${f(y + d * 0.45)} ${f(xc)} ${f(y + d * 0.42)} ${f(xc)} ${f(y)}Z`;
+  }
+
+  /** Reshapes a card's end so its words, slid down by a scroll, stay inside it (called every frame, cheap when idle). */
+  const DB_MIN = 10;
+  function fitEnd(x) {
+    if (!x.stick || !x.path || x.card.classList.contains('short')) return;
+    const cr = x.card.getBoundingClientRect();
+    if (cr.bottom < 0 || cr.top > innerHeight) return;
+    const sb = x.stick.getBoundingClientRect().bottom - cr.top;
+    const room = x.ch - sb - 6;
+    const db = Math.round(Math.max(DB_MIN, Math.min(x.d, room)));
+    if (db === x.db) return;
+    x.db = db;
+    const sq = x.d > DB_MIN ? Math.min(1, Math.max(0, (x.d - db) / (x.d - DB_MIN))) : 0;
+    const f = (n) => Math.round(n * 10) / 10;
+    const open = flag(f, x.gx + x.w / 2, x.gy, x.w, x.ch, x.d, false, db, sq);
+    const closed = flag(f, x.gx + x.w / 2, x.gy, x.w, x.ch, x.d, true, db, sq);
+    x.path.setAttribute('d', open);
+    if (x.base) x.base.setAttribute('d', open);
+    if (x.under) x.under.setAttribute('d', closed);
+    if (x.hand) x.hand.setAttribute('d', closed);
   }
 
   /** How far the outline of a sound stands from its wire, `y` px below its top (the curves of flag(), sampled). */
@@ -809,10 +835,11 @@
     const rects = svg.querySelectorAll('clipPath rect');
     D.clip = rects[0];
     const fpaths = svg.querySelectorAll(`#${id}-g path`);
+    const bpaths = svg.querySelectorAll(`#${id}-f path`);
     const fills = D.under.querySelectorAll('path.body');
     const hands = D.under.querySelectorAll('path.by-hand');
     const handRects = D.under.querySelectorAll('clipPath rect');
-    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.under = fills[k]; o.c.hand = hands[k]; o.c.handRect = handRects[k]; o.c.hh = -1; o.c.extra = -1; o.c.spent = false; });
+    frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.base = bpaths[k]; o.c.db = -1; o.c.under = fills[k]; o.c.hand = hands[k]; o.c.handRect = handRects[k]; o.c.hh = -1; o.c.extra = -1; o.c.spent = false; });
     D.lit = -1;
     D.H = Ht;
   }
@@ -887,6 +914,7 @@
       if (waiting) focusY = R.cy - 30;
     });
     D.cards.forEach((x, key) => {
+      fitEnd(x);
       const [i, k] = key.split(':').map(Number);
       const st = P.starts[i];
       const v = voiceOf(i, k);
