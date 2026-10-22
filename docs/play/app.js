@@ -127,7 +127,7 @@
       el.preload = 'auto';
       el.loop = this.loop === 2;
       el.addEventListener('loadedmetadata', () => this.paint());
-      el.addEventListener('ended', () => this.ended());
+      el.addEventListener('ended', () => { if (el === this.el) this.ended(); });
       el.addEventListener('error', () => { clearTimeout(this.timer); this.set('error'); });
       el.src = this.url;
       el.load();
@@ -143,7 +143,9 @@
       this.env = ctx.createGain(); this.env.gain.value = 0;
       // Living events: a gain of its own lets the volume drift around the troubadour's setting.
       this.life = ctx.createGain(); this.life.gain.value = 1;
-      src.connect(this.vg).connect(this.life).connect(this.env).connect(masterGain);
+      // xf: this round's share of a blended loop (1 outside a blend).
+      this.xf = ctx.createGain(); this.xf.gain.value = 1;
+      src.connect(this.xf).connect(this.vg).connect(this.life).connect(this.env).connect(masterGain);
     }
     get active() { return this.state === 'playing' || this.state === 'ending'; }
     get usable() { return this.el && this.state !== 'loading' && this.state !== 'error'; }
@@ -167,6 +169,7 @@
     pause() {
       if (!this.active) return;
       clearTimeout(this.timer);
+      this.dropTwin(true);
       ramp(this.env.gain, 0, 0.04);
       this.timer = setTimeout(() => this.el.pause(), 50);
       this.set('paused');
@@ -181,8 +184,46 @@
       this.set('ending');
       this.timer = setTimeout(() => this.reset(), ms + 40);
     }
+    /** Blend (sound.blend s, forever loops only): the length of the crossfade between two rounds, at most a third of the sound. */
+    get blend() {
+      const b = Number(this.sound.blend ?? (this.sound.extra && this.sound.extra.blend) ?? 0);
+      const d = this.el && isFinite(this.el.duration) ? this.el.duration : 0;
+      return this.loop === 2 && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
+    }
+    /** A blended loop: near the end of a round, the next round starts on a second element and the two cross over. */
+    blendTick() {
+      if (!this.el || !this.xf) return;
+      const b = this.blend;
+      if (!b) { if (this.loop === 2 && !this.el.loop && !this.twin) this.el.loop = true; return; }
+      if (this.el.loop) this.el.loop = false;
+      if (this.state !== 'playing' || this.twin) return;
+      const left = this.el.duration - this.el.currentTime;
+      if (!(left <= b)) return;
+      const old = this.el, oldXf = this.xf;
+      const nu = new Audio(this.url);
+      nu.preload = 'auto';
+      nu.addEventListener('ended', () => { if (nu === this.el) this.ended(); });
+      const xf = ctx.createGain();
+      ctx.createMediaElementSource(nu).connect(xf).connect(this.vg);
+      const t = ctx.currentTime, span = Math.max(0.05, left);
+      xf.gain.setValueAtTime(0, t); xf.gain.linearRampToValueAtTime(1, t + span);
+      oldXf.gain.cancelScheduledValues(t); oldXf.gain.setValueAtTime(1, t); oldXf.gain.linearRampToValueAtTime(0, t + span);
+      nu.play().catch(() => {});
+      this.el = nu; this.xf = xf;
+      this.twin = { el: old, xf: oldXf };
+      this.twinTimer = setTimeout(() => this.dropTwin(), span * 1000 + 150);
+    }
+    /** Lets the round that blended out go; `now`: also brings the current round to full level at once. */
+    dropTwin(now) {
+      clearTimeout(this.twinTimer);
+      const tw = this.twin;
+      this.twin = null;
+      if (tw) { try { tw.el.pause(); tw.el.removeAttribute('src'); tw.el.load(); } catch (e) { /* gone */ } try { tw.xf.disconnect(); } catch (e) { /* gone */ } }
+      if (now && this.xf && ctx) { const g = this.xf.gain; g.cancelScheduledValues(ctx.currentTime); g.setValueAtTime(1, ctx.currentTime); }
+    }
     reset() {
       clearTimeout(this.timer);
+      this.dropTwin(true);
       if (this.el) { this.el.pause(); try { this.el.currentTime = 0; } catch (e) {} }
       this.plays = 0;
       this.set('ready');
@@ -953,6 +994,7 @@
   setInterval(() => {
     if (!story) return;
     const now = Date.now();
+    story.all.forEach((v) => v.blendTick());
     story.all.forEach((v) => {
       if (!v.rnd) return;
       const sounding = v.state === 'playing' || v.state === 'paused' || v.state === 'ending';

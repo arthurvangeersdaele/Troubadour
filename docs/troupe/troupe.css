@@ -323,3 +323,6 @@ html.pc .discord-bar { width: min(100%, 906px); }
 .sc .edvol .vl { font-size: 12px; color: var(--muted); }
 .sc .edvol input[type="range"] { flex: 1; height: 24px; }
 .sc .edvol .vp { width: 26px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
+.sc .edblend { gap: 8px; margin-top: 2px; }
+.sc .edblend[hidden] { display: none; }
+.sc .edblend select { flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; }

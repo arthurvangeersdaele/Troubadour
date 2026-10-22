@@ -398,8 +398,25 @@
       loop.classList.toggle('inf', s.loop === 'infinite');
       loop.classList.toggle('rnd', s.loop === 'random');
     };
+    // Blend: a sound that repeats forever can melt its end into its own new start (a crossfade of the loop).
+    const blendRow = el('label', 'row edblend');
+    blendRow.append(el('span', 'vl', 'Blend the loop'));
+    const blend = el('select');
+    blend.setAttribute('aria-label', `Blend the end of ${s.name} into its repeat`);
+    blend.title = 'Its last seconds fade out while its beginning fades in again: no gap, no click between two rounds';
+    [[0, 'Off'], [1, '1 s'], [2, '2 s'], [4, '4 s'], [8, '8 s']].forEach(([v, t]) => { const o = el('option', '', t); o.value = v; blend.append(o); });
+    blend.value = String((s.extra && s.extra.blend) || 0);
+    blend.addEventListener('mousedown', (e) => e.stopPropagation());
+    blend.onchange = () => {
+      s.extra = s.extra || {};
+      const v = Number(blend.value) || 0;
+      if (v > 0) s.extra.blend = v; else delete s.extra.blend;
+    };
+    blendRow.append(blend);
     paintLoop();
-    loop.onclick = () => { s.loop = nextLoop(s.loop, zone); paintLoop(); };
+    const paintBlend = () => { blendRow.hidden = s.loop !== 'infinite' || zone === 'soundbox' || zone === 'events'; };
+    paintBlend();
+    loop.onclick = () => { s.loop = nextLoop(s.loop, zone); paintLoop(); paintBlend(); };
     const cut = el('button', 'cut');
     cut.type = 'button';
     cut.innerHTML = ICON.cut;
@@ -428,7 +445,7 @@
       if (playingId === s.id) player.volume = s.volume;
     });
     volRow.append(vr, vp);
-    c.append(top, bottom, volRow);
+    c.append(top, bottom, volRow, blendRow);
     c.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-troubadour-sound', s.id);
       e.dataTransfer.effectAllowed = 'move';

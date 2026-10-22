@@ -77,6 +77,7 @@ A **sound**:
 | `name` | string | yes | Card title. |
 | `file` | string | yes | Path of the audio entry inside the archive. MP3 recommended; OGG, M4A and WAV are accepted. |
 | `loop` | string | yes | `"once"`, `"twice"` or `"infinite"` (the 1×, 2× and ∞ of the app). Events and ambiances may also use `"random"` (not music): the sound plays again and again, after a random pause of 0.5 s up to a maximum set in the player's settings (1 to 10 s). A reader that does not know `"random"` plays the sound once, and keeps the value when it re-saves the file. |
+| `blend` | number | no | Seconds. Only with `"infinite"`: the end of each round fades out while the sound starts again and fades in, so the loop has no gap or click (a crossfade of the loop, at most a third of the sound). Absent or 0: a plain loop. Readers that do not know it play a plain loop and keep it when they re-save. |
 | `volume` | number | no | 0 to 1, default 0.75. |
 | `duration` | number | no | Seconds, informative only. |
 
