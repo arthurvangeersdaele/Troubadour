@@ -19,6 +19,7 @@ SOUNDBOX = {   # (chapter, zone, index) picked from the chapters for quick play
     'space-odyssey': [(3, 'events', 5), (3, 'events', 3), (4, 'events', 2), (1, 'events', 5)],
     'le-camping-rondin-des-bois': [(4, 'events', 1), (1, 'events', 4), (2, 'events', 4), (4, 'events', 4)],
     'the-haunted-church': [(1, 'events', 2), (2, 'events', 4), (2, 'events', 5), (4, 'events', 3)],
+    'dungeon-crawler-carl-tome-1': [(2, 'events', 3), (2, 'events', 4), (5, 'events', 1), (4, 'events', 1)],
 }
 
 
