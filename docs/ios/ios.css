@@ -429,9 +429,13 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
 /* ---------- Upright phone: top bars fit, nothing under the camera ---------- */
 /* The notch is at the top when the phone is upright: bars and dialogs keep clear of it. */
 .app .tbar { padding-top: max(4px, env(safe-area-inset-top)); min-height: calc(56px + env(safe-area-inset-top)); }
+/* Every pop-up is centred both ways, in the room left between the notch and the home bar. */
 .app dialog.settings, .app dialog.ask {
-  margin-top: max(12px, calc(env(safe-area-inset-top) + 8px));
-  margin-bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
+  position: fixed;
+  top: max(12px, calc(env(safe-area-inset-top) + 8px));
+  bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
+  left: 0; right: 0;
+  margin: auto;
   max-height: calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px));
 }
 @media (max-width: 520px) {
