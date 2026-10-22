@@ -474,3 +474,20 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 .chap-go .n { font-family: 'Cormorant SC', serif; font-weight: 700; color: var(--accent); width: 16px; text-align: right; }
 .story-menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .story-menu .btn { justify-content: center; gap: 8px; }
+
+/* Library on the phone: the hero card fills the height left under the bar, never more. */
+@media (min-width: 721px) {
+  .app #library .hero {
+    min-height: 0;
+    height: clamp(230px, calc(100dvh - 52px - env(safe-area-inset-top) - 14px - max(24px, env(safe-area-inset-bottom))), 420px);
+  }
+}
+.app #library .hero-in { gap: 6px; padding: 14px 16px; }
+.app #library .hero h2 { font-size: 27px; }
+.app #library .hero .hero-sub.clamp { -webkit-line-clamp: 2; }
+.app #library .srow { gap: 10px; padding: 7px; }
+.app #library .srow > .cover { width: 56px; height: 42px; }
+.app #library .srow b { font-size: 17px; }
+.app #library .srow .more { width: 32px; }
+.app #library .srow .go { width: 42px; height: 42px; }
+.app #library .srow.add .add-i { width: 56px; height: 42px; }
