@@ -27,7 +27,7 @@
     trash: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>', 16),
     drop: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', 16),
     link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>', 15),
-    cut: svg('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/>', 14),
+    cut: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 14), // a pencil: edit the sound (crop, fades, name)
     random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 14),
     reuse: svg('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', 15),
   };
@@ -420,8 +420,8 @@
     const cut = el('button', 'cut');
     cut.type = 'button';
     cut.innerHTML = ICON.cut;
-    cut.title = 'Crop';
-    cut.setAttribute('aria-label', `Crop ${s.name}`);
+    cut.title = 'Edit: crop, fades, name';
+    cut.setAttribute('aria-label', `Edit ${s.name}`);
     cut.onclick = () => cropSound(s, zone);
     // Soundbox effects fire once per tap: no loop button for them.
     bottom.append(play, meta, cut);

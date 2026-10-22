@@ -150,7 +150,7 @@
     const zoneLabel = ZONE_LABEL[opts.zone] || 'the story';
     const v = el('div', 'veil');
     v.id = 'veil';
-    const box = el('div', 'rhythm crop');
+    const box = el('div', 'forge crop');
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.innerHTML = `
@@ -194,7 +194,7 @@
       <input type="file" class="cr-pick" accept=".mp3,.ogg,.m4a,.wav,.webm,.aac,.flac,audio/*" hidden>`;
     v.append(box);
     document.body.append(v);
-    $('h2', box).textContent = cropOnly ? `Crop “${opts.sound.name}”` : `Add a sound to ${zoneLabel}`;
+    $('h2', box).textContent = cropOnly ? `Edit “${opts.sound.name}”` : `Add a sound to ${zoneLabel}`;
     $('.cr-ok', box).textContent = cropOnly ? 'Keep this part' : `Add to ${zoneLabel}`;
     if (cropOnly) $('.cr-src', box).hidden = true;
 
