@@ -439,3 +439,20 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
   .app .sbar .tabs a { padding: 0 10px; }
   .app .sbar .btn.slim { padding: 0 9px; }
 }
+
+/* ---------- Sound picker: a fixed head (Files, sources, search), the list scrolls, the Add bar stays below it ---------- */
+.app dialog.sheet:has(#sheet-body.picker)[open] { display: flex; flex-direction: column; overflow: hidden; }
+.app dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
+#sheet-body.picker { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+.picker .big-pick { flex: none; justify-content: center; height: 44px; }
+.pick-head { flex: none; display: grid; gap: 8px; }
+.pick-tabs { width: 100%; }
+.pick-tabs button { flex: 1; }
+.picker .pick-q { margin: 0; }
+.picker .pick-list { flex: 1; min-height: 140px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; align-content: start; padding-bottom: 4px; }
+.pick-empty { grid-column: 1 / -1; text-align: center; padding: 18px 0; margin: 0; }
+.pick-play { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--bar); color: var(--text); display: grid; place-items: center; padding: 0; }
+.pick-play.on { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.pick-play.wait { animation: pick-wait 1s ease-in-out infinite; }
+@keyframes pick-wait { 50% { opacity: .45; } }
+.picker .pick-bar { position: static; flex: none; padding: 10px 0 0; margin: 0; background: var(--bar); border-top: 1px solid var(--line); }

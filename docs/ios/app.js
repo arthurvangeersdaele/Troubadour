@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261021.5';
+  const VERSION = '261022.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1041,60 +1041,185 @@
   }
 
   /* ================= Sound picker ================= */
+  // Two sources: the sounds already on this device (any story, the shared soundbox), and every sound of the
+  // Recueil. One search runs through the source shown; every row can be heard before it is added.
   let pickTarget = null; // { zone, list, after }
+  const RECUEIL = '../recueil/';
+  let recueil = null;        // the Recueil's sounds, once fetched
+  let recueilLoad = null;
+  const recueilBytes = new Map(); // id -> Promise<Blob>
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function loadRecueil() {
+    if (!recueilLoad) {
+      recueilLoad = fetch(`${RECUEIL}sounds.json`, { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => { recueil = (d.sounds || []).map((x) => Object.assign(x, { key: fold(`${x.name} ${x.tale} ${x.bard} ${x.row}`) })); return recueil; })
+        .catch((e) => { recueilLoad = null; throw e; });
+    }
+    return recueilLoad;
+  }
+  /** One sound of the Recueil: only its own bytes are fetched (the tales store their sounds as plain byte ranges). */
+  function recueilBlob(x) {
+    if (!recueilBytes.has(x.id)) {
+      recueilBytes.set(x.id, (async () => {
+        let part = null;
+        try {
+          const res = await fetch(RECUEIL + encodeURIComponent(x.file), { headers: { Range: `bytes=${x.offset}-${x.offset + x.length - 1}` } });
+          if (res.status === 206) { const b = await res.blob(); if (b.size === x.length) part = b; }
+          else if (res.ok) part = (await res.blob()).slice(x.offset, x.offset + x.length);
+        } catch (e) { /* tried below */ }
+        if (!part) throw new Error('This sound of the Recueil could not be fetched. Check your connection.');
+        if (x.deflated) part = await new Response(part.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+        const ext = (x.path.split('.').pop() || 'mp3').toLowerCase();
+        // A standalone copy (never a slice): Safari stores slices of a big blob wrongly.
+        return new Blob([await part.arrayBuffer()], { type: { m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav' }[ext] || 'audio/mpeg' });
+      })().catch((e) => { recueilBytes.delete(x.id); throw e; }));
+    }
+    return recueilBytes.get(x.id);
+  }
+
+  // Listening in the picker: one sound at a time.
+  const pickPlay = { key: null, el: null, url: null, btn: null };
+  function stopPick() {
+    if (pickPlay.el) { pickPlay.el.pause(); pickPlay.el.removeAttribute('src'); pickPlay.el.load(); }
+    if (pickPlay.url) URL.revokeObjectURL(pickPlay.url);
+    if (pickPlay.btn) { pickPlay.btn.innerHTML = ICON.play; pickPlay.btn.classList.remove('on', 'wait'); }
+    Object.assign(pickPlay, { key: null, el: null, url: null, btn: null });
+  }
+  async function togglePick(key, getBlob, b) {
+    if (pickPlay.key === key) { stopPick(); return; }
+    stopPick();
+    pickPlay.key = key; pickPlay.btn = b;
+    b.classList.add('on', 'wait');
+    b.innerHTML = ICON.pause;
+    try {
+      const blob = await getBlob();
+      if (pickPlay.key !== key) return;
+      if (!blob) throw new Error('This sound is missing.');
+      applyAudioSession();
+      pickPlay.url = URL.createObjectURL(blob);
+      pickPlay.el = new Audio(pickPlay.url);
+      pickPlay.el.volume = 0.75;
+      pickPlay.el.onended = stopPick;
+      b.classList.remove('wait');
+      await pickPlay.el.play();
+    } catch (e) {
+      if (pickPlay.key === key) stopPick();
+      toast(e.message || 'This sound could not be played.');
+    }
+  }
+
+  let pickSource = 'device';
   function openPicker(zone, list, after) {
     pickTarget = { zone, list, after };
+    stopPick();
     const body = openSheet(`Add to ${zone.label}`);
     body.className = 'picker';
-    const fromFiles = btn('btn primary big-pick', `${ICON.files}<span>Choose from Files</span>`, null, () => $('#pick-audio').click());
-    const top = el('div', 'pick-top');
-    top.append(fromFiles, el('p', 'muted small', `MP3, M4A, WAV or OGG, from your ${DEV}, iCloud Drive or any Files location. Choose several at once.`));
-    body.append(top);
+    $('#sheet').addEventListener('close', stopPick, { once: true });
+    const fromFiles = btn('btn big-pick', `${ICON.files}<span>Choose from Files</span>`, null, () => $('#pick-audio').click());
+    body.append(fromFiles);
 
-    // Sounds already on this iPhone (from any story or the shared soundbox): reusing one takes no extra space.
+    // On this device: reusing a sound takes no extra space.
     const seen = new Map();
     const sources = STORIES.map((st) => (ed && st.uid === ed.story.uid ? ed.story : st));
     if (ed && !sources.includes(ed.story)) sources.unshift(ed.story);
     sources.forEach((st) => DB.soundsOf(st).forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: st.title }); }));
     SHARED.forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: 'Shared soundbox' }); });
     const inList = new Set(list.map((s) => s.blob));
-    const all = [...seen.values()].filter((x) => !inList.has(x.s.blob)).sort((a, b) => a.s.name.localeCompare(b.s.name));
-    if (!all.length) return;
-    body.append(el('h3', 'pick-h', `Or reuse a sound already on this ${DEV}`));
+    const local = [...seen.values()].filter((x) => !inList.has(x.s.blob)).sort((a, b) => a.s.name.localeCompare(b.s.name))
+      .map((x) => ({ key: `d:${x.s.blob}`, name: x.s.name, sub: [x.from, x.s.duration ? fmt(x.s.duration) : null].filter(Boolean).join(', '), x, fold: fold(`${x.s.name} ${x.from}`) }));
+
+    const tabs = el('div', 'seg pick-tabs');
+    const tab = (id, label) => { const b = el('button', '', label); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.src = id; b.onclick = () => { pickSource = id; paintTabs(); draw(); }; return b; };
+    tabs.append(tab('device', `On this ${DEV}`), tab('recueil', 'From the Recueil'));
+    const paintTabs = () => tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.src === pickSource)));
     const q = el('input', 'pick-q');
     q.type = 'search';
-    q.placeholder = `Search ${plural(all.length, 'sound')}`;
     q.setAttribute('enterkeyhint', 'search');
-    body.append(q);
+    q.setAttribute('autocomplete', 'off');
+    const head = el('div', 'pick-head');
+    head.append(tabs, q);
+    body.append(head);
+
     const ul = el('div', 'pick-list');
-    const chosen = new Set();
+    const chosen = new Map(); // key -> row data
     const addBtn = btn('btn primary', 'Add', null, async () => {
-      const picked = all.filter((x) => chosen.has(x.s.blob));
-      picked.forEach((x) => {
-        const n = newSound(x.s.blob, x.s.name, x.s.fileName, SIZES.get(x.s.blob) || x.s.size, LOOP_NAMES[zone.loop], x.s.duration);
-        list.push(n);
-      });
+      const picked = [...chosen.values()];
+      stopPick();
       closeSheet();
-      afterAdd(picked.length);
+      let n = 0;
+      try {
+        for (const r of picked) {
+          if (r.x) {
+            const s = r.x.s;
+            list.push(newSound(s.blob, s.name, s.fileName, SIZES.get(s.blob) || s.size, LOOP_NAMES[zone.loop], s.duration));
+          } else {
+            busy('Adding sounds from the Recueil', `${r.name} (${n + 1} of ${picked.length})`, n / picked.length);
+            const blob = await recueilBlob(r.rx);
+            const key = await DB.putBlob(blob);
+            SIZES.set(key, blob.size);
+            const fileName = r.rx.path.split('/').pop();
+            list.push(newSound(key, r.rx.name, fileName, blob.size, LOOP_NAMES[zone.loop], r.rx.duration || null));
+          }
+          n += 1;
+        }
+      } catch (err) {
+        toast(quotaMessage(err).message || err.message, 4000);
+      }
+      idle();
+      afterAdd(n);
     });
     addBtn.disabled = true;
     const paintAdd = () => { addBtn.disabled = !chosen.size; addBtn.textContent = chosen.size ? `Add ${plural(chosen.size, 'sound')}` : 'Add'; };
+    const ROWNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+
+    const row = (r, getBlob) => {
+      const lab = el('label', 'pick-row');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = chosen.has(r.key);
+      cb.onchange = () => { cb.checked ? chosen.set(r.key, r) : chosen.delete(r.key); paintAdd(); };
+      const t = el('span', 'pt');
+      t.append(el('b', '', r.name), el('small', '', r.sub));
+      const pb = el('button', 'pick-play');
+      pb.type = 'button';
+      pb.innerHTML = pickPlay.key === r.key ? ICON.pause : ICON.play;
+      if (pickPlay.key === r.key) { pb.classList.add('on'); pickPlay.btn = pb; }
+      pb.setAttribute('aria-label', `Listen to ${r.name}`);
+      pb.onclick = (e) => { e.preventDefault(); e.stopPropagation(); togglePick(r.key, getBlob, pb); };
+      lab.append(cb, el('i'), t, pb);
+      return lab;
+    };
     const draw = () => {
       ul.textContent = '';
-      const term = q.value.trim().toLowerCase();
-      all.filter((x) => !term || x.s.name.toLowerCase().includes(term) || x.from.toLowerCase().includes(term)).slice(0, 200).forEach((x) => {
-        const row = el('label', 'pick-row');
-        const cb = el('input');
-        cb.type = 'checkbox';
-        cb.checked = chosen.has(x.s.blob);
-        cb.onchange = () => { cb.checked ? chosen.add(x.s.blob) : chosen.delete(x.s.blob); paintAdd(); };
-        const t = el('span', 'pt');
-        t.append(el('b', '', x.s.name), el('small', '', [x.from, x.s.duration ? fmt(x.s.duration) : null].filter(Boolean).join(', ')));
-        row.append(cb, el('i'), t);
-        ul.append(row);
+      const term = fold(q.value.trim());
+      if (pickSource === 'device') {
+        q.placeholder = `Search ${plural(local.length, 'sound')} on this ${DEV}`;
+        const hits = local.filter((r) => !term || r.fold.includes(term));
+        if (!hits.length) ul.append(el('p', 'muted small pick-empty', local.length ? 'No sound matches.' : `No other sound on this ${DEV} yet. Try the Recueil.`));
+        hits.slice(0, 300).forEach((r) => ul.append(row(r, () => DB.getBlob(r.x.s.blob))));
+        return;
+      }
+      q.placeholder = 'Search a sound, a tale or a troubadour';
+      if (!recueil) {
+        ul.append(el('p', 'muted small pick-empty', 'Fetching the sounds of the Recueil…'));
+        loadRecueil().then(() => { if (pickSource === 'recueil' && $('#sheet').open) draw(); })
+          .catch(() => { ul.textContent = ''; ul.append(el('p', 'muted small pick-empty', 'The Recueil could not be reached. Check your connection.')); });
+        return;
+      }
+      // Sounds of the same kind as the row first (music for Music, and so on).
+      const kind = zone.id;
+      const hits = recueil.filter((x) => !term || x.key.includes(term))
+        .sort((a, b) => (b.row === kind) - (a.row === kind) || a.name.localeCompare(b.name));
+      if (!hits.length) ul.append(el('p', 'muted small pick-empty', 'No sound of the Recueil matches.'));
+      hits.slice(0, 300).forEach((x) => {
+        const r = { key: `r:${x.id}`, name: x.name, sub: [ROWNAME[x.row], x.tale, x.duration ? fmt(x.duration) : null].filter(Boolean).join(', '), rx: x };
+        ul.append(row(r, () => recueilBlob(x)));
       });
     };
     q.oninput = draw;
+    if (!local.length) pickSource = 'recueil';
+    paintTabs();
     draw();
     const bar = el('div', 'pick-bar');
     bar.append(addBtn);
