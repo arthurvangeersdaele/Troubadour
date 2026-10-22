@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -270,12 +271,23 @@ private fun PlayCard(m: AppModel, s: TableSession, c: Card, z: Color) {
                     background = Color.Transparent, enabled = on || paused,
                 ) { s.end(c) }
                 when (mode) {
-                    VolumeMode.FULL -> BardSlider(c.sound.volume, { v -> s.setVolume(c, v) }, z, Modifier.weight(1f).height(btn), label = "${c.sound.name} volume")
+                    VolumeMode.FULL -> Box(Modifier.weight(1f).height(btn)) {
+                        BardSlider(c.sound.volume, { v -> s.setVolume(c, v) }, z, Modifier.fillMaxSize(), label = "${c.sound.name} volume")
+                        // Living events: a discreet dot under the track marks the volume heard right now.
+                        if (c.heard >= 0f) androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                            val x = 10.dp + (maxWidth - 20.dp) * c.heard
+                            Box(Modifier.align(Alignment.BottomStart).padding(start = x - 2.dp, bottom = 2.dp).size(4.dp).background(C.text, androidx.compose.foundation.shape.CircleShape))
+                        }
+                    }
                     VolumeMode.SIMPLE -> {
                         val small = (btn - 6.dp).coerceAtLeast(24.dp)
                         IconBtn(BIcons.volDown, "Lower ${c.sound.name}", size = small, iconSize = 15.dp, background = Color.Transparent) { s.stepVolume(c, -1) }
                         val shown = if (c.shownVolume >= 0f) c.shownVolume else c.sound.volume
-                        T("${(shown * 100).toInt()}", color = if (c.shownVolume >= 0f) z else C.muted, size = 12.sp, weight = FontWeight.SemiBold, align = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f))
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            T("${(shown * 100).toInt()}", color = if (c.shownVolume >= 0f) z else C.muted, size = 12.sp, weight = FontWeight.SemiBold, align = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                            // Living events: a small dot under the number leans left or right with the volume heard.
+                            if (c.heard >= 0f) Box(Modifier.align(Alignment.BottomCenter).offset(x = ((c.heard - c.sound.volume) * 90f).dp, y = 6.dp).size(4.dp).background(z, androidx.compose.foundation.shape.CircleShape))
+                        }
                         IconBtn(BIcons.volUp, "Raise ${c.sound.name}", size = small, iconSize = 15.dp, background = Color.Transparent) { s.stepVolume(c, 1) }
                     }
                     VolumeMode.HIDDEN -> if (info.isNotEmpty()) T(

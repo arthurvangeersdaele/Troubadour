@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.8';
+  const VERSION = '261022.9';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1691,7 +1691,7 @@
       ctrl.append(play, end, dn, lvl, up);
     } else ctrl.append(play, end, rem);
     c.append(head, track, ctrl);
-    v.card = { root: c, rem, loop, fill, play, end, lvl };
+    v.card = { root: c, rem, loop, fill, play, end, lvl, vol: mode === 'full' ? vol : null };
     paintCard(v);
     return c;
   }
@@ -1716,6 +1716,13 @@
 
   function paintCard(v) {
     const k = v.card; if (!k) return;
+    // Living events: a discreet mark shows the volume heard right now; the slider and the number keep the troubadour's own.
+    if (v.life && v.zone.id === 'events') {
+      const alive = !!(settings.life && v.lifeOn && v.active);
+      const heard = alive ? Math.sqrt(Math.max(0, curve(v.vol) * v.life.gain.value)) : v.vol;
+      if (k.vol) { k.vol.classList.toggle('living', alive); if (alive) k.vol.style.setProperty('--lp', Math.min(1, heard).toFixed(3)); }
+      if (k.lvl) { k.lvl.classList.toggle('living', alive); if (alive) k.lvl.style.setProperty('--lo', `${((heard - v.vol) * 90).toFixed(1)}px`); }
+    }
     const waiting = v.waiting;
     const on = v.active || waiting;
     k.root.classList.toggle('on', on);

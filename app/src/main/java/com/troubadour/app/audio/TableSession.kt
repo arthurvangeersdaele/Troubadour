@@ -41,6 +41,8 @@ class Card(val chapterIndex: Int, val zone: Zone, sound: Sound) {
     var volumeJob: Job? = null
     /** Living events: the drift under way, as an offset of the volume (from, to), and when the next one starts. */
     var lifeOn = false
+    /** The volume heard right now while it drifts (for the mark on the card), or -1. */
+    var heard by androidx.compose.runtime.mutableFloatStateOf(-1f)
     var lifeFrom = 0f
     var lifeTo = 0f
     var lifeStart = 0L
@@ -305,7 +307,7 @@ class TableSession(
             val slot = c.slot ?: return@forEach
             if (owner[slot] !== c || c.volumeJob?.isActive == true) return@forEach
             if (!settings.lifeEvents || stateOf(c) != NativeEngine.PLAYING) {
-                if (c.lifeOn) { c.lifeOn = false; NativeEngine.setVolume(slot, curve(c.sound.volume)) }
+                if (c.lifeOn) { c.lifeOn = false; c.heard = -1f; NativeEngine.setVolume(slot, curve(c.sound.volume)) }
                 return@forEach
             }
             val every = settings.lifeEvery * 1000L
@@ -320,7 +322,9 @@ class TableSession(
             }
             val f = ((now - c.lifeStart).toFloat() / c.lifeDur).coerceIn(0f, 1f)
             val off = c.lifeFrom + (c.lifeTo - c.lifeFrom) * f
-            NativeEngine.setVolume(slot, curve((c.sound.volume + off).coerceIn(0f, 1f)))
+            val h = (c.sound.volume + off).coerceIn(0f, 1f)
+            c.heard = h
+            NativeEngine.setVolume(slot, curve(h))
         }
     }
 

@@ -466,3 +466,4 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
 .add-doors .ldoor b { white-space: normal; overflow-wrap: anywhere; }
 .app .ico.danger, .app .ico.danger svg { color: var(--danger); }
 #life-row.off { opacity: .45; }
+html.mode-app input[type="range"].living { background: radial-gradient(circle at calc(11px + (100% - 22px) * var(--lp, .5)) calc(100% - 4px), var(--text) 0 1.8px, transparent 2.5px) no-repeat; }
