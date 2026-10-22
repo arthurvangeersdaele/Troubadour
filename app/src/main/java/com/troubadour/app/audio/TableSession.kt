@@ -214,7 +214,8 @@ class TableSession(
             return
         }
         val fade = settings.fadeMs
-        var fadeIn = 30
+        // A tap on Play rises over the fade-in (music, ambiances); events strike at once. Replays never come here.
+        var fadeIn = if (card.zone == Zone.EVENTS) 30 else settings.fadeInMs.coerceAtLeast(30)
         if (card.zone == Zone.MUSIC && st != NativeEngine.ENDING) {
             val others = cards.filter { it !== card && it.zone == Zone.MUSIC && (isActive(it) || stateOf(it) == NativeEngine.PAUSED) }
             val crossing = others.any { isActive(it) }

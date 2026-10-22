@@ -68,6 +68,9 @@ class AppSettings(context: Context) {
     init { collect(theme) }
     var appearance by mutableStateOf(Appearance.from(prefs.getString("mode", null)))
         private set
+    /** Fade-in of music and ambiances started with Play (0: off). Replays and events start at once. */
+    var fadeInMs by mutableIntStateOf(prefs.getInt("fadeIn", 1000))
+        private set
     var fadeMs by mutableIntStateOf(prefs.getInt("fade", 2000))
         private set
     var crossfade by mutableStateOf(prefs.getBoolean("crossfade", true))
@@ -119,6 +122,7 @@ class AppSettings(context: Context) {
     fun changeTheme(v: ThemeName) { collect(v); theme = v; prefs.edit().putString("theme", v.id).apply() }
     fun changeAppearance(v: Appearance) { appearance = v; prefs.edit().putString("mode", v.id).apply() }
     fun changeFade(ms: Int) { fadeMs = ms; prefs.edit().putInt("fade", ms).apply() }
+    fun changeFadeIn(ms: Int) { fadeInMs = ms; prefs.edit().putInt("fadeIn", ms).apply() }
     fun changeCrossfade(v: Boolean) { crossfade = v; prefs.edit().putBoolean("crossfade", v).apply() }
     fun changeSilenceChapters(v: Boolean) { silenceChapters = v; prefs.edit().putBoolean("silence", v).apply() }
     fun changeKeepAwake(v: Boolean) { keepAwake = v; prefs.edit().putBoolean("awake", v).apply() }

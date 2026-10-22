@@ -407,6 +407,9 @@ private fun SettingsPanel(m: AppModel) {
         SetRow("Events", null) { Segmented(volModes, st.volEvents) { st.changeVolEvents(it) } }
 
         SetSection("Playback")
+        SetRow("Fade-in on Play", "Music and ambiances rise over this time when you start them; replays and events start at once") {
+            Segmented(listOf(0 to "Off", 500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeInMs) { st.changeFadeIn(it) }
+        }
         SetRow("Fade-out on stop", null) {
             Segmented(listOf(500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeMs) { st.changeFade(it) }
         }

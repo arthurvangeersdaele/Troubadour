@@ -34,7 +34,7 @@
 
   /* ---------------- Settings ---------------- */
   // vol: volume control on the cards of each row: 'hidden' (narrowest cards), 'simple' (two buttons, 25 % steps over 2 s) or 'full' (a slider).
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, crossfade: true, silence: false, awake: false, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 5, life: false, lifeEvery: 6, vol: { music: 'hidden', ambience: 'hidden', events: 'hidden' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, silence: false, awake: false, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 5, life: false, lifeEvery: 6, vol: { music: 'hidden', ambience: 'hidden', events: 'hidden' } };
   const settings = Object.assign({}, DEFAULTS, readJSON('troubadour.settings'));
   settings.vol = Object.assign({}, DEFAULTS.vol, settings.vol || {});
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }
@@ -643,6 +643,8 @@
     return c;
   }
 
+  /** Fade-in of a sound started with Play, in seconds (Off: a click-free 30 ms). */
+  const startFade = () => Math.max(0.03, (+settings.fadeIn || 0) / 1000);
   function toggleVoice(v) {
     audio();
     // Between two plays, a tap stops the random event.
@@ -652,9 +654,10 @@
       const others = story.all.filter((o) => o !== v && o.zone.id === 'music' && (o.active || o.state === 'paused'));
       const crossing = others.some((o) => o.active);
       others.forEach((o) => o.end(settings.crossfade ? settings.fade : 150));
-      v.play(crossing && settings.crossfade && v.state !== 'paused' ? settings.fade / 1000 : 0.03);
+      v.play(crossing && settings.crossfade && v.state !== 'paused' ? settings.fade / 1000 : startFade());
     } else {
-      v.play();
+      // A tap on Play rises over the fade-in (music, ambiances); events strike at once. Replays never come here.
+      v.play(v.zone.id === 'ambience' ? startFade() : 0.03);
     }
     pausedByAll = pausedByAll.filter((o) => o !== v);
     paintMaster();
@@ -827,6 +830,7 @@
     $('#settings').addEventListener('toggle', paintThemes);
     segment('#mode-pick', 'mode', (v) => v);
     segment('#fade-pick', 'fade', Number);
+    segment('#fadein-pick', 'fadeIn', Number);
     const stepRandom = (d) => { settings.randomMax = Math.min(10, Math.max(1, randomMax() + d)); save(); syncSettings(); };
     $('#random-less').addEventListener('click', () => stepRandom(-1));
     $('#opt-life').addEventListener('change', (e) => { settings.life = e.target.checked; save(); syncSettings(); });
@@ -857,6 +861,7 @@
     document.querySelectorAll('#mode-pick button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.mode)));
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.vol[g.dataset.zone]))));
     document.querySelectorAll('#fade-pick button').forEach((b) => b.setAttribute('aria-checked', String(+b.dataset.v === settings.fade)));
+    document.querySelectorAll('#fadein-pick button').forEach((b) => b.setAttribute('aria-checked', String(+b.dataset.v === (settings.fadeIn ?? 1000))));
     $('#random-val').textContent = `${randomMax()} s`;
     $('#random-note').textContent = `Plays again after a pause of 0.5\u00a0s to ${randomMax()}\u00a0s`;
     $('#random-less').disabled = randomMax() <= 1;
