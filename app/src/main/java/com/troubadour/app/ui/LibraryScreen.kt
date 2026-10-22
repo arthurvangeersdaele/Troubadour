@@ -267,11 +267,12 @@ private fun StoryRow(m: AppModel, s: Story, r: Library.Recent?) {
 @Composable
 private fun AddRow(onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
+    val dash = C.line
     Row(
         Modifier.fillMaxWidth().clip(shape)
             .drawBehind {
                 drawRoundRect(
-                    color = C.line, cornerRadius = CornerRadius(14.dp.toPx()),
+                    color = dash, cornerRadius = CornerRadius(14.dp.toPx()),
                     style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx()))),
                 )
             }
