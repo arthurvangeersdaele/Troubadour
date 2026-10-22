@@ -133,12 +133,12 @@ fun Btn(
     }
     val fg = when (kind) {
         BtnKind.PRIMARY, BtnKind.ACCENT -> C.onZ
-        BtnKind.DANGER -> C.evt
+        BtnKind.DANGER -> dangerRed()
         BtnKind.NORMAL -> C.text
     }
     val border = when (kind) {
         BtnKind.PRIMARY, BtnKind.ACCENT -> C.accent
-        BtnKind.DANGER -> C.evt.copy(alpha = 0.5f)
+        BtnKind.DANGER -> dangerRed().copy(alpha = 0.5f)
         BtnKind.NORMAL -> C.line
     }
     Row(
@@ -385,3 +385,7 @@ fun Eq(modifier: Modifier = Modifier, height: Dp = 28.dp, bar: Dp = 6.dp) {
         }
     }
 }
+
+/** Danger stays red whatever the theme (never a theme colour), a little deeper in light mode, as on the web. */
+@androidx.compose.runtime.Composable
+fun dangerRed(): Color = if (C.dark) Color(0xFFE5534B) else Color(0xFFCF3B32)
