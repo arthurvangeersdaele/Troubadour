@@ -124,14 +124,14 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         private set
     var ed by mutableStateOf<EditorState?>(null)
         private set
-    /** uid of the sound playing in the editor's listen button. */
-    var previewing by mutableStateOf<String?>(null)
+    /** uids of the sounds playing in the editor's listen buttons: several can play together. */
+    var previewing by mutableStateOf<Set<String>>(emptySet())
         private set
 
     private var toastJob: Job? = null
     private var saveJob: Job? = null
     private var sharedJob: Job? = null
-    private var player: MediaPlayer? = null
+    private val players = mutableMapOf<String, MediaPlayer>()
     /** The last table being closed: a new table waits for it, so they never share the engine. */
     private var closing: Job? = null
 
@@ -752,11 +752,15 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         }
     }
 
-    fun updateSound(t: Target, uid: String, change: (Sound) -> Sound) =
-        setSounds(t, soundsFor(t).map { if (it.uid == uid) change(it) else it })
+    fun updateSound(t: Target, uid: String, change: (Sound) -> Sound) {
+        val list = soundsFor(t).map { if (it.uid == uid) change(it) else it }
+        // A sound being heard follows its volume slider at once: the troubadour hears the level of the table.
+        list.firstOrNull { it.uid == uid }?.let { s -> players[uid]?.let { p -> runCatching { p.setVolume(s.volume * s.volume, s.volume * s.volume) } } }
+        setSounds(t, list)
+    }
 
     fun removeSound(t: Target, uid: String) {
-        if (previewing == uid) stopPreview()
+        if (uid in previewing) stopPreview(uid)
         setSounds(t, soundsFor(t).filter { it.uid != uid })
     }
 
@@ -816,11 +820,10 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
     }
 
     fun togglePreview(s: Sound, t: Target) {
-        if (previewing == s.uid) {
-            stopPreview()
+        if (s.uid in previewing) {
+            stopPreview(s.uid)
             return
         }
-        stopPreview()
         val f = Library.blobFile(s.blob)
         if (!f.isFile) {
             toast("This sound is missing.")
@@ -830,25 +833,26 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
             val p = MediaPlayer()
             p.setDataSource(f.absolutePath)
             p.setVolume(s.volume * s.volume, s.volume * s.volume)
-            p.setOnCompletionListener { stopPreview() }
+            p.setOnCompletionListener { stopPreview(s.uid) }
             p.prepare()
             p.start()
-            player = p
-            previewing = s.uid
+            players[s.uid] = p
+            previewing = previewing + s.uid
             if (s.duration == null && p.duration > 0) {
                 val d = p.duration / 1000.0
                 updateSound(t, s.uid) { it.copy(duration = d) }
             }
         } catch (e: Exception) {
             toast("This sound cannot be played.")
-            stopPreview()
+            stopPreview(s.uid)
         }
     }
 
-    fun stopPreview() {
-        player?.let { runCatching { it.stop() }; it.release() }
-        player = null
-        previewing = null
+    /** Stops one sound heard in the editor, or all of them. */
+    fun stopPreview(uid: String? = null) {
+        val ids = if (uid != null) listOf(uid) else players.keys.toList()
+        ids.forEach { id -> players.remove(id)?.let { runCatching { it.stop() }; it.release() } }
+        previewing = if (uid != null) previewing - uid else emptySet()
     }
 
     // ------------------------------------------------------------------ table

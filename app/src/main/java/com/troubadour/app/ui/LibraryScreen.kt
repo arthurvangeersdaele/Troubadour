@@ -253,7 +253,7 @@ fun SharedScreen(m: AppModel) {
 @Composable
 fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(12.dp)
-    val playing = m.previewing == s.uid
+    val playing = s.uid in m.previewing
     var name by remember(s.uid) { mutableStateOf(s.name) }
     Column(
         modifier
