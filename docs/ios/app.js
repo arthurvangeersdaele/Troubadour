@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.3';
+  const VERSION = '261022.4';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -964,6 +964,7 @@
     const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
     vr.addEventListener('input', () => {
       s.volume = Math.round(+vr.value * 100) / 100;
+      if (preview.uid === s.uid) { if (preview.gain) preview.gain.gain.setTargetAtTime(curve(s.volume), ctx.currentTime, 0.03); else if (preview.el) preview.el.volume = s.volume; }
       vp.textContent = `${Math.round(s.volume * 100)}`;
       setP(vr);
       dirty();
@@ -974,7 +975,7 @@
   }
 
   /* Listening to one sound in the editor. */
-  const preview = { uid: null, el: null, url: null, card: null, btn: null };
+  const preview = { uid: null, el: null, url: null, card: null, btn: null, gain: null };
   async function togglePreview(s, card, b) {
     if (preview.uid === s.uid) { stopPreview(); return; }
     stopPreview();
@@ -984,7 +985,15 @@
     preview.uid = s.uid;
     preview.url = URL.createObjectURL(blob);
     preview.el = new Audio(preview.url);
-    preview.el.volume = Math.min(1, s.volume ?? 0.75);
+    // Through the same volume curve as the table (iOS ignores an audio element's own volume), so the slider is
+    // heard as it moves: the troubadour hears the volume the sound will have at the table.
+    try {
+      const c = audio();
+      const g = c.createGain();
+      g.gain.value = curve(Math.min(1, s.volume ?? 0.75));
+      c.createMediaElementSource(preview.el).connect(g).connect(masterGain);
+      preview.gain = g;
+    } catch (e) { preview.el.volume = Math.min(1, s.volume ?? 0.75); }
     preview.el.onended = stopPreview;
     preview.card = card; preview.btn = b;
     card.classList.add('playing');
@@ -1001,7 +1010,8 @@
     if (preview.url) URL.revokeObjectURL(preview.url);
     if (preview.card) preview.card.classList.remove('playing');
     if (preview.btn) preview.btn.innerHTML = ICON.play;
-    Object.assign(preview, { uid: null, el: null, url: null, card: null, btn: null });
+    if (preview.gain) { try { preview.gain.disconnect(); } catch (e) { /* gone */ } }
+    Object.assign(preview, { uid: null, el: null, url: null, card: null, btn: null, gain: null });
   }
 
   /* Story details: description, bard and revision. */
