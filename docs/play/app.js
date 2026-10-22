@@ -22,6 +22,7 @@
     back: svg('<path d="M15 18l-6-6 6-6"/>', 20),
     gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 19),
     close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 18),
+    tales: svg('<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>', 18),
     play: svg('<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>', 16, true),
     pause: svg('<rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/>', 16, true),
     stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
@@ -394,28 +395,87 @@
   };
 
   /* ---------------- Stories screen ---------------- */
+  // Layout B, as in the apps: the story played last in big, on its cover, ready to resume; the others in a list.
+  const RECENT_KEY = 'troubadour.recent';
+  function recent() { const r = readJSON(RECENT_KEY); return r && typeof r === 'object' ? r : {}; }
+  function markRecent(id, ch) {
+    try { const r = recent(); r[id] = { at: Date.now(), ch }; localStorage.setItem(RECENT_KEY, JSON.stringify(r)); } catch (e) { /* private mode */ }
+  }
+  const openAt = (s, ch) => { audio(); location.hash = `#/${s.id}/${(ch || 0) + 1}`; };
+  function storyMeta(s) {
+    const sounds = soundsOf(s);
+    const mb = sounds.reduce((a, x) => a + (x.size || 0), 0) / 1048576;
+    return sounds.length ? `${s.chapters.length} chapters, ${sounds.length} sounds, ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB` : `${s.chapters.length} chapters, sounds coming soon`;
+  }
   function renderStories() {
     const list = $('#story-list');
     list.textContent = '';
-    STORIES.forEach((s) => {
-      const sounds = soundsOf(s);
-      const mb = sounds.reduce((a, x) => a + (x.size || 0), 0) / 1048576;
-      const b = el('button', 'story');
-      b.type = 'button';
-      b.append(el('h2', '', s.title), el('p', '', s.blurb));
-      const ol = el('ol');
-      s.chapters.forEach((c) => ol.append(el('li', '', c.title)));
-      const meta = el('div', 'meta');
-      meta.append(
-        el('span', '', sounds.length ? `${s.chapters.length} chapters, ${sounds.length} sounds, ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB` : `${s.chapters.length} chapters, sounds coming soon`),
-        el('span', 'open', 'Open'),
-      );
-      b.append(ol, meta);
-      b.addEventListener('click', () => { audio(); location.hash = `#/${s.id}/1`; });
-      list.append(b);
-    });
+    const r = recent();
+    const at = (s) => (r[s.id] && r[s.id].at) || 0;
+    const sorted = STORIES.slice().sort((a, b) => at(b) - at(a));
+    const [first, ...rest] = sorted;
+    if (!first) return;
+    const wrap = el('div', 'lib-b');
+    wrap.append(heroCard(first, r[first.id]));
+    const side = el('div', 'lib-list');
+    side.append(el('h3', 'lib-h', 'All stories'));
+    rest.forEach((s) => side.append(storyRow(s, r[s.id])));
+    const more = el('a', 'srow add');
+    more.href = '../troupe/';
+    more.innerHTML = `<span class="add-i">${ICON.tales}</span>`;
+    const mt = el('span', 'stxt');
+    mt.append(el('b', '', 'More tales in La Troupe'), el('span', 'meta', 'Stories rhythmed by other game masters'));
+    more.append(mt);
+    side.append(more);
+    wrap.append(side);
+    list.append(wrap);
+  }
+  function heroCard(s, r) {
+    const lk = TroubadourCover.look(s.id, s.cover);
+    const played = r && r.ch != null && s.chapters[r.ch];
+    const c = el('section', 'hero');
+    c.style.setProperty('--c', lk.color);
+    c.append(TroubadourCover.element(lk, false));
+    const inner = el('div', 'hero-in');
+    const kick = el('div', 'hero-kick');
+    kick.append(el('span', 'tag', 'Discovery'), el('span', 'kick', played ? 'Last session' : 'Start here'));
+    inner.append(kick, el('h2', '', s.title));
+    if (played) {
+      inner.append(el('p', 'hero-sub', `Stopped in chapter ${r.ch + 1}, ${s.chapters[r.ch].title}`));
+      const prog = el('div', 'hero-prog');
+      prog.setAttribute('aria-label', `Chapter ${r.ch + 1} of ${s.chapters.length}`);
+      s.chapters.forEach((_, i) => prog.append(el('span', i <= r.ch ? 'on' : '')));
+      inner.append(prog);
+    } else if (s.blurb) inner.append(el('p', 'hero-sub clamp', s.blurb));
+    inner.append(el('p', 'hero-meta', storyMeta(s)), el('span', 'grow'));
+    const acts = el('div', 'hero-acts');
+    const b = (cls, html, fn) => { const x = el('button', cls); x.type = 'button'; x.innerHTML = html; x.onclick = fn; return x; };
+    if (played && r.ch > 0) {
+      acts.append(b('hb primary', `${ICON.play}<span>Resume at chapter ${r.ch + 1}</span>`, () => openAt(s, r.ch)), b('hb', '<span>From the start</span>', () => openAt(s, 0)));
+    } else {
+      acts.append(b('hb primary', `${ICON.play}<span>${played ? 'Resume' : 'Play'}</span>`, () => openAt(s, played ? r.ch : 0)));
+    }
+    inner.append(acts);
+    c.append(inner);
+    return c;
+  }
+  function storyRow(s, r) {
+    const lk = TroubadourCover.look(s.id, s.cover);
+    const played = r && r.ch != null && s.chapters[r.ch];
+    const row = el('div', 'srow');
+    row.style.setProperty('--c', lk.color);
+    const txt = el('div', 'stxt');
+    txt.append(el('b', '', s.title), el('span', 'meta', played ? `Chapter ${r.ch + 1} last time, ${storyMeta(s)}` : storyMeta(s)));
+    const go = el('button', 'go');
+    go.type = 'button';
+    go.innerHTML = ICON.play;
+    go.setAttribute('aria-label', played ? `Resume ${s.title} at chapter ${r.ch + 1}` : `Play ${s.title}`);
+    go.onclick = () => openAt(s, played ? r.ch : 0);
+    row.append(TroubadourCover.element(lk, false), txt, go);
+    return row;
   }
   function showStories() {
+    renderStories();
     $('#import').hidden = true;
     $('#table').hidden = true;
     $('#stories').hidden = false;
@@ -637,6 +697,7 @@
   }
 
   function setChapter(i) {
+    if (story && !story.meta.custom) markRecent(story.meta.id, i);
     // Silence between chapters (setting): the sounds of the other chapters fade out over 4 s.
     if (settings.silence && story && i !== chapterIdx) {
       const here = new Set(ZONES.flatMap((z) => story.chapters[i].voices[z.id]));

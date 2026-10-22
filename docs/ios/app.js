@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.14';
+  const VERSION = '261022.15';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -49,6 +49,7 @@
     import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 18),
     edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
+    more: svg('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>', 18, true),
     trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
     x: svg('<path d="M18 6L6 18M6 6l12 12"/>', 14),
     left: svg('<path d="M15 18l-6-6 6-6"/>', 14),
@@ -220,7 +221,9 @@
 
   async function refresh() {
     // Sizes come from the sounds themselves: reading every stored blob just to measure it froze Safari.
-    [STORIES, SHARED] = await Promise.all([DB.listStories(), DB.getKV('soundbox', [])]);
+    [STORIES, SHARED, RECENT] = await Promise.all([DB.listStories(), DB.getKV('soundbox', []), DB.getKV('recent', {})]);
+    RECENT = RECENT || {};
+    await settleLibrary();
     SIZES = new Map();
     STORIES.forEach((st) => DB.soundsOf(st).forEach((s) => { if (s.size && !SIZES.has(s.blob)) SIZES.set(s.blob, s.size); }));
     SHARED.forEach((s) => { if (s.size && !SIZES.has(s.blob)) SIZES.set(s.blob, s.size); });
@@ -290,6 +293,49 @@
   }
 
   /* ================= Library screen ================= */
+  // Layout B: the story played last (or added last) in big, on its cover, ready to resume; the others in a list.
+  let RECENT = {};            // story uid -> { at: ms, ch: chapter index or null when never played }
+  const recentSave = debounce(() => DB.setKV('recent', RECENT).catch(() => {}), 600);
+  function markRecent(uid, ch) {
+    RECENT[uid] = { at: Date.now(), ch };
+    recentSave();
+  }
+  function storyKey(s) {
+    if (s.id) return s.id;
+    if ((s.source || '').startsWith('discovery:')) return s.source.slice(10);
+    return s.uid;
+  }
+  function lookOf(s) { return TroubadourCover.look(storyKey(s), s.extra && s.extra.cover); }
+  function sourceLabel(s) {
+    const src = s.source || '';
+    if (src.startsWith('discovery')) return 'Discovery';
+    if (src === 'import') return 'Imported';
+    return 'Your story';
+  }
+  /** Every story gets its cover once and keeps it (it travels in its .troubadour), and a place in the recent list:
+   * a story never seen here counts as just opened, so a story just added comes first. */
+  async function settleLibrary() {
+    let changed = false;
+    const keep = new Set();
+    for (const s of STORIES) {
+      keep.add(s.uid);
+      if (!RECENT[s.uid]) { RECENT[s.uid] = { at: Date.parse(s.updated || '') || Date.now(), ch: null }; changed = true; }
+      const lk = lookOf(s);
+      const c = s.extra && s.extra.cover;
+      if (!c || c.kind !== lk.kind || c.color !== lk.color) {
+        s.extra = Object.assign({}, s.extra || {}, { cover: lk });
+        try { await DB.putStory(s, false); } catch (e) { /* kept for this session only */ }
+      }
+    }
+    Object.keys(RECENT).forEach((k) => { if (!keep.has(k)) { delete RECENT[k]; changed = true; } });
+    if (changed) await DB.setKV('recent', RECENT).catch(() => {});
+  }
+  function byRecent() {
+    const at = (s) => (RECENT[s.uid] && RECENT[s.uid].at) || 0;
+    return STORIES.slice().sort((a, b) => at(b) - at(a));
+  }
+  function playAt(s, ch) { audio(); location.hash = `#/play/${encodeURIComponent(s.uid)}/${(ch || 0) + 1}`; }
+
   function renderLibrary() {
     const grid = $('#story-grid');
     grid.textContent = '';
@@ -297,19 +343,107 @@
       const hello = el('div', 'hello');
       hello.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
       hello.append(el('h1', '', 'Your table awaits'), el('p', 'lead', 'Rhythm a story with your own sounds, import a .troubadour file, or start from a tale of La Troupe.'));
-      grid.append(hello);
+      grid.append(hello, el('h3', 'lib-h', 'Add a story'));
+      const doors = el('div', 'lib-doors');
+      doors.append(...addDoors());
+      grid.append(doors);
+      return;
     }
-    // Two rows of same-size tiles: the stories on the phone, then the four ways to add one.
-    if (STORIES.length) {
-      grid.append(el('h3', 'lib-h', STORIES.length === 1 ? 'Your story' : `Your ${STORIES.length} stories`));
-      const list = el('div', 'lib-stories');
-      STORIES.forEach((s, i) => list.append(storyCard(s, i)));
-      grid.append(list);
+    const [first, ...rest] = byRecent();
+    const wrap = el('div', 'lib-b');
+    wrap.append(heroCard(first));
+    const list = el('div', 'lib-list');
+    list.append(el('h3', 'lib-h', rest.length ? 'All stories' : 'Your library'));
+    rest.forEach((s) => list.append(storyRow(s)));
+    const add = el('button', 'srow add');
+    add.type = 'button';
+    add.innerHTML = `<span class="add-i">${ICON.plus}</span>`;
+    const at = el('span', 'stxt');
+    at.append(el('b', '', 'Add a story'), el('span', 'meta', 'New, Discovery, Recueil or a .troubadour file'));
+    add.append(at);
+    add.onclick = () => openAddStory();
+    list.append(add);
+    wrap.append(list);
+    grid.append(wrap);
+  }
+
+  function heroCard(s) {
+    const lk = lookOf(s);
+    const r = RECENT[s.uid] || {};
+    const played = r.ch != null && s.chapters[r.ch];
+    const c = el('section', 'hero');
+    c.style.setProperty('--c', lk.color);
+    c.append(TroubadourCover.element(lk, false), el('div', 'hero-scrim'));
+    const inner = el('div', 'hero-in');
+    const kick = el('div', 'hero-kick');
+    kick.append(el('span', 'tag', sourceLabel(s)), el('span', 'kick', played ? 'Last session' : 'Just added'));
+    inner.append(kick, el('h2', '', s.title || 'Untitled story'));
+    if (played) {
+      inner.append(el('p', 'hero-sub', `Stopped in chapter ${r.ch + 1}, ${s.chapters[r.ch].title || 'Untitled chapter'}`));
+      const prog = el('div', 'hero-prog');
+      prog.setAttribute('aria-label', `Chapter ${r.ch + 1} of ${s.chapters.length}`);
+      s.chapters.forEach((_, i) => prog.append(el('span', i <= r.ch ? 'on' : '')));
+      inner.append(prog);
+    } else if (s.description) {
+      inner.append(el('p', 'hero-sub clamp', s.description));
     }
-    grid.append(el('h3', 'lib-h', 'Add a story'));
-    const doors = el('div', 'lib-doors');
-    doors.append(...addDoors());
-    grid.append(doors);
+    inner.append(el('p', 'hero-meta', `${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}, ${size(storyBytes(s))}`));
+    inner.append(el('span', 'grow'));
+    const acts = el('div', 'hero-acts');
+    if (s.damaged) {
+      acts.append(btn('hb primary', '<span>Repair the sounds</span>', null, () => repairStory(s)));
+    } else if (played && r.ch > 0) {
+      acts.append(
+        btn('hb primary', `${ICON.play}<span>Resume at chapter ${r.ch + 1}</span>`, null, () => playAt(s, r.ch)),
+        btn('hb', '<span>From the start</span>', null, () => playAt(s, 0)),
+      );
+    } else {
+      acts.append(btn('hb primary', `${ICON.play}<span>${played ? 'Resume' : 'Play'}</span>`, null, () => playAt(s, played ? r.ch : 0)));
+    }
+    acts.append(btn('hb more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
+    inner.append(acts);
+    c.append(inner);
+    return c;
+  }
+
+  function storyRow(s) {
+    const lk = lookOf(s);
+    const r = RECENT[s.uid] || {};
+    const played = r.ch != null && s.chapters[r.ch];
+    const row = el('div', 'srow');
+    row.style.setProperty('--c', lk.color);
+    const art = TroubadourCover.element(lk, false);
+    const txt = el('div', 'stxt');
+    txt.append(el('b', '', s.title || 'Untitled story'), el('span', 'meta', played
+      ? `${sourceLabel(s)}, chapter ${r.ch + 1} last time`
+      : `${sourceLabel(s)}, ${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}`));
+    row.append(art, txt, btn('more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
+    if (s.damaged) row.append(btn('btn slim repair', '<span>Repair</span>', null, () => repairStory(s)));
+    else row.append(btn('go', ICON.play, played ? `Resume ${s.title} at chapter ${r.ch + 1}` : `Play ${s.title}`, () => playAt(s, played ? r.ch : 0)));
+    return row;
+  }
+
+  /** Behind the ⋯ of a story: edit, export, delete. */
+  function storyMenu(s) {
+    const body = openSheet(s.title || 'Untitled story');
+    const by = [];
+    if (s.bard) by.push(`by ${s.bard}`);
+    if (s.revision) by.push(`revision ${s.revision}`);
+    body.append(el('p', 'menu-by', [sourceLabel(s), ...by].join(', ')));
+    const list = el('div', 'story-menu');
+    const go = (fn) => () => { closeSheet(); fn(); };
+    const chs = el('ol', 'menu-chs');
+    s.chapters.forEach((ch, i) => {
+      const li = el('li');
+      li.append(btn('chap-go', `<span class="n">${i + 1}</span><span>${(ch.title || 'Untitled chapter').replace(/[<&]/g, (x) => (x === '<' ? '&lt;' : '&amp;'))}</span>`, `Play chapter ${i + 1}`, go(() => playAt(s, i))));
+      chs.append(li);
+    });
+    list.append(
+      btn('btn', `${ICON.edit}<span>Edit</span>`, null, go(() => { location.hash = `#/edit/${encodeURIComponent(s.uid)}/1`; })),
+      btn('btn', `${ICON.share}<span>Export</span>`, null, go(() => exportStories([s]))),
+      btn('btn danger', `${ICON.trash}<span>Delete</span>`, null, go(() => deleteStory(s))),
+    );
+    body.append(chs, list);
   }
 
   /** The four ways to add a story: shown on the library, and behind the + of the top bar. */
@@ -327,42 +461,6 @@
     const doors = el('div', 'lib-doors add-doors');
     doors.append(...addDoors(() => closeSheet()));
     body.append(doors);
-  }
-
-  function storyCard(s, i) {
-    const c = el('article', 'scard');
-    c.style.setProperty('--z', ['var(--amb)', 'var(--evt)', 'var(--blue)', 'var(--music)'][i % 4]);
-    const head = el('div', 'sc-top');
-    head.append(el('h2', '', s.title || 'Untitled story'));
-    c.append(head);
-    const by = [];
-    if (s.bard) by.push(`by ${s.bard}`);
-    if (s.revision) by.push(`revision ${s.revision}`);
-    c.append(el('p', 'by', by.join(', ') || 'Not exported yet'));
-    const ol = el('ol');
-    // Three lines at most, so every card has the same height.
-    const shown = s.chapters.length > 3 ? 2 : 3;
-    s.chapters.slice(0, shown).forEach((ch) => ol.append(el('li', '', ch.title || 'Untitled chapter')));
-    if (s.chapters.length > shown) ol.append(el('li', 'more', `and ${s.chapters.length - shown} more`));
-    c.append(ol);
-    const meta = el('div', 'meta');
-    meta.append(el('span', '', `${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}, ${size(storyBytes(s))}`));
-    c.append(meta);
-    if (s.damaged) {
-      // Imported by an older version: its sounds all play the first one. Offer to load the file again.
-      c.classList.add('damaged');
-      const fix = btn('btn repair', '<span>Repair the sounds</span>', null, () => repairStory(s));
-      c.append(fix);
-      return c;
-    }
-    const acts = el('div', 'acts');
-    const play = btn('btn primary', `${ICON.play}<span>Play</span>`, null, () => { audio(); location.hash = `#/play/${encodeURIComponent(s.uid)}/1`; });
-    const edit = btn('ico small', ICON.edit, `Edit ${s.title}`, () => { location.hash = `#/edit/${encodeURIComponent(s.uid)}/1`; });
-    const share = btn('ico small', ICON.share, `Export ${s.title}`, () => exportStories([s]));
-    const del = btn('ico small danger', ICON.trash, `Delete ${s.title}`, () => deleteStory(s));
-    acts.append(play, edit, share, del);
-    c.append(acts);
-    return c;
   }
 
   function door(kind, icon, title, text, onClick) {
@@ -1714,6 +1812,7 @@
       paintMaster();
     }
     chapterIdx = i;
+    markRecent(tbl.story.uid, i);
     const ch = tbl.chapters[i];
     $('#t-chapter').textContent = `Chapter ${i + 1}: ${ch.meta.title}`;
     tbl.chapters.forEach((c, j) => c.railBtn.setAttribute('aria-current', String(j === i)));
