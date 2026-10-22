@@ -9,3 +9,8 @@
 /captures/
 .externalNativeBuild/
 .cxx/
+
+# Recueil tale build output
+/.github/scripts/recueil-tales/out/
+/.github/scripts/recueil-tales/work/
+/.github/scripts/recueil-tales/needed.txt
