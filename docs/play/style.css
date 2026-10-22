@@ -395,3 +395,4 @@ kbd { font: 600 12px/1 ui-monospace, Menlo, Consolas, monospace; border: 1px sol
 .c .lvl.moving { color: var(--z); }
 
 .set-note { margin: -4px 0 6px; font-size: 13px; }
+#life-row.off { opacity: .45; }

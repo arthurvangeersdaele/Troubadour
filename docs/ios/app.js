@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.7';
+  const VERSION = '261022.8';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -66,7 +66,7 @@
   const KEY = 'troubadour.settings';
   const DEFAULTS = {
     theme: 'obsidian', mode: 'dark', fade: 2000, crossfade: true, silence: false, awake: true, silent: true,
-    master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 5,
+    master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 5, life: false, lifeEvery: 6,
     // Volume on the table cards, per row: 'hidden' (no control, narrowest cards), 'simple' (two buttons) or 'full' (a slider).
     vol: { music: 'hidden', ambience: 'hidden', events: 'hidden' },
     landscape: true,
@@ -1322,6 +1322,31 @@
   let ctx = null, masterGain = null, sbGain = null;
   const curve = (v) => v * v;
   const randomMax = () => Math.min(10, Math.max(1, Math.round(+settings.randomMax || 5)));
+  /* Living events: while it plays, an event drifts up to 10 points above or below its volume, a new drift about every
+   * settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. Off: back to its volume. */
+  const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 6)));
+  setInterval(() => {
+    if (typeof tbl === 'undefined' || !tbl || !ctx) return;
+    const now = performance.now();
+    tbl.all.forEach((v) => {
+      if (!v.life || v.zone.id !== 'events') return;
+      const g = v.life.gain;
+      if (!settings.life || !v.active) {
+        if (v.lifeOn) { v.lifeOn = false; g.cancelScheduledValues(ctx.currentTime); g.setTargetAtTime(1, ctx.currentTime, 0.4); }
+        return;
+      }
+      if (v.lifeOn && now < v.lifeAt) return;
+      v.lifeOn = true;
+      const off = (Math.random() * 2 - 1) * 0.1;
+      const base = Math.max(0.001, v.vol);
+      const f = Math.min(4, curve(Math.min(1, Math.max(0, base + off))) / curve(base));
+      const secs = lifeEvery() * 0.9;
+      g.cancelScheduledValues(ctx.currentTime);
+      g.setValueAtTime(g.value, ctx.currentTime);
+      g.linearRampToValueAtTime(f, ctx.currentTime + secs);
+      v.lifeAt = now + lifeEvery() * 1000 * (0.75 + Math.random() * 0.5);
+    });
+  }, 250);
   const randomPause = () => 500 + Math.floor(Math.random() * Math.max(1, randomMax() * 1000 - 500));
   function applyAudioSession() {
     try { if (navigator.audioSession) navigator.audioSession.type = settings.silent ? 'playback' : 'auto'; } catch (e) { /* older iOS */ }
@@ -1378,7 +1403,9 @@
       const src = ctx.createMediaElementSource(this.el);
       this.vg = ctx.createGain(); this.vg.gain.value = curve(this.vol);
       this.env = ctx.createGain(); this.env.gain.value = 0;
-      src.connect(this.vg).connect(this.env).connect(masterGain);
+      // Living events: a gain of its own lets the volume drift around the troubadour's setting.
+      this.life = ctx.createGain(); this.life.gain.value = 1;
+      src.connect(this.vg).connect(this.life).connect(this.env).connect(masterGain);
     }
     get active() { return this.state === 'playing' || this.state === 'ending'; }
     get usable() { return this.el && this.state !== 'loading' && this.state !== 'error'; }
@@ -1911,6 +1938,10 @@
     segment('#fade-pick', 'fade', Number);
     const stepRandom = (d) => { settings.randomMax = Math.min(10, Math.max(1, randomMax() + d)); save(); syncSettings(); };
     $('#random-less').addEventListener('click', () => stepRandom(-1));
+    $('#opt-life').addEventListener('change', (e) => { settings.life = e.target.checked; save(); syncSettings(); });
+    const stepLife = (d) => { settings.lifeEvery = Math.min(30, Math.max(2, lifeEvery() + d)); save(); syncSettings(); };
+    $('#life-less').addEventListener('click', () => stepLife(lifeEvery() > 10 ? -2 : -1));
+    $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
@@ -1942,6 +1973,12 @@
     $('#random-val').textContent = `${randomMax()} s`;
     $('#random-note').textContent = `Plays again after a pause of 0.5\u00a0s to ${randomMax()}\u00a0s`;
     $('#random-less').disabled = randomMax() <= 1;
+    $('#opt-life').checked = !!settings.life;
+    $('#life-val').textContent = `${lifeEvery()} s`;
+    $('#life-note').textContent = `A new volume about every ${lifeEvery()}\u00a0s`;
+    $('#life-less').disabled = !settings.life || lifeEvery() <= 2;
+    $('#life-more').disabled = !settings.life || lifeEvery() >= 30;
+    $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= 10;
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-silence').checked = !!settings.silence;
