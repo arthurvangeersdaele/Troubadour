@@ -189,6 +189,7 @@ class TableSession(
             heldRandom = heldRandom.filter { it.chapterIndex == next }
         }
         chapterIndex = next
+        com.troubadour.app.data.Library.markRecent(story.uid, next)
         val target = chapterIndex
         scope.launch(engine) {
             // Preload the chapter on screen, so its sounds start the moment they are tapped.

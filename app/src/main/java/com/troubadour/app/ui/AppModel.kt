@@ -96,6 +96,7 @@ sealed interface Sheet {
     }
     object StoryInfo : Sheet
     object AddStory : Sheet
+    class StoryMenu(val uid: String) : Sheet
     class Picker(val target: Target) : Sheet
     class Exported(val files: List<File>) : Sheet
 }

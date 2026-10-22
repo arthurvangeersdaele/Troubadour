@@ -30,6 +30,12 @@ object Library {
 
     private val lock = Any()
 
+    /** When a story was last opened, and on which chapter (null: added but never played). */
+    data class Recent(val at: Long, val chapter: Int?)
+    private val recentFile get() = File(root, "recent.json")
+    private val _recent = MutableStateFlow<Map<String, Recent>>(emptyMap())
+    val recent: StateFlow<Map<String, Recent>> = _recent
+
     fun init(context: Context) {
         root = File(context.filesDir, "library")
         storiesDir.mkdirs()
@@ -43,12 +49,64 @@ object Library {
             runCatching { storyFrom(JSONObject(f.readText())) }.getOrNull()
         }
         _stories.value = list.sortedByDescending { it.updated }
+        _recent.value = runCatching {
+            val o = JSONObject(recentFile.readText())
+            o.keys().asSequence().associateWith { k ->
+                val r = o.getJSONObject(k)
+                Recent(r.optLong("at"), if (r.isNull("chapter")) null else r.optInt("chapter"))
+            }
+        }.getOrDefault(emptyMap())
+        settle()
         _shared.value = if (sharedFile.isFile) {
             runCatching { soundsFrom(JSONObject(sharedFile.readText()).optJSONArray("sounds")) }.getOrDefault(emptyList())
         } else emptyList()
     }
 
     fun story(uid: String): Story? = _stories.value.firstOrNull { it.uid == uid }
+
+    /** The key a story's cover is picked from: its .troubadour id, its Discovery id, else its uid. */
+    fun coverKey(s: Story): String = s.id ?: s.source.removePrefix("discovery:").takeIf { s.source.startsWith("discovery:") } ?: s.uid
+
+    fun coverOf(s: Story): com.troubadour.app.ui.CoverLook = com.troubadour.app.ui.Covers.look(coverKey(s), s.extra)
+
+    /** A story keeps the cover it got the first time (it travels in its .troubadour, extra.cover). */
+    private fun withCover(s: Story): Story {
+        val look = coverOf(s)
+        val extra = runCatching { JSONObject(s.extra) }.getOrDefault(JSONObject())
+        val c = extra.optJSONObject("cover")
+        if (c != null && c.optString("kind") == look.kind && c.optString("color") == look.color) return s
+        extra.put("cover", JSONObject().put("kind", look.kind).put("color", look.color))
+        return s.copy(extra = extra.toString())
+    }
+
+    /** Every story gets its cover and a place in the recent list (a story never seen counts as just opened). */
+    private fun settle() {
+        val now = System.currentTimeMillis()
+        val rec = _recent.value.toMutableMap()
+        var changed = false
+        _stories.value = _stories.value.map { st ->
+            if (st.uid !in rec) { rec[st.uid] = Recent(if (st.updated > 0) st.updated else now, null); changed = true }
+            val c = withCover(st)
+            if (c !== st) writeAtomic(File(storiesDir, "${c.uid}.json"), storyJson(c).toString())
+            c
+        }
+        val keep = _stories.value.map { it.uid }.toSet()
+        if (rec.keys.retainAll(keep)) changed = true
+        _recent.value = rec
+        if (changed) saveRecent()
+    }
+
+    private fun saveRecent() {
+        val o = JSONObject()
+        _recent.value.forEach { (k, r) -> o.put(k, JSONObject().put("at", r.at).put("chapter", r.chapter ?: JSONObject.NULL)) }
+        runCatching { writeAtomic(recentFile, o.toString()) }
+    }
+
+    /** The table shows [chapter] of this story: it becomes the last opened. */
+    fun markRecent(uid: String, chapter: Int) = synchronized(lock) {
+        _recent.value = _recent.value + (uid to Recent(System.currentTimeMillis(), chapter))
+        saveRecent()
+    }
 
     fun blobFile(key: String): File = File(blobsDir, key)
 
@@ -66,7 +124,12 @@ object Library {
 
     /** Saves a story. With [touch], it moves to the front of the library. */
     fun putStory(story: Story, touch: Boolean = true): Story = synchronized(lock) {
-        val saved = if (touch) story.copy(updated = System.currentTimeMillis()) else story
+        val saved = withCover(if (touch) story.copy(updated = System.currentTimeMillis()) else story)
+        // A story just added counts as the last opened.
+        if (saved.uid !in _recent.value) {
+            _recent.value = _recent.value + (saved.uid to Recent(System.currentTimeMillis(), null))
+            saveRecent()
+        }
         writeAtomic(File(storiesDir, "${saved.uid}.json"), storyJson(saved).toString())
         val others = _stories.value.filter { it.uid != saved.uid }
         _stories.value = (others + saved).sortedByDescending { it.updated }
@@ -75,6 +138,7 @@ object Library {
 
     fun deleteStory(uid: String) = synchronized(lock) {
         File(storiesDir, "$uid.json").delete()
+        if (uid in _recent.value) { _recent.value = _recent.value - uid; saveRecent() }
         _stories.value = _stories.value.filter { it.uid != uid }
         collect()
     }

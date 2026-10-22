@@ -48,6 +48,7 @@ object BIcons {
     val volUp = stroke("M4 9.5h3.5L12 6v12l-4.5-3.5H4z", "M16 12h5M18.5 9.5v5")
     val starFill = fill("M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z")
     val plus = stroke("M12 5v14M5 12h14")
+    val more = fill(circle(5f, 12f, 1.7f), circle(12f, 12f, 1.7f), circle(19f, 12f, 1.7f))
     val import = stroke("M12 3v12M7 10l5 5 5-5M5 21h14")
     val share = stroke("M12 15V3M7 8l5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7")
     val edit = stroke("M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13.5 6.5l4 4")

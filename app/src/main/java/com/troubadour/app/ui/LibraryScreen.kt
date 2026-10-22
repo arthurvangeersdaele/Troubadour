@@ -1,6 +1,14 @@
 package com.troubadour.app.ui
 
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,22 +87,20 @@ fun Tabs(m: AppModel, current: Int) {
 @Composable
 fun LibraryScreen(m: AppModel) {
     val stories by Library.stories.collectAsState()
+    val recent by Library.recent.collectAsState()
     Column(Modifier.fillMaxSize().background(C.bg)) {
         Bar {
             Title("Troubadour", 26)
             Spacer(Modifier.width(8.dp))
             Tabs(m, 0)
             Spacer(Modifier.weight(1f))
-            // One button for every way to add a story: new, Discovery, the Recueil, a .troubadour file.
-            Btn("Add a story", icon = BIcons.plus, kind = BtnKind.PRIMARY) { m.sheet = Sheet.AddStory }
             IconBtn(BIcons.gear, "Settings") { m.settingsOpen = true }
         }
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            if (stories.isEmpty()) item {
+        if (stories.isEmpty()) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Eq(height = 18.dp, bar = 5.dp, modifier = Modifier.padding(bottom = 4.dp))
                     Title("Your table awaits", 32)
@@ -103,16 +109,7 @@ fun LibraryScreen(m: AppModel) {
                         color = C.muted, size = 16.sp,
                     )
                 }
-            } else {
-                item { SectionLabel(if (stories.size == 1) "Your story" else "Your ${stories.size} stories") }
-                item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(stories, key = { it.uid }) { s -> StoryCard(m, s, stories.indexOf(s)) }
-                    }
-                }
-            }
-            item { SectionLabel("Add a story") }
-            item {
+                SectionLabel("Add a story")
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Door(BIcons.plus, "New story", "With your own sounds, from your files", DoorKind.NEW, Modifier.weight(1f)) { m.newStory() }
                     Door(BIcons.compass, "Discovery", "Three ready stories, sounds included", DoorKind.DISCOVERY, Modifier.weight(1f)) { m.openDiscovery() }
@@ -120,7 +117,201 @@ fun LibraryScreen(m: AppModel) {
                     Door(BIcons.files, "Import .troubadour", "From your files, a cloud drive or a download", DoorKind.IMPORT, Modifier.weight(1f)) { m.importTroubadour() }
                 }
             }
+            return@Column
         }
+        // Layout B: the story opened last (or added last) in big, on its cover; the others in a list.
+        val sorted = stories.sortedByDescending { recent[it.uid]?.at ?: 0L }
+        val first = sorted.first()
+        val rest = sorted.drop(1)
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= 600.dp
+            val list: @Composable (Modifier) -> Unit = { mod ->
+                Column(mod, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel(if (rest.isEmpty()) "Your library" else "All stories")
+                    rest.forEach { s -> StoryRow(m, s, recent[s.uid]) }
+                    AddRow { m.sheet = Sheet.AddStory }
+                }
+            }
+            if (wide) {
+                Row(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Hero(m, first, recent[first.uid], Modifier.weight(1.15f))
+                    list(Modifier.weight(1f))
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Hero(m, first, recent[first.uid], Modifier.fillMaxWidth())
+                    list(Modifier.fillMaxWidth())
+                }
+            }
+        }
+    }
+}
+
+private val HeroInk = Color(0xFFEFEAE0)
+private val HeroMuted = Color(0xFFA3A3AF)
+
+private fun sourceLabel(s: Story) = when {
+    s.source.startsWith("discovery") -> "Discovery"
+    s.source == "import" -> "Imported"
+    else -> "Your story"
+}
+
+/** The story opened last: its cover on the right, where it stopped, and the way back in. */
+@Composable
+private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) {
+    val look = Library.coverOf(s)
+    val c = Covers.color(look.color)
+    val at = r?.chapter?.takeIf { it in s.chapters.indices }
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        modifier
+            .heightIn(min = 270.dp)
+            .clip(shape)
+            .background(Covers.GROUND)
+            .border(1.dp, lerp(Color(0xFF2A2B33), c, 0.38f), shape)
+    ) {
+        StoryCover(look, Modifier.matchParentSize(), framed = false, rightHalf = true)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0x8C0F0F13)).border(1.dp, c, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) { T(sourceLabel(s).uppercase(), color = HeroInk, size = 10.sp, weight = FontWeight.Bold) }
+                Text(
+                    (if (at != null) "Last session" else "Just added").uppercase(), color = lerp(HeroInk, c, 0.6f),
+                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = Barlow, letterSpacing = 2.sp,
+                )
+            }
+            val half = Modifier.fillMaxWidth(0.54f)
+            Title(s.title.ifBlank { "Untitled story" }, 29, color = HeroInk, maxLines = 2, modifier = half)
+            if (at != null) {
+                T("Stopped in chapter ${at + 1}, ${s.chapters[at].title.ifBlank { "Untitled chapter" }}", color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
+                Row(half.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    s.chapters.indices.forEach { i ->
+                        Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(if (i <= at) c else HeroInk.copy(alpha = 0.16f)))
+                    }
+                }
+            } else if (s.description.isNotBlank()) {
+                T(s.description, color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
+            }
+            T(
+                "${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))}",
+                color = HeroMuted, size = 12.sp, maxLines = 1, modifier = half,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (at != null && at > 0) {
+                    Btn("Resume at chapter ${at + 1}", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, at) }
+                    HeroGhost("From the start") { m.openTable(s.uid, 0) }
+                } else {
+                    Btn(if (at != null) "Resume" else "Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, at ?: 0) }
+                }
+                IconBtn(BIcons.more, "More: ${s.title}", size = 44.dp, tint = HeroInk, background = Color(0x730F0F13), border = HeroInk.copy(alpha = 0.22f)) {
+                    m.sheet = Sheet.StoryMenu(s.uid)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroGhost(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x730F0F13))
+            .border(1.dp, HeroInk.copy(alpha = 0.22f), RoundedCornerShape(10.dp))
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) { T(text, color = HeroInk, size = 15.sp, weight = FontWeight.SemiBold, maxLines = 1) }
+}
+
+@Composable
+private fun StoryRow(m: AppModel, s: Story, r: Library.Recent?) {
+    val look = Library.coverOf(s)
+    val c = Covers.color(look.color)
+    val at = r?.chapter?.takeIf { it in s.chapters.indices }
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(C.card).border(1.dp, C.line, shape).padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        StoryCover(look, Modifier.width(64.dp).height(46.dp).clip(RoundedCornerShape(10.dp)).border(1.5.dp, c, RoundedCornerShape(10.dp)), framed = false)
+        Column(Modifier.weight(1f)) {
+            Title(s.title.ifBlank { "Untitled story" }, 19, maxLines = 1)
+            T(
+                if (at != null) "${sourceLabel(s)}, chapter ${at + 1} last time"
+                else "${sourceLabel(s)}, ${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}",
+                color = C.muted, size = 12.sp, maxLines = 1,
+            )
+        }
+        IconBtn(BIcons.more, "More: ${s.title}", size = 38.dp, tint = C.muted, background = Color.Transparent, border = Color.Transparent) {
+            m.sheet = Sheet.StoryMenu(s.uid)
+        }
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).background(C.accent)
+                .clickable(role = Role.Button, onClickLabel = if (at != null) "Resume ${s.title}" else "Play ${s.title}") { m.openTable(s.uid, at ?: 0) },
+            contentAlignment = Alignment.Center,
+        ) { Icon(BIcons.play, null, tint = C.onZ, modifier = Modifier.size(16.dp).padding(start = 2.dp)) }
+    }
+}
+
+@Composable
+private fun AddRow(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape)
+            .drawBehind {
+                drawRoundRect(
+                    color = C.line, cornerRadius = CornerRadius(14.dp.toPx()),
+                    style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx()))),
+                )
+            }
+            .clickable(role = Role.Button, onClick = onClick).padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.width(64.dp).height(44.dp).clip(RoundedCornerShape(10.dp)).background(C.accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+            Icon(BIcons.plus, null, tint = C.accent, modifier = Modifier.size(18.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Title("Add a story", 19, maxLines = 1)
+            T("New, Discovery, Recueil or a .troubadour file", color = C.muted, size = 12.sp, maxLines = 1)
+        }
+    }
+}
+
+/** Behind the ⋯ of a story: its chapters, edit, export, delete. */
+@Composable
+internal fun StoryMenuBody(m: AppModel, uid: String) {
+    val s = Library.stories.collectAsState().value.firstOrNull { it.uid == uid } ?: return
+    val go = { f: () -> Unit -> { m.sheet = null; f() } }
+    val by = listOfNotNull(sourceLabel(s), s.bard.takeIf { it.isNotBlank() }?.let { "by $it" }, s.revision.takeIf { it > 0 }?.let { "revision $it" })
+    Text(by.joinToString(", ").uppercase(), color = C.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp, fontFamily = Barlow)
+    s.chapters.forEachIndexed { i, ch ->
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(C.card).border(1.dp, C.line, RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClickLabel = "Play chapter ${i + 1}", onClick = go { m.openTable(s.uid, i) })
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Title("${i + 1}", 16, color = C.accent, modifier = Modifier.width(16.dp), align = TextAlign.End)
+            T(ch.title.ifBlank { "Untitled chapter" }, maxLines = 1)
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+        Btn("Edit", icon = BIcons.edit, modifier = Modifier.weight(1f), onClick = go { m.openEditor(s.uid, 0) })
+        Btn("Export", icon = BIcons.share, modifier = Modifier.weight(1f), onClick = go { m.exportStories(listOf(s)) })
+        Btn("Delete", icon = BIcons.trash, kind = BtnKind.DANGER, modifier = Modifier.weight(1f), onClick = go { m.deleteStory(s) })
     }
 }
 
@@ -130,54 +321,6 @@ fun SectionLabel(text: String) {
         text.uppercase(), color = C.muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = Barlow,
         letterSpacing = 2.sp, modifier = Modifier.padding(top = 6.dp, start = 2.dp),
     )
-}
-
-@Composable
-private fun StoryCard(m: AppModel, s: Story, index: Int) {
-    val z = listOf(C.amb, C.evt, C.blue, C.music)[index.coerceAtLeast(0) % 4]
-    val shape = RoundedCornerShape(16.dp)
-    Column(
-        Modifier
-            .width(280.dp)
-            .clip(shape)
-            .background(C.card)
-            .border(1.dp, C.line, shape)
-    ) {
-        Box(Modifier.fillMaxWidth().height(4.dp).background(z))
-        // Every block has a fixed height, so all cards are identical and fit a phone held sideways.
-        Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.CenterStart) {
-                Title(s.title.ifBlank { "Untitled story" }, 22, maxLines = 1)
-            }
-            val by = listOfNotNull(
-                s.bard.takeIf { it.isNotBlank() }?.let { "by $it" },
-                s.revision.takeIf { it > 0 }?.let { "revision $it" },
-            ).joinToString(", ").ifBlank { "Not exported yet" }
-            T(by, color = C.muted, size = 13.sp, maxLines = 1, modifier = Modifier.height(18.dp))
-            // Three lines at most, so every card has the same height.
-            Column(Modifier.height(62.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                val shown = if (s.chapters.size > 3) 2 else 3
-                s.chapters.take(shown).forEachIndexed { i, c ->
-                    Row(Modifier.height(20.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Title("${i + 1}", 15, color = z, modifier = Modifier.width(10.dp))
-                        T(c.title.ifBlank { "Untitled chapter" }, size = 14.sp, maxLines = 1)
-                    }
-                }
-                if (s.chapters.size > shown) T("and ${s.chapters.size - shown} more", color = C.muted, size = 14.sp, maxLines = 1, modifier = Modifier.height(20.dp).padding(start = 19.dp))
-            }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(C.line))
-            T(
-                "${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))}",
-                color = C.muted, size = 13.sp, maxLines = 1, modifier = Modifier.height(18.dp),
-            )
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Btn("Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 38.dp, modifier = Modifier.weight(1f)) { m.openTable(s.uid, 0) }
-                IconBtn(BIcons.edit, "Edit ${s.title}", size = 38.dp, iconSize = 16.dp, tint = C.muted) { m.openEditor(s.uid, 0) }
-                IconBtn(BIcons.share, "Export ${s.title}", size = 38.dp, iconSize = 16.dp, tint = C.muted) { m.exportStories(listOf(s)) }
-                IconBtn(BIcons.trash, "Delete ${s.title}", size = 38.dp, iconSize = 16.dp, tint = C.muted) { m.deleteStory(s) }
-            }
-        }
-    }
 }
 
 internal enum class DoorKind { NEW, DISCOVERY, RECUEIL, IMPORT }

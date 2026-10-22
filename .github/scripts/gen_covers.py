@@ -278,28 +278,30 @@ object Covers {
 
 /** A story cover: the ground (halo of the story colour, dark vignette), the motif fitted in the middle, a thin frame when big enough. */
 @Composable
-fun StoryCover(look: CoverLook, modifier: Modifier = Modifier, framed: Boolean = true) {
+fun StoryCover(look: CoverLook, modifier: Modifier = Modifier, framed: Boolean = true, rightHalf: Boolean = false) {
     val c = remember(look.color) { Covers.color(look.color) }
     val shapes = Covers.MOTIFS[look.kind] ?: Covers.MOTIFS.getValue("bard")
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
+            // rightHalf: the motif and its halo sit in the right half (the hero card writes on the left).
+            val x0 = if (rightHalf) size.width / 2f else 0f
+            val w = size.width - x0
             val h = size.height
             drawRect(Covers.GROUND)
             drawRect(
                 Brush.radialGradient(
                     0f to c.copy(alpha = 0.22f), 0.55f to c.copy(alpha = 0.06f), 1f to Color.Transparent,
-                    center = Offset(w / 2f, h / 2f), radius = maxOf(w * 0.42f, h * 0.7f),
+                    center = Offset(x0 + w / 2f, h / 2f), radius = maxOf(w * 0.42f, h * 0.7f),
                 )
             )
             drawRect(
                 Brush.radialGradient(
                     0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.45f),
-                    center = Offset(w / 2f, h / 2f), radius = maxOf(w, h) * 0.75f,
+                    center = Offset(size.width / 2f, h / 2f), radius = maxOf(size.width, h) * 0.75f,
                 )
             )
             val k = minOf(w / 320f, h / 140f)
-            translate((w - 320f * k) / 2f, (h - 140f * k) / 2f) {
+            translate(x0 + (w - 320f * k) / 2f, (h - 140f * k) / 2f) {
                 scale(k, k, pivot = Offset.Zero) {
                     shapes.forEach { s ->
                         translate(s.tx, s.ty) {
