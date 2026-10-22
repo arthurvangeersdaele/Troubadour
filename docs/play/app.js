@@ -419,7 +419,7 @@
     wrap.append(heroCard(first, r[first.id]));
     const side = el('div', 'lib-list');
     side.append(el('h3', 'lib-h', 'All stories'));
-    rest.forEach((s) => side.append(storyRow(s, r[s.id])));
+    rest.forEach((s) => side.append(storyRow(s)));
     const more = el('a', 'srow add');
     more.href = '../troupe/';
     more.innerHTML = `<span class="add-i">${ICON.tales}</span>`;
@@ -432,45 +432,36 @@
   }
   function heroCard(s, r) {
     const lk = TroubadourCover.look(s.id, s.cover);
-    const played = r && r.ch != null && s.chapters[r.ch];
     const c = el('section', 'hero');
     c.style.setProperty('--c', lk.color);
     c.append(TroubadourCover.element(lk, false));
     const inner = el('div', 'hero-in');
     const kick = el('div', 'hero-kick');
-    kick.append(el('span', 'tag', 'Discovery'), el('span', 'kick', played ? 'Last session' : 'Start here'));
+    kick.append(el('span', 'tag', 'Discovery'), el('span', 'kick', r ? 'Last opened' : 'Start here'));
     inner.append(kick, el('h2', '', s.title));
-    if (played) {
-      inner.append(el('p', 'hero-sub', `Stopped in chapter ${r.ch + 1}, ${s.chapters[r.ch].title}`));
-      const prog = el('div', 'hero-prog');
-      prog.setAttribute('aria-label', `Chapter ${r.ch + 1} of ${s.chapters.length}`);
-      s.chapters.forEach((_, i) => prog.append(el('span', i <= r.ch ? 'on' : '')));
-      inner.append(prog);
-    } else if (s.blurb) inner.append(el('p', 'hero-sub clamp', s.blurb));
+    if (s.blurb) inner.append(el('p', 'hero-sub clamp', s.blurb));
     inner.append(el('p', 'hero-meta', storyMeta(s)), el('span', 'grow'));
     const acts = el('div', 'hero-acts');
-    const b = (cls, html, fn) => { const x = el('button', cls); x.type = 'button'; x.innerHTML = html; x.onclick = fn; return x; };
-    if (played && r.ch > 0) {
-      acts.append(b('hb primary', `${ICON.play}<span>Resume at chapter ${r.ch + 1}</span>`, () => openAt(s, r.ch)), b('hb', '<span>From the start</span>', () => openAt(s, 0)));
-    } else {
-      acts.append(b('hb primary', `${ICON.play}<span>${played ? 'Resume' : 'Play'}</span>`, () => openAt(s, played ? r.ch : 0)));
-    }
+    const go = el('button', 'hb primary');
+    go.type = 'button';
+    go.innerHTML = `${ICON.play}<span>Play</span>`;
+    go.onclick = () => openAt(s, 0);
+    acts.append(go);
     inner.append(acts);
     c.append(inner);
     return c;
   }
-  function storyRow(s, r) {
+  function storyRow(s) {
     const lk = TroubadourCover.look(s.id, s.cover);
-    const played = r && r.ch != null && s.chapters[r.ch];
     const row = el('div', 'srow');
     row.style.setProperty('--c', lk.color);
     const txt = el('div', 'stxt');
-    txt.append(el('b', '', s.title), el('span', 'meta', played ? `Chapter ${r.ch + 1} last time, ${storyMeta(s)}` : storyMeta(s)));
+    txt.append(el('b', '', s.title), el('span', 'meta', storyMeta(s)));
     const go = el('button', 'go');
     go.type = 'button';
     go.innerHTML = ICON.play;
-    go.setAttribute('aria-label', played ? `Resume ${s.title} at chapter ${r.ch + 1}` : `Play ${s.title}`);
-    go.onclick = () => openAt(s, played ? r.ch : 0);
+    go.setAttribute('aria-label', `Play ${s.title}`);
+    go.onclick = () => openAt(s, 0);
     row.append(TroubadourCover.element(lk, false), txt, go);
     return row;
   }

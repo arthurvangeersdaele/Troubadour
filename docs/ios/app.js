@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.15';
+  const VERSION = '261022.16';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -312,7 +312,8 @@
     if (src === 'import') return 'Imported';
     return 'Your story';
   }
-  /** Every story gets its cover once and keeps it (it travels in its .troubadour), and a place in the recent list:
+  /** Every story gets its cover once and keeps it (it travels in its .troubadour), and a place in the recent list
+   * (the order of the library, nothing more):
    * a story never seen here counts as just opened, so a story just added comes first. */
   async function settleLibrary() {
     let changed = false;
@@ -370,36 +371,19 @@
   function heroCard(s) {
     const lk = lookOf(s);
     const r = RECENT[s.uid] || {};
-    const played = r.ch != null && s.chapters[r.ch];
     const c = el('section', 'hero');
     c.style.setProperty('--c', lk.color);
-    c.append(TroubadourCover.element(lk, false), el('div', 'hero-scrim'));
+    c.append(TroubadourCover.element(lk, false));
     const inner = el('div', 'hero-in');
     const kick = el('div', 'hero-kick');
-    kick.append(el('span', 'tag', sourceLabel(s)), el('span', 'kick', played ? 'Last session' : 'Just added'));
+    kick.append(el('span', 'tag', sourceLabel(s)), el('span', 'kick', r.ch != null ? 'Last opened' : 'Just added'));
     inner.append(kick, el('h2', '', s.title || 'Untitled story'));
-    if (played) {
-      inner.append(el('p', 'hero-sub', `Stopped in chapter ${r.ch + 1}, ${s.chapters[r.ch].title || 'Untitled chapter'}`));
-      const prog = el('div', 'hero-prog');
-      prog.setAttribute('aria-label', `Chapter ${r.ch + 1} of ${s.chapters.length}`);
-      s.chapters.forEach((_, i) => prog.append(el('span', i <= r.ch ? 'on' : '')));
-      inner.append(prog);
-    } else if (s.description) {
-      inner.append(el('p', 'hero-sub clamp', s.description));
-    }
+    if (s.description) inner.append(el('p', 'hero-sub clamp', s.description));
     inner.append(el('p', 'hero-meta', `${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}, ${size(storyBytes(s))}`));
     inner.append(el('span', 'grow'));
     const acts = el('div', 'hero-acts');
-    if (s.damaged) {
-      acts.append(btn('hb primary', '<span>Repair the sounds</span>', null, () => repairStory(s)));
-    } else if (played && r.ch > 0) {
-      acts.append(
-        btn('hb primary', `${ICON.play}<span>Resume at chapter ${r.ch + 1}</span>`, null, () => playAt(s, r.ch)),
-        btn('hb', '<span>From the start</span>', null, () => playAt(s, 0)),
-      );
-    } else {
-      acts.append(btn('hb primary', `${ICON.play}<span>${played ? 'Resume' : 'Play'}</span>`, null, () => playAt(s, played ? r.ch : 0)));
-    }
+    if (s.damaged) acts.append(btn('hb primary', '<span>Repair the sounds</span>', null, () => repairStory(s)));
+    else acts.append(btn('hb primary', `${ICON.play}<span>Play</span>`, null, () => playAt(s, 0)));
     acts.append(btn('hb more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
     inner.append(acts);
     c.append(inner);
@@ -408,18 +392,14 @@
 
   function storyRow(s) {
     const lk = lookOf(s);
-    const r = RECENT[s.uid] || {};
-    const played = r.ch != null && s.chapters[r.ch];
     const row = el('div', 'srow');
     row.style.setProperty('--c', lk.color);
     const art = TroubadourCover.element(lk, false);
     const txt = el('div', 'stxt');
-    txt.append(el('b', '', s.title || 'Untitled story'), el('span', 'meta', played
-      ? `${sourceLabel(s)}, chapter ${r.ch + 1} last time`
-      : `${sourceLabel(s)}, ${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}`));
+    txt.append(el('b', '', s.title || 'Untitled story'), el('span', 'meta', `${sourceLabel(s)}, ${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}`));
     row.append(art, txt, btn('more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
     if (s.damaged) row.append(btn('btn slim repair', '<span>Repair</span>', null, () => repairStory(s)));
-    else row.append(btn('go', ICON.play, played ? `Resume ${s.title} at chapter ${r.ch + 1}` : `Play ${s.title}`, () => playAt(s, played ? r.ch : 0)));
+    else row.append(btn('go', ICON.play, `Play ${s.title}`, () => playAt(s, 0)));
     return row;
   }
 

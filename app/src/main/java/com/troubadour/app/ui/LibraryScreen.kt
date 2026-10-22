@@ -128,7 +128,7 @@ fun LibraryScreen(m: AppModel) {
             val list: @Composable (Modifier) -> Unit = { mod ->
                 Column(mod, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionLabel(if (rest.isEmpty()) "Your library" else "All stories")
-                    rest.forEach { s -> StoryRow(m, s, recent[s.uid]) }
+                    rest.forEach { s -> StoryRow(m, s) }
                     AddRow { m.sheet = Sheet.AddStory }
                 }
             }
@@ -167,7 +167,7 @@ private fun sourceLabel(s: Story) = when {
 private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) {
     val look = Library.coverOf(s)
     val c = Covers.color(look.color)
-    val at = r?.chapter?.takeIf { it in s.chapters.indices }
+    val opened = r?.chapter != null
     val shape = RoundedCornerShape(18.dp)
     Box(
         modifier
@@ -187,34 +187,20 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) { T(sourceLabel(s).uppercase(), color = HeroInk, size = 10.sp, weight = FontWeight.Bold) }
                 Text(
-                    (if (at != null) "Last session" else "Just added").uppercase(), color = lerp(HeroInk, c, 0.6f),
+                    (if (opened) "Last opened" else "Just added").uppercase(), color = lerp(HeroInk, c, 0.6f),
                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = Barlow, letterSpacing = 2.sp,
                 )
             }
             val half = Modifier.fillMaxWidth(0.54f)
             Title(s.title.ifBlank { "Untitled story" }, 29, color = HeroInk, maxLines = 2, modifier = half)
-            if (at != null) {
-                T("Stopped in chapter ${at + 1}, ${s.chapters[at].title.ifBlank { "Untitled chapter" }}", color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
-                Row(half.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    s.chapters.indices.forEach { i ->
-                        Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)).background(if (i <= at) c else HeroInk.copy(alpha = 0.16f)))
-                    }
-                }
-            } else if (s.description.isNotBlank()) {
-                T(s.description, color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
-            }
+            if (s.description.isNotBlank()) T(s.description, color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
             T(
                 "${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))}",
                 color = HeroMuted, size = 12.sp, maxLines = 1, modifier = half,
             )
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (at != null && at > 0) {
-                    Btn("Resume at chapter ${at + 1}", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, at) }
-                    HeroGhost("From the start") { m.openTable(s.uid, 0) }
-                } else {
-                    Btn(if (at != null) "Resume" else "Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, at ?: 0) }
-                }
+                Btn("Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, 0) }
                 IconBtn(BIcons.more, "More: ${s.title}", size = 44.dp, tint = HeroInk, background = Color(0x730F0F13), border = HeroInk.copy(alpha = 0.22f)) {
                     m.sheet = Sheet.StoryMenu(s.uid)
                 }
@@ -224,20 +210,9 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
 }
 
 @Composable
-private fun HeroGhost(text: String, onClick: () -> Unit) {
-    Box(
-        Modifier.height(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x730F0F13))
-            .border(1.dp, HeroInk.copy(alpha = 0.22f), RoundedCornerShape(10.dp))
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) { T(text, color = HeroInk, size = 15.sp, weight = FontWeight.SemiBold, maxLines = 1) }
-}
-
-@Composable
-private fun StoryRow(m: AppModel, s: Story, r: Library.Recent?) {
+private fun StoryRow(m: AppModel, s: Story) {
     val look = Library.coverOf(s)
     val c = Covers.color(look.color)
-    val at = r?.chapter?.takeIf { it in s.chapters.indices }
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(C.card).border(1.dp, C.line, shape).padding(8.dp),
@@ -247,18 +222,14 @@ private fun StoryRow(m: AppModel, s: Story, r: Library.Recent?) {
         StoryCover(look, Modifier.width(64.dp).height(46.dp).clip(RoundedCornerShape(10.dp)).border(1.5.dp, c, RoundedCornerShape(10.dp)), framed = false)
         Column(Modifier.weight(1f)) {
             Title(s.title.ifBlank { "Untitled story" }, 19, maxLines = 1)
-            T(
-                if (at != null) "${sourceLabel(s)}, chapter ${at + 1} last time"
-                else "${sourceLabel(s)}, ${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}",
-                color = C.muted, size = 12.sp, maxLines = 1,
-            )
+            T("${sourceLabel(s)}, ${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}", color = C.muted, size = 12.sp, maxLines = 1)
         }
         IconBtn(BIcons.more, "More: ${s.title}", size = 38.dp, tint = C.muted, background = Color.Transparent, border = Color.Transparent) {
             m.sheet = Sheet.StoryMenu(s.uid)
         }
         Box(
             Modifier.size(44.dp).clip(CircleShape).background(C.accent)
-                .clickable(role = Role.Button, onClickLabel = if (at != null) "Resume ${s.title}" else "Play ${s.title}") { m.openTable(s.uid, at ?: 0) },
+                .clickable(role = Role.Button, onClickLabel = "Play ${s.title}") { m.openTable(s.uid, 0) },
             contentAlignment = Alignment.Center,
         ) { Icon(BIcons.play, null, tint = C.onZ, modifier = Modifier.size(16.dp).padding(start = 2.dp)) }
     }
