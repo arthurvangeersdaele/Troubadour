@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.4';
+  const VERSION = '261022.5';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -924,15 +924,15 @@
     name.onblur = () => { if (!s.name.trim()) { s.name = cleanName(s.fileName); name.value = s.name; dirty(); } };
     name.onkeydown = (e) => { if (e.key === 'Enter') name.blur(); };
     const x = btn('x', ICON.x, `Remove ${s.name}`, () => {
-      if (preview.uid === s.uid) stopPreview();
+      if (previews.has(s.uid)) stopPreview(s.uid);
       list.splice(i, 1);
       dirty();
       rerender();
     });
     top.append(name, x);
     const bottom = el('div', 'row');
-    const play = btn('pb play', preview.uid === s.uid ? ICON.pause : ICON.play, `Listen to ${s.name}`, () => togglePreview(s, c, play));
-    if (preview.uid === s.uid) { c.classList.add('playing'); preview.card = c; preview.btn = play; }
+    const play = btn('pb play', previews.has(s.uid) ? ICON.pause : ICON.play, `Listen to ${s.name}`, () => togglePreview(s, c, play));
+    if (previews.has(s.uid)) { c.classList.add('playing'); const p = previews.get(s.uid); p.card = c; p.btn = play; }
     const meta = el('span', 'meta');
     [s.duration ? fmt(s.duration) : null, size(SIZES.get(s.blob) || s.size)].filter(Boolean).forEach((t) => meta.append(el('span', '', t)));
     const mv = el('span', 'mvh');
@@ -964,7 +964,8 @@
     const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
     vr.addEventListener('input', () => {
       s.volume = Math.round(+vr.value * 100) / 100;
-      if (preview.uid === s.uid) { if (preview.gain) preview.gain.gain.setTargetAtTime(curve(s.volume), ctx.currentTime, 0.03); else if (preview.el) preview.el.volume = s.volume; }
+      const p = previews.get(s.uid);
+      if (p) { if (p.gain) p.gain.gain.setTargetAtTime(curve(s.volume), ctx.currentTime, 0.03); else p.el.volume = s.volume; }
       vp.textContent = `${Math.round(s.volume * 100)}`;
       setP(vr);
       dirty();
@@ -974,44 +975,48 @@
     return c;
   }
 
-  /* Listening to one sound in the editor. */
-  const preview = { uid: null, el: null, url: null, card: null, btn: null, gain: null };
+  /* Listening in the editor: as many sounds at once as the troubadour likes (a music under its ambiances,
+   * an event over them), each through the table's volume curve, following its slider as it moves. */
+  const previews = new Map(); // sound uid -> { el, url, card, btn, gain }
   async function togglePreview(s, card, b) {
-    if (preview.uid === s.uid) { stopPreview(); return; }
-    stopPreview();
+    if (previews.has(s.uid)) { stopPreview(s.uid); return; }
     const blob = await DB.getBlob(s.blob);
     if (!blob) { toast('This sound is missing.'); return; }
+    if (previews.has(s.uid)) return;
     applyAudioSession();
-    preview.uid = s.uid;
-    preview.url = URL.createObjectURL(blob);
-    preview.el = new Audio(preview.url);
-    // Through the same volume curve as the table (iOS ignores an audio element's own volume), so the slider is
-    // heard as it moves: the troubadour hears the volume the sound will have at the table.
+    const p = { url: URL.createObjectURL(blob), card, btn: b, gain: null };
+    p.el = new Audio(p.url);
+    // iOS ignores an audio element's own volume: a gain node does it, so the slider is heard as it moves.
     try {
       const c = audio();
-      const g = c.createGain();
-      g.gain.value = curve(Math.min(1, s.volume ?? 0.75));
-      c.createMediaElementSource(preview.el).connect(g).connect(masterGain);
-      preview.gain = g;
-    } catch (e) { preview.el.volume = Math.min(1, s.volume ?? 0.75); }
-    preview.el.onended = stopPreview;
-    preview.card = card; preview.btn = b;
+      p.gain = c.createGain();
+      p.gain.gain.value = curve(Math.min(1, s.volume ?? 0.75));
+      c.createMediaElementSource(p.el).connect(p.gain).connect(masterGain);
+    } catch (e) { p.gain = null; p.el.volume = Math.min(1, s.volume ?? 0.75); }
+    p.el.onended = () => stopPreview(s.uid);
+    previews.set(s.uid, p);
     card.classList.add('playing');
     b.innerHTML = ICON.pause;
-    preview.el.play().catch(() => stopPreview());
+    p.el.play().catch(() => stopPreview(s.uid));
     if (!s.duration) {
-      preview.el.addEventListener('loadedmetadata', () => {
-        if (isFinite(preview.el.duration)) { s.duration = preview.el.duration; dirty(); }
+      p.el.addEventListener('loadedmetadata', () => {
+        if (isFinite(p.el.duration)) { s.duration = p.el.duration; dirty(); }
       }, { once: true });
     }
   }
-  function stopPreview() {
-    if (preview.el) { preview.el.pause(); preview.el.removeAttribute('src'); preview.el.load(); }
-    if (preview.url) URL.revokeObjectURL(preview.url);
-    if (preview.card) preview.card.classList.remove('playing');
-    if (preview.btn) preview.btn.innerHTML = ICON.play;
-    if (preview.gain) { try { preview.gain.disconnect(); } catch (e) { /* gone */ } }
-    Object.assign(preview, { uid: null, el: null, url: null, card: null, btn: null, gain: null });
+  /** Stops one sound (by uid), or every sound heard in the editor. */
+  function stopPreview(uid) {
+    const ids = uid ? [uid] : [...previews.keys()];
+    ids.forEach((id) => {
+      const p = previews.get(id);
+      if (!p) return;
+      previews.delete(id);
+      p.el.pause(); p.el.removeAttribute('src'); p.el.load();
+      URL.revokeObjectURL(p.url);
+      if (p.card) p.card.classList.remove('playing');
+      if (p.btn) p.btn.innerHTML = ICON.play;
+      if (p.gain) { try { p.gain.disconnect(); } catch (e) { /* gone */ } }
+    });
   }
 
   /* Story details: description, bard and revision. */
