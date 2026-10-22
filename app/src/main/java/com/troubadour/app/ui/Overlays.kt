@@ -142,6 +142,7 @@ private fun SheetHost(m: AppModel, sheet: Sheet) {
         is Sheet.Discovery -> Panel("Discovery stories", close) { DiscoveryBody(m, sheet) }
         is Sheet.Recueil -> Panel("The Recueil", close) { RecueilBody(m, sheet) }
         is Sheet.StoryInfo -> Panel("Story details", close) { StoryInfoBody(m) }
+        is Sheet.AddStory -> Panel("Add a story", close) { AddStoryBody(m) }
         is Sheet.Picker -> Panel("Add to ${sheet.target.label}", close) { PickerBody(m, sheet.target) }
         is Sheet.Exported -> Panel(if (sheet.files.size > 1) "${sheet.files.size} stories rhythmed" else "Your .troubadour is ready", close) {
             ExportedBody(m, sheet)

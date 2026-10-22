@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.5';
+  const VERSION = '261022.6';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -308,13 +308,25 @@
     }
     grid.append(el('h3', 'lib-h', 'Add a story'));
     const doors = el('div', 'lib-doors');
-    doors.append(
-      door('new', ICON.plus, 'New story', 'With your own sounds, from Files', () => newStory()),
-      door('discovery', ICON.compass, 'Discovery', 'Three ready stories, sounds included', () => openDiscovery()),
-      door('recueil', ICON.book, 'The Recueil', 'Tales rhythmed by other troubadours', () => openRecueil()),
-      door('import', ICON.files, 'Import .troubadour', 'From Files, iCloud Drive or AirDrop', () => pickTroubadour()),
-    );
+    doors.append(...addDoors());
     grid.append(doors);
+  }
+
+  /** The four ways to add a story: shown on the library, and behind the + of the top bar. */
+  function addDoors(then = () => {}) {
+    const go = (fn) => () => { then(); fn(); };
+    return [
+      door('new', ICON.plus, 'New story', 'With your own sounds, from Files', go(() => newStory())),
+      door('discovery', ICON.compass, 'Discovery', 'Three ready stories, sounds included', go(() => openDiscovery())),
+      door('recueil', ICON.book, 'The Recueil', 'Tales rhythmed by other troubadours', go(() => openRecueil())),
+      door('import', ICON.files, 'Import .troubadour', 'From Files, iCloud Drive or AirDrop', go(() => pickTroubadour())),
+    ];
+  }
+  function openAddStory() {
+    const body = openSheet('Add a story');
+    const doors = el('div', 'lib-doors add-doors');
+    doors.append(...addDoors(() => closeSheet()));
+    body.append(doors);
   }
 
   function storyCard(s, i) {
@@ -2019,6 +2031,7 @@
       case 'stop-all': stopAll(); break;
       case 'import': pickTroubadour(); break;
       case 'new-story': newStory(); break;
+      case 'add-story': openAddStory(); break;
       case 'add-shared': openPicker({ ...SOUNDBOX_ZONE, label: 'the shared soundbox' }, SHARED, () => { saveShared(); renderShared(); }); break;
       case 'story-info': openStoryInfo(); break;
       case 'export-current': if (ed) { saveSoon.flush(); exportStories([ed.story]); } break;

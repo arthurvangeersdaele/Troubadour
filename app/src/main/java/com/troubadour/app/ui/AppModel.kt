@@ -95,6 +95,7 @@ sealed interface Sheet {
         var error by mutableStateOf<String?>(null)
     }
     object StoryInfo : Sheet
+    object AddStory : Sheet
     class Picker(val target: Target) : Sheet
     class Exported(val files: List<File>) : Sheet
 }

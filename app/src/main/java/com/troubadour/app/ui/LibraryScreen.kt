@@ -85,8 +85,8 @@ fun LibraryScreen(m: AppModel) {
             Spacer(Modifier.width(8.dp))
             Tabs(m, 0)
             Spacer(Modifier.weight(1f))
-            Btn("Import", icon = BIcons.import) { m.importTroubadour() }
-            Btn("New story", icon = BIcons.plus, kind = BtnKind.PRIMARY) { m.newStory() }
+            // One button for every way to add a story: new, Discovery, the Recueil, a .troubadour file.
+            Btn("Add a story", icon = BIcons.plus, kind = BtnKind.PRIMARY) { m.sheet = Sheet.AddStory }
             IconBtn(BIcons.gear, "Settings") { m.settingsOpen = true }
         }
         LazyColumn(
@@ -180,11 +180,11 @@ private fun StoryCard(m: AppModel, s: Story, index: Int) {
     }
 }
 
-private enum class DoorKind { NEW, DISCOVERY, RECUEIL, IMPORT }
+internal enum class DoorKind { NEW, DISCOVERY, RECUEIL, IMPORT }
 
 /** One of the four ways to add a story: identical tiles, content at the top left (as in the iPhone app). */
 @Composable
-private fun Door(icon: ImageVector, title: String, text: String, kind: DoorKind, modifier: Modifier, onClick: () -> Unit) {
+internal fun Door(icon: ImageVector, title: String, text: String, kind: DoorKind, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     val isNew = kind == DoorKind.NEW
     val iconColor = when (kind) {
@@ -348,5 +348,21 @@ fun AddTile(text: String, z: Color, modifier: Modifier = Modifier, onClick: () -
     ) {
         Icon(BIcons.plus, null, tint = z, modifier = Modifier.size(18.dp))
         T(text, color = z, weight = FontWeight.SemiBold, size = 14.sp, maxLines = 3)
+    }
+}
+
+/** The four ways to add a story, behind the + of the top bar. */
+@Composable
+internal fun AddStoryBody(m: AppModel) {
+    val go = { f: () -> Unit -> { m.sheet = null; f() } }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Door(BIcons.plus, "New story", "With your own sounds, from your files", DoorKind.NEW, Modifier.weight(1f), go { m.newStory() })
+            Door(BIcons.compass, "Discovery", "Three ready stories, sounds included", DoorKind.DISCOVERY, Modifier.weight(1f), go { m.openDiscovery() })
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Door(BIcons.book, "The Recueil", "Tales rhythmed by other troubadours", DoorKind.RECUEIL, Modifier.weight(1f), go { m.openRecueil() })
+            Door(BIcons.files, "Import .troubadour", "From your files, a cloud drive or a download", DoorKind.IMPORT, Modifier.weight(1f), go { m.importTroubadour() })
+        }
     }
 }
