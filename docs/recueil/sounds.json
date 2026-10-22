@@ -1,6 +1,20 @@
 {
- "updated": "2026-10-21T16:24:58Z",
+ "updated": "2026-10-22T16:49:09Z",
  "sounds": [
+  {
+   "id": "3a1c73b78d9b",
+   "row": "music",
+   "name": "A place to breathe",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/music/01-a-place-to-breathe.mp3",
+   "offset": 10912793,
+   "length": 697782,
+   "size": 697782,
+   "deflated": false,
+   "duration": 49.8
+  },
   {
    "id": "2e9cb56ae34d",
    "row": "music",
@@ -182,6 +196,20 @@
    "size": 697782,
    "deflated": false,
    "duration": 49.8
+  },
+  {
+   "id": "054ce200ddb6",
+   "row": "music",
+   "name": "Broken streets",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/music/01-broken-streets.mp3",
+   "offset": 15619792,
+   "length": 420570,
+   "size": 420570,
+   "deflated": false,
+   "duration": 30.0
   },
   {
    "id": "e61b36a45448",
@@ -422,6 +450,20 @@
    "duration": 141.4
   },
   {
+   "id": "2562417b187f",
+   "row": "music",
+   "name": "Down the stairwell",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/music/03-down-the-stairwell.mp3",
+   "offset": 23921784,
+   "length": 1508936,
+   "size": 1508936,
+   "deflated": false,
+   "duration": 107.8
+  },
+  {
    "id": "3b5ca3304afb",
    "row": "music",
    "name": "Dr. Hale's wing",
@@ -590,6 +632,20 @@
    "duration": 249.7
   },
   {
+   "id": "3ffca9ea8fc0",
+   "row": "music",
+   "name": "Goblin dynamite",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/music/02-goblin-dynamite.mp3",
+   "offset": 22493601,
+   "length": 1428113,
+   "size": 1428113,
+   "deflated": false,
+   "duration": 102.0
+  },
+  {
    "id": "0d0de0c48cdc",
    "row": "music",
    "name": "Halls of the dead",
@@ -660,6 +716,20 @@
    "duration": 233.9
   },
   {
+   "id": "49ffc101b51b",
+   "row": "music",
+   "name": "Hunting the hunters",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/music/02-hunting-the-hunters.mp3",
+   "offset": 16040433,
+   "length": 839679,
+   "size": 839679,
+   "deflated": false,
+   "duration": 60.0
+  },
+  {
    "id": "08500b901b2b",
    "row": "music",
    "name": "Infinite",
@@ -714,6 +784,20 @@
    "size": 2963922,
    "deflated": false,
    "duration": 211.6
+  },
+  {
+   "id": "eb3616163f91",
+   "row": "music",
+   "name": "Into the tunnels",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/music/01-into-the-tunnels.mp3",
+   "offset": 5910986,
+   "length": 358765,
+   "size": 358765,
+   "deflated": false,
+   "duration": 25.6
   },
   {
    "id": "2fb8cf9dea87",
@@ -814,6 +898,20 @@
    "duration": 129.4
   },
   {
+   "id": "de3ca14cb7c2",
+   "row": "music",
+   "name": "Last breath on the surface",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/music/03-last-breath-on-the-surface.mp3",
+   "offset": 1584000,
+   "length": 1759450,
+   "size": 1759450,
+   "deflated": false,
+   "duration": 125.6
+  },
+  {
    "id": "c4af8b18532a",
    "row": "music",
    "name": "Lights out",
@@ -826,6 +924,20 @@
    "size": 1568548,
    "deflated": false,
    "duration": 112.0
+  },
+  {
+   "id": "55a6f7b04705",
+   "row": "music",
+   "name": "Loot box fever",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/music/03-loot-box-fever.mp3",
+   "offset": 7124924,
+   "length": 852113,
+   "size": 852113,
+   "deflated": false,
+   "duration": 60.8
   },
   {
    "id": "dc79057598e4",
@@ -910,6 +1022,20 @@
    "size": 1393370,
    "deflated": false,
    "duration": 99.5
+  },
+  {
+   "id": "83711a64618b",
+   "row": "music",
+   "name": "Mob on the corner",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/music/03-mob-on-the-corner.mp3",
+   "offset": 16880181,
+   "length": 1706788,
+   "size": 1706788,
+   "deflated": false,
+   "duration": 121.9
   },
   {
    "id": "cb59d4ef91f4",
@@ -1108,6 +1234,20 @@
    "duration": 195.0
   },
   {
+   "id": "e4f3e3e07427",
+   "row": "music",
+   "name": "Planning the next run",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/music/03-planning-the-next-run.mp3",
+   "offset": 12562667,
+   "length": 980479,
+   "size": 980479,
+   "deflated": false,
+   "duration": 70.0
+  },
+  {
    "id": "569fb3c0bfe6",
    "row": "music",
    "name": "Pleasant creek",
@@ -1176,6 +1316,20 @@
    "size": 1285119,
    "deflated": false,
    "duration": 91.8
+  },
+  {
+   "id": "e890cd5c680c",
+   "row": "music",
+   "name": "Rats and goblins",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/music/02-rats-and-goblins.mp3",
+   "offset": 6269819,
+   "length": 855039,
+   "size": 855039,
+   "deflated": false,
+   "duration": 61.0
   },
   {
    "id": "948556d415a5",
@@ -1486,6 +1640,34 @@
    "duration": 117.8
   },
   {
+   "id": "f255853201a7",
+   "row": "music",
+   "name": "The floor boss",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/music/01-the-floor-boss.mp3",
+   "offset": 21304232,
+   "length": 1189302,
+   "size": 1189302,
+   "deflated": false,
+   "duration": 84.9
+  },
+  {
+   "id": "d9ea6de0fd1d",
+   "row": "music",
+   "name": "The game guide",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/music/02-the-game-guide.mp3",
+   "offset": 11610641,
+   "length": 951953,
+   "size": 951953,
+   "deflated": false,
+   "duration": 68.0
+  },
+  {
    "id": "3b2173dd68e5",
    "row": "music",
    "name": "The hidden archives",
@@ -1568,6 +1750,20 @@
    "size": 4218148,
    "deflated": false,
    "duration": 301.3
+  },
+  {
+   "id": "b29efca37948",
+   "row": "music",
+   "name": "The world goes under",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/music/02-the-world-goes-under.mp3",
+   "offset": 818117,
+   "length": 765805,
+   "size": 765805,
+   "deflated": false,
+   "duration": 54.7
   },
   {
    "id": "3d62291d2013",
@@ -1766,6 +1962,20 @@
    "duration": 188.0
   },
   {
+   "id": "96ff32d42b32",
+   "row": "music",
+   "name": "Welcome, crawler",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/music/01-welcome-crawler.mp3",
+   "offset": 13840,
+   "length": 804205,
+   "size": 804205,
+   "deflated": false,
+   "duration": 57.4
+  },
+  {
    "id": "4c0e7254f429",
    "row": "music",
    "name": "Whistler",
@@ -1962,6 +2172,20 @@
    "duration": 47.7
   },
   {
+   "id": "216db9716b38",
+   "row": "ambience",
+   "name": "Burning blocks",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/ambience/04-burning-blocks.mp3",
+   "offset": 20228473,
+   "length": 378461,
+   "size": 378461,
+   "deflated": false,
+   "duration": 47.3
+  },
+  {
    "id": "7a0366b93486",
    "row": "ambience",
    "name": "Burning rigging",
@@ -2016,6 +2240,20 @@
    "size": 823170,
    "deflated": false,
    "duration": 68.6
+  },
+  {
+   "id": "0466d3e8c233",
+   "row": "ambience",
+   "name": "Car alarms",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/ambience/05-car-alarms.mp3",
+   "offset": 5409555,
+   "length": 360279,
+   "size": 360279,
+   "deflated": false,
+   "duration": 45.0
   },
   {
    "id": "8adcabc12356",
@@ -2172,6 +2410,20 @@
    "duration": 45.7
   },
   {
+   "id": "c4a0cf8892a7",
+   "row": "ambience",
+   "name": "Collapse alarm",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/ambience/02-collapse-alarm.mp3",
+   "offset": 25983200,
+   "length": 566125,
+   "size": 566125,
+   "deflated": false,
+   "duration": 47.2
+  },
+  {
    "id": "5c97aac88a40",
    "row": "ambience",
    "name": "Conveyor belts",
@@ -2240,6 +2492,20 @@
    "size": 452648,
    "deflated": false,
    "duration": 56.6
+  },
+  {
+   "id": "551dac263fc4",
+   "row": "ambience",
+   "name": "Crawlers at the bar",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/ambience/02-crawlers-at-the-bar.mp3",
+   "offset": 13909208,
+   "length": 356518,
+   "size": 356518,
+   "deflated": false,
+   "duration": 44.5
   },
   {
    "id": "4edca5526898",
@@ -2340,6 +2606,20 @@
    "duration": 53.4
   },
   {
+   "id": "a4c4620063da",
+   "row": "ambience",
+   "name": "Danger rising",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/ambience/03-danger-rising.mp3",
+   "offset": 26549393,
+   "length": 427780,
+   "size": 427780,
+   "deflated": false,
+   "duration": 53.4
+  },
+  {
    "id": "28a318371091",
    "row": "ambience",
    "name": "Dead ship",
@@ -2428,6 +2708,20 @@
    "duration": 49.6
   },
   {
+   "id": "86fe6f83267a",
+   "row": "ambience",
+   "name": "Distant fire alarm",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/ambience/02-distant-fire-alarm.mp3",
+   "offset": 19246972,
+   "length": 566125,
+   "size": 566125,
+   "deflated": false,
+   "duration": 47.2
+  },
+  {
    "id": "2143538ce1d2",
    "row": "ambience",
    "name": "Distant gulls",
@@ -2440,6 +2734,20 @@
    "size": 7836,
    "deflated": false,
    "duration": 0.6
+  },
+  {
+   "id": "5739e6753b03",
+   "row": "ambience",
+   "name": "Distant tremors",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/ambience/05-distant-tremors.mp3",
+   "offset": 20607004,
+   "length": 599980,
+   "size": 599980,
+   "deflated": false,
+   "duration": 50.0
   },
   {
    "id": "e8e942242c5e",
@@ -2576,6 +2884,34 @@
    "duration": 45.1
   },
   {
+   "id": "d64578c74582",
+   "row": "ambience",
+   "name": "Dripping tunnels",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/ambience/01-dripping-tunnels.mp3",
+   "offset": 7977108,
+   "length": 407300,
+   "size": 407300,
+   "deflated": false,
+   "duration": 50.9
+  },
+  {
+   "id": "bfe315ec6189",
+   "row": "ambience",
+   "name": "Dungeon hum",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/ambience/03-dungeon-hum.mp3",
+   "offset": 9100823,
+   "length": 375326,
+   "size": 375326,
+   "deflated": false,
+   "duration": 46.9
+  },
+  {
    "id": "59b243ecc6d5",
    "row": "ambience",
    "name": "Dust devils",
@@ -2676,6 +3012,20 @@
    "size": 932258,
    "deflated": false,
    "duration": 77.7
+  },
+  {
+   "id": "2c486a703e34",
+   "row": "ambience",
+   "name": "Empty ruins",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/ambience/03-empty-ruins.mp3",
+   "offset": 19813163,
+   "length": 415241,
+   "size": 415241,
+   "deflated": false,
+   "duration": 51.9
   },
   {
    "id": "459d5f16acd7",
@@ -2920,6 +3270,20 @@
    "duration": 45.2
   },
   {
+   "id": "125e8781d243",
+   "row": "ambience",
+   "name": "Hearth fire",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/ambience/01-hearth-fire.mp3",
+   "offset": 13543212,
+   "length": 365922,
+   "size": 365922,
+   "deflated": false,
+   "duration": 45.7
+  },
+  {
    "id": "63f97e5e6982",
    "row": "ambience",
    "name": "Helicopter overhead",
@@ -3162,6 +3526,20 @@
    "duration": 76.0
   },
   {
+   "id": "c111fa42376f",
+   "row": "ambience",
+   "name": "Leaking pipes",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/ambience/04-leaking-pipes.mp3",
+   "offset": 9476217,
+   "length": 593397,
+   "size": 593397,
+   "deflated": false,
+   "duration": 49.4
+  },
+  {
    "id": "78d9f536bb55",
    "row": "ambience",
    "name": "Leaking pipes",
@@ -3216,6 +3594,20 @@
    "size": 362160,
    "deflated": false,
    "duration": 45.2
+  },
+  {
+   "id": "cd29876573fa",
+   "row": "ambience",
+   "name": "Machine drone",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/ambience/05-machine-drone.mp3",
+   "offset": 27357859,
+   "length": 561423,
+   "size": 561423,
+   "deflated": false,
+   "duration": 46.8
   },
   {
    "id": "9e722482cb2d",
@@ -3605,6 +3997,20 @@
    "duration": 50.8
   },
   {
+   "id": "184746933703",
+   "row": "ambience",
+   "name": "Rats in the walls",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/ambience/05-rats-in-the-walls.mp3",
+   "offset": 10069686,
+   "length": 777404,
+   "size": 777404,
+   "deflated": false,
+   "duration": 64.8
+  },
+  {
    "id": "229bbe69dccb",
    "row": "ambience",
    "name": "Reactor core",
@@ -3645,6 +4051,20 @@
    "size": 789942,
    "deflated": false,
    "duration": 65.8
+  },
+  {
+   "id": "294eec795df4",
+   "row": "ambience",
+   "name": "Roaring fires",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/ambience/04-roaring-fires.mp3",
+   "offset": 26977241,
+   "length": 380550,
+   "size": 380550,
+   "deflated": false,
+   "duration": 47.5
   },
   {
    "id": "77357de52298",
@@ -3857,6 +4277,20 @@
    "duration": 45.8
   },
   {
+   "id": "d5fb57bb53d8",
+   "row": "ambience",
+   "name": "Sirens across the city",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/ambience/03-sirens-across-the-city.mp3",
+   "offset": 4464517,
+   "length": 365922,
+   "size": 365922,
+   "deflated": false,
+   "duration": 45.7
+  },
+  {
    "id": "d0a1c4fc9c0b",
    "row": "ambience",
    "name": "Slow heartbeat",
@@ -3869,6 +4303,20 @@
    "size": 589949,
    "deflated": false,
    "duration": 49.1
+  },
+  {
+   "id": "ecc8e2c76998",
+   "row": "ambience",
+   "name": "Snowstorm",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/ambience/01-snowstorm.mp3",
+   "offset": 3343514,
+   "length": 424645,
+   "size": 424645,
+   "deflated": false,
+   "duration": 53.1
   },
   {
    "id": "fd06b7155cc3",
@@ -4085,6 +4533,48 @@
    "duration": 44.8
   },
   {
+   "id": "86321a14f839",
+   "row": "ambience",
+   "name": "The dungeon outside",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/ambience/03-the-dungeon-outside.mp3",
+   "offset": 14265800,
+   "length": 401239,
+   "size": 401239,
+   "deflated": false,
+   "duration": 50.1
+  },
+  {
+   "id": "93d3b3c0a7c9",
+   "row": "ambience",
+   "name": "The earth trembles",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/ambience/04-the-earth-trembles.mp3",
+   "offset": 4830512,
+   "length": 578978,
+   "size": 578978,
+   "deflated": false,
+   "duration": 48.2
+  },
+  {
+   "id": "b25ba447ce6f",
+   "row": "ambience",
+   "name": "The floor is collapsing",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/ambience/01-the-floor-is-collapsing.mp3",
+   "offset": 25430798,
+   "length": 552333,
+   "size": 552333,
+   "deflated": false,
+   "duration": 46.0
+  },
+  {
    "id": "7eebea48ad00",
    "row": "ambience",
    "name": "The monolith hums",
@@ -4131,6 +4621,20 @@
    "duration": 47.6
   },
   {
+   "id": "90fb6396acc5",
+   "row": "ambience",
+   "name": "Ticking clock",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/ambience/04-ticking-clock.mp3",
+   "offset": 14667107,
+   "length": 543869,
+   "size": 543869,
+   "deflated": false,
+   "duration": 45.3
+  },
+  {
    "id": "be1d96cbe3be",
    "row": "ambience",
    "name": "Ticking clock",
@@ -4171,6 +4675,20 @@
    "size": 608547,
    "deflated": false,
    "duration": 76.0
+  },
+  {
+   "id": "e9b1b6af01b3",
+   "row": "ambience",
+   "name": "Training room hum",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/ambience/05-training-room-hum.mp3",
+   "offset": 15211048,
+   "length": 380341,
+   "size": 380341,
+   "deflated": false,
+   "duration": 47.5
   },
   {
    "id": "7e1f3a2c2567",
@@ -4217,6 +4735,20 @@
    "size": 703425,
    "deflated": false,
    "duration": 58.6
+  },
+  {
+   "id": "268121b0b2a8",
+   "row": "ambience",
+   "name": "Underground draft",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/ambience/02-underground-draft.mp3",
+   "offset": 8384480,
+   "length": 716277,
+   "size": 716277,
+   "deflated": false,
+   "duration": 59.7
   },
   {
    "id": "2f8950705655",
@@ -4480,6 +5012,34 @@
    "duration": 50.1
   },
   {
+   "id": "41e83eebd166",
+   "row": "ambience",
+   "name": "Wind through the ruins",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/ambience/01-wind-through-the-ruins.mp3",
+   "offset": 18587046,
+   "length": 659853,
+   "size": 659853,
+   "deflated": false,
+   "duration": 55.0
+  },
+  {
+   "id": "3854095de440",
+   "row": "ambience",
+   "name": "Winter wind",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/ambience/02-winter-wind.mp3",
+   "offset": 3768225,
+   "length": 696215,
+   "size": 696215,
+   "deflated": false,
+   "duration": 58.0
+  },
+  {
    "id": "a01ed632634f",
    "row": "events",
    "name": "A body is found",
@@ -4492,6 +5052,20 @@
    "size": 21693,
    "deflated": false,
    "duration": 2.6
+  },
+  {
+   "id": "b27cacbe165f",
+   "row": "events",
+   "name": "A building sinks",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/events/01-a-building-sinks.mp3",
+   "offset": 5769903,
+   "length": 49318,
+   "size": 49318,
+   "deflated": false,
+   "duration": 6.1
   },
   {
    "id": "f2d7de4c9a25",
@@ -4548,6 +5122,20 @@
    "size": 1670,
    "deflated": false,
    "duration": 0.2
+  },
+  {
+   "id": "279d21b2c8d5",
+   "row": "events",
+   "name": "Achievement unlocked",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/04-achievement-unlocked.mp3",
+   "offset": 10868880,
+   "length": 23510,
+   "size": 23510,
+   "deflated": false,
+   "duration": 1.9
   },
   {
    "id": "8095dd2c0713",
@@ -4652,6 +5240,10 @@
    "row": "events",
    "name": "Blast door",
    "tale": "AI Year 2100",
+   "tales": [
+    "AI Year 2100",
+    "Dungeon Crawler Carl, Tome 1"
+   ],
    "bard": "Troubadour",
    "file": "261015_ai_year_2100.troubadour",
    "path": "sounds/2/events/01-blast-door.mp3",
@@ -4878,6 +5470,20 @@
    "size": 16508,
    "deflated": false,
    "duration": 2.0
+  },
+  {
+   "id": "8a3f2dc13a2e",
+   "row": "events",
+   "name": "Ceiling cracks",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/03-ceiling-cracks.mp3",
+   "offset": 27956887,
+   "length": 75232,
+   "size": 75232,
+   "deflated": false,
+   "duration": 6.2
   },
   {
    "id": "88804c512867",
@@ -5108,6 +5714,20 @@
    "duration": 12.2
   },
   {
+   "id": "80768c0be617",
+   "row": "events",
+   "name": "Distant explosion",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/events/03-distant-explosion.mp3",
+   "offset": 21236964,
+   "length": 35525,
+   "size": 35525,
+   "deflated": false,
+   "duration": 4.4
+  },
+  {
    "id": "50ae96d2d66c",
    "row": "events",
    "name": "Distant howl",
@@ -5192,6 +5812,20 @@
    "duration": 0.7
   },
   {
+   "id": "24790d2d5805",
+   "row": "events",
+   "name": "Drinking a potion",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/events/05-drinking-a-potion.mp3",
+   "offset": 15613249,
+   "length": 6477,
+   "size": 6477,
+   "deflated": false,
+   "duration": 0.8
+  },
+  {
    "id": "6cb20cdac3d8",
    "row": "events",
    "name": "Drone passes",
@@ -5204,6 +5838,20 @@
    "size": 42945,
    "deflated": false,
    "duration": 3.6
+  },
+  {
+   "id": "8bffad95d3bd",
+   "row": "events",
+   "name": "Drop into the dungeon",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/events/05-drop-into-the-dungeon.mp3",
+   "offset": 5890543,
+   "length": 20375,
+   "size": 20375,
+   "deflated": false,
+   "duration": 1.7
   },
   {
    "id": "45d85d2cd568",
@@ -5250,6 +5898,20 @@
    "size": 7731,
    "deflated": false,
    "duration": 0.9
+  },
+  {
+   "id": "98c8a2c01492",
+   "row": "events",
+   "name": "Dynamite blast",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/01-dynamite-blast.mp3",
+   "offset": 27919349,
+   "length": 23195,
+   "size": 23195,
+   "deflated": false,
+   "duration": 2.9
   },
   {
    "id": "a6289203cffc",
@@ -5306,6 +5968,20 @@
    "size": 20061,
    "deflated": false,
    "duration": 2.5
+  },
+  {
+   "id": "b3114b3de62c",
+   "row": "events",
+   "name": "Falling rubble",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/events/04-falling-rubble.mp3",
+   "offset": 5865811,
+   "length": 24658,
+   "size": 24658,
+   "deflated": false,
+   "duration": 3.1
   },
   {
    "id": "7c280114cbd4",
@@ -5466,6 +6142,20 @@
    "duration": 3.2
   },
   {
+   "id": "393d038a824a",
+   "row": "events",
+   "name": "Glass shatters",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/events/02-glass-shatters.mp3",
+   "offset": 5819288,
+   "length": 11701,
+   "size": 11701,
+   "deflated": false,
+   "duration": 1.4
+  },
+  {
    "id": "8f5f518f9fff",
    "row": "events",
    "name": "Glass shatters",
@@ -5494,6 +6184,20 @@
    "duration": 0.4
   },
   {
+   "id": "d7b2a4417db2",
+   "row": "events",
+   "name": "Goblin snarls",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/02-goblin-snarls.mp3",
+   "offset": 10856204,
+   "length": 5850,
+   "size": 5850,
+   "deflated": false,
+   "duration": 0.7
+  },
+  {
    "id": "58d26cdb10c9",
    "row": "events",
    "name": "Gold bars stacked",
@@ -5520,6 +6224,20 @@
    "size": 5432,
    "deflated": false,
    "duration": 0.7
+  },
+  {
+   "id": "3bd4fd12fdf1",
+   "row": "events",
+   "name": "Gold counted",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/events/02-gold-counted.mp3",
+   "offset": 15596744,
+   "length": 4805,
+   "size": 4805,
+   "deflated": false,
+   "duration": 0.6
   },
   {
    "id": "71f761cb1100",
@@ -5678,6 +6396,20 @@
    "size": 54857,
    "deflated": false,
    "duration": 4.5
+  },
+  {
+   "id": "1ec4336f0900",
+   "row": "events",
+   "name": "Heavy blow",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/04-heavy-blow.mp3",
+   "offset": 28032182,
+   "length": 8358,
+   "size": 8358,
+   "deflated": false,
+   "duration": 1.0
   },
   {
    "id": "4873ddfc997d",
@@ -5842,6 +6574,20 @@
    "duration": 0.9
   },
   {
+   "id": "bd38c528b422",
+   "row": "events",
+   "name": "Into the stairwell",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/05-into-the-stairwell.mp3",
+   "offset": 28040611,
+   "length": 22986,
+   "size": 22986,
+   "deflated": false,
+   "duration": 2.8
+  },
+  {
    "id": "03a9976536c0",
    "row": "events",
    "name": "Iron gate creaks",
@@ -6000,6 +6746,34 @@
    "duration": 3.0
   },
   {
+   "id": "82df45b27bc5",
+   "row": "events",
+   "name": "Lit fuse",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/events/05-lit-fuse.mp3",
+   "offset": 21279508,
+   "length": 24658,
+   "size": 24658,
+   "deflated": false,
+   "duration": 3.1
+  },
+  {
+   "id": "4d826da5cbeb",
+   "row": "events",
+   "name": "Loot box opens",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/03-loot-box-opens.mp3",
+   "offset": 10862121,
+   "length": 6686,
+   "size": 6686,
+   "deflated": false,
+   "duration": 0.8
+  },
+  {
    "id": "16b437fb5ef4",
    "row": "events",
    "name": "Maglev departs",
@@ -6114,6 +6888,20 @@
    "size": 78157,
    "deflated": false,
    "duration": 9.7
+  },
+  {
+   "id": "80ec0fb6eba8",
+   "row": "events",
+   "name": "Monster roars",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/events/01-monster-roars.mp3",
+   "offset": 21207050,
+   "length": 8776,
+   "size": 8776,
+   "deflated": false,
+   "duration": 1.1
   },
   {
    "id": "f203fc02989e",
@@ -6349,6 +7137,20 @@
    "duration": 1.9
   },
   {
+   "id": "1e61f43d8afc",
+   "row": "events",
+   "name": "Princess Donut meows",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/events/04-princess-donut-meows.mp3",
+   "offset": 15606493,
+   "length": 6686,
+   "size": 6686,
+   "deflated": false,
+   "duration": 0.8
+  },
+  {
    "id": "a74de8a30c77",
    "row": "events",
    "name": "Proximity alarm",
@@ -6361,6 +7163,34 @@
    "size": 15673,
    "deflated": false,
    "duration": 1.3
+  },
+  {
+   "id": "6dbcec614029",
+   "row": "events",
+   "name": "Purchase made",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/events/03-purchase-made.mp3",
+   "offset": 15601615,
+   "length": 4805,
+   "size": 4805,
+   "deflated": false,
+   "duration": 0.6
+  },
+  {
+   "id": "30f457b5828c",
+   "row": "events",
+   "name": "Rat attack",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/01-rat-attack.mp3",
+   "offset": 10847153,
+   "length": 8985,
+   "size": 8985,
+   "deflated": false,
+   "duration": 1.1
   },
   {
    "id": "6608320bf7b2",
@@ -6623,6 +7453,20 @@
    "duration": 1.5
   },
   {
+   "id": "5a61c3bf5e32",
+   "row": "events",
+   "name": "Safe room door",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/3/events/01-safe-room-door.mp3",
+   "offset": 15591456,
+   "length": 5223,
+   "size": 5223,
+   "deflated": false,
+   "duration": 0.6
+  },
+  {
    "id": "cd2b313be8d1",
    "row": "events",
    "name": "Saloon doors",
@@ -6805,6 +7649,20 @@
    "duration": 1.8
   },
   {
+   "id": "b5e5c017f193",
+   "row": "events",
+   "name": "Spike trap",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/05-spike-trap.mp3",
+   "offset": 10892453,
+   "length": 20270,
+   "size": 20270,
+   "deflated": false,
+   "duration": 2.5
+  },
+  {
    "id": "6f70ed0098da",
    "row": "events",
    "name": "Spiral stairs",
@@ -6933,6 +7791,34 @@
    "size": 18180,
    "deflated": false,
    "duration": 2.2
+  },
+  {
+   "id": "e6628a00ebef",
+   "row": "events",
+   "name": "The boss roars",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/02-the-boss-roars.mp3",
+   "offset": 27942611,
+   "length": 14209,
+   "size": 14209,
+   "deflated": false,
+   "duration": 1.8
+  },
+  {
+   "id": "88556cc13e85",
+   "row": "events",
+   "name": "The cat purrs",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/1/events/03-the-cat-purrs.mp3",
+   "offset": 5831055,
+   "length": 34689,
+   "size": 34689,
+   "deflated": false,
+   "duration": 4.3
   },
   {
    "id": "ac02949d4189",
@@ -7257,6 +8143,20 @@
    "duration": 1.3
   },
   {
+   "id": "39e18ed6e79d",
+   "row": "events",
+   "name": "Wall crumbles",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/events/02-wall-crumbles.mp3",
+   "offset": 21215892,
+   "length": 21002,
+   "size": 21002,
+   "deflated": false,
+   "duration": 1.7
+  },
+  {
    "id": "d69ca54ab54d",
    "row": "events",
    "name": "Warning tone",
@@ -7371,6 +8271,20 @@
    "size": 4387,
    "deflated": false,
    "duration": 0.5
+  },
+  {
+   "id": "b56e20c6fca1",
+   "row": "soundbox",
+   "name": "Achievement unlocked",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/04-achievement-unlocked.mp3",
+   "offset": 10868880,
+   "length": 23510,
+   "size": 23510,
+   "deflated": false,
+   "duration": 1.9
   },
   {
    "id": "ad6bd92581d9",
@@ -7567,6 +8481,20 @@
    "size": 34664,
    "deflated": false,
    "duration": 2.8
+  },
+  {
+   "id": "0fe8451323cb",
+   "row": "soundbox",
+   "name": "Dynamite blast",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/5/events/01-dynamite-blast.mp3",
+   "offset": 27919349,
+   "length": 23195,
+   "size": 23195,
+   "deflated": false,
+   "duration": 2.9
   },
   {
    "id": "02b389097870",
@@ -7919,6 +8847,20 @@
    "duration": 3.0
   },
   {
+   "id": "d6f910179087",
+   "row": "soundbox",
+   "name": "Loot box opens",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/2/events/03-loot-box-opens.mp3",
+   "offset": 10862121,
+   "length": 6686,
+   "size": 6686,
+   "deflated": false,
+   "duration": 0.8
+  },
+  {
    "id": "1459184b9435",
    "row": "soundbox",
    "name": "Magic missile",
@@ -7945,6 +8887,20 @@
    "size": 1843,
    "deflated": false,
    "duration": 0.1
+  },
+  {
+   "id": "b2d1bca5f6f1",
+   "row": "soundbox",
+   "name": "Monster roars",
+   "tale": "Dungeon Crawler Carl, Tome 1",
+   "bard": "Troubadour",
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "path": "sounds/4/events/01-monster-roars.mp3",
+   "offset": 21207050,
+   "length": 8776,
+   "size": 8776,
+   "deflated": false,
+   "duration": 1.1
   },
   {
    "id": "e9e0b7697d87",

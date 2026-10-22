@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-21T16:24:58Z",
+ "updated": "2026-10-22T16:49:09Z",
  "tales": [
   {
    "file": "261015_ai_year_2100.troubadour",
@@ -16,6 +16,23 @@
    ],
    "sounds": 56,
    "size": 45154252
+  },
+  {
+   "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
+   "title": "Dungeon Crawler Carl, Tome 1",
+   "id": "42babf0d-da16-5123-8343-ddb7dead6eb2",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "A fan adaptation of the first novel by Matt Dinniman. One winter night every building on Earth sinks into the ground, and the survivors become crawlers in an alien game show dungeon. Carl, in his boxers, and Princess Donut, his ex's prize show cat, must fight their way down. Five chapters. Sounds from Shattered Pixel Dungeon, Cataclysm: DDA CC-Sounds, Stendhal, /tg/station 13, Flare, Red Eclipse and Hypersomnia (see the Troubadour sound credits).",
+   "chapters": [
+    "The Collapse",
+    "Floor One: The Tutorial",
+    "The Safe Room",
+    "Floor Two: The Ruined City",
+    "Boss Fight and the Stairwell"
+   ],
+   "sounds": 69,
+   "size": 28069183
   },
   {
    "file": "261015_le_camping_rondin_des_bois.troubadour",
