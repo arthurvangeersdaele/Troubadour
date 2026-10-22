@@ -58,6 +58,12 @@
   const randomMax = () => Math.min(10, Math.max(1, Math.round(+settings.randomMax || 5)));
   /* Living events: while it plays, an event drifts up to 10 points above or below its volume, a new drift about every
    * settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. Off: back to its volume. */
+  /** The volume an event is heard at right now, from the drift it is gliding through. */
+  function lifeHeard(v) {
+    if (v.lifeT0 == null) return v.vol;
+    const k = Math.min(1, Math.max(0, (performance.now() - v.lifeT0) / Math.max(1, v.lifeMs)));
+    return v.lifeFromV + (v.lifeToV - v.lifeFromV) * k;
+  }
   const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 6)));
   setInterval(() => {
     if (!story || !ctx) return;
@@ -74,9 +80,12 @@
       const off = (Math.random() * 2 - 1) * 0.1;
       const base = Math.max(0.001, v.vol);
       const f = Math.min(4, curve(Math.min(1, Math.max(0, base + off))) / curve(base));
+      // Its own record of the glide, for the mark on the card (some browsers do not report a gain in motion).
+      const from = v.lifeOn && v.lifeT0 != null ? lifeHeard(v) / Math.max(0.001, v.vol) : 1;
       g.cancelScheduledValues(ctx.currentTime);
       g.setValueAtTime(g.value, ctx.currentTime);
       g.linearRampToValueAtTime(f, ctx.currentTime + lifeEvery() * 0.9);
+      Object.assign(v, { lifeFromV: from * Math.max(0.001, v.vol), lifeToV: Math.sqrt(f * curve(base)), lifeT0: now, lifeMs: lifeEvery() * 900 });
       v.lifeAt = now + lifeEvery() * 1000 * (0.75 + Math.random() * 0.5);
     });
   }, 250);
@@ -656,7 +665,7 @@
     // Living events: a discreet mark shows the volume heard right now; the slider and the number keep the troubadour's own.
     if (v.life && v.zone.id === 'events') {
       const alive = !!(settings.life && v.lifeOn && v.active);
-      const heard = alive ? Math.sqrt(Math.max(0, curve(v.vol) * v.life.gain.value)) : v.vol;
+      const heard = alive ? lifeHeard(v) : v.vol;
       if (k.vol) { k.vol.classList.toggle('living', alive); if (alive) k.vol.style.setProperty('--lp', Math.min(1, heard).toFixed(3)); }
       if (k.lvl) { k.lvl.classList.toggle('living', alive); if (alive) k.lvl.style.setProperty('--lo', `${((heard - v.vol) * 90).toFixed(1)}px`); }
     }
