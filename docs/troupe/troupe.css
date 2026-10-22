@@ -5,7 +5,7 @@
   height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--card);
   color: var(--text); font-weight: 600; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
 }
-.btn:hover { border-color: var(--muted); }
+@media (hover: hover) { .btn:hover { border-color: var(--muted); } }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn:disabled { opacity: .5; cursor: default; }
@@ -80,8 +80,8 @@ html.pc .doors { grid-template-columns: repeat(3, minmax(0, 290px)); }
 .ed-top { display: flex; align-items: center; gap: 10px; }
 .ed-top .n { font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 28px; color: var(--accent); }
 .chap-title { flex: 1; font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 24px; padding: 4px 12px; }
-.ed-top .del { color: var(--evt); border-color: color-mix(in srgb, var(--evt) 45%, var(--line)); }
-.ed-top .del:hover:not(:disabled) { border-color: var(--evt); background: color-mix(in srgb, var(--evt) 10%, var(--card)); }
+.ed-top .del { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.ed-top .del:hover:not(:disabled) { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--card)); }
 
 .editor .zrow { flex: 0 0 auto; align-items: stretch; }
 @media (min-width: 1101px) {

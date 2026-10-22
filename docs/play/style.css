@@ -51,7 +51,12 @@ a { color: var(--accent); }
 button { font: inherit; color: inherit; cursor: pointer; }
 h1, h2, h3, .logo, .ttl b { font-family: 'Cormorant SC', serif; font-weight: 700; letter-spacing: .4px; }
 [hidden] { display: none !important; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root { --danger: #E5534B; --on-danger: #FFFFFF; }
+/* Danger stays red whatever the theme: it never borrows a theme colour. */
+[data-mode="light"] { --danger: #CF3B32; }
+/* A soft ring for the keyboard only; a tap never leaves a ring behind (phones, tablets). */
+:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 3px; }
+@media (hover: none) { :focus-visible, .toggle input:focus-visible + i { outline: none; } }
 svg { display: block; }
 .grow { flex: 1; }
 
@@ -60,7 +65,7 @@ svg { display: block; }
   background: var(--card); display: grid; place-items: center; padding: 0;
 }
 .ico.small { width: 34px; height: 34px; border-radius: 9px; }
-.ico:hover { border-color: var(--muted); }
+@media (hover: hover) { .ico:hover { border-color: var(--muted); } }
 
 /* ---------- Stories screen ---------- */
 .stories { min-height: 100%; }

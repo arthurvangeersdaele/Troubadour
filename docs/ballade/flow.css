@@ -12,8 +12,8 @@ input[type="text"], input[type="number"], input:not([type]), select { font-size:
 
 /* ---------- Shared bits (as in Troubadour for iPhone) ---------- */
 .btn.slim { height: 38px; padding: 0 12px; font-size: 15px; gap: 6px; flex: none; }
-.btn.danger { color: var(--evt); border-color: color-mix(in srgb, var(--evt) 45%, var(--line)); }
-.ask .btn.danger { background: var(--evt); border-color: var(--evt); color: var(--on-z); }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 .btn svg { flex: none; }
 .ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
 .ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
@@ -74,7 +74,7 @@ html[data-screen="library"] .toast, html[data-screen="editor"] .toast { bottom: 
 .fl-menu-item:hover { border-color: var(--muted); }
 .fl-menu-item b { display: block; font-weight: 600; }
 .fl-menu-item small { display: block; color: var(--muted); font-size: 13px; }
-.fl-menu-item.danger { color: var(--evt); }
+.fl-menu-item.danger { color: var(--danger); }
 
 /* ---------- Player ---------- */
 .fl-player { height: 100dvh; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 620px; margin: 0 auto; position: relative; overflow: hidden; }

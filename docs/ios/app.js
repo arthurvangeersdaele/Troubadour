@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.6';
+  const VERSION = '261022.7';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -359,7 +359,7 @@
     const play = btn('btn primary', `${ICON.play}<span>Play</span>`, null, () => { audio(); location.hash = `#/play/${encodeURIComponent(s.uid)}/1`; });
     const edit = btn('ico small', ICON.edit, `Edit ${s.title}`, () => { location.hash = `#/edit/${encodeURIComponent(s.uid)}/1`; });
     const share = btn('ico small', ICON.share, `Export ${s.title}`, () => exportStories([s]));
-    const del = btn('ico small', ICON.trash, `Delete ${s.title}`, () => deleteStory(s));
+    const del = btn('ico small danger', ICON.trash, `Delete ${s.title}`, () => deleteStory(s));
     acts.append(play, edit, share, del);
     c.append(acts);
     return c;
