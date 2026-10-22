@@ -458,3 +458,5 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
 .pick-play.wait { animation: pick-wait 1s ease-in-out infinite; }
 @keyframes pick-wait { 50% { opacity: .45; } }
 .picker .pick-bar { position: static; flex: none; padding: 10px 0 0; margin: 0; background: var(--bar); border-top: 1px solid var(--line); }
+.pick-tag { --z: var(--accent); display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .3px; line-height: 17px; vertical-align: 1px;
+  color: var(--z); background: color-mix(in srgb, var(--z) 16%, transparent); border: 1px solid color-mix(in srgb, var(--z) 45%, transparent); }

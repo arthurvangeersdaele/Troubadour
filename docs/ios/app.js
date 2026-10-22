@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.2';
+  const VERSION = '261022.3';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1123,11 +1123,14 @@
     const seen = new Map();
     const sources = STORIES.map((st) => (ed && st.uid === ed.story.uid ? ed.story : st));
     if (ed && !sources.includes(ed.story)) sources.unshift(ed.story);
-    sources.forEach((st) => DB.soundsOf(st).forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: st.title }); }));
-    SHARED.forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: 'Shared soundbox' }); });
+    sources.forEach((st) => {
+      (st.chapters || []).forEach((c) => ZONES.forEach((z) => (c[z.id] || []).forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: st.title, kind: z.id }); })));
+      (st.soundbox || []).forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: st.title, kind: 'soundbox' }); });
+    });
+    SHARED.forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { s, from: 'Shared soundbox', kind: 'soundbox' }); });
     const inList = new Set(list.map((s) => s.blob));
     const local = [...seen.values()].filter((x) => !inList.has(x.s.blob)).sort((a, b) => a.s.name.localeCompare(b.s.name))
-      .map((x) => ({ key: `d:${x.s.blob}`, name: x.s.name, sub: [x.from, x.s.duration ? fmt(x.s.duration) : null].filter(Boolean).join(', '), x, fold: fold(`${x.s.name} ${x.from}`) }));
+      .map((x) => ({ key: `d:${x.s.blob}`, name: x.s.name, kind: x.kind, sub: [x.from, x.s.duration ? fmt(x.s.duration) : null].filter(Boolean).join(', '), x, fold: fold(`${x.s.name} ${x.from} ${x.kind}`) }));
 
     const tabs = el('div', 'seg pick-tabs');
     const tab = (id, label) => { const b = el('button', '', label); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.src = id; b.onclick = () => { pickSource = id; paintTabs(); draw(); }; return b; };
@@ -1172,6 +1175,11 @@
     addBtn.disabled = true;
     const paintAdd = () => { addBtn.disabled = !chosen.size; addBtn.textContent = chosen.size ? `Add ${plural(chosen.size, 'sound')}` : 'Add'; };
     const ROWNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+    const ROWCOLOR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
+    // What suits the row best comes first: its own kind, then (for effects) the other kind of effect.
+    const kind = zone.id;
+    const near = { soundbox: 'events', events: 'soundbox', music: 'ambience', ambience: 'music' }[kind];
+    const rank = (k) => (k === kind ? 0 : k === near ? 1 : 2);
 
     const row = (r, getBlob) => {
       const lab = el('label', 'pick-row');
@@ -1180,7 +1188,11 @@
       cb.checked = chosen.has(r.key);
       cb.onchange = () => { cb.checked ? chosen.set(r.key, r) : chosen.delete(r.key); paintAdd(); };
       const t = el('span', 'pt');
-      t.append(el('b', '', r.name), el('small', '', r.sub));
+      // Its kind as a coloured tag, as in the Story builder.
+      const line = el('small', '');
+      if (r.kind) { const tag = el('span', 'pick-tag', ROWNAME[r.kind] || r.kind); tag.style.setProperty('--z', ROWCOLOR[r.kind] || 'var(--accent)'); line.append(tag); }
+      line.append(document.createTextNode(r.sub));
+      t.append(el('b', '', r.name), line);
       const pb = el('button', 'pick-play');
       pb.type = 'button';
       pb.innerHTML = pickPlay.key === r.key ? ICON.pause : ICON.play;
@@ -1197,7 +1209,7 @@
         q.placeholder = `Search ${plural(local.length, 'sound')} on this ${DEV}`;
         const hits = local.filter((r) => !term || r.fold.includes(term));
         if (!hits.length) ul.append(el('p', 'muted small pick-empty', local.length ? 'No sound matches.' : `No other sound on this ${DEV} yet. Try the Recueil.`));
-        hits.slice(0, 300).forEach((r) => ul.append(row(r, () => DB.getBlob(r.x.s.blob))));
+        hits.slice().sort((a, b) => rank(a.kind) - rank(b.kind) || a.name.localeCompare(b.name)).slice(0, 300).forEach((r) => ul.append(row(r, () => DB.getBlob(r.x.s.blob))));
         return;
       }
       q.placeholder = 'Search a sound, a tale or a troubadour';
@@ -1208,12 +1220,11 @@
         return;
       }
       // Sounds of the same kind as the row first (music for Music, and so on).
-      const kind = zone.id;
       const hits = recueil.filter((x) => !term || x.key.includes(term))
-        .sort((a, b) => (b.row === kind) - (a.row === kind) || a.name.localeCompare(b.name));
+        .sort((a, b) => rank(a.row) - rank(b.row) || a.name.localeCompare(b.name));
       if (!hits.length) ul.append(el('p', 'muted small pick-empty', 'No sound of the Recueil matches.'));
       hits.slice(0, 300).forEach((x) => {
-        const r = { key: `r:${x.id}`, name: x.name, sub: [ROWNAME[x.row], x.tale, x.duration ? fmt(x.duration) : null].filter(Boolean).join(', '), rx: x };
+        const r = { key: `r:${x.id}`, name: x.name, kind: x.row, sub: [x.tale, x.duration ? fmt(x.duration) : null].filter(Boolean).join(', '), rx: x };
         ul.append(row(r, () => recueilBlob(x)));
       });
     };
