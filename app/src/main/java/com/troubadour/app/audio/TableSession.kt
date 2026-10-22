@@ -275,9 +275,10 @@ class TableSession(
         }
     }
 
-    fun pause(card: Card) {
+    /** Pause with a fade out: the card's pause button fades like its stop button, the master button over 3 s. */
+    fun pause(card: Card, ms: Int = settings.fadeMs) {
         val s = card.slot ?: return
-        if (owner[s] === card) NativeEngine.pause(s)
+        if (owner[s] === card) NativeEngine.pause(s, ms)
     }
 
     fun end(card: Card, ms: Int = settings.fadeMs) {
@@ -361,16 +362,17 @@ class TableSession(
         }
     }
 
-    fun pauseAll() {
+    /** Master pause and resume, faded over 3 s (an interruption pauses at once). */
+    fun pauseAll(fadeMs: Int = MASTER_FADE_MS) {
         if (pausedByAll.isNotEmpty() || heldRandom.isNotEmpty()) {
-            pausedByAll.forEach { if (stateOf(it) == NativeEngine.PAUSED) play(it, 30) }
+            pausedByAll.forEach { if (stateOf(it) == NativeEngine.PAUSED || stateOf(it) == NativeEngine.PAUSING) play(it, fadeMs) }
             pausedByAll = emptyList()
             val now = SystemClock.uptimeMillis()
             heldRandom.forEach { it.randomOn = true; it.nextAt = now + randomPause() }
             heldRandom = emptyList()
         } else {
             val playing = cards.filter { stateOf(it) == NativeEngine.PLAYING }
-            playing.forEach { pause(it) }
+            playing.forEach { pause(it, fadeMs) }
             // Random events waiting for their next play hold still too.
             val waiting = cards.filter { it.waiting }
             waiting.forEach { it.randomOn = false; it.nextAt = 0L }
@@ -384,11 +386,11 @@ class TableSession(
 
     /** Pauses what plays (calls, unplugged headphones). Does nothing when all is already quiet. */
     fun pauseForInterruption() {
-        if (!holding && (anyPlaying() || cards.any { it.waiting })) pauseAll()
+        if (!holding && (anyPlaying() || cards.any { it.waiting })) pauseAll(150)
     }
 
     fun stopAll() {
-        cards.forEach { end(it) }
+        cards.forEach { end(it, MASTER_FADE_MS) }
         pausedByAll = emptyList()
         heldRandom = emptyList()
         NativeEngine.stopPads()
@@ -482,6 +484,8 @@ class TableSession(
 
     companion object {
         const val N = NativeEngine.MAX_VOICES
+        /** The master play, pause and stop buttons fade over 3 s. */
+        const val MASTER_FADE_MS = 3000
         fun curve(v: Float) = v * v
     }
 }

@@ -33,8 +33,8 @@ Java_com_troubadour_app_audio_NativeEngine_nativePlay(JNIEnv *, jobject, jint sl
 }
 
 JNIEXPORT void JNICALL
-Java_com_troubadour_app_audio_NativeEngine_nativePause(JNIEnv *, jobject, jint slot) {
-    AudioEngine::get().pause(slot);
+Java_com_troubadour_app_audio_NativeEngine_nativePause(JNIEnv *, jobject, jint slot, jint fadeMs) {
+    AudioEngine::get().pause(slot, fadeMs);
 }
 
 JNIEXPORT void JNICALL

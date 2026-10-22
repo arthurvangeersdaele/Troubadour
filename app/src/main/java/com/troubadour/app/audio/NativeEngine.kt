@@ -59,7 +59,7 @@ object NativeEngine {
 
     fun unload(slot: Int) = nativeUnload(slot)
     fun play(slot: Int, fadeInMs: Int = 30) = nativePlay(slot, fadeInMs)
-    fun pause(slot: Int) = nativePause(slot)
+    fun pause(slot: Int, fadeMs: Int = 40) = nativePause(slot, fadeMs)
     fun end(slot: Int, fadeMs: Int = 2000) = nativeEnd(slot, fadeMs)
     fun setVolume(slot: Int, volume: Float) = nativeSetVolume(slot, volume)
     fun setLoop(slot: Int, loopMode: Int) = nativeSetLoop(slot, loopMode)
@@ -89,7 +89,7 @@ object NativeEngine {
     private external fun nativeLoad(slot: Int, fd: Int, loopMode: Int): Boolean
     private external fun nativeUnload(slot: Int)
     private external fun nativePlay(slot: Int, fadeInMs: Int)
-    private external fun nativePause(slot: Int)
+    private external fun nativePause(slot: Int, fadeMs: Int)
     private external fun nativeEnd(slot: Int, fadeMs: Int)
     private external fun nativeSetVolume(slot: Int, volume: Float)
     private external fun nativeSetLoop(slot: Int, loopMode: Int)

@@ -108,6 +108,7 @@ struct Voice {
     std::atomic<float> volume{0.75f};
     std::atomic<int> rampInFrames{1};
     std::atomic<int> fadeOutFrames{1};
+    std::atomic<int> pauseFrames{1};   // length of the fade of a pause
     std::atomic<bool> resetLevel{false};
     std::atomic<int64_t> framesConsumed{0};
     std::atomic<int64_t> passBase{0};  // progress is counted from here (moved when the loop mode changes)
@@ -136,7 +137,7 @@ public:
     bool load(int slot, int fd, int loopMode);
     void unload(int slot);
     void play(int slot, int fadeInMs);
-    void pause(int slot);
+    void pause(int slot, int fadeMs);
     void end(int slot, int fadeMs);
     void setVolume(int slot, float volume);
     void setLoop(int slot, int loopMode);

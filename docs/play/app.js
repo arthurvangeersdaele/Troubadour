@@ -104,6 +104,8 @@
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     return ctx;
   }
+  /** The master play, pause and stop buttons fade over 3 s. */
+  const MASTER_FADE = 3000;
   function ramp(param, target, secs) {
     const t = ctx.currentTime;
     const v = param.value;
@@ -155,6 +157,16 @@
       clearTimeout(this.timer);
       if (this.loop === 3) { this.rnd = true; this.next = 0; this.startedAt = Date.now(); }
       if (this.state === 'ending') { ramp(this.env.gain, 1, 0.15); this.set('playing'); return; }
+      if (this.state === 'paused' && this.fadingOut) {
+        // Resumed while its pause still fades out: rise back from the level heard now, no jump.
+        const t = ctx.currentTime, from = this.pauseLeft;
+        this.fadingOut = null;
+        this.env.gain.cancelScheduledValues(t);
+        this.env.gain.setValueAtTime(from, t);
+        this.env.gain.linearRampToValueAtTime(1, t + Math.max(fadeIn * (1 - from), 0.012));
+        this.set('playing');
+        return;
+      }
       if (this.state === 'ready') { this.el.currentTime = 0; this.plays = 0; }
       // From silence, rise over fadeIn. ramp() would start from gain.value, which Safari still reports
       // as the old level (1 after a sound ended), so the fade-in was lost there.
@@ -166,16 +178,35 @@
       if (p) p.catch(() => this.set('ready'));
       this.set('playing');
     }
-    pause() {
+    /** Pause with a fade out of ms (the card's pause button uses the fade-out setting, the master button 3 s).
+     * The card shows paused at once; the element only stops once the fade is over. */
+    pause(ms = 40) {
       if (!this.active) return;
       clearTimeout(this.timer);
       this.dropTwin(true);
-      ramp(this.env.gain, 0, 0.04);
-      this.timer = setTimeout(() => this.el.pause(), 50);
+      ms = Math.max(40, ms);
+      ramp(this.env.gain, 0, ms / 1000);
+      this.fadingOut = { at: Date.now(), ms };
+      this.timer = setTimeout(() => { this.fadingOut = null; this.el.pause(); }, ms + 10);
       this.set('paused');
+    }
+    /** Level still heard while a pause fades out (0 once it is over). */
+    get pauseLeft() {
+      const f = this.fadingOut;
+      return f ? Math.max(0, 1 - (Date.now() - f.at) / f.ms) : 0;
     }
     end(ms) {
       this.rnd = false; this.next = 0;
+      if (this.state === 'paused' && this.fadingOut) {
+        // Stopped while its pause fades out: let that fade finish, then let go.
+        const left = Math.min(ms, Math.max(40, Math.round(this.fadingOut.ms * this.pauseLeft)));
+        clearTimeout(this.timer);
+        ramp(this.env.gain, 0, left / 1000);
+        this.fadingOut = null;
+        this.set('ending');
+        this.timer = setTimeout(() => this.reset(), left + 40);
+        return;
+      }
       if (this.state === 'paused') { this.reset(); return; }
       if (!this.active) { this.paint(); return; }
       if (!this.active) return;
@@ -223,6 +254,7 @@
     }
     reset() {
       clearTimeout(this.timer);
+      this.fadingOut = null;
       this.dropTwin(true);
       if (this.el) { this.el.pause(); try { this.el.currentTime = 0; } catch (e) {} }
       this.plays = 0;
@@ -690,7 +722,7 @@
     audio();
     // Between two plays, a tap stops the random event.
     if (v.waiting) { v.rnd = false; v.next = 0; v.paint(); return; }
-    if (v.state === 'playing') { v.pause(); return; }
+    if (v.state === 'playing') { v.pause(settings.fade); return; }
     if (v.zone.id === 'music' && v.state !== 'ending') {
       const others = story.all.filter((o) => o !== v && o.zone.id === 'music' && (o.active || o.state === 'paused'));
       const crossing = others.some((o) => o.active);
@@ -773,14 +805,14 @@
     if (!story) return;
     audio();
     if (pausedByAll.length || heldRandom.length) {
-      pausedByAll.forEach((v) => v.state === 'paused' && v.play());
+      pausedByAll.forEach((v) => v.state === 'paused' && v.play(MASTER_FADE / 1000));
       pausedByAll = [];
       const now = Date.now();
       heldRandom.forEach((v) => { v.rnd = true; v.next = now + randomPause(); v.paint(); });
       heldRandom = [];
     } else {
       pausedByAll = story.all.filter((v) => v.state === 'playing');
-      pausedByAll.forEach((v) => v.pause());
+      pausedByAll.forEach((v) => v.pause(MASTER_FADE));
       // Random events waiting for their next play hold still too.
       heldRandom = story.all.filter((v) => v.waiting);
       heldRandom.forEach((v) => { v.rnd = false; v.next = 0; v.paint(); });
@@ -789,7 +821,7 @@
   }
   function stopAll() {
     if (!story) return;
-    story.all.forEach((v) => v.end(settings.fade));
+    story.all.forEach((v) => v.end(MASTER_FADE));
     pausedByAll = [];
     heldRandom = [];
     stopSoundbox();

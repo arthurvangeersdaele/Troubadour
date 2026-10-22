@@ -182,9 +182,10 @@ void AudioEngine::play(int slot, int fadeInMs) {
     }
 }
 
-void AudioEngine::pause(int slot) {
+void AudioEngine::pause(int slot, int fadeMs) {
     if (slot < 0 || slot >= kMaxVoices) return;
     Voice &v = mVoices[slot];
+    v.pauseFrames.store(std::max(1, std::max(kPauseFadeMs, fadeMs) * mOutRate.load() / 1000));
     for (int s : {kPlaying, kEnding}) {
         int expected = s;
         if (v.state.compare_exchange_strong(expected, kPausing)) return;
@@ -698,7 +699,6 @@ oboe::DataCallbackResult AudioEngine::onAudioReady(oboe::AudioStream *stream, vo
     const int channels = stream->getChannelCount();
     const double outRate = stream->getSampleRate();
     std::fill(out, out + static_cast<size_t>(numFrames) * channels, 0.f);
-    const int pauseFrames = std::max(1, static_cast<int>(kPauseFadeMs * outRate / 1000));
 
     for (Voice &v : mVoices) {
         const int st = v.state.load(std::memory_order_acquire);
@@ -709,7 +709,7 @@ oboe::DataCallbackResult AudioEngine::onAudioReady(oboe::AudioStream *stream, vo
         const float target = v.volume.load(std::memory_order_relaxed);
         const float rise = 1.f / static_cast<float>(std::max(1, v.rampInFrames.load(std::memory_order_relaxed)));
         const float fall = st == kPausing
-                ? 1.f / static_cast<float>(pauseFrames)
+                ? 1.f / static_cast<float>(std::max(1, v.pauseFrames.load(std::memory_order_relaxed)))
                 : 1.f / static_cast<float>(std::max(1, v.fadeOutFrames.load(std::memory_order_relaxed)));
         int64_t consumed = 0;
         bool finished = false;
