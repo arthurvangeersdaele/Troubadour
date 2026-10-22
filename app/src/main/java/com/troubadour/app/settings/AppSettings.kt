@@ -86,6 +86,11 @@ class AppSettings(context: Context) {
     /** Random events: longest pause before a sound plays again, in seconds (1 to 10). The shortest is 0.5 s. */
     var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 5).coerceIn(1, 10))
         private set
+    /** Living events: events drift up to 10 points around their volume, a new drift about every [lifeEvery] s. Off by default. */
+    var lifeEvents by mutableStateOf(prefs.getBoolean("life", false))
+        private set
+    var lifeEvery by mutableIntStateOf(prefs.getInt("lifeEvery", 6).coerceIn(2, 30))
+        private set
     /** Volume on the cards, per row (music, ambience, events): hidden by default. */
     var volMusic by mutableStateOf(VolumeMode.from(prefs.getString("volMusic", null)))
         private set
@@ -120,6 +125,8 @@ class AppSettings(context: Context) {
     fun changeMaster(v: Float) { master = v; prefs.edit().putFloat("master", v).apply() }
     fun changeSoundboxVolume(v: Float) { soundboxVolume = v; prefs.edit().putFloat("sbVol", v).apply() }
     fun changeRandomMax(v: Int) { randomMax = v.coerceIn(1, 10); prefs.edit().putInt("randomMax", randomMax).apply() }
+    fun changeLifeEvents(v: Boolean) { lifeEvents = v; prefs.edit().putBoolean("life", v).apply() }
+    fun changeLifeEvery(v: Int) { lifeEvery = v.coerceIn(2, 30); prefs.edit().putInt("lifeEvery", lifeEvery).apply() }
     fun changeVolMusic(v: VolumeMode) { volMusic = v; prefs.edit().putString("volMusic", v.id).apply() }
     fun changeVolAmbience(v: VolumeMode) { volAmbience = v; prefs.edit().putString("volAmbience", v.id).apply() }
     fun changeVolEvents(v: VolumeMode) { volEvents = v; prefs.edit().putString("volEvents", v.id).apply() }

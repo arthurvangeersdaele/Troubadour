@@ -423,6 +423,16 @@ private fun SettingsPanel(m: AppModel) {
                 IconBtn(BIcons.right, "Longer", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax < 10) { st.changeRandomMax(st.randomMax + 1) }
             }
         }
+        SetRow("Living events", "Each event drifts up to 10 above or below its volume, now and then, so it feels alive") {
+            Toggle(st.lifeEvents) { st.changeLifeEvents(it) }
+        }
+        SetRow("Drift every", "A new volume about every ${st.lifeEvery} s") {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconBtn(BIcons.left, "Shorter", size = 34.dp, iconSize = 13.dp, enabled = st.lifeEvents && st.lifeEvery > 2) { st.changeLifeEvery(st.lifeEvery - if (st.lifeEvery > 10) 2 else 1) }
+                T("${st.lifeEvery} s", weight = FontWeight.SemiBold, size = 16.sp, align = TextAlign.Center, modifier = Modifier.width(40.dp))
+                IconBtn(BIcons.right, "Longer", size = 34.dp, iconSize = 13.dp, enabled = st.lifeEvents && st.lifeEvery < 30) { st.changeLifeEvery(st.lifeEvery + if (st.lifeEvery >= 10) 2 else 1) }
+            }
+        }
         Muted("The sounds keep playing with the screen off or Troubadour in the background.", 13)
 
         SetSection("Storage")

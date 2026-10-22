@@ -39,6 +39,13 @@ class Card(val chapterIndex: Int, val zone: Zone, sound: Sound) {
     /** Simple volume buttons: the volume heard right now while it moves to [Sound.volume], or -1 when still. */
     var shownVolume by mutableStateOf(-1f)
     var volumeJob: Job? = null
+    /** Living events: the drift under way, as an offset of the volume (from, to), and when the next one starts. */
+    var lifeOn = false
+    var lifeFrom = 0f
+    var lifeTo = 0f
+    var lifeStart = 0L
+    var lifeDur = 1L
+    var lifeAt = 0L
 
     /** A random event between two plays. */
     val waiting: Boolean get() = randomOn && nextAt > 0L
@@ -108,6 +115,7 @@ class TableSession(
                     }
                 ) pausedByAll = emptyList()
                 runRandom()
+                runLife()
                 PlaybackController.update(anyPlaying())
                 delay(66)
             }
@@ -286,6 +294,34 @@ class TableSession(
         }
         card.slot?.let { if (owner[it] === card) NativeEngine.setLoop(it, loop.engine) }
         saveSoon()
+    }
+
+    /** Living events: while an event plays, it drifts up to 10 points above or below its volume, a new drift about
+     *  every settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. */
+    private fun runLife() {
+        val now = SystemClock.uptimeMillis()
+        cards.forEach { c ->
+            if (c.zone != Zone.EVENTS) return@forEach
+            val slot = c.slot ?: return@forEach
+            if (owner[slot] !== c || c.volumeJob?.isActive == true) return@forEach
+            if (!settings.lifeEvents || stateOf(c) != NativeEngine.PLAYING) {
+                if (c.lifeOn) { c.lifeOn = false; NativeEngine.setVolume(slot, curve(c.sound.volume)) }
+                return@forEach
+            }
+            val every = settings.lifeEvery * 1000L
+            if (!c.lifeOn || now >= c.lifeAt) {
+                val f0 = if (c.lifeOn) ((now - c.lifeStart).toFloat() / c.lifeDur).coerceIn(0f, 1f) else 0f
+                c.lifeFrom = if (c.lifeOn) c.lifeFrom + (c.lifeTo - c.lifeFrom) * f0 else 0f
+                c.lifeTo = (Math.random().toFloat() * 2f - 1f) * 0.1f
+                c.lifeStart = now
+                c.lifeDur = (every * 0.9).toLong().coerceAtLeast(500L)
+                c.lifeAt = now + (every * (0.75 + Math.random() * 0.5)).toLong()
+                c.lifeOn = true
+            }
+            val f = ((now - c.lifeStart).toFloat() / c.lifeDur).coerceIn(0f, 1f)
+            val off = c.lifeFrom + (c.lifeTo - c.lifeFrom) * f
+            NativeEngine.setVolume(slot, curve((c.sound.volume + off).coerceIn(0f, 1f)))
+        }
     }
 
     fun setVolume(card: Card, v: Float) {
