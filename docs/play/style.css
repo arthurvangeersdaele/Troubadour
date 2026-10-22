@@ -397,7 +397,7 @@ kbd { font: 600 12px/1 ui-monospace, Menlo, Consolas, monospace; border: 1px sol
 .set-note { margin: -4px 0 6px; font-size: 13px; }
 #life-row.off { opacity: .45; }
 
-/* Living events: a small dot under the volume slider (and under the number of simple volume) marks the volume heard now. */
+/* Living ambiances: a small dot under the volume slider (and under the number of simple volume) marks the volume heard now. */
 input[type="range"].living { background: radial-gradient(circle at calc(8px + (100% - 16px) * var(--lp, .5)) calc(100% - 3px), var(--text) 0 1.6px, transparent 2.3px) no-repeat; }
 .lvl.living { position: relative; }
 .lvl.living::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--z); opacity: .85; transform: translateX(var(--lo, 0px)); transition: transform .25s linear; }

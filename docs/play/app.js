@@ -56,9 +56,9 @@
   let ctx = null, masterGain = null, sbGain = null;
   const curve = (v) => v * v;
   const randomMax = () => Math.min(10, Math.max(1, Math.round(+settings.randomMax || 5)));
-  /* Living events: while it plays, an event drifts up to 10 points above or below its volume, a new drift about every
+  /* Living ambiances: while it plays, an ambiance drifts up to 10 points above or below its volume, a new drift about every
    * settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. Off: back to its volume. */
-  /** The volume an event is heard at right now, from the drift it is gliding through. */
+  /** The volume an ambiance is heard at right now, from the drift it is gliding through. */
   function lifeHeard(v) {
     if (v.lifeT0 == null) return v.vol;
     const k = Math.min(1, Math.max(0, (performance.now() - v.lifeT0) / Math.max(1, v.lifeMs)));
@@ -69,7 +69,7 @@
     if (!story || !ctx) return;
     const now = performance.now();
     story.all.forEach((v) => {
-      if (!v.life || v.zone.id !== 'events') return;
+      if (!v.life || v.zone.id !== 'ambience') return;
       const g = v.life.gain;
       if (!settings.life || !v.active) {
         if (v.lifeOn) { v.lifeOn = false; g.cancelScheduledValues(ctx.currentTime); g.setTargetAtTime(1, ctx.currentTime, 0.4); }
@@ -662,8 +662,8 @@
 
   function paintCard(v) {
     const k = v.card; if (!k) return;
-    // Living events: a discreet mark shows the volume heard right now; the slider and the number keep the troubadour's own.
-    if (v.life && v.zone.id === 'events') {
+    // Living ambiances: a discreet mark shows the volume heard right now; the slider and the number keep the troubadour's own.
+    if (v.life && v.zone.id === 'ambience') {
       const alive = !!(settings.life && v.lifeOn && v.active);
       const heard = alive ? lifeHeard(v) : v.vol;
       if (k.vol) { k.vol.classList.toggle('living', alive); if (alive) k.vol.style.setProperty('--lp', Math.min(1, heard).toFixed(3)); }

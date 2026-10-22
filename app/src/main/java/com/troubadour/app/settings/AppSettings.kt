@@ -86,7 +86,7 @@ class AppSettings(context: Context) {
     /** Random events: longest pause before a sound plays again, in seconds (1 to 10). The shortest is 0.5 s. */
     var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 5).coerceIn(1, 10))
         private set
-    /** Living events: events drift up to 10 points around their volume, a new drift about every [lifeEvery] s. Off by default. */
+    /** Living ambiances: ambiances drift up to 10 points around their volume, a new drift about every [lifeEvery] s. Off by default. */
     var lifeEvents by mutableStateOf(prefs.getBoolean("life", false))
         private set
     var lifeEvery by mutableIntStateOf(prefs.getInt("lifeEvery", 6).coerceIn(2, 30))

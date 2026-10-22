@@ -39,7 +39,7 @@ class Card(val chapterIndex: Int, val zone: Zone, sound: Sound) {
     /** Simple volume buttons: the volume heard right now while it moves to [Sound.volume], or -1 when still. */
     var shownVolume by mutableStateOf(-1f)
     var volumeJob: Job? = null
-    /** Living events: the drift under way, as an offset of the volume (from, to), and when the next one starts. */
+    /** Living ambiances: the drift under way, as an offset of the volume (from, to), and when the next one starts. */
     var lifeOn = false
     /** The volume heard right now while it drifts (for the mark on the card), or -1. */
     var heard by androidx.compose.runtime.mutableFloatStateOf(-1f)
@@ -298,12 +298,12 @@ class TableSession(
         saveSoon()
     }
 
-    /** Living events: while an event plays, it drifts up to 10 points above or below its volume, a new drift about
+    /** Living ambiances: while an ambiance plays, it drifts up to 10 points above or below its volume, a new drift about
      *  every settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. */
     private fun runLife() {
         val now = SystemClock.uptimeMillis()
         cards.forEach { c ->
-            if (c.zone != Zone.EVENTS) return@forEach
+            if (c.zone != Zone.AMBIENCE) return@forEach
             val slot = c.slot ?: return@forEach
             if (owner[slot] !== c || c.volumeJob?.isActive == true) return@forEach
             if (!settings.lifeEvents || stateOf(c) != NativeEngine.PLAYING) {

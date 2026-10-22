@@ -423,7 +423,7 @@ private fun SettingsPanel(m: AppModel) {
                 IconBtn(BIcons.right, "Longer", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax < 10) { st.changeRandomMax(st.randomMax + 1) }
             }
         }
-        SetRow("Living events", "Each event drifts up to 10 above or below its volume, now and then, so it feels alive") {
+        SetRow("Living ambiances", "Each ambiance drifts up to 10 above or below its volume, now and then, so it feels alive") {
             Toggle(st.lifeEvents) { st.changeLifeEvents(it) }
         }
         SetRow("Drift every", "A new volume about every ${st.lifeEvery} s") {
