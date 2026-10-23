@@ -43,8 +43,8 @@ object Covers {
     val KINDS = listOf("bard", "music", "book", "scroll", "map")
     val TINTS = listOf("amb", "evt", "blue", "violet", "ember")
     /** The colour each tint has in the default theme, stored next to it for tools that do not know themes. */
-    val TINT_HEX = mapOf("amb" to "#4DB6A6", "evt" to "#E5655B", "blue" to "#5B9BF5", "violet" to "#B58AE8", "ember" to "#E39B54")
-    private val FIXED = mapOf("forest" to ("book" to "amb"), "big-war" to ("bard" to "evt"), "underwater" to ("music" to "blue"))
+    val TINT_HEX = mapOf("amb" to "#4DB6A6", "evt" to "#E5655B", "blue" to "#5B9BF5", "violet" to "#B58AE8", "ember" to "#E39B54", "gold" to "#E0A84B")
+    private val FIXED = mapOf("forest" to ("book" to "gold"), "underwater" to ("music" to "amb"), "big-war" to ("bard" to "evt"))
 
     val MOTIFS: Map<String, List<CoverShape>> = mapOf(
         "bard" to listOf(
@@ -149,6 +149,7 @@ fun tintColor(tint: String): Color = when (tint) {
     "blue" -> C.blue
     "violet" -> lerp(C.evt, C.blue, 0.5f)
     "ember" -> lerp(C.music, C.evt, 0.45f)
+    "gold" -> C.music
     else -> C.amb
 }
 

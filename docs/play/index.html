@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=261023.3">
+<link rel="stylesheet" href="style.css?v=261023.1">
 <script src="../themes.js"></script>
 <script>
   // Apply the saved theme before first paint (no flash).
@@ -29,16 +29,19 @@
     try { document.documentElement.classList.toggle('iphone', /iPhone|iPod/.test(navigator.userAgent)); } catch (e) {}
   })();
 </script>
+<script src="../device.js"></script>
 </head>
 <body>
 
 <!-- Stories -->
 <main id="stories" class="stories" hidden>
   <header class="sbar">
-    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
-    <a class="logo" href="../">Troubadour</a>
-    <nav class="tabs" aria-label="Sections">
-      <a href="../troupe/">La Troupe</a>
+    <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+    <nav class="tabs" aria-label="La Troupe">
+      <a href="../play/" class="no-phone" aria-current="page">Online player</a>
+      <a href="../troupe/builder.html" class="pc-only">Story builder</a>
+      <a href="../troupe/recueil.html">Recueil</a>
+      <a href="../troubadour-ballade/">Ballade</a>
     </nav>
     <span class="edition">Discovery edition</span>
     <span class="grow"></span>
@@ -58,10 +61,12 @@
 <!-- Play your own .troubadour (computer only) -->
 <main id="import" class="stories" hidden>
   <header class="sbar">
-    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
-    <a class="logo" href="../">Troubadour</a>
-    <nav class="tabs" aria-label="Sections">
-      <a href="../troupe/" aria-current="page">La Troupe</a>
+    <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+    <nav class="tabs" aria-label="La Troupe">
+      <a href="../play/" class="no-phone" aria-current="page">Online player</a>
+      <a href="../troupe/builder.html" class="pc-only">Story builder</a>
+      <a href="../troupe/recueil.html">Recueil</a>
+      <a href="../troubadour-ballade/">Ballade</a>
     </nav>
     <span class="grow"></span>
     <button class="ico" data-action="settings" aria-label="Settings" title="Settings"></button>
@@ -239,6 +244,6 @@
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../auth/account.js"></script>
 <script src="cover.js?v=261023.1"></script>
-<script src="app.js?v=261023.2"></script>
+<script src="app.js?v=261023.1"></script>
 </body>
 </html>

@@ -496,3 +496,9 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 .brand i:nth-child(1) { background: var(--music); height: 60%; }
 .brand i:nth-child(2) { background: var(--amb); height: 100%; }
 .brand i:nth-child(3) { background: var(--evt); height: 75%; }
+
+/* La Troupe pages (web player, Story builder, Recueil, Ballade): a back button, top left */
+.sbar .back { display: inline-flex; align-items: center; gap: 4px; height: 38px; padding: 0 12px 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; flex: none; }
+.sbar .back:hover { border-color: var(--muted); }
+@media (max-width: 520px) { .sbar .back span { display: none; } .sbar .back { padding: 0 8px; } }
+html.phone .no-phone { display: none !important; }
