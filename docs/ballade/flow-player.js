@@ -118,14 +118,15 @@
 
   const now = () => audio().ctx.currentTime;
 
-  function makeVoice(stepIdx, k, card, t0) {
+  function makeVoice(stepIdx, k, card, t0, from = 0) {
     const buf = P.buffers.get(card.file);
     if (!buf) return null;
     if (card.play === 'random') return randomVoice(stepIdx, k, card, t0, buf);
     const { ctx } = audio();
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    const start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
+    let start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
+    if (from > 0) start = Math.min(buf.duration - 0.05, start + (card.play === 'loop' ? from % Math.max(0.05, buf.duration - start) : from));
     // A loop that holds plays until a gate, the choice or the end of the chapter fades it out.
     const hold = !!card.hold;
     const dur = hold ? Infinity : card.repeat ? card.duration : Math.min(card.duration, buf.duration - start);
@@ -473,6 +474,96 @@
   const ZCOL = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
   const ZNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
 
+  const modeIcon = (c) => (c.play === 'random' ? ICON.random : c.hold ? ICON.infinity : ICON.once);
+  const modeName = (c) => (c.play === 'random' ? 'Random until the gate' : c.hold ? 'Loops until the gate' : c.play === 'loop' ? 'Loops, then stops by itself' : 'Plays once, then stops');
+
+  /* ---------- A card opened: its sound alone (like a card in the Troubadour app) ---------- */
+  let opened = null; // { i, k, bar, btn, time, vol }
+  function openCard(i, k) {
+    const c = P.steps[i] && P.steps[i].cards[k];
+    if (!c) return;
+    $('#sheet-title').textContent = c.name;
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'fl-cardpanel';
+    body.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
+    const meta = el('div', 'cp-meta');
+    const kind = el('span', 'cp-kind'); kind.append(el('i', 'fl-pill'), el('span', '', ZNAME[c.zone] || ''));
+    const mode = el('span', 'cp-mode'); mode.innerHTML = modeIcon(c); mode.append(el('span', '', modeName(c)));
+    meta.append(kind, mode);
+    const bar = el('div', 'cp-bar'); const fill = el('i'); bar.append(fill);
+    const row = el('div', 'cp-row');
+    const btn = el('button', 'cp-play'); btn.type = 'button';
+    btn.addEventListener('click', () => cardToggle(i, k));
+    const time = el('span', 'cp-time');
+    row.append(btn, time);
+    const vrow = el('label', 'cp-vol');
+    const vol = el('input'); vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
+    vol.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
+    const vv = el('b', '', String(Math.round(c.volume * 100)));
+    vol.addEventListener('input', () => {
+      c.volume = Number(vol.value); vv.textContent = String(Math.round(c.volume * 100)); paintRange(vol);
+      const v = voiceOf(i, k);
+      if (v && !v.done && v.cut == null) { const t = now(); try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(v.paused ? 0 : c.volume, t, 0.03); } catch (e) { /* gone */ } }
+    });
+    paintRange(vol);
+    vrow.append(el('span', '', 'Volume'), vol, vv);
+    body.append(meta, bar, row, vrow);
+    opened = { i, k, fill, btn, time };
+    paintCard();
+    const dlg = $('#sheet');
+    if (!dlg.open) dlg.showModal();
+    dlg.addEventListener('close', () => { opened = null; }, { once: true });
+  }
+  /** Play or pause this one sound. Paused, it stops where it is (silent for a random card); played again, it goes on
+   *  from there. A sound not started yet, or over, starts now. */
+  function cardToggle(i, k) {
+    const c = P.steps[i].cards[k];
+    const v = voiceOf(i, k);
+    const t = now();
+    if (v && !v.done && v.cut == null && v.t0 <= t) {
+      if (!v.paused) {
+        v.paused = true; v.pausedAt = t;
+        try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(0, t, 0.03); } catch (e) { /* gone */ }
+        if (!v.random && v.src) { v.pos = t - v.t0; try { v.src.onended = null; v.src.stop(t + 0.15); } catch (e) { /* gone */ } }
+      } else {
+        const dt = t - v.pausedAt;
+        v.paused = false;
+        if (!v.random) {
+          // Start again from where it stopped: same sound, same loop, the rest of its length.
+          const nv = makeVoice(i, k, Object.assign({}, c, { fadeIn: 0.2 }), t + LEAD, v.pos);
+          if (nv) { nv.t0 = t + LEAD - v.pos; nv.end = v.end + dt; P.voices = P.voices.filter((x) => x !== v); P.voices.push(nv); }
+        } else { try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(c.volume, t, 0.05); } catch (e) { /* gone */ } }
+      }
+    } else if (!cardReached(i, k)) {
+      force(i, k);
+    } else {
+      const nv = makeVoice(i, k, c, t + LEAD);
+      if (nv) { P.voices = P.voices.filter((x) => x !== v); P.voices.push(nv); P.forced.add(`${i}:${k}`); }
+    }
+    paintCard();
+  }
+  function paintCard() {
+    if (!opened) return;
+    const { i, k, fill, btn, time } = opened;
+    const c = P.steps[i] && P.steps[i].cards[k];
+    if (!c) return;
+    const v = voiceOf(i, k);
+    const t = now();
+    const playing = !!(v && !v.done && v.cut == null && v.t0 <= t && !v.paused);
+    const want = playing ? 'pause' : 'play';
+    if (btn.dataset.s !== want) { btn.dataset.s = want; btn.innerHTML = playing ? ICON.pause : ICON.play; btn.setAttribute('aria-label', playing ? 'Pause this sound' : 'Play this sound'); }
+    let frac = 0, txt = c.hold ? '∞' : F.clock(c.duration);
+    if (v && v.t0 <= t) {
+      const at = v.paused ? v.pausedAt : Math.min(t, v.cut ?? v.end);
+      const len = Number.isFinite(v.end - v.t0) ? v.end - v.t0 : 0;
+      frac = len ? Math.min(1, (at - v.t0) / len) : ((at - v.t0) % 10) / 10;
+      txt = len ? `${F.clock(at - v.t0)} / ${F.clock(len)}` : F.clock(at - v.t0);
+    }
+    fill.style.width = `${frac * 100}%`;
+    if (time.textContent !== txt) time.textContent = txt;
+  }
+
   const holdLabel = (c) => (c.play === 'random' ? 'random' : 'loop');
 
   function stepLabel(s, i) {
@@ -652,15 +743,17 @@
         card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px;--db:${Math.round(short ? 0 : d)}px`;
         card.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
         const head = el('div', 'fl-ch');
-        head.append(el('b', '', c.name));
+        // The name stays on one line; too long for the card, it rolls slowly across it.
+        const nm = el('b'); nm.append(el('span', '', c.name)); head.append(nm);
         const kind = el('div', 'fl-kind');
-        kind.append(el('span', 'fl-zone', ZNAME[c.zone] || ''));
+        const pill = el('i', 'fl-pill'); pill.title = ZNAME[c.zone] || '';
+        kind.append(pill);
         const tags = el('div', 'fl-tags');
+        // How it plays, as a symbol: it stops by itself (its length is fixed, so is its card), it loops until the
+        // gate is tapped, or it comes back at random until then.
         const mode = el('span', 'fl-mode');
-        const play = c.play || (c.repeat ? 'loop' : 'once');
-        mode.innerHTML = play === 'random' ? ICON.random : play === 'loop' ? ICON.repeat : ICON.once;
-        mode.append(el('span', 'w', play === 'random' ? 'Random' : play === 'loop' ? (c.hold ? 'Loop till Go' : 'Loop') : 'Once'));
-        mode.title = mode.textContent;
+        mode.innerHTML = modeIcon(c);
+        mode.title = modeName(c);
         tags.append(mode);
         const time = el('span', 'fl-time', c.hold ? '' : F.clock(c.duration));
         // Shown when the troubadour starts the sound by hand, ahead of the wire.
@@ -671,10 +764,7 @@
         const stick = el('div', 'fl-stick');
         stick.append(head, kind, tags);
         card.append(stick);
-        card.addEventListener('click', () => {
-          const v = voiceOf(x.i, x.k);
-          if (v && !v.done && v.cut == null && v.t0 <= now()) { fadeVoice(v, settings.fade); toast(`Fading out ${c.name}.`, 1600); }
-        });
+        card.addEventListener('click', () => openCard(x.i, x.k));
         area.append(card);
         // Start now: a bead on the wire, where the card leaves it.
         const bead = short ? 22 : 24;
@@ -918,6 +1008,14 @@
     frames.forEach((o, k) => { o.c.rect = rects[k + 1]; o.c.path = fpaths[k]; o.c.base = bpaths[k]; o.c.db = -1; o.c.under = fills[k]; o.c.hand = hands[k]; o.c.handRect = handRects[k]; o.c.hh = -1; o.c.extra = -1; o.c.spent = false; });
     D.lit = -1;
     D.H = Ht;
+    // Names too long for their card roll across it.
+    D.cards.forEach((x) => {
+      const b = x.card.querySelector('.fl-ch b'); const sp = b && b.firstChild;
+      if (!sp) return;
+      const over = sp.scrollWidth - b.clientWidth;
+      x.card.classList.toggle('roll', over > 2);
+      if (over > 2) { b.style.setProperty('--roll', `${-over - 6}px`); b.style.setProperty('--rt', `${Math.max(5, over / 14 + 3)}s`); }
+    });
   }
 
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -1047,6 +1145,7 @@
       D.head.hidden = !showG;
       if (showG) { D.head.style.transform = `translateY(${Y}px)`; focusY = Y; }
     }
+    if (opened) paintCard();
     D.dots.forEach(({ d, i, gy }) => setCls(d, 'lit', P.starts[i] != null && P.starts[i] <= t && Y >= (gy || 0) - 1));
     D.choices.forEach((C) => {
       const at = C === waitAt;

@@ -707,3 +707,32 @@ a.ico { color: var(--text); text-decoration: none; }
 .fl-area .fl-card.sz-l .fl-stick { gap: 5px; }
 .fl-area .fl-card.sz-l .fl-tags { flex-direction: column; gap: 3px; font-size: 12.5px; }
 .fl-area .fl-card.sz-l .fl-time { font-size: 15px; color: var(--text); }
+
+/* Card face: a small pill for the kind (music yellow, ambiance green, event red), a symbol for how it plays,
+   the name on one line that rolls when it is too long. */
+.fl-area .fl-card .fl-ch b { display: block !important; -webkit-line-clamp: unset !important; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.fl-area .fl-card .fl-ch b > span { display: inline-block; white-space: nowrap; }
+.fl-area .fl-card.roll .fl-ch b { text-align: left; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6px, #000 calc(100% - 6px), transparent); mask-image: linear-gradient(90deg, transparent, #000 6px, #000 calc(100% - 6px), transparent); }
+.fl-area .fl-card.roll .fl-ch b > span { animation: fl-roll var(--rt, 8s) ease-in-out infinite alternate; padding-left: 3px; }
+@keyframes fl-roll { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--roll, 0)); } }
+@media (prefers-reduced-motion: reduce) { .fl-area .fl-card.roll .fl-ch b > span { animation: none; } }
+.fl-pill { display: inline-block; width: 18px; height: 5px; border-radius: 3px; background: var(--z); flex: none; }
+.fl-kind { min-height: 7px; align-items: center; }
+.fl-area .fl-card .fl-mode { color: var(--text); opacity: .8; }
+.fl-area .fl-card .fl-ch b { font-size: 14px; }
+.fl-area .fl-card.sz-l .fl-ch b { font-size: 16px; }
+.fl-area .fl-card.sz-l .fl-tags { flex-direction: row; gap: 6px; }
+/* The card opened: its sound alone. */
+.fl-cardpanel { display: grid; gap: 14px; padding: 4px 0 8px; }
+.cp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--muted); font-size: 14px; }
+.cp-kind, .cp-mode { display: inline-flex; align-items: center; gap: 7px; }
+.cp-kind .fl-pill { width: 22px; height: 6px; }
+.cp-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.cp-bar i { display: block; height: 100%; width: 0; background: var(--z); border-radius: 3px; }
+.cp-row { display: flex; align-items: center; gap: 14px; }
+.cp-play { width: 52px; height: 52px; border-radius: 12px; border: 0; background: var(--z); color: var(--on-z); display: grid; place-items: center; padding: 0; }
+.cp-play svg { width: 20px; height: 20px; }
+.cp-time { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 17px; }
+.cp-vol { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+.cp-vol input { flex: 1; }
+.cp-vol b { width: 30px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
