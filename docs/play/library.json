@@ -207,6 +207,246 @@
     }
    ]
   },
+  "underwater/1-chill-on-the-beach": {
+   "music": [
+    {
+     "name": "Mediterranean waves",
+     "file": "sounds/underwater/1-chill-on-the-beach/music/01_mediterranean-waves.mp3",
+     "size": 3744727
+    },
+    {
+     "name": "Waters edge",
+     "file": "sounds/underwater/1-chill-on-the-beach/music/02_waters-edge.mp3",
+     "size": 2645747
+    }
+   ],
+   "ambience": [
+    {
+     "name": "Gentle waves",
+     "file": "sounds/underwater/1-chill-on-the-beach/ambience/01_gentle-waves.mp3",
+     "size": 451357
+    },
+    {
+     "name": "Tropical day",
+     "file": "sounds/underwater/1-chill-on-the-beach/ambience/02_tropical-day.mp3",
+     "size": 376335
+    }
+   ],
+   "events": [
+    {
+     "name": "Footsteps in the sand",
+     "file": "sounds/underwater/1-chill-on-the-beach/events/01_footsteps-in-the-sand.mp3",
+     "size": 27765
+    },
+    {
+     "name": "Splash",
+     "file": "sounds/underwater/1-chill-on-the-beach/events/02_splash.mp3",
+     "size": 30884
+    },
+    {
+     "name": "Ship horn far away",
+     "file": "sounds/underwater/1-chill-on-the-beach/events/03_ship-horn-far-away.mp3",
+     "size": 54103
+    }
+   ]
+  },
+  "underwater/2-its-a-tsunami": {
+   "music": [
+    {
+     "name": "Point of no return",
+     "file": "sounds/underwater/2-its-a-tsunami/music/01_point-of-no-return.mp3",
+     "size": 2108154
+    },
+    {
+     "name": "Suspense",
+     "file": "sounds/underwater/2-its-a-tsunami/music/02_suspense.mp3",
+     "size": 4484558
+    }
+   ],
+   "ambience": [
+    {
+     "name": "Raging sea",
+     "file": "sounds/underwater/2-its-a-tsunami/ambience/01_raging-sea.mp3",
+     "size": 566609
+    },
+    {
+     "name": "Storm winds",
+     "file": "sounds/underwater/2-its-a-tsunami/ambience/02_storm-winds.mp3",
+     "size": 1458117
+    }
+   ],
+   "events": [
+    {
+     "name": "Earthquake rumble",
+     "file": "sounds/underwater/2-its-a-tsunami/events/01_earthquake-rumble.mp3",
+     "size": 49912
+    },
+    {
+     "name": "The giant wave",
+     "file": "sounds/underwater/2-its-a-tsunami/events/02_the-giant-wave.mp3",
+     "size": 109023
+    },
+    {
+     "name": "Thunder",
+     "file": "sounds/underwater/2-its-a-tsunami/events/03_thunder.mp3",
+     "size": 150632
+    },
+    {
+     "name": "Panic scream",
+     "file": "sounds/underwater/2-its-a-tsunami/events/04_panic-scream.mp3",
+     "size": 2896
+    }
+   ]
+  },
+  "underwater/3-discovering-the-underwater-world": {
+   "music": [
+    {
+     "name": "The deep path",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/music/01_the-deep-path.mp3",
+     "size": 3049140
+    },
+    {
+     "name": "Mirage",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/music/02_mirage.mp3",
+     "size": 1413285
+    }
+   ],
+   "ambience": [
+    {
+     "name": "Deep water",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/ambience/01_deep-water.mp3",
+     "size": 367346
+    },
+    {
+     "name": "Ocean current",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/ambience/02_ocean-current.mp3",
+     "size": 314686
+    }
+   ],
+   "events": [
+    {
+     "name": "Bubbles",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/events/01_bubbles.mp3",
+     "size": 30885
+    },
+    {
+     "name": "Mermaid call",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/events/02_mermaid-call.mp3",
+     "size": 9370
+    },
+    {
+     "name": "Something huge swims by",
+     "file": "sounds/underwater/3-discovering-the-underwater-world/events/03_something-huge-swims-by.mp3",
+     "size": 41767
+    }
+   ]
+  },
+  "underwater/4-the-pirates-ship": {
+   "music": [
+    {
+     "name": "Three sheets",
+     "file": "sounds/underwater/4-the-pirates-ship/music/01_three-sheets.mp3",
+     "size": 2805564
+    },
+    {
+     "name": "Bandit country",
+     "file": "sounds/underwater/4-the-pirates-ship/music/02_bandit-country.mp3",
+     "size": 1397933
+    }
+   ],
+   "ambience": [
+    {
+     "name": "Creaking ship",
+     "file": "sounds/underwater/4-the-pirates-ship/ambience/01_creaking-ship.mp3",
+     "size": 285020
+    },
+    {
+     "name": "Harbor",
+     "file": "sounds/underwater/4-the-pirates-ship/ambience/02_harbor.mp3",
+     "size": 297125
+    }
+   ],
+   "events": [
+    {
+     "name": "Cannon fire",
+     "file": "sounds/underwater/4-the-pirates-ship/events/01_cannon-fire.mp3",
+     "size": 35915
+    },
+    {
+     "name": "Cutlass clash",
+     "file": "sounds/underwater/4-the-pirates-ship/events/02_cutlass-clash.mp3",
+     "size": 5396
+    },
+    {
+     "name": "Ramming speed",
+     "file": "sounds/underwater/4-the-pirates-ship/events/03_ramming-speed.mp3",
+     "size": 11778
+    },
+    {
+     "name": "Treasure chest",
+     "file": "sounds/underwater/4-the-pirates-ship/events/04_treasure-chest.mp3",
+     "size": 4375
+    },
+    {
+     "name": "Musket shot",
+     "file": "sounds/underwater/4-the-pirates-ship/events/05_musket-shot.mp3",
+     "size": 14589
+    }
+   ]
+  },
+  "underwater/5-the-kraken-is-attacking-us": {
+   "music": [
+    {
+     "name": "Weight of revenge",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/music/01_weight-of-revenge.mp3",
+     "size": 3399863
+    },
+    {
+     "name": "Undead siege",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/music/02_undead-siege.mp3",
+     "size": 2718191
+    }
+   ],
+   "ambience": [
+    {
+     "name": "Storm at sea",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/ambience/01_storm-at-sea.mp3",
+     "size": 471943
+    },
+    {
+     "name": "Hull under strain",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/ambience/02_hull-under-strain.mp3",
+     "size": 276874
+    }
+   ],
+   "events": [
+    {
+     "name": "Kraken roar",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/01_Kraken-roar.mp3",
+     "size": 49122
+    },
+    {
+     "name": "Tentacle slam",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/02_tentacle-slam.mp3",
+     "size": 36595
+    },
+    {
+     "name": "The hull breaks",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/03_the-hull-breaks.mp3",
+     "size": 31729
+    },
+    {
+     "name": "Man overboard",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/04_man-overboard.mp3",
+     "size": 38139
+    },
+    {
+     "name": "The Kraken dies",
+     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/05_the-Kraken-dies.mp3",
+     "size": 21493
+    }
+   ]
+  },
   "big-war/1-the-soldier-training-camp": {
    "music": [
     {
@@ -449,246 +689,6 @@
      "name": "Cheering horns",
      "file": "sounds/big-war/5-the-battle-ends/events/04_cheering-horns.mp3",
      "size": 49084
-    }
-   ]
-  },
-  "underwater/1-chill-on-the-beach": {
-   "music": [
-    {
-     "name": "Mediterranean waves",
-     "file": "sounds/underwater/1-chill-on-the-beach/music/01_mediterranean-waves.mp3",
-     "size": 3744727
-    },
-    {
-     "name": "Waters edge",
-     "file": "sounds/underwater/1-chill-on-the-beach/music/02_waters-edge.mp3",
-     "size": 2645747
-    }
-   ],
-   "ambience": [
-    {
-     "name": "Gentle waves",
-     "file": "sounds/underwater/1-chill-on-the-beach/ambience/01_gentle-waves.mp3",
-     "size": 451357
-    },
-    {
-     "name": "Tropical day",
-     "file": "sounds/underwater/1-chill-on-the-beach/ambience/02_tropical-day.mp3",
-     "size": 376335
-    }
-   ],
-   "events": [
-    {
-     "name": "Footsteps in the sand",
-     "file": "sounds/underwater/1-chill-on-the-beach/events/01_footsteps-in-the-sand.mp3",
-     "size": 27765
-    },
-    {
-     "name": "Splash",
-     "file": "sounds/underwater/1-chill-on-the-beach/events/02_splash.mp3",
-     "size": 30884
-    },
-    {
-     "name": "Ship horn far away",
-     "file": "sounds/underwater/1-chill-on-the-beach/events/03_ship-horn-far-away.mp3",
-     "size": 54103
-    }
-   ]
-  },
-  "underwater/2-its-a-tsunami": {
-   "music": [
-    {
-     "name": "Point of no return",
-     "file": "sounds/underwater/2-its-a-tsunami/music/01_point-of-no-return.mp3",
-     "size": 2108154
-    },
-    {
-     "name": "Suspense",
-     "file": "sounds/underwater/2-its-a-tsunami/music/02_suspense.mp3",
-     "size": 4484558
-    }
-   ],
-   "ambience": [
-    {
-     "name": "Raging sea",
-     "file": "sounds/underwater/2-its-a-tsunami/ambience/01_raging-sea.mp3",
-     "size": 566609
-    },
-    {
-     "name": "Storm winds",
-     "file": "sounds/underwater/2-its-a-tsunami/ambience/02_storm-winds.mp3",
-     "size": 1458117
-    }
-   ],
-   "events": [
-    {
-     "name": "Earthquake rumble",
-     "file": "sounds/underwater/2-its-a-tsunami/events/01_earthquake-rumble.mp3",
-     "size": 49912
-    },
-    {
-     "name": "The giant wave",
-     "file": "sounds/underwater/2-its-a-tsunami/events/02_the-giant-wave.mp3",
-     "size": 109023
-    },
-    {
-     "name": "Thunder",
-     "file": "sounds/underwater/2-its-a-tsunami/events/03_thunder.mp3",
-     "size": 150632
-    },
-    {
-     "name": "Panic scream",
-     "file": "sounds/underwater/2-its-a-tsunami/events/04_panic-scream.mp3",
-     "size": 2896
-    }
-   ]
-  },
-  "underwater/3-discovering-the-underwater-world": {
-   "music": [
-    {
-     "name": "The deep path",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/music/01_the-deep-path.mp3",
-     "size": 3049140
-    },
-    {
-     "name": "Mirage",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/music/02_mirage.mp3",
-     "size": 1413285
-    }
-   ],
-   "ambience": [
-    {
-     "name": "Deep water",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/ambience/01_deep-water.mp3",
-     "size": 367346
-    },
-    {
-     "name": "Ocean current",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/ambience/02_ocean-current.mp3",
-     "size": 314686
-    }
-   ],
-   "events": [
-    {
-     "name": "Bubbles",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/events/01_bubbles.mp3",
-     "size": 30885
-    },
-    {
-     "name": "Mermaid call",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/events/02_mermaid-call.mp3",
-     "size": 9370
-    },
-    {
-     "name": "Something huge swims by",
-     "file": "sounds/underwater/3-discovering-the-underwater-world/events/03_something-huge-swims-by.mp3",
-     "size": 41767
-    }
-   ]
-  },
-  "underwater/4-the-pirates-ship": {
-   "music": [
-    {
-     "name": "Three sheets",
-     "file": "sounds/underwater/4-the-pirates-ship/music/01_three-sheets.mp3",
-     "size": 2805564
-    },
-    {
-     "name": "Bandit country",
-     "file": "sounds/underwater/4-the-pirates-ship/music/02_bandit-country.mp3",
-     "size": 1397933
-    }
-   ],
-   "ambience": [
-    {
-     "name": "Creaking ship",
-     "file": "sounds/underwater/4-the-pirates-ship/ambience/01_creaking-ship.mp3",
-     "size": 285020
-    },
-    {
-     "name": "Harbor",
-     "file": "sounds/underwater/4-the-pirates-ship/ambience/02_harbor.mp3",
-     "size": 297125
-    }
-   ],
-   "events": [
-    {
-     "name": "Cannon fire",
-     "file": "sounds/underwater/4-the-pirates-ship/events/01_cannon-fire.mp3",
-     "size": 35915
-    },
-    {
-     "name": "Cutlass clash",
-     "file": "sounds/underwater/4-the-pirates-ship/events/02_cutlass-clash.mp3",
-     "size": 5396
-    },
-    {
-     "name": "Ramming speed",
-     "file": "sounds/underwater/4-the-pirates-ship/events/03_ramming-speed.mp3",
-     "size": 11778
-    },
-    {
-     "name": "Treasure chest",
-     "file": "sounds/underwater/4-the-pirates-ship/events/04_treasure-chest.mp3",
-     "size": 4375
-    },
-    {
-     "name": "Musket shot",
-     "file": "sounds/underwater/4-the-pirates-ship/events/05_musket-shot.mp3",
-     "size": 14589
-    }
-   ]
-  },
-  "underwater/5-the-kraken-is-attacking-us": {
-   "music": [
-    {
-     "name": "Weight of revenge",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/music/01_weight-of-revenge.mp3",
-     "size": 3399863
-    },
-    {
-     "name": "Undead siege",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/music/02_undead-siege.mp3",
-     "size": 2718191
-    }
-   ],
-   "ambience": [
-    {
-     "name": "Storm at sea",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/ambience/01_storm-at-sea.mp3",
-     "size": 471943
-    },
-    {
-     "name": "Hull under strain",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/ambience/02_hull-under-strain.mp3",
-     "size": 276874
-    }
-   ],
-   "events": [
-    {
-     "name": "Kraken roar",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/01_Kraken-roar.mp3",
-     "size": 49122
-    },
-    {
-     "name": "Tentacle slam",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/02_tentacle-slam.mp3",
-     "size": 36595
-    },
-    {
-     "name": "The hull breaks",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/03_the-hull-breaks.mp3",
-     "size": 31729
-    },
-    {
-     "name": "Man overboard",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/04_man-overboard.mp3",
-     "size": 38139
-    },
-    {
-     "name": "The Kraken dies",
-     "file": "sounds/underwater/5-the-kraken-is-attacking-us/events/05_the-Kraken-dies.mp3",
-     "size": 21493
     }
    ]
   }
