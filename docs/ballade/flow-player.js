@@ -14,7 +14,8 @@
   const TRAVEL = 900; // px per second: only when the troubadour jumps ahead (a gate tapped early) does the gold hurry
   /** The clock: the gold moves down the wire at one speed, px per second, everywhere (cards, silences, bare wire).
    *  The screen follows it, so the page scrolls with the music. Set in Settings. */
-  const pps = () => Math.max(4, Math.min(30, Number(settings.clock) || 10));
+  const SCALE = 2.5; // cards two to three times as tall as the plain clock would draw them
+  const pps = () => SCALE * Math.max(4, Math.min(30, Number(settings.clock) || 10));
 
   const P = {
     rec: null, ch: 0, steps: [], buffers: new Map(), blobs: null, loading: 0,
@@ -496,7 +497,7 @@
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
   const HOLD_MIN = 6;   // seconds: a loop that holds, with nothing beside it, is drawn this long
-  const MIN_PX = 40;    // a sound shorter than that still shows its name (the only card taller than it lasts)
+  const MIN_PX = 66;    // a sound shorter than that still shows its name (the only card taller than it lasts)
 
   function runsOf(steps) {
     const runs = [];
@@ -567,7 +568,7 @@
     const box = $('#fl-cascade');
     box.textContent = '';
     // Redrawn (a way picked, a font loaded): the gold takes its place at once instead of running from the top.
-    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [], fresh: true };
+    P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [], fresh: true, head: null };
     const pending = choiceOf();
     if (!P.steps.length && !pending) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade editor, on a computer.'));
     P.offsets = F.runOffsets(P.steps);
@@ -582,6 +583,11 @@
     svg.setAttribute('class', 'fl-flow');
     svg.setAttribute('aria-hidden', 'true');
     box.append(under, svg);
+    // The time line: one for the whole chapter, it goes with the gold everywhere, cards or bare wire,
+    // and only hides while the gold rests in a gate, a choice or Next chapter.
+    const headG = el('div', 'fl-playhead fl-clock');
+    headG.hidden = true;
+    box.append(headG);
     // Every choice on the path sits right after the steps of its list, before the way it opens.
     const forks = P.segs.map((g, d) => (g.choice ? { at: g.start + g.steps.length, sec: renderChoice(g.choice, d) } : null)).filter(Boolean);
     const placeForks = (upto) => forks.forEach((fk) => { if (!fk.sec.parentNode && fk.at <= upto) box.append(fk.sec); });
@@ -634,28 +640,36 @@
         // times their own width, at most a third of the card), and meet again the same way at its bottom.
         const d = Math.round(Math.max(10, Math.min(ch * 0.34, pl.w * 2, SLOPE)));
         const c = x.c;
-        // Room decides the card's face: one line (short), a one-line name (mid), or the full card.
-        const short = ch < 76;
-        const card = el('button', `fl-card c${x.cont ? ' cont' : ''}${short ? ' short' : ch < 100 ? ' mid' : ''}`);
+        // Room decides the card's face (the name, the kind of sound and how it plays always show):
+        //   small  (under 80 px): the name on one line, then kind, play mode (icon) and time on one line;
+        //   medium (80 to 140 px): the name on up to two lines, the kind, then play mode (icon and word) and time;
+        //   large  (140 px and more): the name on up to three lines, larger, the kind, the play mode in words, the time.
+        const short = ch < 80;
+        const size = ch < 80 ? 'sz-s' : ch < 140 ? 'sz-m' : 'sz-l';
+        const card = el('button', `fl-card c${x.cont ? ' cont' : ''} ${size}`);
         card.type = 'button';
         // Its words start where the card is nearly full width.
         card.style.cssText = `top:${top}px;left:${pl.left}px;width:${pl.w}px;height:${ch}px;--d:${Math.round(d * (short ? 0.4 : 0.72))}px;--db:${Math.round(short ? 0 : d)}px`;
         card.style.setProperty('--z', ZCOL[c.zone] || 'var(--accent)');
         const head = el('div', 'fl-ch');
         head.append(el('b', '', c.name));
+        const kind = el('div', 'fl-kind');
+        kind.append(el('span', 'fl-zone', ZNAME[c.zone] || ''));
         const tags = el('div', 'fl-tags');
-        tags.append(el('span', 'fl-zone', ZNAME[c.zone] || ''));
-        if (c.repeat) { const rp = el('span', 'fl-rep'); rp.innerHTML = c.play === 'random' ? ICON.random : ICON.repeat; tags.append(rp); }
-        const time = el('span', 'fl-time', c.hold ? holdLabel(c) : F.clock(c.duration));
+        const mode = el('span', 'fl-mode');
+        const play = c.play || (c.repeat ? 'loop' : 'once');
+        mode.innerHTML = play === 'random' ? ICON.random : play === 'loop' ? ICON.repeat : ICON.once;
+        mode.append(el('span', 'w', play === 'random' ? 'Random' : play === 'loop' ? (c.hold ? 'Loop till Go' : 'Loop') : 'Once'));
+        mode.title = mode.textContent;
+        tags.append(mode);
+        const time = el('span', 'fl-time', c.hold ? '' : F.clock(c.duration));
         // Shown when the troubadour starts the sound by hand, ahead of the wire.
         const hand = el('span', 'fl-hand'); hand.innerHTML = ICON.hand; hand.title = 'Started by hand';
         tags.append(hand, time);
-        const track = el('div', 'fl-track');
-        const fill = el('i');
-        track.append(fill);
-        // The name, time and bar stay in sight while a tall card scrolls by.
+        const fill = el('i'); // no progress bar any more: the gold on the card is its time
+        // The name, kind and play mode stay in sight while a tall card scrolls by.
         const stick = el('div', 'fl-stick');
-        stick.append(head, tags, track);
+        stick.append(head, kind, tags);
         card.append(stick);
         card.addEventListener('click', () => {
           const v = voiceOf(x.i, x.k);
@@ -663,10 +677,10 @@
         });
         area.append(card);
         // Start now: a bead on the wire, where the card leaves it.
-        const size = short ? 22 : 24;
+        const bead = short ? 22 : 24;
         const pb = el('button', 'fl-force');
         pb.type = 'button';
-        pb.style.cssText = `left:${pl.rail - size / 2}px;top:${top - size / 2}px;width:${size}px;height:${size}px`;
+        pb.style.cssText = `left:${pl.rail - bead / 2}px;top:${top - bead / 2}px;width:${bead}px;height:${bead}px`;
         pb.setAttribute('aria-label', `Start ${c.name} now`);
         pb.innerHTML = ICON.go;
         pb.addEventListener('click', (e) => { e.stopPropagation(); force(x.i, x.k); });
@@ -715,6 +729,7 @@
     P.dom.end = { end, btn, node: enode, cy: 0 };
     P.dom.width = width;
     P.dom.svg = svg;
+    P.dom.head = headG;
     P.dom.under = under;
     measure();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => measure());
@@ -967,8 +982,8 @@
       setCls(R.sec, 'past', started && R.rt >= R.L.end);
       const local = Y - R.top;
       const show = started && R === live && R.rt < R.L.end + 0.5 && s.mode !== 'idle' && local > 0 && local < R.total;
-      R.head.hidden = !show;
-      if (show) { R.head.style.transform = `translateY(${local}px)`; focusY = Y; }
+      R.head.hidden = true;
+      void show;
       if (waiting) focusY = R.cy - 30;
     });
     D.cards.forEach((x, key) => {
@@ -1020,9 +1035,18 @@
         setCls(x.hand, 'hold', forced && on && !!c.hold);
       }
       setCls(x.card, 'hand', forced);
-      const txt = forced && done && !on ? 'played' : c.hold ? (on ? (x.lastRun ? '∞' : 'till Go') : holdLabel(c)) : on ? (x.cont && left <= 0 ? 'till Go' : F.clock(left)) : F.clock(c.duration);
+      const txt = forced && done && !on ? 'played' : c.hold ? (on ? (x.lastRun ? '∞' : '') : '') : on ? (x.cont && left <= 0 ? '' : F.clock(left)) : F.clock(c.duration);
       if (x.time.textContent !== txt) x.time.textContent = txt;
     });
+    // The time line and its dot: wherever the gold runs, hidden only inside a gate, a choice or Next chapter.
+    if (D.head) {
+      const inNode = D.runs.some((R) => R.nt != null && Y >= R.nt - 3 && Y <= R.nb + 3)
+        || D.choices.some((C) => C.nt != null && Y >= C.nt - 3 && Y <= C.cy + 3)
+        || (D.end.nt != null && Y >= D.end.nt - 3);
+      const showG = s.mode === 'run' && Y > 0 && !inNode;
+      D.head.hidden = !showG;
+      if (showG) { D.head.style.transform = `translateY(${Y}px)`; focusY = Y; }
+    }
     D.dots.forEach(({ d, i, gy }) => setCls(d, 'lit', P.starts[i] != null && P.starts[i] <= t && Y >= (gy || 0) - 1));
     D.choices.forEach((C) => {
       const at = C === waitAt;
