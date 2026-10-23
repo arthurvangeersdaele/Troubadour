@@ -312,6 +312,9 @@ html.pc .fl-player { border-left: 1px solid var(--line); border-right: 1px solid
 [data-mode="light"] .fl-flow .shine { opacity: .45; }
 
 .fl-run + .fl-run, .fl-run + .fl-end, .fl-empty + .fl-end { margin-top: 8px; }
+/* About a centimetre of wire before and after every gate: the gold takes its time in and out of it. */
+.fl-run + .fl-run, .fl-run + .fl-end, .fl-run + .fl-choice, .fl-choice + .fl-run, .fl-choice + .fl-end { margin-top: 1cm !important; }
+.fl-run > .fl-area { margin-top: 1cm; }
 .fl-run .fl-node { position: relative; z-index: 2; }
 .fl-dot { z-index: 2; }
 .fl-playhead { z-index: 3; }

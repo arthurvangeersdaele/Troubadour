@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  const { $, el, ICON, settings, saveSettings, toast, audio, decode } = global.FlowUI;
+  const { $, el, ICON, settings, saveSettings, toast, audio, decode, ask, busy, idle } = global.FlowUI;
   const F = global.TroubadourBallade;
   const LEAD = 0.06; // seconds between a tap and the sound
   const POUR = 0.5;  // a gate opens: the gold runs down from it to the sounds, which start as it arrives
@@ -263,7 +263,7 @@
   /** How long the gold takes from gate i down to its sounds, at its steady pace (the sounds start as it arrives). */
   function pourOf(i) {
     const R = P.dom && P.dom.runs.find((x) => x.run.gate === i);
-    const dur = R && R.nb ? Math.min(5, Math.max(0.05, (R.top + R.pad - R.nb) / pps())) : POUR;
+    const dur = R && R.nb ? Math.min(9, Math.max(0.05, (R.top + R.pad - R.nb) / pps())) : POUR;
     P.pours[i] = dur;
     return dur;
   }
@@ -578,7 +578,8 @@
   const PAD = 10;      // room above the first sounds of a run, for the lane wires to branch off
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
   /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
-  const splitOf = (dx) => Math.round(Math.min(24, 16 + dx * 0.05));
+  /*  A gentle lean: the gold takes a little longer to reach the sounds, the wires read like the logo. */
+  const splitOf = (dx) => Math.round(Math.min(96, 30 + dx * 0.35));
   /** Where lane l of n sits, in steps from the spine. An odd number of lanes puts the first on the spine and the others
    *  in turns right and left; an even number leaves the spine free between them (two lanes: half a step either side). */
   const laneOffset = (l, n) => (n % 2 ? (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2)) : (l % 2 ? -1 : 1) * (Math.floor(l / 2) + 0.5));
@@ -779,6 +780,17 @@
         cards.push(info);
         P.dom.cards.set(`${x.i}:${x.k}`, info);
       });
+      // A sound whose wire stops with it (the last of a side lane that does not carry the gold on to the next gate)
+      // has nothing to lean back into: its end is rounded instead of pointed.
+      const bottom = Math.max(0, ...cards.map((k) => k.top + k.ch));
+      cards.forEach((k) => {
+        if (Math.abs(k.rail - X) < 1) return;
+        const lastY = Math.max(...cards.filter((o) => o.lane === k.lane).map((o) => o.top + o.ch));
+        if (lastY >= bottom - 6 || k.top + k.ch < lastY - 0.5) return;
+        k.round = Math.round(Math.max(8, Math.min(18, k.ch * 0.3, k.w / 4)));
+        k.card.style.setProperty('--db', `${k.round}px`);
+        k.card.classList.add('round');
+      });
       // The steps that follow on their own: a dot on the spine, tap to jump there.
       run.steps.slice(1).forEach((i) => {
         const d = el('button', 'fl-dot');
@@ -809,11 +821,10 @@
     const enode = el('span', 'fl-node gate');
     enode.innerHTML = last ? ICON.stop : ICON.next;
     const label = el('span', 'fl-meta');
-    if (last) label.append(el('b', '', 'End of the story'));
+    if (last) label.append(el('span', 'k', 'End of the story'), el('b', '', 'Back to chapter 1'));
     else label.append(el('span', 'k', 'Next chapter'), el('b', '', P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`));
     btn.append(enode, label);
-    btn.disabled = last;
-    btn.addEventListener('click', () => { if (!last) openChapter(P.ch + 1, !!settings.autoNext); });
+    btn.addEventListener('click', () => { if (last) finish(); else openChapter(P.ch + 1, !!settings.autoNext); });
     end.append(btn);
     box.append(end);
     P.dom.end = { end, btn, node: enode, cy: 0 };
@@ -957,7 +968,8 @@
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
         c.gy = y; c.gx = a.x + c.left;
-        frames.push({ c, d: flag(f, x, y, c.w, c.ch, c.d, false), fill: flag(f, x, y, c.w, c.ch, c.d, true) });
+        const db = c.round || c.d, sq = c.round ? 1 : 0;
+        frames.push({ c, d: flag(f, x, y, c.w, c.ch, c.d, false, db, sq), fill: flag(f, x, y, c.w, c.ch, c.d, true, db, sq) });
       });
     });
     const en = rel(D.end.node);
@@ -1210,7 +1222,7 @@
     else if (s.mode === 'choice') { label = 'Choose'; sub = (choiceOf() && choiceOf().question) || 'Pick the way'; cls = 'ready silver'; }
     else if (s.mode === 'done') {
       const last = P.ch + 1 >= P.rec.story.chapters.length;
-      label = last ? 'The end' : 'Next chapter'; sub = last ? 'Fade out and finish' : (P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`); cls = 'ready';
+      label = last ? 'The end' : 'Next chapter'; sub = last ? 'Fade out, back to chapter 1' : (P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`); cls = 'ready';
     } else if (target >= 0) {
       const at = P.gate ? P.gate.t : P.starts[target];
       let inS = at != null ? Math.max(0, at - s.t) : null;
@@ -1226,7 +1238,7 @@
     } else if (P.ch + 1 < P.rec.story.chapters.length) {
       label = 'Next chapter'; sub = P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`; cls = 'quiet';
     } else {
-      label = 'The end'; sub = 'Fade out and finish'; cls = 'quiet';
+      label = 'The end'; sub = 'Fade out, back to chapter 1'; cls = 'quiet';
     }
     const key = `${label}|${sub}|${cls}|${P.paused}|${s.mode}|${s.cur}`;
     if (key === lastDock) return;
@@ -1255,7 +1267,7 @@
       return;
     }
     const more = P.ch + 1 < P.rec.story.chapters.length;
-    if (s.mode === 'done') { if (more) openChapter(P.ch + 1, !!settings.autoNext); else stopAll(); return; }
+    if (s.mode === 'done') { if (more) openChapter(P.ch + 1, !!settings.autoNext); else finish(); return; }
     const t = nextTarget(s);
     if (t >= 0) { go(t); return; }
     // The last step plays and the button still leads on: to the choice (the wire goes there now),
@@ -1267,7 +1279,33 @@
       paintDock();
       return;
     }
-    if (more) openChapter(P.ch + 1, !!settings.autoNext); else stopAll();
+    if (more) openChapter(P.ch + 1, !!settings.autoNext); else finish();
+  }
+
+  /** The end of the story: every sound fades out and the story opens again on chapter 1, ready to begin. */
+  function finish() {
+    stopAll();
+    openChapter(0, false).catch((e) => toast(`Could not open this chapter: ${e.message || e}`));
+  }
+
+  /** Leaving is asked first (it cuts the scene), then every sound fades out before the story closes. */
+  async function leave() {
+    const rec = P.rec;
+    if (!rec) { if (P.onLeave) P.onLeave(); return; }
+    const v = await ask('Leave the story?', 'Every sound fades out and the story closes.', [
+      { label: 'Stay', value: null }, { label: 'Leave', value: 'leave', cls: 'danger' },
+    ]);
+    if (v !== 'leave' || P.rec !== rec) return;
+    const t = now();
+    const sounding = P.voices.some((x) => !x.done && x.cut == null && (x.end > t || x.hold));
+    stopAll();
+    if (sounding) {
+      busy('Leaving the story', rec.story.title || '');
+      await new Promise((r) => setTimeout(r, settings.fade + 60));
+      idle();
+      if (P.rec !== rec) return;
+    }
+    if (P.onLeave) P.onLeave();
   }
 
   function loop() {
@@ -1316,7 +1354,7 @@
     const sc = $('#fl-scroll');
     ['touchstart', 'wheel', 'mousedown'].forEach((ev) => sc.addEventListener(ev, () => { P.touched = Date.now(); }, { passive: true }));
     $('#fl-back').innerHTML = ICON.back;
-    $('#fl-back').addEventListener('click', () => { if (P.onLeave) P.onLeave(); });
+    $('#fl-back').addEventListener('click', leave);
   }
 
   global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause };
