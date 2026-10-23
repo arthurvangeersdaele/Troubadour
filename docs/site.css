@@ -256,3 +256,12 @@ nav .logo img{width:34px;height:34px;border-radius:8px;display:block;flex:none}
 @media (prefers-reduced-motion:reduce){.shine::after{animation:none;display:none}}
 @media (max-width:480px){nav .logo{font-size:20px;gap:7px}nav .logo img{width:26px;height:26px}.navlinks.keep{gap:11px;font-size:14px}}
 @media (max-width:480px){.navlinks.keep a[href="#geek"],.navlinks.keep a[href="../#geek"]{display:none}}
+
+/* How to use: Install now in the top bar */
+.nav-right{display:flex;align-items:center;gap:22px}
+.btn.install{height:40px;padding:0 16px;font-size:15px;white-space:nowrap}
+.qr-box.two{max-width:600px}
+.qr-pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;text-align:center}
+.qr-pair .qr-code{width:200px;height:200px}
+.qr-pair b{display:block;font-size:17px;margin-bottom:4px}
+.qr-pair span{display:block;color:var(--muted);font-size:14px;line-height:1.4}
