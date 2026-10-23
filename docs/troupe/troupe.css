@@ -334,3 +334,6 @@ html.pc .discord-bar { width: min(100%, 906px); }
 @media (max-width: 520px) { .sbar .back span { display: none; } .sbar .back { padding: 0 8px; } }
 html.pc .doors.four { grid-template-columns: repeat(2, minmax(0, 360px)); }
 .door.ballade { --z: var(--music); }
+
+/* Phones have the app: no web player buttons there */
+html.phone .no-phone { display: none !important; }
