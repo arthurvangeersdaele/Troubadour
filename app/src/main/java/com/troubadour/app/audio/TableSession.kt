@@ -390,6 +390,16 @@ class TableSession(
         if (!holding && (anyPlaying() || cards.any { it.waiting })) pauseAll(150)
     }
 
+    /** Leaving the table: every sound fades out over [ms]. Returns whether anything was heard. */
+    fun fadeAll(ms: Int): Boolean {
+        val sounding = cards.any { isActive(it) || it.waiting }
+        cards.forEach { end(it, ms) }
+        pausedByAll = emptyList()
+        heldRandom = emptyList()
+        NativeEngine.stopPads()
+        return sounding
+    }
+
     fun stopAll() {
         cards.forEach { end(it, MASTER_FADE_MS) }
         pausedByAll = emptyList()

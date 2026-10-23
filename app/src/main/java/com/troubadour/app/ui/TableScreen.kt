@@ -68,7 +68,7 @@ fun TableScreen(m: AppModel) {
     Box(Modifier.fillMaxSize().background(C.bg)) {
         Column(Modifier.fillMaxSize()) {
             Bar {
-                IconBtn(BIcons.back, "Back") { m.leaveTable() }
+                IconBtn(BIcons.back, "Back") { m.askLeaveTable() }
                 Column(Modifier.weight(1f)) {
                     Title(s.story.title, 20)
                     T("Chapter ${s.chapterIndex + 1}: ${ch?.title.orEmpty()}", color = C.muted, size = 13.sp, maxLines = 1)

@@ -255,7 +255,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
             sheet != null -> sheet = null
             settingsOpen -> settingsOpen = false
             busy != null -> Unit
-            screen is Screen.Table -> leaveTable()
+            screen is Screen.Table -> askLeaveTable()
             screen == Screen.Editor || screen == Screen.Shared || screen == Screen.EngineTest -> goLibrary()
             else -> return false
         }
@@ -870,6 +870,18 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         table = session
         session.open(chapter.coerceIn(0, story.chapters.lastIndex))
         screen = Screen.Table(if (from is Screen.Table) from.from else from)
+    }
+
+    /** The back button of the table: asked first (it cuts the scene), then every sound fades out before the table closes. */
+    fun askLeaveTable() = scope.launch {
+        val t = table ?: return@launch
+        val v = ask(
+            "Leave the story?", "Every sound fades out and the table closes.",
+            listOf(AskButton("Stay", null), AskButton("Leave", "leave", BtnKind.DANGER)),
+        )
+        if (v?.value != "leave" || table !== t) return@launch
+        if (t.fadeAll(settings.fadeMs)) delay(settings.fadeMs + 60L)
+        if (table === t) leaveTable()
     }
 
     fun leaveTable() {

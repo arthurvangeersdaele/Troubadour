@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261022.18';
+  const VERSION = '261023.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1453,6 +1453,33 @@
     if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {});
     return ctx;
   }
+  function freeElement(el) {
+    try { el.pause(); el.removeAttribute('src'); el.load(); } catch (e) { /* gone */ }
+  }
+  /** iOS sometimes leaves the sound engine stopped (suspended or interrupted) and resume() never takes.
+   * After a tap that should have played, a check marks it broken; the next tap builds a new engine. */
+  let audioBroken = false;
+  function checkAudio() {
+    if (!ctx) return;
+    const c = ctx, t0 = c.currentTime;
+    setTimeout(() => {
+      if (ctx !== c || !tbl) return;
+      const stuck = c.state !== 'running' || c.currentTime === t0;
+      if (stuck && tbl.all.some((v) => v.state === 'playing')) {
+        audioBroken = true;
+        tbl.all.forEach((v) => { if (v.active) { v.reset(); } });
+        toast('The sound engine stalled. Tap the sound again.');
+      }
+    }, 900);
+  }
+  function rebuildAudio() {
+    audioBroken = false;
+    const old = ctx;
+    ctx = null; masterGain = null; sbGain = null;
+    try { old && old.close(); } catch (e) { /* closed */ }
+    audio();
+    if (tbl) tbl.all.forEach((v) => v.rewire());
+  }
   /** The master play, pause and stop buttons fade over 3 s. */
   const MASTER_FADE = 3000;
   function ramp(param, target, secs) {
@@ -1476,6 +1503,11 @@
     }
     attach(blob) {
       this.url = URL.createObjectURL(blob);
+      this.makeElement();
+      this.set('ready');
+    }
+    /** A fresh audio element on this voice's sound (also used when the sound engine is rebuilt). */
+    makeElement() {
       const el = (this.el = new Audio());
       el.preload = 'auto';
       el.loop = this.loop === 2;
@@ -1484,12 +1516,23 @@
       el.addEventListener('error', () => { clearTimeout(this.timer); this.set('error'); });
       el.src = this.url;
       el.load();
+    }
+    /** The sound engine was rebuilt: the old element belongs to the old engine, take a new one. */
+    rewire() {
+      if (!this.el) return;
+      clearTimeout(this.timer);
+      this.dropTwin(true);
+      freeElement(this.el);
+      this.src = null; this.env = null; this.vg = null; this.life = null; this.xf = null;
+      this.fadingOut = null;
+      this.makeElement();
+      this.plays = 0;
       this.set('ready');
     }
     graph() {
       if (this.env) return;
       audio();
-      const src = ctx.createMediaElementSource(this.el);
+      const src = (this.src = ctx.createMediaElementSource(this.el));
       this.vg = ctx.createGain(); this.vg.gain.value = curve(this.vol);
       this.env = ctx.createGain(); this.env.gain.value = 0;
       // Living events: a gain of its own lets the volume drift around the troubadour's setting.
@@ -1682,9 +1725,13 @@
     }
     /** Lets go of the audio data. Done a few voices at a time, after the screen has changed. */
     release() {
-      if (this.el) this.el.removeAttribute('src');
+      // Safari keeps a media element's decoder until it is told to load nothing: without that, each story opened
+      // left all its players behind, and past Safari's limit no sound played any more until the app restarted.
+      this.dropTwin(true);
+      if (this.src) { try { this.src.disconnect(); } catch (e) { /* already */ } }
+      if (this.el) freeElement(this.el);
       if (this.url) URL.revokeObjectURL(this.url);
-      this.el = null; this.url = null;
+      this.el = null; this.url = null; this.src = null; this.env = null;
     }
     destroy() { this.silence(); this.release(); }
   }
@@ -1725,13 +1772,17 @@
     const order = [...ZONES.flatMap((z) => t.chapters[idx] ? t.chapters[idx].voices[z.id] : [])];
     t.all.forEach((v) => { if (!order.includes(v)) order.push(v); });
     loadPads(story);
-    for (const v of order) {
+    while (order.length) {
       if (tbl !== t) return;
+      // A sound tapped while loading jumps the queue, then plays as soon as it is ready.
+      const w = order.findIndex((x) => x.wanted);
+      const v = order.splice(w >= 0 ? w : 0, 1)[0];
       try {
         const blob = await DB.getBlob(v.sound.blob);
         if (tbl !== t) return;
         if (blob) v.attach(blob); else v.set('error');
       } catch (e) { v.set('error'); }
+      if (v.wanted) { v.wanted = false; if (v.state === 'ready') toggleVoice(v); else v.paint(); }
     }
   }
 
@@ -1860,7 +1911,10 @@
   /** Fade-in of a sound started with Play, in seconds (Off: a click-free 30 ms). */
   const startFade = () => Math.max(0.03, (+settings.fadeIn || 0) / 1000);
   function toggleVoice(v) {
+    if (audioBroken) rebuildAudio();
     audio();
+    // Still loading: it plays as soon as it is ready (and is loaded next).
+    if (v.state === 'loading') { v.wanted = !v.wanted; v.paint(); return; }
     // Between two plays, a tap stops the random event.
     if (v.waiting) { v.rnd = false; v.next = 0; v.paint(); return; }
     acquireWake();
@@ -1876,6 +1930,7 @@
     }
     pausedByAll = pausedByAll.filter((o) => o !== v);
     paintMaster();
+    if (v.state === 'playing') checkAudio();
   }
 
   function paintCard(v) {
@@ -1891,6 +1946,7 @@
     const on = v.active || waiting;
     k.root.classList.toggle('on', on);
     k.root.classList.toggle('loading', v.state === 'loading');
+    k.root.classList.toggle('wanted', !!(v.wanted && v.state === 'loading'));
     k.root.classList.toggle('err', v.state === 'error');
     const icon = v.state === 'playing' || waiting ? 'pause' : 'play';
     if (k.icon !== icon) { k.play.innerHTML = ICON[icon]; k.icon = icon; }
@@ -1908,7 +1964,7 @@
     if (p < 0) { k.fill.style.width = on || v.state === 'paused' ? '100%' : '0'; k.fill.style.background = 'var(--blue)'; }
     else { k.fill.style.width = `${p * 100}%`; k.fill.style.background = `hsl(${Math.round(130 * (1 - p))},72%,50%)`; }
     let txt = '', warn = false;
-    if (v.state === 'loading') txt = 'loading…';
+    if (v.state === 'loading') txt = v.wanted ? 'plays when loaded' : 'loading…';
     else if (v.state === 'error') txt = 'unavailable';
     else if (waiting) txt = `next ${fmt(Math.max(0, (v.next - Date.now()) / 1000))}`;
     else if (heldRandom.includes(v)) txt = 'held';
@@ -2211,6 +2267,28 @@
   // Wake lock and audio can only start from a tap on iPhone: retry on the next one.
   document.addEventListener('touchend', () => { if (settings.awake && storyOpen() && !wake && !videoAwake) acquireWake(); }, { passive: true });
 
+  /** Leaving the table is asked first (it cuts the scene), then every sound fades out before the table closes. */
+  async function leaveTable() {
+    if (!tbl) { location.hash = '#/'; return; }
+    const t = tbl;
+    const v = await ask('Leave the story?', 'Every sound fades out and the table closes.', [
+      { label: 'Stay', value: null }, { label: 'Leave', value: 'leave', cls: 'danger' },
+    ]);
+    if (v !== 'leave' || tbl !== t) return;
+    const back = tableFrom === 'editor' ? `#/edit/${encodeURIComponent(t.story.uid)}/${chapterIdx + 1}` : '#/';
+    const sounding = t.all.some((x) => x.active || x.waiting || (x.state === 'paused' && x.fadingOut));
+    t.all.forEach((x) => x.end(settings.fade));
+    pausedByAll = []; heldRandom = [];
+    stopSoundbox();
+    paintMaster();
+    if (sounding) {
+      busy('Leaving the table', t.story.title);
+      await new Promise((r) => setTimeout(r, settings.fade + 60));
+      if (tbl !== t) { idle(); return; }
+    }
+    location.hash = back;
+  }
+
   /* ================= Wiring ================= */
   function renderStaticIcons() {
     document.querySelectorAll('[data-action="home"], [data-action="leave-table"]').forEach((b) => (b.innerHTML = ICON.back));
@@ -2230,12 +2308,7 @@
     if (!a) return;
     switch (a.dataset.action) {
       case 'home': location.hash = '#/'; break;
-      case 'leave-table': {
-        stopAll();
-        const back = tbl ? `#/edit/${encodeURIComponent(tbl.story.uid)}/${chapterIdx + 1}` : '#/';
-        location.hash = tableFrom === 'editor' ? back : '#/';
-        break;
-      }
+      case 'leave-table': leaveTable(); break;
       case 'settings': openSettings(); break;
       case 'soundbox': toggleSoundbox(); break;
       case 'pause-all': pauseAll(); break;

@@ -468,3 +468,11 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 #stories .hero h2 { font-size: clamp(30px, 3.4vw, 40px); }
 #stories a.srow { text-decoration: none; }
 @media (max-width: 720px) { #stories .hero { min-height: 0; } #stories .hero-in { gap: 8px; } #stories .hero .grow { min-height: 10px; } }
+
+/* Leaving a story: asked first */
+.settings.leave { width: min(420px, calc(100vw - 24px)); padding: 20px; }
+.leave h2 { margin: 0 0 6px; font-size: 26px; }
+.leave p { margin: 0 0 18px; color: var(--muted); }
+.leave-acts { display: flex; gap: 10px; justify-content: flex-end; }
+.lb { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.lb.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }

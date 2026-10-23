@@ -394,6 +394,31 @@
     setChapter(i);
   };
 
+  /** Leaving the table is asked first, then every sound fades out before the table closes. */
+  function leaveTable() {
+    const d = $('#leave');
+    if (!story) { location.hash = '#/'; return; }
+    const s = story;
+    d.onclick = async (e) => {
+      const b = e.target.closest('[data-leave]');
+      if (e.target === d || (b && b.dataset.leave === 'stay')) { d.close(); return; }
+      if (!b) return;
+      d.close();
+      if (story !== s) return;
+      const sounding = s.all.some((x) => x.active || x.waiting || (x.state === 'paused' && x.fadingOut));
+      s.all.forEach((x) => x.end(settings.fade));
+      pausedByAll = []; heldRandom = [];
+      stopSoundbox();
+      paintMaster();
+      if (sounding) await new Promise((r) => setTimeout(r, settings.fade + 60));
+      if (story !== s) return;
+      const custom = s.meta.custom;
+      if (custom) CUSTOM = null;
+      location.hash = custom ? '#/troubadour' : '#/';
+    };
+    d.showModal();
+  }
+
   /* ---------------- Stories screen ---------------- */
   // Layout B, as in the apps: the story played last in big, on its cover, ready to resume; the others in a list.
   const RECENT_KEY = 'troubadour.recent';
@@ -1026,7 +1051,7 @@
     const a = e.target.closest('[data-action]');
     if (!a) return;
     switch (a.dataset.action) {
-      case 'back': stopAll(); if (story && story.meta.custom) { CUSTOM = null; } location.hash = story && story.meta.custom ? '#/troubadour' : '#/'; break;
+      case 'back': leaveTable(); break;
       case 'settings': $('#settings').showModal(); break;
       case 'soundbox': toggleSoundbox(); break;
       case 'pause-all': pauseAll(); break;

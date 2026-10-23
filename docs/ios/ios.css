@@ -495,3 +495,6 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 .app #library .srow .more { width: 32px; }
 .app #library .srow .go { width: 42px; height: 42px; }
 .app #library .srow.add .add-i { width: 56px; height: 42px; }
+
+/* A sound tapped while it loads: it waits to play. */
+.app .c.wanted { border-color: color-mix(in srgb, var(--z) 70%, var(--line)); animation: pulse 1.6s ease-in-out infinite; }
