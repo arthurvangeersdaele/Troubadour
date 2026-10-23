@@ -83,7 +83,7 @@
     P.ch = i;
     P.chapter = P.rec.flow.chapters[i] || { steps: [] };
     P.trunk = P.chapter.steps || [];
-    P.path = []; P.choiceAt = null;
+    P.path = []; P.choiceAt = null; P.jump = false;
     P.steps = pathSteps();
     P.starts = []; P.gate = null; P.end = null; P.focus = -1; P.touched = 0; P.forced.clear();
     renderChapters();
@@ -249,7 +249,7 @@
       return true;
     });
     for (let j = 0; j < P.starts.length; j++) if (j >= i || P.starts[j] > t) P.starts[j] = undefined;
-    P.gate = null; P.end = null; P.choiceAt = null;
+    P.gate = null; P.end = null; P.choiceAt = null; P.jump = false;
     // Opening a gate: the gold first runs down from the gate to the sounds, then they start.
     schedule(i, t + (P.steps[i].gate || i === 0 ? pourOf(i) : LEAD));
     P.focus = -1;
@@ -369,7 +369,7 @@
     if (P.paused) { audio().ctx.resume().catch(() => {}); P.paused = false; }
     P.voices.forEach((v) => { if (!v.done && v.cut == null) fadeVoice(v, ms); });
     P.voices = [];
-    P.starts = []; P.gate = null; P.end = null; P.focus = -1; P.forced.clear(); P.choiceAt = null;
+    P.starts = []; P.gate = null; P.end = null; P.focus = -1; P.forced.clear(); P.choiceAt = null; P.jump = false;
     // Back to the start: the choice is open again.
     if (P.path.length) { P.path = []; P.steps = pathSteps(); if (P.rec && P.dom) renderCascade(); }
     paintDock();
@@ -391,7 +391,7 @@
     const started = P.starts.some((s) => s != null);
     if (!started) return !P.steps.length && choiceOf() ? { mode: 'choice', cur: -1, t } : { mode: 'idle', cur: -1, t };
     // The gate, the choice and the end open when the gold gets there, at the clock's pace.
-    const there = (P.choiceAt != null && t >= P.choiceAt) || (P.gate && t >= P.gate.t) || (P.end != null && t >= P.end) ? goldArrived(t) : false;
+    const there = P.jump || ((P.choiceAt != null && t >= P.choiceAt) || (P.gate && t >= P.gate.t) || (P.end != null && t >= P.end) ? goldArrived(t) : false);
     if (P.choiceAt != null && t >= P.choiceAt && there) return { mode: 'choice', cur, t };
     if (P.gate && t >= P.gate.t && there) return { mode: 'wait', cur, gate: P.gate.i, t };
     if (P.end != null && t >= P.end && there) return { mode: 'done', cur, t };
@@ -404,8 +404,13 @@
     if (s.mode === 'wait') return s.gate;
     if (s.mode === 'done' || s.mode === 'choice') return -1;
     if (P.gate) return P.gate.i;
-    const pending = P.starts.findIndex((x, i) => i > s.cur && x != null);
-    return pending > 0 ? pending : (s.cur + 1 < P.steps.length ? s.cur + 1 : -1);
+    // The next step waiting on the clock. A gate the gold is still pouring from was just opened: the button
+    // leads past it, to the gate after it (or, with none, to the choice or the next chapter).
+    const pending = P.starts.findIndex((x, i) => i > s.cur && x != null && x > s.t);
+    if (pending >= 0 && !(pending === 0 || P.steps[pending].gate)) return pending;
+    const from = pending >= 0 ? pending : s.cur;
+    for (let k = from + 1; k < P.steps.length; k++) if (P.steps[k].gate) return k;
+    return -1;
   }
 
   /* ---------- Soundbox ---------- */
@@ -490,6 +495,7 @@
   const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
+  const HOLD_MIN = 6;   // seconds: a loop that holds, with nothing beside it, is drawn this long
   const MIN_PX = 40;    // a sound shorter than that still shows its name (the only card taller than it lasts)
 
   function runsOf(steps) {
@@ -503,16 +509,15 @@
     const items = [];
     let stepsEnd = 0;
     run.steps.forEach((i) => { stepsEnd = Math.max(stepsEnd, offsets[i] + F.stepLength(P.steps[i])); });
-    // Every sound ends somewhere on the clock: one played once at its end, one that loops after the length set in
-    // the editor or, if the sounds around it last longer, with the last of them. Then the gate is open; a loop
-    // that holds goes on (beyond its card) until the troubadour taps it.
+    // Every sound ends somewhere on the clock: one played once at its end. A loop that holds (until the next gate)
+    // is drawn only as long as the last sound beside it, whatever its own length: it goes on playing at the gate,
+    // so it never makes the scene longer. Alone, it is drawn a few seconds long.
     const others = Math.max(stepsEnd, 0, ...run.steps.flatMap((i) => P.steps[i].cards.filter((c) => !c.hold).map((c) => offsets[i] + c.offset + c.duration)));
     run.steps.forEach((i) => {
       const s = P.steps[i];
       s.cards.forEach((c, k) => {
         const s0 = offsets[i] + c.offset;
-        const own = c.play === 'random' ? 0 : c.duration;
-        items.push({ i, k, c, s0, s1: c.hold ? Math.max(others, s0 + own, s0 + 4) : s0 + c.duration });
+        items.push({ i, k, c, s0, s1: c.hold ? Math.max(others, s0 + HOLD_MIN) : s0 + c.duration });
       });
     });
     // The run ends when its last sound does (a loop: its length or the last sound beside it).
@@ -1082,7 +1087,7 @@
     else if (s.mode === 'choice') { label = 'Choose'; sub = (choiceOf() && choiceOf().question) || 'Pick the way'; cls = 'ready silver'; }
     else if (s.mode === 'done') {
       const last = P.ch + 1 >= P.rec.story.chapters.length;
-      label = last ? 'The end' : 'Next chapter'; sub = last ? 'Every chapter is played' : (P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`); cls = last ? 'off' : 'ready';
+      label = last ? 'The end' : 'Next chapter'; sub = last ? 'Fade out and finish' : (P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`); cls = 'ready';
     } else if (target >= 0) {
       const at = P.gate ? P.gate.t : P.starts[target];
       let inS = at != null ? Math.max(0, at - s.t) : null;
@@ -1092,8 +1097,13 @@
       label = P.gate && target === P.gate.i ? 'Go now' : 'Skip';
       sub = `${stepLabel(P.steps[target], target)}${inS != null ? `, in ${F.clock(inS)}` : ''}`;
       cls = 'quiet';
+    } else if (choiceOf()) {
+      // The last step plays: the choice is next. Tapping brings the wire there at once.
+      label = 'Choose'; sub = choiceOf().question || 'Pick the way'; cls = 'quiet silver';
+    } else if (P.ch + 1 < P.rec.story.chapters.length) {
+      label = 'Next chapter'; sub = P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`; cls = 'quiet';
     } else {
-      label = 'Last step'; sub = P.end != null ? `Ends in ${F.clock(P.end - s.t)}` : ''; cls = 'off';
+      label = 'The end'; sub = 'Fade out and finish'; cls = 'quiet';
     }
     const key = `${label}|${sub}|${cls}|${P.paused}|${s.mode}|${s.cur}`;
     if (key === lastDock) return;
@@ -1121,9 +1131,20 @@
       if (C) { P.touched = 0; P.scrolling = 0; follow(C.cy - 30); C.sec.classList.remove('nudge'); void C.sec.offsetWidth; C.sec.classList.add('nudge'); }
       return;
     }
-    if (s.mode === 'done') { if (P.ch + 1 < P.rec.story.chapters.length) openChapter(P.ch + 1, !!settings.autoNext); return; }
+    const more = P.ch + 1 < P.rec.story.chapters.length;
+    if (s.mode === 'done') { if (more) openChapter(P.ch + 1, !!settings.autoNext); else stopAll(); return; }
     const t = nextTarget(s);
-    if (t >= 0) go(t);
+    if (t >= 0) { go(t); return; }
+    // The last step plays and the button still leads on: to the choice (the wire goes there now),
+    // to the next chapter, or, at the end of the story, a fade out.
+    if (choiceOf()) {
+      P.choiceAt = now(); P.jump = true; P.touched = 0;
+      const C = P.dom && P.dom.choices.find((x) => x.depth === choiceDepth());
+      if (C) { C.sec.classList.remove('nudge'); void C.sec.offsetWidth; C.sec.classList.add('nudge'); }
+      paintDock();
+      return;
+    }
+    if (more) openChapter(P.ch + 1, !!settings.autoNext); else stopAll();
   }
 
   function loop() {
