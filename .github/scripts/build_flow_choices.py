@@ -39,7 +39,7 @@ def snd(ci, name):
 
 def music(ci, name, offset=0, volume=0.7):
     s, zone = snd(ci, name)
-    return {'name': s['name'], 'file': s['file'], 'zone': zone, 'offset': offset, 'start': 0, 'duration': 600,
+    return {'name': s['name'], 'file': s['file'], 'zone': zone, 'offset': offset, 'start': 0, 'duration': 30,
             'play': 'loop', 'hold': True, 'repeat': True, 'fadeIn': 3, 'fadeOut': 4, 'volume': volume}
 
 
@@ -117,7 +117,7 @@ ch2 = {
     ]},
 }
 
-flow = {'format': 'troubadour-ballade', 'version': 1, 'id': '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', 'story': story['id'], 'revision': 1,
+flow = {'format': 'troubadour-ballade', 'version': 1, 'id': '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', 'story': story['id'], 'revision': 2,
         'bard': 'Troubadour', 'created': STAMP, 'forged': STAMP, 'generator': 'Troubadour Ballade discovery script', 'chapters': [ch1, ch2]}
 
 

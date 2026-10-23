@@ -11,7 +11,10 @@
   const F = global.TroubadourBallade;
   const LEAD = 0.06; // seconds between a tap and the sound
   const POUR = 0.5;  // a gate opens: the gold runs down from it to the sounds, which start as it arrives
-  const TRAVEL = 340; // px per second: the gold's pace along bare wire (gates, splits, merges, jumps)
+  const TRAVEL = 900; // px per second: only when the troubadour jumps ahead (a gate tapped early) does the gold hurry
+  /** The clock: the gold moves down the wire at one speed, px per second, everywhere (cards, silences, bare wire).
+   *  The screen follows it, so the page scrolls with the music. Set in Settings. */
+  const pps = () => Math.max(4, Math.min(30, Number(settings.clock) || 10));
 
   const P = {
     rec: null, ch: 0, steps: [], buffers: new Map(), blobs: null, loading: 0,
@@ -258,9 +261,49 @@
   /** How long the gold takes from gate i down to its sounds, at its steady pace (the sounds start as it arrives). */
   function pourOf(i) {
     const R = P.dom && P.dom.runs.find((x) => x.run.gate === i);
-    const dur = R && R.cy ? Math.min(1.2, Math.max(0.12, (R.top + R.pad - R.cy) / TRAVEL)) : POUR;
+    const dur = R && R.nb ? Math.min(5, Math.max(0.05, (R.top + R.pad - R.nb) / pps())) : POUR;
     P.pours[i] = dur;
     return dur;
+  }
+
+  /* ---------- The clock on the wire ---------- */
+
+  /** Seconds into run R at time t (negative while the gold pours from its gate to its sounds), or null. */
+  function runClock(R, t) {
+    let cur = -1;
+    R.run.steps.forEach((i) => { const s = P.starts[i]; if (s != null && s <= t && (cur < 0 || s >= P.starts[cur])) cur = i; });
+    if (cur >= 0) return P.offsets[cur] + (t - P.starts[cur]);
+    const g = P.starts[R.run.gate];
+    return g != null ? t - g : null;
+  }
+  /** The top of the node the gold flows into after run R: the next gate, a choice, or Next chapter. */
+  function stopAfter(R) {
+    const D = P.dom;
+    const tops = [D.end.nt].concat(D.runs.map((x) => x.nt), D.choices.map((C) => C.nt)).filter((y) => y != null && y > R.top + 1);
+    return tops.length ? Math.min(...tops) : D.end.nt;
+  }
+  /** Where the gold is in run R at time t: down from the gate at the clock's pace, through the sounds, on down
+   *  the bare wire to the next node, where it stops. Null before the run starts. */
+  function goldIn(R, t) {
+    const rc = runClock(R, t);
+    if (rc == null || R.nb == null) return null;
+    return Math.min(stopAfter(R), Math.max(R.nb, R.top + R.pad + rc * pps()));
+  }
+  /** The run that plays last (the one the wire is in), or null. */
+  function liveRun(t) {
+    const D = P.dom;
+    if (!D) return null;
+    let best = null, bs = -Infinity;
+    D.runs.forEach((R) => { R.run.steps.forEach((i) => { const s = P.starts[i]; if (s != null && s > bs) { bs = s; best = R; } }); });
+    void t;
+    return best;
+  }
+  /** True once the gold has reached the node after the run that plays (the gate, the choice, Next chapter). */
+  function goldArrived(t) {
+    const R = liveRun(t);
+    if (!R || R.nb == null) return true; // nothing drawn yet: go by the times alone
+    const y = goldIn(R, t);
+    return y != null && y >= stopAfter(R) - 0.5;
   }
 
   /** The gate a step hangs from: steps share a run until the next gate. */
@@ -347,9 +390,11 @@
     P.starts.forEach((s, i) => { if (s != null && s <= t) cur = i; });
     const started = P.starts.some((s) => s != null);
     if (!started) return !P.steps.length && choiceOf() ? { mode: 'choice', cur: -1, t } : { mode: 'idle', cur: -1, t };
-    if (P.choiceAt != null && t >= P.choiceAt) return { mode: 'choice', cur, t };
-    if (P.gate && t >= P.gate.t) return { mode: 'wait', cur, gate: P.gate.i, t };
-    if (P.end != null && t >= P.end) return { mode: 'done', cur, t };
+    // The gate, the choice and the end open when the gold gets there, at the clock's pace.
+    const there = (P.choiceAt != null && t >= P.choiceAt) || (P.gate && t >= P.gate.t) || (P.end != null && t >= P.end) ? goldArrived(t) : false;
+    if (P.choiceAt != null && t >= P.choiceAt && there) return { mode: 'choice', cur, t };
+    if (P.gate && t >= P.gate.t && there) return { mode: 'wait', cur, gate: P.gate.i, t };
+    if (P.end != null && t >= P.end && there) return { mode: 'done', cur, t };
     return { mode: 'run', cur, t };
   }
 
@@ -433,19 +478,19 @@
    * Inside a run, time flows down: every card starts at the height of its start and is as tall as it lasts
    * (long sounds squeezed, short ones stretched to stay readable), so sounds that overlap sit side by side.
    * The golden wire runs down the left, a thread branches to each card, and a playhead sweeps down with time. */
-  const PAD = 40;      // room above the first sounds of a run, for the lane wires to branch off
+  const PAD = 10;      // room above the first sounds of a run, for the lane wires to branch off
   /** A run with more lanes needs more room on top: its rails leave one another like steps of a stair. */
   /** How tall the split to a lane `dx` px away is: like the logo, the wire takes its time to lean across. */
-  const splitOf = (dx) => Math.round(Math.min(190, 40 + dx * 0.75));
+  const splitOf = (dx) => Math.round(Math.min(24, 16 + dx * 0.05));
   /** Where lane l of n sits, in steps from the spine. An odd number of lanes puts the first on the spine and the others
    *  in turns right and left; an even number leaves the spine free between them (two lanes: half a step either side). */
   const laneOffset = (l, n) => (n % 2 ? (l === 0 ? 0 : (l % 2 ? 1 : -1) * Math.ceil(l / 2)) : (l % 2 ? -1 : 1) * (Math.floor(l / 2) + 0.5));
   const maxOffset = (n) => (n % 2 ? (n - 1) / 2 : n / 2 - 0.5);
-  const padOf = (lanes, step) => (lanes > 1 ? Math.max(PAD, 6 + splitOf(step * maxOffset(lanes)) + 12) : PAD);
+  const padOf = (lanes, step) => (lanes > 1 ? Math.max(PAD, splitOf(step * maxOffset(lanes)) + 2) : PAD);
   const RUN_PX = 540;   // a run is drawn about this tall...
   const MIN_PPS = 2;    // ...at no less than 2 px per second
   const MAX_PPS = 36;   // and no more than 36
-  const MIN_PX = 50;    // a sound shorter than that still shows its name
+  const MIN_PX = 40;    // a sound shorter than that still shows its name (the only card taller than it lasts)
 
   function runsOf(steps) {
     const runs = [];
@@ -458,16 +503,20 @@
     const items = [];
     let stepsEnd = 0;
     run.steps.forEach((i) => { stepsEnd = Math.max(stepsEnd, offsets[i] + F.stepLength(P.steps[i])); });
+    // Every sound ends somewhere on the clock: one played once at its end, one that loops after the length set in
+    // the editor or, if the sounds around it last longer, with the last of them. Then the gate is open; a loop
+    // that holds goes on (beyond its card) until the troubadour taps it.
+    const others = Math.max(stepsEnd, 0, ...run.steps.flatMap((i) => P.steps[i].cards.filter((c) => !c.hold).map((c) => offsets[i] + c.offset + c.duration)));
     run.steps.forEach((i) => {
       const s = P.steps[i];
-      // A sound that holds is drawn down to the end of its run, and carries on under the gate that cuts it.
       s.cards.forEach((c, k) => {
         const s0 = offsets[i] + c.offset;
-        items.push({ i, k, c, s0, s1: c.hold ? Math.max(stepsEnd, s0 + 12) + 1 : s0 + c.duration });
+        const own = c.play === 'random' ? 0 : c.duration;
+        items.push({ i, k, c, s0, s1: c.hold ? Math.max(others, s0 + own, s0 + 4) : s0 + c.duration });
       });
     });
-    // A run that a gate follows ends with its steps: sounds still playing carry on under the next gate.
-    const end = last ? Math.max(stepsEnd, ...items.map((x) => x.s1), 0) : stepsEnd;
+    // The run ends when its last sound does (a loop: its length or the last sound beside it).
+    const end = Math.max(stepsEnd, ...items.map((x) => x.s1), 0);
     // How long the run plays on its own; sounds that hold go on after it, until the next gate.
     const own = Math.max(stepsEnd, ...items.filter((x) => !x.c.hold).map((x) => (last ? x.s1 : 0)), 0);
     items.forEach((x) => { x.e = Math.min(x.s1, Math.max(end, x.s0 + 0.1)); x.cont = x.s1 > x.e + 0.05 || !!x.c.hold; });
@@ -482,6 +531,7 @@
     });
     const busyT = busy.reduce((n, [a, b]) => n + (Math.min(b, end) - Math.max(0, a)), 0);
     const pps = fixedPps || Math.min(MAX_PPS, Math.max(MIN_PPS, RUN_PX / Math.max(busyT, 0.1)));
+    void busyT;
     // The map from time to height: one speed for the whole chapter, silences included, so the gold always flows
     // at the same pace down the screen. A sound too short to read is drawn taller than it lasts; the gold does not
     // slow down for it (the card turns grey when its sound is over, the gold carries on at its pace).
@@ -532,12 +582,11 @@
     const placeForks = (upto) => forks.forEach((fk) => { if (!fk.sec.parentNode && fk.at <= upto) box.append(fk.sec); });
     const wayFrom = P.segs.length > 1 ? P.segs[1].start : Infinity;
     // One speed for the whole chapter: the slowest any of its runs would need to fit about RUN_PX.
-    const chPps = runs.reduce((m, run, r) => Math.min(m, layoutRun(run, P.offsets, r === runs.length - 1).pps), MAX_PPS);
+    const chPps = pps(); // the clock: one speed for every chapter, so a minute is always as tall
     runs.forEach((run, r) => {
       placeForks(run.gate);
       const lastRun = r === runs.length - 1;
-      let L = layoutRun(run, P.offsets, lastRun, MIN_PX, chPps);
-      if (L.lanes === 1) { const L1 = layoutRun(run, P.offsets, lastRun, 84, chPps); if (L1.lanes === 1) L = L1; }
+      const L = layoutRun(run, P.offsets, lastRun, MIN_PX, chPps);
       const sec = el('section', `fl-run${run.gate >= wayFrom ? ' way' : ''}`);
       const g = P.steps[run.gate];
       const row = el('div', 'fl-node-row');
@@ -564,7 +613,7 @@
       const step = cw + gap;
       const pad = padOf(L.lanes, step);
       // Room under the sounds for every rail to lean back into the spine before the next gate.
-      const foot = L.lanes > 1 ? splitOf(step * m) + 10 : 0;
+      const foot = L.lanes > 1 ? splitOf(step * m) + 2 : 0;
       const H = L.height + pad + 9 + foot;
       area.style.height = `${H}px`;
       const narrow = cw < 118;
@@ -754,9 +803,10 @@
     D.runs.forEach((R) => {
       const a = rel(R.area);
       const n = rel(R.node);
-      R.top = a.y; R.left = a.x; R.cy = n.y + n.h / 2;
+      R.top = a.y; R.left = a.x; R.cy = n.y + n.h / 2; R.nb = n.y + n.h; R.nt = n.y;
       if (X == null) X = n.x + n.w / 2;
       D.dots.forEach((o) => { if (o.run === D.runs.indexOf(R)) o.gy = a.y + o.y; });
+      R.dotsOff = false;
       // Rails: like the logo, every lane splits from the spine at one point under the gate, each in a long S
       // (straight down, a slow lean across, straight down again), then runs down past its last card.
       // A wire is not drawn through a sound: it splits round it (the sound's outline is the wire there).
@@ -770,8 +820,19 @@
       };
       const onSpine = (c) => Math.abs(a.x + c.rail - X) < 1;
       R.holes = R.cards.filter(onSpine).map((c) => [a.y + c.top, a.y + c.top + c.ch]).sort((p, q) => p[0] - q[0]);
+      // A wire only runs where it carries sounds. A rail ends with the last sound of its lane, unless that sound lasts
+      // to the end of the run: then it leans back into the spine and carries the gold on to the next gate.
+      const bottom = Math.max(0, ...R.cards.map((c) => a.y + c.top + c.ch));
+      const lastOf = (lane) => Math.max(...R.cards.filter((c) => c.lane === lane).map((c) => a.y + c.top + c.ch));
+      const reaches = (lane) => lastOf(lane) >= bottom - 6;
+      const sideLanes = [...new Set(R.cards.filter((c) => !onSpine(c)).map((c) => c.lane))];
+      // No sound on the spine (two or four lanes) and a rail that carries the gold to the end: the spine would only
+      // be a bare wire beside the sounds, between the gate and the next one. It stops where the rails leave it.
+      R.noSpine = R.cards.length > 0 && !R.cards.some(onSpine) && sideLanes.some(reaches);
+      if (R.noSpine) R.holes = [[a.y + 0.5, a.y + R.total + 1.5]];
+      R.reaches = reaches; R.lastOf = lastOf;
       const lanes = [...new Set(R.cards.filter((c) => !onSpine(c)).map((c) => c.lane))].sort((p, q) => p - q);
-      const ys = a.y + 6;
+      const ys = a.y;
       lanes.forEach((l) => {
         const x1 = a.x + R.cards.find((c) => c.lane === l).rail;
         const B = splitOf(Math.abs(x1 - X));
@@ -779,8 +840,9 @@
         // ...and comes back into the spine the same way under its sounds, so every wire ends on the next gate.
         const ym = a.y + R.total + 2;
         const yb = ym - B;
-        wires.push(`M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}${vert(x1, y1, yb, holesOf(l))}`
-          + `C${f(x1)} ${f(yb + B * 0.55)} ${f(X)} ${f(ym - B * 0.42)} ${f(X)} ${f(ym)}`);
+        const out = `M${f(X)} ${f(ys)}C${f(X)} ${f(ys + B * 0.42)} ${f(x1)} ${f(y1 - B * 0.55)} ${f(x1)} ${f(y1)}`;
+        if (R.reaches(l)) wires.push(`${out}${vert(x1, y1, yb, holesOf(l))}C${f(x1)} ${f(yb + B * 0.55)} ${f(X)} ${f(ym - B * 0.42)} ${f(X)} ${f(ym)}`);
+        else wires.push(`${out}${vert(x1, y1, R.lastOf(l), holesOf(l))}`); // ends with its last sound
       });
       R.cards.forEach((c) => {
         const x = a.x + c.rail, y = a.y + c.top;
@@ -789,17 +851,24 @@
       });
     });
     const en = rel(D.end.node);
-    D.end.cy = en.y + en.h / 2;
-    D.choices.forEach((C) => { const cn = rel(C.node); C.cy = cn.y + cn.h / 2; if (X == null) X = cn.x + cn.w / 2; });
+    D.end.cy = en.y + en.h / 2; D.end.nt = en.y;
+    const choiceHoles = [];
+    D.choices.forEach((C) => {
+      const cn = rel(C.node); C.cy = cn.y + cn.h / 2; C.nt = cn.y; if (X == null) X = cn.x + cn.w / 2;
+      // The answers sit on the spine: the wire goes behind none of them.
+      const ans = C.sec.querySelector('.fl-answers');
+      if (ans) { const r = rel(ans); choiceHoles.push([r.y - 2, r.y + r.h + 2]); }
+    });
     if (X == null) X = en.x + en.w / 2;
     // The spine: straight down from the first gate (or choice) to Next chapter, through every gate and choice.
     const y0 = Math.min(D.runs.length ? D.runs[0].cy : Infinity, D.choices.length ? D.choices[0].cy : Infinity);
-    const spineHoles = D.runs.flatMap((R) => R.holes || []).sort((p, q) => p[0] - q[0]);
+    const spineHoles = D.runs.flatMap((R) => R.holes || []).concat(choiceHoles).sort((p, q) => p[0] - q[0]);
     let sp = `M${f(X)} ${f(y0)}`;
     let yy = y0;
     spineHoles.forEach(([t, bt]) => { if (bt <= yy) return; if (t > yy) sp += `V${f(t)}`; sp += `M${f(X)} ${f(bt)}`; yy = bt; });
     if (D.end.cy > yy) sp += `V${f(D.end.cy)}`;
     wires.unshift(sp);
+    D.dots.forEach((o) => { const R = D.runs[o.run]; o.d.hidden = !!(R && R.noSpine); });
     const id = `fl-${P.chapterToken}`;
     const svg = D.svg;
     [svg, D.under].forEach((g) => { g.setAttribute('width', W); g.setAttribute('height', Ht); g.setAttribute('viewBox', `0 0 ${W} ${Ht}`); });
@@ -856,34 +925,31 @@
     const t = s.t;
     P.voices = P.voices.filter((v) => !(v.done && (v.cut ?? v.end) < t - 2));
     const curRun = D.runs.findIndex((R) => R.run.steps.includes(s.cur));
-    // Where the gold should be: the playhead inside the run that plays, a waiting gate, or Next chapter.
+    // Where the gold is: on the clock. It runs down from the gate that opened, through the sounds and the silences
+    // between them, and on down the bare wire to the next node, always at the same pace.
     let target = 0;
+    const live = liveRun(t);
     D.runs.forEach((R, r) => {
-      const rt = curRun > r && runTime(R, t) != null ? Math.max(runTime(R, t), R.L.end + 1) : runTime(R, t);
-      R.rt = rt;
-      if (rt != null) target = Math.max(target, rt >= R.L.end ? R.top + R.total : R.top + R.pad + R.L.map(rt));
-      if (s.mode === 'wait' && s.gate === R.run.gate) target = Math.max(target, R.cy);
-      // A gate just opened: the gold runs from it down to the top of its sounds, which start as it arrives.
-      const st = P.starts[R.run.gate];
-      if (st != null && st > t) {
-        const u = Math.min(1, Math.max(0, 1 - (st - t) / (P.pours[R.run.gate] || POUR)));
-        target = Math.max(target, R.cy + u * (R.top + R.pad - R.cy));
-      }
+      const y = goldIn(R, t);
+      R.rt = runClock(R, t);
+      if (R.rt != null && R.rt < 0) R.rt = null; // still pouring: its sounds have not started
+      if (y == null) return;
+      // A run the wire has left (a later gate opened) is gold all the way down.
+      target = Math.max(target, live && r < D.runs.indexOf(live) ? stopAfter(R) : y);
     });
     if (s.mode === 'idle') target = 0;
     const waitAt = s.mode === 'choice' ? D.choices.find((C) => C.depth === choiceDepth()) : null;
     if (waitAt) target = Math.max(target, waitAt.cy);
+    if (s.mode === 'wait') { const G = D.runs.find((R) => R.run.gate === s.gate); if (G) target = Math.max(target, G.cy); }
     if (s.mode === 'done') target = D.end.cy;
-    // The gold flows: it follows the playhead exactly; along bare wire (a run's end down to the next gate,
-    // a jump ahead) it runs at an easy pace the eye can follow, slowing as it arrives.
     const ms = performance.now();
     const dt = D.last ? Math.min(0.5, (ms - D.last) / 1000) : 0;
     D.last = ms;
-    // Along bare wire the gold runs at one steady pace (no rush, no braking); inside a run it is the playhead.
+    // The gold follows the clock exactly. Only a jump the troubadour makes (a gate tapped early) makes it hurry.
     if (D.fresh) { D.fresh = false; D.shown = target; }
     const gap = target - D.shown;
-    if (gap <= TRAVEL * dt + 0.5 || gap <= 0) D.shown = target;
-    else D.shown = Math.max(D.shown + TRAVEL * dt, target - 700); // never more than a screen behind
+    if (gap <= 0 || gap <= Math.max(30, pps() * dt * 3)) D.shown = target;
+    else D.shown = Math.max(D.shown + TRAVEL * dt, target - 700);
     const Y = D.shown;
     const yr = Math.round(Y * 2) / 2;
     if (D.clip && yr !== D.lit) { D.lit = yr; D.clip.setAttribute('height', String(yr)); }
@@ -895,7 +961,7 @@
       setCls(R.sec, 'waiting', waiting && !started);
       setCls(R.sec, 'past', started && R.rt >= R.L.end);
       const local = Y - R.top;
-      const show = started && r === curRun && R.rt < R.L.end + 0.5 && s.mode !== 'idle' && local > 0 && local < R.total;
+      const show = started && R === live && R.rt < R.L.end + 0.5 && s.mode !== 'idle' && local > 0 && local < R.total;
       R.head.hidden = !show;
       if (show) { R.head.style.transform = `translateY(${local}px)`; focusY = Y; }
       if (waiting) focusY = R.cy - 30;
@@ -1019,7 +1085,10 @@
       label = last ? 'The end' : 'Next chapter'; sub = last ? 'Every chapter is played' : (P.rec.story.chapters[P.ch + 1].title || `Chapter ${P.ch + 2}`); cls = last ? 'off' : 'ready';
     } else if (target >= 0) {
       const at = P.gate ? P.gate.t : P.starts[target];
-      const inS = at != null ? Math.max(0, at - s.t) : null;
+      let inS = at != null ? Math.max(0, at - s.t) : null;
+      // The gate opens when the gold reaches it: count down to that.
+      const R = P.gate && liveRun(s.t);
+      if (R && R.nb != null) { const y = goldIn(R, s.t); if (y != null) inS = Math.max(inS || 0, (stopAfter(R) - y) / pps()); }
       label = P.gate && target === P.gate.i ? 'Go now' : 'Skip';
       sub = `${stepLabel(P.steps[target], target)}${inS != null ? `, in ${F.clock(inS)}` : ''}`;
       cls = 'quiet';
@@ -1106,5 +1175,5 @@
     $('#fl-back').addEventListener('click', () => { if (P.onLeave) P.onLeave(); });
   }
 
-  global.FlowPlayer = { open, close, wire, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause };
+  global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause };
 })(window);

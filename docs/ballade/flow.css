@@ -311,7 +311,7 @@ html.pc .fl-player { border-left: 1px solid var(--line); border-right: 1px solid
 .fl-flow .shine use { stroke: var(--gold-hot); stroke-width: 1.1; }
 [data-mode="light"] .fl-flow .shine { opacity: .45; }
 
-.fl-run + .fl-run, .fl-run + .fl-end, .fl-empty + .fl-end { margin-top: 26px; }
+.fl-run + .fl-run, .fl-run + .fl-end, .fl-empty + .fl-end { margin-top: 8px; }
 .fl-run .fl-node { position: relative; z-index: 2; }
 .fl-dot { z-index: 2; }
 .fl-playhead { z-index: 3; }
@@ -398,7 +398,7 @@ a.ico { color: var(--text); text-decoration: none; }
 /* ---------- A choice: the silver gate ---------- */
 :root { --silver: #DCE3EC; --silver-hot: #FFFFFF; --silver-glow: rgba(214, 226, 240, .5); --silver-ink: #161A20; }
 [data-mode="light"] { --silver: #7E8A99; --silver-hot: #B9C3CF; --silver-glow: rgba(110, 125, 145, .35); --silver-ink: #FFFFFF; }
-.fl-run + .fl-choice, .fl-choice + .fl-run, .fl-choice + .fl-end, .fl-empty + .fl-choice { margin-top: 26px; }
+.fl-run + .fl-choice, .fl-choice + .fl-run, .fl-choice + .fl-end, .fl-empty + .fl-choice { margin-top: 10px; }
 .fl-choice { position: relative; text-align: center; }
 .fl-choice .fl-node-row { flex-direction: row; align-items: center; gap: 12px; padding-left: calc(50% - 23px); text-align: left; }
 .fl-node.silver { position: relative; z-index: 2; flex: none; color: var(--silver); border-color: color-mix(in srgb, var(--silver) 70%, var(--wire)); background: var(--bg); }

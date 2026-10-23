@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261022.1';
+  const VERSION = '261023.1';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -74,9 +74,9 @@
 
   /* ================= Discovery tale ================= */
   const DISCOVERIES = [
-    { id: '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', revision: 2, file: 'discovery/261017_underwater-adventure.troubadour-ballade', title: 'Underwater Adventure',
+    { id: '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', revision: 3, file: 'discovery/261017_underwater-adventure.troubadour-ballade', title: 'Underwater Adventure',
       blurb: 'Five chapters already timed, from a lazy beach to the Kraken. About 32 MB.' },
-    { id: '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', revision: 1, file: 'discovery/261021_treasure-island-choices.troubadour-ballade', title: 'Treasure Island, by your choices',
+    { id: '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', revision: 2, file: 'discovery/261021_treasure-island-choices.troubadour-ballade', title: 'Treasure Island, by your choices',
       blurb: 'Two chapters where the players decide: choices within choices, three deep. A music in every scene, effects, some at random. About 17 MB.' },
   ];
   function discoveryCard(d) {
@@ -234,6 +234,11 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.fade = Number(b.dataset.v); saveSettings(); paintSettings();
     });
+    $('#clock-pick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.clock = Number(b.dataset.v); saveSettings(); paintSettings();
+      if (window.FlowPlayer.isOpen()) window.FlowPlayer.relayout();
+    });
     $('#opt-autonext').addEventListener('change', (e) => { settings.autoNext = e.target.checked; saveSettings(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
@@ -253,6 +258,7 @@
   function paintSettings() {
     buildSettings.paintThemes();
     document.querySelectorAll('#mode-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.mode)));
+    document.querySelectorAll('#clock-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === Number(settings.clock || 10))));
     document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
     $('#opt-awake').checked = settings.awake;
     $('#opt-autonext').checked = !!settings.autoNext;

@@ -74,14 +74,16 @@ def card(ch, name, offset=0, duration=None, repeat=False, fade_in=0, fade_out=0,
     s = by_name[(ch, name)]
     return {'name': name, 'file': s['file'], 'zone': s['zone'], 'offset': offset, 'start': start,
             'duration': duration if duration is not None else round(s['duration'] - start, 1),
-            'repeat': repeat, 'fadeIn': fade_in, 'fadeOut': fade_out, 'volume': volume}
+            'repeat': repeat, 'fadeIn': fade_in, 'fadeOut': fade_out, 'volume': volume,
+            # A looping ambiance holds the scene: it lasts as long as the sounds beside it, then loops until the next Go.
+            **({'play': 'loop', 'hold': True} if repeat else {'play': 'once'})}
 
 
 def step(title, cards, gate=True, next_=None):
     return {'title': title, 'gate': gate, 'next': next_, 'cards': cards}
 
 
-AMB = 600  # ambiances hold for ten minutes, the time of a scene
+AMB = 20  # a looping ambiance is drawn at least this long, or as long as the sounds beside it
 
 flow_chapters = [
     {'steps': [  # 1. Chill on the beach
@@ -173,7 +175,7 @@ flow_chapters = [
 
 flow = {
     'format': 'troubadour-ballade', 'version': 1, 'id': '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', 'story': story['id'],
-    'revision': 2, 'bard': 'Troubadour', 'created': STAMP, 'forged': STAMP, 'generator': 'Troubadour Ballade discovery script',
+    'revision': 3, 'bard': 'Troubadour', 'created': STAMP, 'forged': STAMP, 'generator': 'Troubadour Ballade discovery script',
     'chapters': flow_chapters,
 }
 
