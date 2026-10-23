@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261023.1';
+  const VERSION = '261023.2';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -323,8 +323,8 @@
       if (!RECENT[s.uid]) { RECENT[s.uid] = { at: Date.parse(s.updated || '') || Date.now(), ch: null }; changed = true; }
       const lk = lookOf(s);
       const c = s.extra && s.extra.cover;
-      if (!c || c.kind !== lk.kind || c.color !== lk.color) {
-        s.extra = Object.assign({}, s.extra || {}, { cover: lk });
+      if (!c || c.kind !== lk.kind || c.tint !== lk.tint) {
+        s.extra = Object.assign({}, s.extra || {}, { cover: TroubadourCover.stored(lk) });
         try { await DB.putStory(s, false); } catch (e) { /* kept for this session only */ }
       }
     }
@@ -372,7 +372,7 @@
     const lk = lookOf(s);
     const r = RECENT[s.uid] || {};
     const c = el('section', 'hero');
-    c.style.setProperty('--c', lk.color);
+    c.style.setProperty('--c', TroubadourCover.tintCss(lk.tint));
     c.append(TroubadourCover.element(lk, false));
     const inner = el('div', 'hero-in');
     const kick = el('div', 'hero-kick');
@@ -393,7 +393,7 @@
   function storyRow(s) {
     const lk = lookOf(s);
     const row = el('div', 'srow');
-    row.style.setProperty('--c', lk.color);
+    row.style.setProperty('--c', TroubadourCover.tintCss(lk.tint));
     const art = TroubadourCover.element(lk, false);
     const txt = el('div', 'stxt');
     txt.append(el('b', '', s.title || 'Untitled story'), el('span', 'meta', `${sourceLabel(s)}, ${plural(s.chapters.length, 'chapter')}, ${plural(soundCount(s), 'sound')}`));

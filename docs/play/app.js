@@ -458,7 +458,7 @@
   function heroCard(s, r) {
     const lk = TroubadourCover.look(s.id, s.cover);
     const c = el('section', 'hero');
-    c.style.setProperty('--c', lk.color);
+    c.style.setProperty('--c', TroubadourCover.tintCss(lk.tint));
     c.append(TroubadourCover.element(lk, false));
     const inner = el('div', 'hero-in');
     const kick = el('div', 'hero-kick');
@@ -479,7 +479,7 @@
   function storyRow(s) {
     const lk = TroubadourCover.look(s.id, s.cover);
     const row = el('div', 'srow');
-    row.style.setProperty('--c', lk.color);
+    row.style.setProperty('--c', TroubadourCover.tintCss(lk.tint));
     const txt = el('div', 'stxt');
     txt.append(el('b', '', s.title), el('span', 'meta', storyMeta(s)));
     const go = el('button', 'go');

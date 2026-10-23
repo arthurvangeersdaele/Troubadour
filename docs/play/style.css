@@ -403,9 +403,22 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 .lvl.living::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--z); opacity: .85; transform: translateX(var(--lo, 0px)); transition: transform .25s linear; }
 
 /* ---------- Story covers (cover.js) ---------- */
-.cover { position: relative; overflow: hidden; }
+/* Every colour comes from the theme: the wire is the accent, the ground the card, the ink the text,
+   and the story's tint (--cv-c, set by cover.js) one of the theme's colours. A new theme needs nothing here. */
+.cover {
+  --cv-c: var(--amb);
+  --cv-line: var(--accent);
+  --cv-pale: color-mix(in srgb, var(--accent) 55%, var(--text));
+  --cv-ground: var(--card);
+  --cv-ink: var(--text);
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(60% 85% at 50% 50%, color-mix(in srgb, var(--cv-c) 24%, transparent) 0%, color-mix(in srgb, var(--cv-c) 7%, transparent) 55%, transparent 80%),
+    radial-gradient(130% 130% at 50% 50%, transparent 55%, color-mix(in srgb, var(--bg) 60%, transparent) 100%),
+    var(--cv-ground);
+}
 .cover .cover-art { position: absolute; inset: 0; width: 100%; height: 100%; }
-.cover.framed::after { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(232,194,122,.22); border-radius: 9px; pointer-events: none; }
+.cover.framed::after { content: ''; position: absolute; inset: 7px; border: 1px solid color-mix(in srgb, var(--cv-line) 25%, transparent); border-radius: 9px; pointer-events: none; }
 
 /* ---------- Library, layout B: the last story in big, the others in a list ---------- */
 .lib-b { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; align-items: start; }
@@ -413,10 +426,10 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 .hero {
   --c: var(--accent);
   position: relative; overflow: hidden; display: flex; min-height: 270px; border-radius: 18px;
-  background: #15161C; color: #EFEAE0; border: 1px solid color-mix(in srgb, var(--c) 38%, #2A2B33);
+  background: var(--card); color: var(--text); border: 1px solid color-mix(in srgb, var(--c) 40%, var(--line));
 }
-.hero > .cover { position: absolute; inset: 0 0 0 50%; background: transparent !important; }
-.hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(45% 80% at 76% 45%, color-mix(in srgb, var(--c) 26%, transparent) 0%, transparent 75%), radial-gradient(130% 130% at 50% 50%, transparent 55%, rgba(0,0,0,.4) 100%); }
+.hero > .cover { position: absolute; inset: 0 0 0 50%; background: none; }
+.hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(45% 80% at 76% 45%, color-mix(in srgb, var(--c) 24%, transparent) 0%, transparent 75%), radial-gradient(130% 130% at 50% 50%, transparent 55%, color-mix(in srgb, var(--bg) 55%, transparent) 100%); }
 .hero-scrim { display: none; }
 .hero-in { position: relative; display: flex; flex-direction: column; gap: 7px; padding: 16px 18px; flex: 1; min-width: 0; }
 .hero-in > :not(.hero-acts) { max-width: 54%; }
@@ -424,17 +437,17 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 .hero-kick, .hero-in > * { position: relative; }
 .hero-kick { display: flex; align-items: center; gap: 8px; }
 .hero .tag, .menu-by { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
-.hero .tag { color: #EFEAE0; background: rgba(15,15,19,.55); border: 1px solid var(--c); padding: 2px 7px; border-radius: 6px; }
-.hero .kick { font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: color-mix(in srgb, var(--c) 60%, #EFEAE0); }
-.hero h2 { margin: 2px 0 0; font-size: 29px; line-height: 1; color: #EFEAE0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hero-sub { margin: 0; font-size: 14px; color: #CFCAC0; }
+.hero .tag { color: var(--text); background: color-mix(in srgb, var(--bg) 50%, transparent); border: 1px solid var(--c); padding: 2px 7px; border-radius: 6px; }
+.hero .kick { font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: color-mix(in srgb, var(--c) 65%, var(--text)); }
+.hero h2 { margin: 2px 0 0; font-size: 29px; line-height: 1; color: var(--text); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hero-sub { margin: 0; font-size: 14px; color: color-mix(in srgb, var(--text) 78%, var(--muted)); }
 .hero-sub.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hero-meta { margin: 0; font-size: 12px; color: #A3A3AF; }
+.hero-meta { margin: 0; font-size: 12px; color: var(--muted); }
 .hero .grow { flex: 1; min-height: 4px; }
 .hero-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; position: relative; }
 .hero-acts .hb {
   height: 44px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap;
-  border-radius: 11px; border: 1px solid rgba(239,234,224,.22); background: rgba(15,15,19,.45); color: #EFEAE0;
+  border-radius: 11px; border: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 45%, transparent); color: var(--text);
   font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .hero-acts .hb.primary { background: var(--accent); border-color: var(--accent); color: var(--on-z, #17130B); }

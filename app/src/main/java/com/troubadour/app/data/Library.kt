@@ -74,8 +74,9 @@ object Library {
         val look = coverOf(s)
         val extra = runCatching { JSONObject(s.extra) }.getOrDefault(JSONObject())
         val c = extra.optJSONObject("cover")
-        if (c != null && c.optString("kind") == look.kind && c.optString("color") == look.color) return s
-        extra.put("cover", JSONObject().put("kind", look.kind).put("color", look.color))
+        if (c != null && c.optString("kind") == look.kind && c.optString("tint") == look.tint) return s
+        // The tint is a role of the theme; its colour in the default theme rides along for tools that do not know themes.
+        extra.put("cover", JSONObject().put("kind", look.kind).put("tint", look.tint).put("color", com.troubadour.app.ui.Covers.TINT_HEX[look.tint]))
         return s.copy(extra = extra.toString())
     }
 

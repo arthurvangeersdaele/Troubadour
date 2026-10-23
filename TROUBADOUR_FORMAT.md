@@ -89,7 +89,7 @@ Unknown fields must be kept when a tool re-saves a file, so later versions can a
 
 Known optional extras: a sound taken from the Recueil's sound library by the Story builder carries `"recueil": { "tale": "Werewolf", "bard": "Troubadour" }`, the tale it comes from, so it can be credited.
 
-The story's own `extra` may carry `"cover": { "kind": "book", "color": "#4DB6A6" }`: the cover the apps draw for it in the library. `kind` is one of `bard` (the Troubadour wire and bars), `music`, `book`, `scroll` (chronicle) or `map` (journey); `color` is a `#RRGGBB` tint. The apps pick it the first time they see a story (from its `id`, so the same story gets the same cover everywhere) and keep it from then on, so it travels with the file.
+The story's own `extra` may carry `"cover": { "kind": "book", "tint": "amb", "color": "#4DB6A6" }`: the cover the apps draw for it in the library. `kind` is one of `bard` (the Troubadour wire and bars), `music`, `book`, `scroll` (chronicle) or `map` (journey). `tint` is a role of the theme, not a colour: `amb`, `evt` and `blue` are theme colours, `violet` and `ember` mixes of them, so the cover follows whatever theme the troubadour picks. `color` is that tint in the default theme, for tools that do not know themes (files from before `tint` carry only `color`, matched back to its tint). The apps pick a cover the first time they see a story (from its `id`, so the same story gets the same cover everywhere) and keep it from then on, so it travels with the file.
 
 The Recueil's sound library (`docs/recueil/sounds.json`) relies on stored entries: a sound's bytes are one contiguous range of the `.troubadour` file, which the Story builder downloads on its own. Deflated entries still work, they are inflated after download.
 

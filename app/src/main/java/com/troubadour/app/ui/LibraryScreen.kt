@@ -153,8 +153,6 @@ fun LibraryScreen(m: AppModel) {
     }
 }
 
-private val HeroInk = Color(0xFFEFEAE0)
-private val HeroMuted = Color(0xFFA3A3AF)
 
 private fun sourceLabel(s: Story) = when {
     s.source.startsWith("discovery") -> "Discovery"
@@ -166,15 +164,15 @@ private fun sourceLabel(s: Story) = when {
 @Composable
 private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) {
     val look = Library.coverOf(s)
-    val c = Covers.color(look.color)
+    val c = tintColor(look.tint)
     val opened = r?.chapter != null
     val shape = RoundedCornerShape(18.dp)
     Box(
         modifier
             .heightIn(min = 270.dp)
             .clip(shape)
-            .background(Covers.GROUND)
-            .border(1.dp, lerp(Color(0xFF2A2B33), c, 0.38f), shape)
+            .background(C.card)
+            .border(1.dp, lerp(C.line, c, 0.4f), shape)
     ) {
         StoryCover(look, Modifier.matchParentSize(), framed = false, rightHalf = true)
         Column(
@@ -183,25 +181,25 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0x8C0F0F13)).border(1.dp, c, RoundedCornerShape(6.dp))
+                    Modifier.clip(RoundedCornerShape(6.dp)).background(C.bg.copy(alpha = 0.5f)).border(1.dp, c, RoundedCornerShape(6.dp))
                         .padding(horizontal = 7.dp, vertical = 2.dp)
-                ) { T(sourceLabel(s).uppercase(), color = HeroInk, size = 10.sp, weight = FontWeight.Bold) }
+                ) { T(sourceLabel(s).uppercase(), color = C.text, size = 10.sp, weight = FontWeight.Bold) }
                 Text(
-                    (if (opened) "Last opened" else "Just added").uppercase(), color = lerp(HeroInk, c, 0.6f),
+                    (if (opened) "Last opened" else "Just added").uppercase(), color = lerp(C.text, c, 0.65f),
                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = Barlow, letterSpacing = 2.sp,
                 )
             }
             val half = Modifier.fillMaxWidth(0.54f)
-            Title(s.title.ifBlank { "Untitled story" }, 29, color = HeroInk, maxLines = 2, modifier = half)
-            if (s.description.isNotBlank()) T(s.description, color = Color(0xFFCFCAC0), size = 14.sp, maxLines = 2, modifier = half)
+            Title(s.title.ifBlank { "Untitled story" }, 29, maxLines = 2, modifier = half)
+            if (s.description.isNotBlank()) T(s.description, color = lerp(C.text, C.muted, 0.22f), size = 14.sp, maxLines = 2, modifier = half)
             T(
                 "${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))}",
-                color = HeroMuted, size = 12.sp, maxLines = 1, modifier = half,
+                color = C.muted, size = 12.sp, maxLines = 1, modifier = half,
             )
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn("Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, 0) }
-                IconBtn(BIcons.more, "More: ${s.title}", size = 44.dp, tint = HeroInk, background = Color(0x730F0F13), border = HeroInk.copy(alpha = 0.22f)) {
+                IconBtn(BIcons.more, "More: ${s.title}", size = 44.dp, tint = C.text, background = C.bg.copy(alpha = 0.45f), border = C.line) {
                     m.sheet = Sheet.StoryMenu(s.uid)
                 }
             }
@@ -212,7 +210,7 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
 @Composable
 private fun StoryRow(m: AppModel, s: Story) {
     val look = Library.coverOf(s)
-    val c = Covers.color(look.color)
+    val c = tintColor(look.tint)
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(C.card).border(1.dp, C.line, shape).padding(8.dp),
