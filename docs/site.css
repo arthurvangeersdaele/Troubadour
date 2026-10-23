@@ -26,7 +26,11 @@ html.iphone .not-iphone{display:none!important}
 .hero p.lead{font-size:clamp(19px,2.2vw,23px);color:var(--muted);max-width:640px;margin:0 0 24px}
 .ctas{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .btn{display:inline-flex;align-items:center;gap:8px;height:48px;padding:0 20px;border-radius:12px;font-weight:600;font-size:17px;text-decoration:none;border:1px solid var(--line);color:var(--text)}
-.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+/* Call to action: a touch less white than the text, with a soft glow and a white light sweeping across */
+.btn.primary{position:relative;overflow:hidden;background:color-mix(in srgb,var(--text) 86%,var(--bg));color:var(--bg);border-color:color-mix(in srgb,var(--text) 86%,var(--bg));box-shadow:0 0 28px color-mix(in srgb,var(--text) 30%,transparent);transition:transform .2s,box-shadow .2s}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 0 40px color-mix(in srgb,var(--text) 45%,transparent)}
+.btn.primary::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.btn.primary::after{animation:none;display:none}}
 .btn.big{height:56px;padding:0 26px;font-size:19px}
 .d20{display:inline-flex;color:var(--muted);transition:color .2s,transform .4s}.d20:hover{color:var(--accent);transform:rotate(-12deg)}.d20 .gh{fill:currentColor}
 
@@ -247,7 +251,7 @@ nav .logo img{width:34px;height:34px;border-radius:8px;display:block;flex:none}
 /* "See it in action": white, with a light sweeping across */
 .shine{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 26px;border-radius:12px;background:color-mix(in srgb,var(--text) 86%,var(--bg));border:1px solid color-mix(in srgb,var(--text) 86%,var(--bg));color:var(--bg);font-weight:600;font-size:19px;text-decoration:none;box-shadow:0 0 28px color-mix(in srgb,var(--text) 30%,transparent);transition:transform .2s,box-shadow .2s}
 .shine:hover{transform:translateY(-2px);box-shadow:0 0 40px color-mix(in srgb,var(--text) 45%,transparent)}
-.shine::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite}
+.shine::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.9),transparent);transform:skewX(-20deg);animation:shine 3.2s ease-in-out infinite;pointer-events:none}
 @keyframes shine{0%,55%{left:-60%}100%{left:130%}}
 @media (prefers-reduced-motion:reduce){.shine::after{animation:none;display:none}}
 @media (max-width:480px){nav .logo{font-size:20px;gap:7px}nav .logo img{width:26px;height:26px}.navlinks.keep{gap:11px;font-size:14px}}
