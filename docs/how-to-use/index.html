@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="../icons/261013_troubadour_icon.svg">
+<link rel="apple-touch-icon" href="../icons/261013_troubadour_apple_touch_icon.png">
+<meta name="theme-color" content="#0F0F13">
+<script src="../device.js"></script>
+<title>How to use | Troubadour</title>
+<meta name="description" content="How to use Troubadour: the tutorial, three discovery stories to play in your browser, the key principles and the controls of a sound card.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="nav-left"><a class="back" href="../" aria-label="Back to the website"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Website</span></a><a class="logo" href="../">Troubadour</a></div>
+    <div class="navlinks"><a href="./" aria-current="page">How to use</a><a href="../troupe/">La Troupe</a><a href="../#geek">GitHub</a></div>
+  </nav>
+
+  <header class="hero page-hero">
+    <p class="kicker">How to use</p>
+    <h1>From your first sound to your first session.</h1>
+    <p class="lead">Watch the tutorial, try a discovery story right here, then learn the few ideas behind every Troubadour table.</p>
+    <div class="jump" role="navigation" aria-label="On this page"><a href="#tutorial">Tutorial</a><a href="#discovery">Discovery editions</a><a href="#table">Key principles</a><a href="#card">Controls</a></div>
+  </header>
+
+  <!-- Tutorial -->
+  <section id="tutorial">
+    <p class="kicker">Tutorial</p>
+    <h2>How does a Troubadour play?</h2>
+    <p class="intro">Put your headphones on, and discover Troubadour. This tutorial shows you how to play a story and how to rhythm and share your own stories. Discover La Troupe, in which everything can be shared freely.</p>
+    <div class="film" id="film">
+      <video id="tuto" playsinline preload="metadata" poster="../tutorial/261015_troubadour_tutorial_poster.jpg">
+        <source src="../tutorial/261015_troubadour_tutorial_en.mp4" type="video/mp4">
+      </video>
+      <button class="big-play" id="big-play" type="button" aria-label="Play the tutorial"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L9.5 3.94A1 1 0 0 0 8 4.8z"/></svg></button>
+    </div>
+    <div class="vbar" id="vbar">
+      <button type="button" id="v-play" aria-label="Play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></button>
+      <span class="time" id="v-time">0:00 / 3:18</span>
+      <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Position in the tutorial">
+      <span class="lang" role="group" aria-label="Subtitles language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="fr" aria-pressed="false">FR</button>
+      </span>
+      <button type="button" id="v-full" aria-label="Full screen" title="Full screen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+    <p class="video-note">Sound credits: <a href="https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/tutorial/261015_troubadour_tutorial_credits.md">tutorial credits</a>.</p>
+  </section>
+
+
+  <!-- Discovery editions: the web player's three stories -->
+  <section id="discovery">
+    <p class="kicker">Test it online</p>
+    <h2>Discovery editions.</h2>
+    <p class="intro">Three ready-made stories to play in your browser, on any device, nothing to install. Put your headphones on and tap the cards.</p>
+    <div class="stories">
+      <a class="story" href="../play/#/forest/1" style="--z:var(--music)"><span class="ed">Discovery edition</span><b>The Forest Adventure</b><span>Deep woods, a hungry bear, and a warm pub at the end of the road.</span><em>4 chapters, play in your browser</em></a>
+      <a class="story" href="../play/#/big-war/1" style="--z:var(--amb)"><span class="ed">Discovery edition</span><b>The Big War</b><span>From the training camp to the last charge of a battle that changes everything.</span><em>5 chapters, play in your browser</em></a>
+      <a class="story" href="../play/#/underwater/1" style="--z:var(--evt)"><span class="ed">Discovery edition</span><b>Underwater Adventure</b><span>A lazy day at the beach turns into a dive among pirates and monsters.</span><em>5 chapters, play in your browser</em></a>
+    </div>
+    <div class="ctas" style="margin-top:22px"><a class="btn primary" href="../play/">Open the web player</a></div>
+    <p class="get-note">The discovery editions need a connection and load a whole story before playing. For real sessions, with your own stories and sounds, <a href="../#get">get the app</a>.</p>
+  </section>
+
+  <!-- Key principles -->
+  <section id="table">
+    <p class="kicker">Troubadour Key Principles</p>
+    <h2>The Troubadour tells a Story.</h2>
+    <h2>A Story has its Chapters.</h2>
+    <h2>Chapters have theirs own Sounds.</h2>
+    <p class="intro">Prepare your story before your session. At the table, each chapter opens its own mixing table, and every sound waits on a card, ready to fire under your hand.</p>
+    <div class="levels">
+      <div class="lv"><span class="n">1</span><h3>Story</h3><p>Sotry Title: The Drowned Abbey. It holds its chapters and its own soundbox of quick effects.</p></div>
+      <div class="lv"><span class="n">2</span><h3>Chapter</h3><p>A Chapter is your scene: the flooded nave, the crypt, the abbot's fury.</p></div>
+      <div class="lv"><span class="n">3</span><h3>3 sort of Sounds</h3>
+        <div class="cats">
+          <span style="--z:var(--music)"><b>Music</b>: one track at a time, crossfading.</span>
+          <span style="--z:var(--amb)"><b>Ambiances</b>: rain, fire, crowds, layered on loop.</span>
+          <span style="--z:var(--evt)"><b>Events</b>: bells, roars, explosions, on cue or at random.</span>
+        </div>
+      </div>
+      <div class="lv"><span class="n">4</span><h3>Sound card</h3><p>One sound with its own controls. Play, pause, fade it out, loop it. Its anatomy is just below.</p></div>
+    </div>
+
+    <div class="phone" aria-label="A chapter at the table: The Drowned Abbey, chapter 2, with Music, Ambiances and Events rows of sound cards" role="img">
+      <div class="screen"><div class="table" id="mock">
+        <span class="n" style="left:244px;top:4px">1</span>
+        <span class="n" style="left:236px;top:30px">2</span>
+        <span class="n" style="left:6px;top:66px">3</span>
+        <span class="n" style="left:266px;top:98px">4</span>
+        <div class="tbar">
+          <div class="ico">‹</div>
+          <div class="ttl"><b>The Drowned Abbey</b><span>Chapter 2: The Flooded Nave</span></div>
+          <div class="chip">Loaded <b style="color:var(--text)">6/20</b></div>
+          <div class="chip" style="color:var(--text)">❚❚ &nbsp;■ &nbsp;Master 80</div>
+          <div class="chip" style="color:var(--accent);border-color:var(--accent)">★ Soundbox</div>
+        </div>
+        <div class="rows" id="rows"></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- Controls: a sound card -->
+  <section id="card">
+    <p class="kicker">You're in control</p>
+    <h2>Inside a sound card.</h2>
+    <p class="intro">Everything a sound needs during the game, within reach of a thumb. You can preset everything before your session.</p>
+    <div class="anat" id="anat">
+      <div class="stage" id="stage">
+        <svg class="leads" viewBox="0 0 1000 480" aria-hidden="true">
+          <path d="M262 150H290"/>
+          <path d="M612 72V110"/>
+          <path d="M760 150H710"/>
+          <path d="M262 202H290"/>
+          <path d="M262 282H290"/>
+          <path d="M418 384V340"/>
+          <path d="M760 282H710"/>
+          <path d="M650 384V340"/>
+        </svg>
+        <div class="acard" aria-hidden="true">
+          <span class="nm">Church bells</span>
+          <span class="tm">0:08</span>
+          <span class="lp">1×</span>
+          <span class="tr"><i></i></span>
+          <span class="pl"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></span>
+          <span class="en"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="5.5" y="5.5" width="13" height="13" rx="2"/></svg></span>
+          <span class="vl"><i></i><b></b></span>
+        </div>
+        <span class="n pin" style="left:290px;top:150px">1</span>
+        <span class="n pin" style="left:612px;top:110px">2</span>
+        <span class="n pin" style="left:710px;top:150px">3</span>
+        <span class="n pin" style="left:290px;top:202px">4</span>
+        <span class="n pin" style="left:290px;top:282px">5</span>
+        <span class="n pin" style="left:418px;top:340px">6</span>
+        <span class="n pin" style="left:710px;top:282px">7</span>
+        <span class="n pin" style="left:650px;top:340px">8</span>
+
+        <div class="lbl right" style="left:4px;top:98px"><b>Name <span class="n">1</span></b>The sound, as it shows at the table.</div>
+        <div class="lbl center" style="left:487px;top:0px"><b><span class="n">2</span> Time left</b>Turns red in the last ten seconds. Endless sounds say ∞ loop.</div>
+        <div class="lbl" style="left:770px;top:110px"><b><span class="n">3</span> Loop</b>1× once, 2× twice, ∞ forever. Events and ambiances can also come back at random.</div>
+        <div class="lbl right" style="left:4px;top:180px"><b>Progress <span class="n">4</span></b>Green to red as the end comes. Full blue for an endless loop.</div>
+        <div class="lbl right" style="left:4px;top:262px"><b>Play / Pause <span class="n">5</span></b>Starts at once, pauses without a click.</div>
+        <div class="lbl center" style="left:293px;top:392px"><b><span class="n">6</span> Fade out</b>Ends the sound softly instead of cutting it.</div>
+        <div class="lbl" style="left:770px;top:262px"><b><span class="n">7</span> Volume</b>Its own level, under the master volume.</div>
+        <div class="lbl center" style="left:525px;top:392px"><b><span class="n">8</span> Glow</b>The card lights up in its row's colour while it plays.</div>
+      </div>
+    </div>
+    <ol class="anat-list">
+      <li><span class="n">1</span><span><b>Name</b>: the sound, as it shows at the table.</span></li>
+      <li><span class="n">2</span><span><b>Time left</b>: turns red in the last ten seconds. Endless sounds say ∞ loop.</span></li>
+      <li><span class="n">3</span><span><b>Loop</b>: 1× once, 2× twice, ∞ forever. Events and ambiances can also come back at random.</span></li>
+      <li><span class="n">4</span><span><b>Progress</b>: green to red as the end comes. Full blue for an endless loop.</span></li>
+      <li><span class="n">5</span><span><b>Play / Pause</b>: starts at once, pauses without a click.</span></li>
+      <li><span class="n">6</span><span><b>Fade out</b>: ends the sound softly instead of cutting it.</span></li>
+      <li><span class="n">7</span><span><b>Volume</b>: its own level, under the master volume.</span></li>
+      <li><span class="n">8</span><span><b>Glow</b>: the card lights up in its row's colour while it plays.</span></li>
+    </ol>
+  </section>
+
+
+  <footer>
+    <span><a href="../">Troubadour</a>, the sound table for game masters. Join <a href="../troupe/">La Troupe</a> and the troubadours on <a href="https://discord.gg/EkcyrgKQT" target="_blank" rel="noopener">Discord</a>.</span>
+    <a href="https://github.com/arthurvangeersdaele/Troubadour">github.com/arthurvangeersdaele/Troubadour</a>
+  </footer>
+</div>
+<script>
+(function(){
+  /* Mixing table mock */
+  var zones=[
+    {name:'Music',v:'--music',cards:[['Tavern Hearth',0,true,38,70],['Abbey Organ',2,false,0,65],['Storm at Sea',0,false,0,80],['Final Duel',1,false,0,85]]},
+    {name:'Ambiances',v:'--amb',cards:[['Rain on Stone',2,true,100,55],['Crackling Fire',2,true,100,40],['Distant Gulls',1,true,62,30],['Wind Howl',2,false,0,50]]},
+    {name:'Events',v:'--evt',cards:[['Church Bells',1,true,88,75],['Battle Melee',0,false,0,80],['Volcano Eruption',0,false,0,90],['Door Creak',0,false,0,60]]}
+  ];
+  var L=['1×','2×','∞'];
+  var rows=document.getElementById('rows');
+  zones.forEach(function(z){
+    var r=document.createElement('div');r.className='row';
+    var lab=document.createElement('div');lab.className='zl';lab.style.borderLeft='3px solid var('+z.v+')';
+    lab.innerHTML='<span style="color:var('+z.v+')">'+z.name+'</span>';
+    var cs=document.createElement('div');cs.className='cards';
+    z.cards.forEach(function(c){
+      var inf=c[1]===2, pct=c[3], hue=Math.round(130-1.3*pct);
+      var col=inf?'var(--blue)':'hsl('+hue+',72%,50%)';
+      var d=document.createElement('div');d.className='c'+(c[2]?' on':'');d.style.setProperty('--z','var('+z.v+')');
+      d.innerHTML='<div class="ch"><b>'+c[0]+'</b>'+(inf&&c[2]?'<small>∞ loop</small>':'')+'<em style="color:'+(inf?'var(--blue)':'inherit')+'">'+L[c[1]]+'</em></div>'+
+        '<div class="track"><div class="fill" style="width:'+pct+'%;background:'+col+'"></div></div>'+
+        '<div class="ctrl"><div class="pb">'+(c[2]?'❚❚':'▶')+'</div><div class="pb" style="background:transparent;border:1px solid var(--line);color:var(--text)">■</div><div class="vol"><i style="width:'+c[4]+'%"></i></div></div>';
+      cs.appendChild(d);
+    });
+    r.appendChild(lab);r.appendChild(cs);rows.appendChild(r);
+  });
+  /* Scale the fixed-size drawings to their box */
+  var mock=document.getElementById('mock'), stage=document.getElementById('stage');
+  function fit(){
+    mock.style.transform='scale('+(mock.parentNode.clientWidth/844)+')';
+    stage.style.transform='scale('+(stage.parentNode.clientWidth/1000)+')';
+  }
+  window.addEventListener('resize',fit);fit();
+
+  /* Tutorial player: the frame melts into the page, so the controls sit below it */
+  var v=document.getElementById('tuto'), film=document.getElementById('film'), playB=document.getElementById('v-play'),
+      seek=document.getElementById('v-seek'), time=document.getElementById('v-time'), seeking=false;
+  var PLAY='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
+      PAUSE='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>';
+  function fmt(s){s=Math.max(0,Math.floor(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+  function toggle(){ if(v.paused) v.play(); else v.pause(); }
+  function paint(){
+    var on=!v.paused&&!v.ended;
+    film.classList.toggle('playing',on);
+    playB.innerHTML=on?PAUSE:PLAY; playB.setAttribute('aria-label',on?'Pause':'Play');
+    if(!seeking&&v.duration) seek.value=Math.round(v.currentTime/v.duration*1000);
+    time.textContent=fmt(v.currentTime)+' / '+fmt(v.duration||198);
+  }
+  ['play','pause','ended','timeupdate','loadedmetadata'].forEach(function(e){v.addEventListener(e,paint)});
+  film.addEventListener('click',toggle);
+  playB.addEventListener('click',toggle);
+  seek.addEventListener('input',function(){seeking=true;if(v.duration){time.textContent=fmt(seek.value/1000*v.duration)+' / '+fmt(v.duration)}});
+  seek.addEventListener('change',function(){if(v.duration)v.currentTime=seek.value/1000*v.duration;seeking=false});
+  document.getElementById('v-full').addEventListener('click',function(){
+    if(v.requestFullscreen)v.requestFullscreen();else if(v.webkitEnterFullscreen)v.webkitEnterFullscreen();
+  });
+  document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener('click',function(){
+    var lang=b.getAttribute('data-lang'), at=v.currentTime, wasPlaying=!v.paused;
+    document.querySelectorAll('.lang button').forEach(function(o){o.setAttribute('aria-pressed',String(o===b))});
+    v.src='../tutorial/261015_troubadour_tutorial_'+lang+'.mp4';
+    v.addEventListener('loadedmetadata',function once(){v.removeEventListener('loadedmetadata',once);v.currentTime=Math.min(at,v.duration||at);if(wasPlaying)v.play()});
+    v.load();
+  })});
+  if(/^fr\b/i.test(navigator.language||''))document.querySelector('.lang button[data-lang="fr"]').click();
+  paint();
+  paint();
+})();
+</script>
+</body>
+</html>

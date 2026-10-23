@@ -48,20 +48,32 @@
   .door.flow-android:hover { transform: none; box-shadow: none; border-color: var(--line); }
   .door .tag { align-self: flex-start; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--z, var(--accent)); border: 1px solid color-mix(in srgb, var(--z, var(--accent)) 55%, var(--line)); border-radius: 999px; padding: 2px 9px; }
   .door .off { font-size: 13px; }
-  /* A door that cannot open here (wrong device) explains why. */
-  html:not(.pc) .door.flow-editor, html:not(.iphone) .door.flow-iphone { pointer-events: none; opacity: .72; }
-  html:not(.pc) .door.flow-editor .go, html:not(.iphone) .door.flow-iphone .go { display: none; }
-  html.pc .door.flow-editor .off, html.iphone .door.flow-iphone .off { display: none; }
   html.pc .doors.three { grid-template-columns: repeat(3, minmax(0, 290px)); }
+  .door.flow-iphone { cursor: pointer; text-align: left; font: inherit; color: inherit; }
+  /* The player installs on an iPhone; a computer shows a QR code to scan with it; elsewhere it explains. */
+  .door .for-iphone, .door .for-pc, .door .for-other { display: none; }
+  html.iphone .door .for-iphone, html.pc .door .for-pc, html:not(.iphone):not(.pc) .door .for-other { display: block; }
+  html:not(.iphone):not(.pc) .door.flow-iphone { pointer-events: none; opacity: .75; }
+  html:not(.iphone):not(.pc) .door.flow-iphone .go { display: none; }
+  .qr-veil { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(5,5,8,.72); backdrop-filter: blur(3px); padding: 16px; }
+  .qr-veil[hidden] { display: none; }
+  .qr-box { position: relative; background: var(--bar); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px 22px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .qr-box h3 { font-size: 28px; margin: 0 0 4px; }
+  .qr-box p { color: var(--muted); font-size: 15px; margin: 0 0 14px; }
+  .qr-code { background: #fff; border-radius: 14px; padding: 14px; width: 232px; height: 232px; margin: 0 auto 14px; display: grid; place-items: center; }
+  .qr-code svg { width: 100%; height: 100%; display: block; }
+  .qr-close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; display: grid; place-items: center; }
 </style>
+<script src="../device.js"></script>
 </head>
 <body>
 <div class="cpage">
 <header class="sbar">
-  <a class="logo" href="../">Troubadour</a>
-  <nav class="tabs" aria-label="Sections">
-    <a href="./" aria-current="page">Troubadour Ballade</a>
-    <a href="../troupe/">La Troupe</a>
+  <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+  <nav class="tabs" aria-label="La Troupe">
+    <a href="../play/">Online player</a>
+    <a href="../troupe/builder.html" class="pc-only">Story builder</a>
+    <a href="../troupe/recueil.html">Recueil</a>
   </nav>
   <span class="grow"></span>
 </header>
@@ -83,14 +95,41 @@
   </div>
 
   <nav class="doors three" aria-label="Troubadour Ballade">
-    <a class="door flow-editor" href="../ballade/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Computer</span><b>Ballade editor</b><span>Time the sounds of your stories and rhythm your .troubadour-ballade files.</span><span class="off">Open this page on a computer to use it.</span></a>
-    <a class="door flow-iphone" href="../ballade/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">In development</span><b>Troubadour Ballade for iPhone</b><span>The player, on your Home Screen. iPhone only for now.</span><span class="off">Open this page on your iPhone to install it.</span></a>
-    <div class="door flow-android" aria-disabled="true"><span class="tag">Coming soon</span><b>Troubadour Ballade for Android</b><span>The Android app is on its way. The APK will be dropped here soon.</span></div>
+    <a class="door flow-editor pc-only" href="../ballade/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Computer</span><b>Ballade editor</b><span>Time the sounds of your stories and rhythm your .troubadour-ballade files.</span></a>
+    <a class="door flow-iphone" href="../ballade/" id="ballade-player"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">iPhone, in development</span><b>Ballade player</b><span>The golden wire at your table, on your Home Screen.</span><span class="off for-iphone">Tap to install it on this iPhone.</span><span class="off for-pc">Click for a QR code to scan with your iPhone.</span><span class="off for-other">Made for iPhone for now: open this page on an iPhone to install it.</span></a>
+    <div class="door flow-android" aria-disabled="true"><span class="tag">Coming soon</span><b>Ballade for Android</b><span>The Android app is on its way. The APK will be dropped here soon.</span></div>
   </nav>
+  <p class="phone-note phone-only">The Ballade editor is made for a computer, with a mouse and room for every step. Open this page on a computer to time your stories.</p>
+  <div class="qr-veil" id="qr" hidden role="dialog" aria-modal="true" aria-labelledby="qr-title">
+    <div class="qr-box">
+      <button class="qr-close" type="button" id="qr-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <h3 id="qr-title">Ballade for iPhone</h3>
+      <p>Scan with your iPhone camera and open the page in Safari. Then tap Share and Add to Home Screen.</p>
+      <div class="qr-code" id="qr-code"></div>
+    </div>
+  </div>
 </main>
 </div>
 <script>
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.querySelectorAll('.wire-art').forEach(function (s) { s.pauseAnimations && s.pauseAnimations(); });
+</script>
+<script src="../vendor/qrcode-generator-1.4.4.js"></script>
+<script>
+  // On a computer, the Ballade player door shows a QR code for the iPhone.
+  (function () {
+    var veil = document.getElementById('qr'), door = document.getElementById('ballade-player');
+    door.addEventListener('click', function (e) {
+      if (!document.documentElement.classList.contains('pc') || typeof qrcode !== 'function') return;
+      e.preventDefault();
+      var q = qrcode(0, 'M'); q.addData(new URL('../ballade/', location.href).href); q.make();
+      document.getElementById('qr-code').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+      veil.hidden = false; document.getElementById('qr-close').focus();
+    });
+    function hide() { veil.hidden = true; door.focus(); }
+    document.getElementById('qr-close').addEventListener('click', hide);
+    veil.addEventListener('click', function (e) { if (e.target === veil) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !veil.hidden) hide(); });
+  })();
 </script>
 <script src="../auth/account.js"></script>
 <script src="../troupe/settings.js"></script>

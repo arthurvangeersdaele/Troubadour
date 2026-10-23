@@ -743,6 +743,19 @@
     $('#f-title').focus();
   });
 
+  // Back to La Troupe: the story in progress stays in this browser, unless the troubadour clears it.
+  $('#back-link')?.addEventListener('click', (e) => {
+    const to = e.currentTarget.href;
+    if (isEmpty()) return;
+    e.preventDefault();
+    const box = veil(`<h2>Leave the Story builder?</h2>
+      <p>Your story in progress stays in this browser and comes back next time you open the builder. You can also clear it now.</p>
+      <div class="acts"><button class="btn primary" type="button" data-keep>Keep it and leave</button><button class="btn" type="button" data-clear>Clear it and leave</button><button class="btn" type="button" data-close>Stay</button></div>`);
+    box.querySelector('[data-keep]').onclick = async () => { pending = true; await flush(); location.href = to; };
+    box.querySelector('[data-clear]').onclick = async () => { await clearEditor(); location.href = to; };
+    box.querySelector('[data-close]').onclick = closeVeil;
+  });
+
   async function start() {
     const fromUrl = new URLSearchParams(location.search).get('open');
     const wanted = fromUrl && /^[\w./%-]+\.troubadour$/i.test(fromUrl) ? fromUrl : null;
