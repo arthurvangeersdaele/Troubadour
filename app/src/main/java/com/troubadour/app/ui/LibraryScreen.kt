@@ -90,7 +90,7 @@ fun LibraryScreen(m: AppModel) {
     val recent by Library.recent.collectAsState()
     Column(Modifier.fillMaxSize().background(C.bg)) {
         Bar {
-            Title("Troubadour", 26)
+            BrandMark()
             Spacer(Modifier.width(8.dp))
             Tabs(m, 0)
             Spacer(Modifier.weight(1f))
@@ -285,6 +285,16 @@ internal fun StoryMenuBody(m: AppModel, uid: String) {
     }
 }
 
+/** The Troubadour logo beside the name in the top bar. Upright on a phone, the name gives way and the logo stays. */
+@Composable
+fun BrandMark() {
+    val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Eq(height = 22.dp, bar = 6.dp)
+        if (wide) Title("Troubadour", 26)
+    }
+}
+
 @Composable
 fun SectionLabel(text: String) {
     Text(
@@ -331,7 +341,7 @@ fun SharedScreen(m: AppModel) {
     val shared by Library.shared.collectAsState()
     Column(Modifier.fillMaxSize().background(C.bg)) {
         Bar {
-            Title("Troubadour", 26)
+            BrandMark()
             Spacer(Modifier.width(8.dp))
             Tabs(m, 1)
             Spacer(Modifier.weight(1f))
