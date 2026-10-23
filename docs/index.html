@@ -75,7 +75,6 @@
       </div></div>
     </div>
     <div class="swatches" id="swatches" role="group" aria-label="Theme of the table"></div>
-    <div class="ctas" style="justify-content:center;margin-top:18px"><a class="btn" href="how-to-use/">How to use Troubadour</a></div>
   </section>
 
   <!-- 5. La Troupe des Troubadours -->
@@ -91,14 +90,6 @@
         <a class="troupe-cta" href="troupe/"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Enter La Troupe</b><span>The Recueil of shared tales, the web player, the Story builder and Troubadour Ballade.</span></span><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </div>
-  </section>
-
-  <!-- 6. Troubadour Ballade -->
-  <section id="flow">
-    <p class="kicker">New, in development</p>
-    <h2>Troubadour Ballade.</h2>
-    <p class="intro">For the troubadours who prepare the exact timing of their sounds: shape each chapter on a computer, then follow the golden wire on your phone at the table. You only tap Go at the gates.</p>
-    <div class="ctas"><a class="btn primary" href="troubadour-ballade/">Discover Troubadour Ballade</a></div>
   </section>
 
   <section id="geek">
@@ -196,10 +187,10 @@
   window.addEventListener('resize',fit);fit();
   // Same colours as the app's themes (play/style.css, Theme.kt).
   var THEMES=[
-    {name:'Obsidian',bg:'#0F0F13',bar:'#15151B',card:'#1C1C24',line:'#2E2E39',text:'#ECE8DE',muted:'#A29FAE',accent:'#E0A84B'},
-    {name:'Parchment',bg:'#1E1912',bar:'#251F16',card:'#30281D',line:'#4A3D2B',text:'#F1E6CF',muted:'#BBA987',accent:'#E0B062'},
-    {name:'Blood',bg:'#140B0C',bar:'#1A0E10',card:'#261517',line:'#43242A',text:'#F2E4E2',muted:'#B79A9D',accent:'#F0606A'},
-    {name:'Divination',bg:'#0B1020',bar:'#0F1529',card:'#18213D',line:'#2B3762',text:'#E6E9F8',muted:'#9EA6C8',accent:'#C9A7F5'}
+    {name:'Obsidian',dot:'#2B2B35',bg:'#0F0F13',bar:'#15151B',card:'#1C1C24',line:'#2E2E39',text:'#ECE8DE',muted:'#A29FAE',accent:'#E0A84B'},
+    {name:'Parchment',dot:'#D8C39A',bg:'#1E1912',bar:'#251F16',card:'#30281D',line:'#4A3D2B',text:'#F1E6CF',muted:'#BBA987',accent:'#E0B062'},
+    {name:'Blood',dot:'#C23540',bg:'#140B0C',bar:'#1A0E10',card:'#261517',line:'#43242A',text:'#F2E4E2',muted:'#B79A9D',accent:'#F0606A'},
+    {name:'Divination',dot:'#8B66D6',bg:'#0B1020',bar:'#0F1529',card:'#18213D',line:'#2B3762',text:'#E6E9F8',muted:'#9EA6C8',accent:'#C9A7F5'}
   ];
   var phone=document.getElementById('phone'), box=document.getElementById('swatches'), btns=[], cur=0, timer=null;
   function apply(i){
@@ -209,7 +200,7 @@
   }
   THEMES.forEach(function(t,i){
     var b=document.createElement('button');b.type='button';
-    b.innerHTML='<i style="background:linear-gradient(135deg,'+t.bg+' 0 45%,'+t.accent+' 45% 100%)"></i>'+t.name;
+    b.style.background=t.dot;b.title=t.name;b.setAttribute('aria-label',t.name+' theme');
     b.addEventListener('click',function(){clearInterval(timer);timer=null;apply(i);});
     btns.push(b);box.appendChild(b);
   });
