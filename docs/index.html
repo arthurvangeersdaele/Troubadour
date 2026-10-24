@@ -195,10 +195,31 @@
     {name:'Divination',dot:'#8B66D6',bg:'#0B1020',bar:'#0F1529',card:'#18213D',line:'#2B3762',text:'#E6E9F8',muted:'#9EA6C8',accent:'#C9A7F5'}
   ];
   var phone=document.getElementById('phone'), box=document.getElementById('swatches'), btns=[], cur=0, timer=null;
-  function apply(i){
-    cur=i;var t=THEMES[i];
-    ['bg','bar','card','line','text','muted','accent'].forEach(function(k){phone.style.setProperty('--'+k,t[k]);});
+  var KEYS=['bg','bar','card','line','text','muted','accent'];
+  var quiet=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rgb(h){h=h.replace('#','');return [0,2,4].map(function(k){return parseInt(h.substr(k,2),16);});}
+  // The colours glide from one theme to the next: every colour of the table at once, eased, in one breath.
+  var now=rgb ? KEYS.map(function(k){return rgb(THEMES[0][k]);}) : null, anim=0;
+  function paint(cols){KEYS.forEach(function(k,n){var c=cols[n];phone.style.setProperty('--'+k,'rgb('+Math.round(c[0])+','+Math.round(c[1])+','+Math.round(c[2])+')');});}
+  function glide(i){
+    var from=now.map(function(c){return c.slice();}), to=KEYS.map(function(k){return rgb(THEMES[i][k]);});
+    var t0=performance.now(), dur=quiet?0:1400;
+    cancelAnimationFrame(anim);
+    (function step(ts){
+      var u=dur?Math.min(1,(ts-t0)/dur):1;
+      var e=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2; // ease in and out
+      now=from.map(function(c,n){return c.map(function(v,j){return v+(to[n][j]-v)*e;});});
+      paint(now);
+      if(u<1) anim=requestAnimationFrame(step);
+    })(t0);
+  }
+  // A ring glides under the swatch of the theme on show.
+  var ring=document.createElement('span');ring.className='ring';ring.setAttribute('aria-hidden','true');
+  function apply(i,first){
+    cur=i;
+    if(first){now=KEYS.map(function(k){return rgb(THEMES[i][k]);});paint(now);}else glide(i);
     btns.forEach(function(b,j){b.setAttribute('aria-pressed',String(j===i));});
+    var b=btns[i];ring.style.transform='translateX('+(b.offsetLeft+b.offsetWidth/2)+'px)';
   }
   THEMES.forEach(function(t,i){
     var b=document.createElement('button');b.type='button';
@@ -206,9 +227,11 @@
     b.addEventListener('click',function(){clearInterval(timer);timer=null;apply(i);});
     btns.push(b);box.appendChild(b);
   });
-  apply(0);
+  box.appendChild(ring);
+  apply(0,true);
+  window.addEventListener('resize',function(){var b=btns[cur];ring.style.transition='none';ring.style.transform='translateX('+(b.offsetLeft+b.offsetWidth/2)+'px)';void ring.offsetWidth;ring.style.transition='';});
   // The table changes colours on its own until a colour is picked (and stays still for reduced motion).
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches) timer=setInterval(function(){apply((cur+1)%THEMES.length);},3500);
+  if(!quiet) timer=setInterval(function(){apply((cur+1)%THEMES.length);},4200);
 
   /* Latest APK: download counter for everyone, direct link on Android and in the computer's QR code.
      Each build replaces the release, so the notes carry the downloads of the earlier builds. */
