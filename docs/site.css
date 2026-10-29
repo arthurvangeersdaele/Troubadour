@@ -446,3 +446,6 @@ a.install:hover{color:var(--text)}
 .door-leaf{left:calc(-1.9px*var(--s));right:calc(-1.9px*var(--s));top:calc(-1.9px*var(--s));bottom:0}
 .leaf-face{border-radius:calc(var(--w)/2 + 1.9px) calc(var(--w)/2 + 1.9px) 0 0}
 .leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*203.8/194),calc(var(--s)*331.9/324))}
+/* gap: top as is, a little more on the sides, a line of light under the door */
+.door-leaf{left:calc(-.6px*var(--s));right:calc(-.6px*var(--s));top:calc(-1.9px*var(--s));bottom:calc(3.5px*var(--s))}
+.leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*201.2/194),calc(var(--s)*328.4/324))}
