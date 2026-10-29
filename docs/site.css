@@ -349,3 +349,16 @@ a.install:hover{color:var(--text)}
 .rose{background:var(--iron);box-shadow:inset 1.5px 2px 2px rgba(255,255,255,.12),inset -1.5px -2px 3px rgba(0,0,0,.6),0 0 0 1.6px var(--ink),1px 2px 3px rgba(0,0,0,.5)}
 .rose::after{background:var(--ink)}
 .leaf-rim i{background:#08080B;box-shadow:inset 0 0 0 .8px var(--ink)}
+
+/* Flat black shapes, no gradients; every white line as thick as the d20's (1.6 in 48 units at 56 px). */
+.tdoor{--lw:1.87px}
+.door-stone .stones path,.door-planks .planks rect{stroke-width:var(--lw);vector-effect:non-scaling-stroke}
+.plaque{box-shadow:0 0 0 var(--lw) var(--ink)}
+.rose{box-shadow:0 0 0 var(--lw) var(--ink)}
+.rose::after{width:var(--lw);margin-left:calc(var(--lw)/-2);border-radius:0}
+.leaf-rim i{box-shadow:inset 0 var(--lw) 0 var(--ink),inset 0 calc(var(--lw)*-1) 0 var(--ink)}
+/* Two strap hinges with heart ends */
+.hinge{position:absolute;left:0;width:66%;height:auto;overflow:visible}
+.hinge.h1{top:58%}.hinge.h2{top:82%}
+.hinge path,.hinge rect{fill:#08080B;stroke:var(--ink);stroke-width:var(--lw);vector-effect:non-scaling-stroke}
+.hinge circle{fill:var(--ink)}
