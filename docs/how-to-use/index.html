@@ -23,18 +23,6 @@
       <a class="install" id="install" href="../#get">Install now</a>
     </div>
   </nav>
-  <!-- Install now on a computer: one QR code per phone -->
-  <div class="qr-veil" id="qr" hidden role="dialog" aria-modal="true" aria-labelledby="qr-title">
-    <div class="qr-box two">
-      <button class="qr-close" type="button" id="qr-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-      <h3 id="qr-title">Install Troubadour</h3>
-      <p>Scan with the phone or tablet you play with.</p>
-      <div class="qr-pair">
-        <div><div class="qr-code" id="qr-android"></div><b>Android phone</b><span>The APK downloads. Open it and allow installs from your browser when asked.</span></div>
-        <div><div class="qr-code" id="qr-ios"></div><b>iPhone and tablets</b><span>Open the page, then add Troubadour to your Home Screen.</span></div>
-      </div>
-    </div>
-  </div>
 
   <header class="hero page-hero">
     <p class="kicker">How to use</p>
@@ -250,32 +238,6 @@
   paint();
 })();
 </script>
-<script>
-/* Install now: the right app for this device. Android phone: the latest APK. iPhone, iPad, Android tablet: the Home Screen app.
-   Computer: a QR code for each, to scan with the phone. */
-(function(){
-  var h=document.documentElement,b=document.getElementById('install');
-  var RELEASE='https://github.com/arthurvangeersdaele/Troubadour/releases/tag/dev-latest',apk=RELEASE;
-  var IOS=new URL('../ios/',location.href).href;
-  if(h.classList.contains('android'))b.href=RELEASE;
-  else if(h.classList.contains('touch'))b.href='../ios/';
-  fetch('https://api.github.com/repos/arthurvangeersdaele/Troubadour/releases/tags/dev-latest').then(function(r){return r.ok?r.json():null}).then(function(j){
-    var a=j&&(j.assets||[]).filter(function(x){return /\.apk$/i.test(x.name)})[0];
-    if(!a)return;apk=a.browser_download_url;
-    if(h.classList.contains('android'))b.href=apk;
-  }).catch(function(){});
-  var veil=document.getElementById('qr');
-  function draw(id,url){var q=qrcode(0,'M');q.addData(url);q.make();document.getElementById(id).innerHTML=q.createSvgTag({cellSize:4,margin:0,scalable:true});}
-  function hide(){veil.hidden=true;b.focus();}
-  b.addEventListener('click',function(e){
-    if(!h.classList.contains('pc')||typeof qrcode!=='function')return;
-    e.preventDefault();draw('qr-android',apk);draw('qr-ios',IOS);veil.hidden=false;document.getElementById('qr-close').focus();
-  });
-  document.getElementById('qr-close').addEventListener('click',hide);
-  veil.addEventListener('click',function(e){if(e.target===veil)hide();});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!veil.hidden)hide();});
-})();
-</script>
-<script src="../vendor/qrcode-generator-1.4.4.js"></script>
+<script src="../install-now.js"></script>
 </body>
 </html>
