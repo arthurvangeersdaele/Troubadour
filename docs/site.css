@@ -442,3 +442,7 @@ a.install:hover{color:var(--text)}
 .leaf-face{border-radius:calc(var(--w)/2) calc(var(--w)/2) 0 0}
 .leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*200/194),calc(var(--s)*330/324))}
 .keyhole{fill:#FFE7AE}
+/* the door reaches almost to the stones: only a hairline of light remains */
+.door-leaf{left:calc(-1.9px*var(--s));right:calc(-1.9px*var(--s));top:calc(-1.9px*var(--s));bottom:0}
+.leaf-face{border-radius:calc(var(--w)/2 + 1.9px) calc(var(--w)/2 + 1.9px) 0 0}
+.leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*203.8/194),calc(var(--s)*331.9/324))}
