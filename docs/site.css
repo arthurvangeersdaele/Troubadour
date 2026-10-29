@@ -321,3 +321,18 @@ a.install:hover{color:var(--text)}
 .tdoor.flung .door-spill{opacity:1}.tdoor.flung .door-spill::before{clip-path:polygon(calc(var(--w)*.05) 0,calc(var(--w)*1.0) 0,100% 100%,0 100%)}
 @media (max-width:420px){.tdoor{--s:.85}.plaque{font-size:15px;padding:11px 4px 12px}.plaque small{font-size:9px}}
 @media (prefers-reduced-motion:reduce){.tdoor *{transition:none!important}}
+
+/* The door in 3D: it opens towards the visitor on its left hinges, and the thickness of the wood shows more and more as it turns.
+   The leaf holds a face (planks, plaque, handle) and a rim of thin strips around its arch and its edges, set back by the wood's depth. */
+.door-leaf{overflow:visible;background:none;border-radius:0;transform-style:preserve-3d}
+.leaf-face{position:absolute;inset:0;display:block;overflow:hidden;border-radius:calc(var(--w)/2 - 3px) calc(var(--w)/2 - 3px) 0 0;
+  background:color-mix(in srgb,#000 45%,var(--bg));transform:translateZ(0)}
+.leaf-rim{position:absolute;left:0;top:0;width:194px;height:324px;transform-origin:0 0;transform:scale(var(--s));transform-style:preserve-3d;pointer-events:none}
+.leaf-rim i{position:absolute;left:0;top:0;height:14px;transform-origin:0 0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--text) 16%,var(--bg)),color-mix(in srgb,rgb(var(--warm)) 30%,var(--plank)) 70%,color-mix(in srgb,rgb(var(--warm)) 45%,var(--plank)));
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.35)}
+.door-opening{perspective:900px;perspective-origin:50% 45%}
+.tdoor:hover .door-leaf,.tdoor:focus-visible .door-leaf{transform:rotateY(-30deg)}
+.tdoor.flung .door-leaf{transform:rotateY(-72deg)}
+.shade{background:linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,0) 70%)}
+.tdoor:hover .shade,.tdoor:focus-visible .shade{opacity:.5}
