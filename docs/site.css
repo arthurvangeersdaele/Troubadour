@@ -336,3 +336,16 @@ a.install:hover{color:var(--text)}
 .tdoor.flung .door-leaf{transform:rotateY(-72deg)}
 .shade{background:linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,0) 70%)}
 .tdoor:hover .shade,.tdoor:focus-visible .shade{opacity:.5}
+
+/* Black and white, like an ink drawing on the dark page: black shapes, lines in the d20's white. Only the light keeps its warmth. */
+.tdoor{--ink:var(--muted);--stone:#08080B;--plank:#08080B;--iron:#08080B}
+.door-stone .stones path{fill:var(--stone);stroke:var(--ink);stroke-width:1.6}
+.door-planks .planks rect{fill:var(--plank);stroke:var(--ink);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.door-planks .band{fill:var(--iron);stroke:var(--ink);stroke-width:1.6;vector-effect:non-scaling-stroke}
+.door-planks .rivet{fill:var(--ink)}
+.leaf-face{background:#000}
+.plaque{background:var(--stone);box-shadow:inset 2px 3px 4px rgba(255,255,255,.10),inset -2px -3px 5px rgba(0,0,0,.6),0 0 0 1.6px var(--ink)}
+.plaque>span>span{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--ink)}
+.rose{background:var(--iron);box-shadow:inset 1.5px 2px 2px rgba(255,255,255,.12),inset -1.5px -2px 3px rgba(0,0,0,.6),0 0 0 1.6px var(--ink),1px 2px 3px rgba(0,0,0,.5)}
+.rose::after{background:var(--ink)}
+.leaf-rim i{background:#08080B;box-shadow:inset 0 0 0 .8px var(--ink)}
