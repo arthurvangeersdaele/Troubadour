@@ -265,60 +265,59 @@ a.install:hover{color:var(--text)}
 @keyframes cta-ring{to{--cta-ring:360deg}}
 @media (prefers-reduced-motion:reduce){.btn.primary,.shine{animation:none;background-position:130% 0,0 0}.btn.primary::before,.shine::before{animation:none;opacity:.5}}
 
-/* La Troupe door, after the d20 and the sketch: a stone doorway drawn in straight lines, a faceted arch with its
-   voussoirs, a plank door, a step in front, a circle for the handle. Only the light is real: it leaks through the gap,
-   under the door and through the keyhole. Hover: the handle turns, then the door opens a little and the light spills out.
-   Click: it swings open. */
-.tdoor{--w:200px;--h:330px;--j:30px;--warm:255,184,102;--clip:polygon(0.00% 100.00%,0.00% 24.24%,7.00% 11.52%,23.00% 3.03%,50.00% 0.00%,77.00% 3.03%,93.00% 11.52%,100.00% 24.24%,100.00% 100.00%);
-  display:flex;flex-direction:column;align-items:center;gap:18px;text-decoration:none;color:var(--muted);margin:10px auto 0;width:max-content;max-width:100%;
-  transition:color .25s;-webkit-tap-highlight-color:transparent}
-.tdoor:hover,.tdoor:focus-visible,.tdoor.flung{color:var(--accent)}
+/* La Troupe door: a cartoon stone doorway, drawn as one SVG. Rounded stones with a soft relief, an arch of voussoirs,
+   a plank door with iron bands, an oval plaque, a ring for the handle, two steps. Only the light is real: it leaks through
+   the gap, under the door and through the keyhole, and warms the stones close to it.
+   Hover: the handle turns, then the door opens a little and the light spills out. Click: it swings open. */
+.tdoor{--s:1;--w:calc(200px*var(--s));--h:calc(330px*var(--s));--j:calc(46px*var(--s));--warm:255,184,102;
+  --stone:color-mix(in srgb,var(--text) 10%,var(--bg));--plank:color-mix(in srgb,var(--text) 4%,var(--bg));--iron:color-mix(in srgb,var(--text) 18%,var(--bg));
+  display:flex;flex-direction:column;align-items:center;gap:16px;text-decoration:none;color:var(--muted);margin:10px auto 0;width:max-content;max-width:100%;-webkit-tap-highlight-color:transparent}
 .door-scene{position:relative;display:block}
-.door-scene::before{content:'';position:absolute;left:50%;top:46%;width:calc(var(--w)*2.3);height:calc(var(--h)*1.5);transform:translate(-50%,-50%);
-  background:radial-gradient(closest-side,rgba(var(--warm),.10),rgba(var(--warm),.035) 55%,transparent);opacity:.8;transition:opacity .6s .15s,transform .6s .15s;pointer-events:none}
-.door-frame{position:relative;display:block;width:calc(var(--w) + var(--j)*2);height:calc(var(--h) + var(--j) + 24px)}
-.door-stone{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.door-opening,.door-bloom{position:absolute;left:var(--j);top:var(--j);width:var(--w);height:var(--h)}
-.door-opening{clip-path:var(--clip);perspective:700px;background:radial-gradient(ellipse 90% 70% at 70% 45%,#FFE6B8,#F6B865 30%,#D98B3E 62%,#8A4A1C)}
-/* the light blooming out of the gap onto the stones */
-.door-bloom{filter:blur(8px);opacity:.35;transition:opacity .6s .15s}
-.door-bloom i{position:absolute;inset:-3px;clip-path:var(--clip);background:rgb(var(--warm))}
-.door-leaf{position:absolute;left:3px;right:3px;top:3px;bottom:5px;display:block;background:var(--bg);clip-path:var(--clip);
-  transform-origin:0 50%;transform:rotateY(0deg);transition:transform .7s cubic-bezier(.3,.7,.3,1) 0s}
-.door-lines{position:absolute;inset:0;width:100%;height:100%}
-.plaque{position:absolute;left:22%;right:22%;top:24%;display:block;padding:9px 4px 10px;background:var(--bg);outline:2px solid currentColor;text-align:center;
-  font-family:'Cormorant SC',serif;font-weight:700;font-size:19px;line-height:1}
-.plaque small{display:block;font-size:11px;letter-spacing:.18em;margin-bottom:5px}
-.plaque{--fade:linear-gradient(180deg,color-mix(in srgb,var(--text) 48%,var(--bg)),color-mix(in srgb,var(--text) 16%,var(--bg)) 85%)}
-.plaque>span,.plaque small{background:var(--fade);-webkit-background-clip:text;background-clip:text;color:transparent}
+.door-frame{position:relative;display:block;width:calc(var(--w) + var(--j)*2);aspect-ratio:292/422}
+.door-stone{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.door-stone .stones path{fill:var(--stone);stroke:rgba(0,0,0,.55);stroke-width:1.5}
+.relief-hi{flood-color:#fff;flood-opacity:.16}
+.relief-lo{flood-color:#000;flood-opacity:.6}
+.stone-light{opacity:.28;transition:opacity .6s .15s}
+.door-opening{position:absolute;left:var(--j);top:var(--j);width:var(--w);height:var(--h);perspective:700px;
+  border-radius:calc(var(--w)/2) calc(var(--w)/2) 0 0;background:radial-gradient(ellipse 90% 70% at 70% 45%,#FFE6B8,#F6B865 30%,#D98B3E 62%,#8A4A1C)}
+.door-leaf{position:absolute;left:3px;right:3px;top:3px;bottom:3px;display:block;overflow:hidden;border-radius:calc(var(--w)/2 - 3px) calc(var(--w)/2 - 3px) 0 0;
+  background:color-mix(in srgb,#000 45%,var(--bg));transform-origin:0 50%;transform:rotateY(0deg);transition:transform .7s cubic-bezier(.3,.7,.3,1) 0s}
+.door-planks{position:absolute;inset:0;width:100%;height:100%}
+.door-planks .planks rect{fill:var(--plank)}
+.door-planks .band{fill:var(--iron)}
+.door-planks .rivet{fill:color-mix(in srgb,var(--text) 30%,var(--bg))}
+.plaque{position:absolute;left:21%;right:21%;top:22%;display:block;padding:14px 6px 15px;border-radius:50%;text-align:center;
+  background:var(--stone);box-shadow:inset 2px 3px 4px rgba(255,255,255,.12),inset -2px -3px 5px rgba(0,0,0,.6),0 0 0 1.5px rgba(0,0,0,.55);
+  font-family:'Cormorant SC',serif;font-weight:700;font-size:18px;line-height:1}
+.plaque small{display:block;font-size:10px;letter-spacing:.18em;margin-bottom:5px}
+.plaque>span>span,.plaque small{background:linear-gradient(180deg,color-mix(in srgb,var(--text) 50%,var(--bg)),color-mix(in srgb,var(--text) 18%,var(--bg)) 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
 .plaque-fade{display:block;transition:opacity .6s}
-.handle{position:absolute;right:12%;top:52%;width:18px;height:18px;margin:-9px -9px 0 0;display:block}
-.rose{position:absolute;inset:0;border-radius:50%;border:2px solid currentColor;background:var(--bg)}
-.rose::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:10px;margin:-5px 0 0 -1px;background:currentColor;transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
-.keyhole{position:absolute;right:calc(12% - 4.5px);top:calc(52% + 16px);fill:#FFD999;
-  filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 7px rgba(var(--warm),.6));transition:filter .6s}
+.handle{position:absolute;right:13%;top:48%;width:20px;height:20px;margin:-10px -10px 0 0;display:block}
+.rose{position:absolute;inset:0;border-radius:50%;background:var(--iron);box-shadow:inset 1.5px 2px 2px rgba(255,255,255,.18),inset -1.5px -2px 3px rgba(0,0,0,.6),0 0 0 1.5px rgba(0,0,0,.55),1px 2px 3px rgba(0,0,0,.5)}
+.rose::after{content:'';position:absolute;left:50%;top:50%;width:3px;height:12px;margin:-6px 0 0 -1.5px;border-radius:2px;background:color-mix(in srgb,#000 45%,var(--iron));transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
+.keyhole{position:absolute;right:calc(13% - 4.5px);top:calc(48% + 17px);fill:#FFD999;filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 6px rgba(var(--warm),.55));transition:filter .6s}
 .shade{position:absolute;inset:0;display:block;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(0,0,0,.5));transition:opacity .7s}
-/* light under the door, on the step, then on the floor */
-.door-floor{position:absolute;left:var(--j);top:calc(var(--j) + var(--h) - 2px);width:var(--w);height:34px;display:block;pointer-events:none;
-  background:radial-gradient(ellipse 55% 100% at 50% 0,rgba(var(--warm),.36),rgba(var(--warm),.08) 45%,transparent 75%)}
-.door-spill{position:absolute;top:calc(var(--j) + var(--h));left:var(--j);width:calc(var(--w)*1.6);height:150px;display:block;pointer-events:none;opacity:0;filter:blur(9px);transition:opacity .6s .15s}
-.door-spill::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(var(--warm),.34),rgba(var(--warm),.08) 60%,transparent);
-  clip-path:polygon(calc(var(--w)*.62) 0,calc(var(--w)*1.0) 0,100% 100%,calc(var(--w)*.55) 100%);transition:clip-path .7s .15s}
+/* light under the door, on the steps, then on the floor */
+.door-floor{position:absolute;left:var(--j);top:calc(var(--j) + var(--h));width:var(--w);height:calc(20px*var(--s));display:block;pointer-events:none;mix-blend-mode:screen;
+  background:radial-gradient(ellipse 50% 100% at 50% 0,rgba(var(--warm),.42),rgba(var(--warm),.06) 60%,transparent)}
+.door-spill{position:absolute;top:calc(var(--j) + var(--h));left:var(--j);width:calc(var(--w)*1.5);height:calc(130px*var(--s));display:block;pointer-events:none;opacity:0;filter:blur(8px);mix-blend-mode:screen;transition:opacity .6s .15s}
+.door-spill::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(var(--warm),.36),rgba(var(--warm),.06) 70%,transparent);
+  clip-path:polygon(calc(var(--w)*.62) 0,calc(var(--w)*1.0) 0,100% 100%,calc(var(--w)*.58) 100%);transition:clip-path .7s .15s}
 .door-caption{display:block;max-width:300px;text-align:center;font-size:16px;line-height:1.45;margin-top:4px;color:var(--muted);transition:color .25s}
 .tdoor:hover .rose::after,.tdoor:focus-visible .rose::after,.tdoor.flung .rose::after{transform:rotate(-90deg);transition-delay:0s}
 .tdoor:hover .door-leaf,.tdoor:focus-visible .door-leaf{transform:rotateY(24deg);transition-delay:.25s}
 .tdoor:hover .shade,.tdoor:focus-visible .shade{opacity:.55;transition-delay:.25s}
-.tdoor:hover .door-bloom,.tdoor:focus-visible .door-bloom{opacity:.6;transition-delay:.25s}
-.tdoor:hover .door-scene::before,.tdoor:focus-visible .door-scene::before{opacity:1;transform:translate(-50%,-50%) scale(1.25);transition-delay:.25s}
-.tdoor:hover .door-spill,.tdoor:focus-visible .door-spill{opacity:.85;transition-delay:.25s}
-.tdoor:hover .keyhole{filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 10px rgba(var(--warm),.8))}
+.tdoor:hover .stone-light,.tdoor:focus-visible .stone-light{opacity:.7;transition-delay:.25s}
+.tdoor:hover .door-spill,.tdoor:focus-visible .door-spill{opacity:.8;transition-delay:.25s}
+.tdoor:hover .keyhole{filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 9px rgba(var(--warm),.8))}
 .tdoor:hover .plaque-fade,.tdoor:focus-visible .plaque-fade{opacity:.55;transition-delay:.25s}
-.tdoor:hover .door-caption,.tdoor:focus-visible .door-caption{color:var(--text)}
-.tdoor:focus-visible{outline:none}.tdoor:focus-visible .door-stone{outline:2px solid var(--accent);outline-offset:6px}
+.tdoor:hover .door-caption,.tdoor:focus-visible .door-caption{color:var(--accent)}
+.tdoor:focus-visible{outline:none}.tdoor:focus-visible .door-frame{outline:2px solid var(--accent);outline-offset:6px;border-radius:8px}
 .tdoor.flung .door-leaf{transform:rotateY(78deg);transition:transform .65s cubic-bezier(.5,0,.3,1) .15s}
 .tdoor.flung .shade{opacity:.8}
-.tdoor.flung .door-bloom{opacity:1}
-.tdoor.flung .door-scene::before{opacity:1;transform:translate(-50%,-50%) scale(1.8)}
+.tdoor.flung .stone-light{opacity:1}
 .tdoor.flung .door-spill{opacity:1}.tdoor.flung .door-spill::before{clip-path:polygon(calc(var(--w)*.05) 0,calc(var(--w)*1.0) 0,100% 100%,0 100%)}
-@media (max-width:420px){.tdoor{--w:170px;--h:282px;--j:26px}.plaque{font-size:16px}.plaque small{font-size:10px}}
-@media (prefers-reduced-motion:reduce){.tdoor *,.door-scene::before{transition:none!important}}
+@media (max-width:420px){.tdoor{--s:.85}.plaque{font-size:15px;padding:11px 4px 12px}.plaque small{font-size:9px}}
+@media (prefers-reduced-motion:reduce){.tdoor *{transition:none!important}}
