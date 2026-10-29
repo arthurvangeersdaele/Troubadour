@@ -265,88 +265,60 @@ a.install:hover{color:var(--text)}
 @keyframes cta-ring{to{--cta-ring:360deg}}
 @media (prefers-reduced-motion:reduce){.btn.primary,.shine{animation:none;background-position:130% 0,0 0}.btn.primary::before,.shine::before{animation:none;opacity:.5}}
 
-/* La Troupe door. Drawn like the d20: clean rounded lines in the muted colour, gold on hover; only the light is real.
-   A warm light burns behind it: it leaks through the gap, under the door and through the keyhole.
-   Hover: the handle turns, then the door opens a little and the light spills out. Click: it swings open. */
-.tdoor{--w:200px;--h:330px;--arch:calc(var(--w)*.5);--line:2px;--warm:255,184,102;
-  display:flex;flex-direction:column;align-items:center;gap:22px;text-decoration:none;color:var(--muted);margin:10px auto 0;width:max-content;max-width:100%;
+/* La Troupe door, after the d20 and the sketch: a stone doorway drawn in straight lines, a faceted arch with its
+   voussoirs, a plank door, a step in front, a circle for the handle. Only the light is real: it leaks through the gap,
+   under the door and through the keyhole. Hover: the handle turns, then the door opens a little and the light spills out.
+   Click: it swings open. */
+.tdoor{--w:200px;--h:330px;--j:30px;--warm:255,184,102;--clip:polygon(0.00% 100.00%,0.00% 24.24%,7.00% 11.52%,23.00% 3.03%,50.00% 0.00%,77.00% 3.03%,93.00% 11.52%,100.00% 24.24%,100.00% 100.00%);
+  display:flex;flex-direction:column;align-items:center;gap:18px;text-decoration:none;color:var(--muted);margin:10px auto 0;width:max-content;max-width:100%;
   transition:color .25s;-webkit-tap-highlight-color:transparent}
 .tdoor:hover,.tdoor:focus-visible,.tdoor.flung{color:var(--accent)}
-.door-scene{position:relative;display:block;padding:12px 12px 0}
-/* the warm room glow around the doorway */
-.door-scene::before{content:'';position:absolute;left:50%;top:48%;width:calc(var(--w)*2.2);height:calc(var(--h)*1.4);transform:translate(-50%,-50%);
-  background:radial-gradient(closest-side,rgba(var(--warm),.10),rgba(var(--warm),.04) 55%,transparent);opacity:.8;transition:opacity .6s .15s,transform .6s .15s;pointer-events:none}
-/* frame: one line, arched a little unevenly, and the threshold */
-.door-frame{position:relative;display:block;padding:7px 7px 0;border:var(--line) solid currentColor;border-bottom:0;
-  border-radius:calc(var(--arch) + 10px) calc(var(--arch) + 6px) 0 0/calc(var(--arch)*.9 + 10px) calc(var(--arch)*.84 + 8px) 0 0}
-.door-frame::after{content:'';position:absolute;left:-16px;right:-12px;bottom:-1px;height:0;border-top:var(--line) solid currentColor;border-radius:2px}
-.door-opening,.door-leaf,.door-leaf::after,.shade{border-radius:var(--arch) calc(var(--arch) - 4px) 3px 3px/calc(var(--arch)*.9) calc(var(--arch)*.84) 3px 3px}
-.door-opening{position:relative;display:block;perspective:700px;width:var(--w);height:var(--h);
-  background:radial-gradient(ellipse 90% 70% at 70% 45%,#FFE6B8,#F6B865 30%,#D98B3E 62%,#8A4A1C);
-  box-shadow:0 0 6px rgba(var(--warm),.22),0 0 22px rgba(var(--warm),.07);transition:box-shadow .6s .15s}
-.door-leaf{position:absolute;inset:3px 3px 5px 3px;display:block;background:var(--bg);border:var(--line) solid currentColor;
-  transform-origin:0 50%;transform-style:preserve-3d;transform:rotateY(0deg);transition:transform .7s cubic-bezier(.3,.7,.3,1) 0s}
-/* light bleeding over the edge of the leaf */
-.door-leaf::after{content:'';position:absolute;inset:calc(var(--line)*-1);pointer-events:none;box-shadow:inset 0 0 5px rgba(var(--warm),.16)}
-/* the lock edge, lit by the room as it turns */
-.door-edge{position:absolute;top:calc(var(--arch)*.45);right:0;width:10px;height:calc(100% - var(--arch)*.45);border-radius:6px 6px 2px 2px;
-  transform-origin:100% 50%;transform:rotateY(-90deg);background:linear-gradient(90deg,#B86F32,#F0B064);opacity:0;transition:opacity .2s .25s}
-.panel{position:absolute;left:16px;right:18px;display:block;border:var(--line) solid currentColor}
-.panel.top{top:18px;height:44%;display:grid;place-items:center;padding-top:16px;
-  border-radius:calc(var(--arch) - 18px) calc(var(--arch) - 22px) 15px 13px/calc(var(--arch)*.9 - 20px) calc(var(--arch)*.84 - 20px) 15px 13px}
-.panel.bottom{bottom:16px;top:calc(44% + 18px + 52px);border-radius:16px 13px 18px 15px}
-.plaque{display:block;text-align:center;font-family:'Cormorant SC',serif;font-weight:700;font-size:26px;line-height:1;opacity:.75;transition:opacity .6s;
-  background:linear-gradient(180deg,color-mix(in srgb,var(--text) 50%,var(--bg)),color-mix(in srgb,var(--text) 18%,var(--bg)) 80%,transparent 125%);
-  -webkit-background-clip:text;background-clip:text;color:transparent}
-.plaque small{display:block;font-size:15px;letter-spacing:.18em;margin-bottom:6px;background:inherit;-webkit-background-clip:text;background-clip:text;color:transparent}
-.handle{position:absolute;right:15px;top:calc(44% + 18px + 13px);width:18px;height:18px;display:block}
-.rose{position:absolute;inset:0;border-radius:50%;border:var(--line) solid currentColor;background:var(--bg)}
-.lever{position:absolute;right:7px;top:4px;width:36px;height:10px;border:var(--line) solid currentColor;background:var(--bg);
-  border-radius:6px 8px 8px 6px/5px 6px 6px 5px;transform-origin:calc(100% - 2px) 50%;transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
-.keyhole{position:absolute;right:20px;top:calc(44% + 18px + 38px);fill:#FFD999;
+.door-scene{position:relative;display:block}
+.door-scene::before{content:'';position:absolute;left:50%;top:46%;width:calc(var(--w)*2.3);height:calc(var(--h)*1.5);transform:translate(-50%,-50%);
+  background:radial-gradient(closest-side,rgba(var(--warm),.10),rgba(var(--warm),.035) 55%,transparent);opacity:.8;transition:opacity .6s .15s,transform .6s .15s;pointer-events:none}
+.door-frame{position:relative;display:block;width:calc(var(--w) + var(--j)*2);height:calc(var(--h) + var(--j) + 24px)}
+.door-stone{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.door-opening,.door-bloom{position:absolute;left:var(--j);top:var(--j);width:var(--w);height:var(--h)}
+.door-opening{clip-path:var(--clip);perspective:700px;background:radial-gradient(ellipse 90% 70% at 70% 45%,#FFE6B8,#F6B865 30%,#D98B3E 62%,#8A4A1C)}
+/* the light blooming out of the gap onto the stones */
+.door-bloom{filter:blur(8px);opacity:.35;transition:opacity .6s .15s}
+.door-bloom i{position:absolute;inset:-3px;clip-path:var(--clip);background:rgb(var(--warm))}
+.door-leaf{position:absolute;left:3px;right:3px;top:3px;bottom:5px;display:block;background:var(--bg);clip-path:var(--clip);
+  transform-origin:0 50%;transform:rotateY(0deg);transition:transform .7s cubic-bezier(.3,.7,.3,1) 0s}
+.door-lines{position:absolute;inset:0;width:100%;height:100%}
+.plaque{position:absolute;left:22%;right:22%;top:24%;display:block;padding:9px 4px 10px;background:var(--bg);outline:2px solid currentColor;text-align:center;
+  font-family:'Cormorant SC',serif;font-weight:700;font-size:19px;line-height:1}
+.plaque small{display:block;font-size:11px;letter-spacing:.18em;margin-bottom:5px}
+.plaque{--fade:linear-gradient(180deg,color-mix(in srgb,var(--text) 48%,var(--bg)),color-mix(in srgb,var(--text) 16%,var(--bg)) 85%)}
+.plaque>span,.plaque small{background:var(--fade);-webkit-background-clip:text;background-clip:text;color:transparent}
+.plaque-fade{display:block;transition:opacity .6s}
+.handle{position:absolute;right:12%;top:52%;width:18px;height:18px;margin:-9px -9px 0 0;display:block}
+.rose{position:absolute;inset:0;border-radius:50%;border:2px solid currentColor;background:var(--bg)}
+.rose::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:10px;margin:-5px 0 0 -1px;background:currentColor;transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
+.keyhole{position:absolute;right:calc(12% - 4.5px);top:calc(52% + 16px);fill:#FFD999;
   filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 7px rgba(var(--warm),.6));transition:filter .6s}
-.shade{position:absolute;inset:calc(var(--line)*-1);display:block;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(0,0,0,.5));transition:opacity .7s}
-/* light under the door, then on the floor in front of it */
-.door-floor{position:absolute;left:50%;top:100%;width:calc(var(--w)*1.1);height:34px;transform:translateX(-50%);display:block;pointer-events:none;
-  background:radial-gradient(ellipse 50% 100% at 50% 0,rgba(var(--warm),.36),rgba(var(--warm),.08) 45%,transparent 75%)}
-.door-spill{position:absolute;top:100%;left:calc(50% - var(--w)/2);width:calc(var(--w)*1.6);height:150px;display:block;pointer-events:none;opacity:0;filter:blur(9px);transition:opacity .6s .15s}
+.shade{position:absolute;inset:0;display:block;pointer-events:none;opacity:0;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(0,0,0,.5));transition:opacity .7s}
+/* light under the door, on the step, then on the floor */
+.door-floor{position:absolute;left:var(--j);top:calc(var(--j) + var(--h) - 2px);width:var(--w);height:34px;display:block;pointer-events:none;
+  background:radial-gradient(ellipse 55% 100% at 50% 0,rgba(var(--warm),.36),rgba(var(--warm),.08) 45%,transparent 75%)}
+.door-spill{position:absolute;top:calc(var(--j) + var(--h));left:var(--j);width:calc(var(--w)*1.6);height:150px;display:block;pointer-events:none;opacity:0;filter:blur(9px);transition:opacity .6s .15s}
 .door-spill::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(var(--warm),.34),rgba(var(--warm),.08) 60%,transparent);
   clip-path:polygon(calc(var(--w)*.62) 0,calc(var(--w)*1.0) 0,100% 100%,calc(var(--w)*.55) 100%);transition:clip-path .7s .15s}
 .door-caption{display:block;max-width:300px;text-align:center;font-size:16px;line-height:1.45;margin-top:4px;color:var(--muted);transition:color .25s}
-/* hover: the handle turns first, then the door gives a little */
-.tdoor:hover .lever,.tdoor:focus-visible .lever,.tdoor.flung .lever{transform:rotate(-38deg);transition-delay:0s}
+.tdoor:hover .rose::after,.tdoor:focus-visible .rose::after,.tdoor.flung .rose::after{transform:rotate(-90deg);transition-delay:0s}
 .tdoor:hover .door-leaf,.tdoor:focus-visible .door-leaf{transform:rotateY(24deg);transition-delay:.25s}
 .tdoor:hover .shade,.tdoor:focus-visible .shade{opacity:.55;transition-delay:.25s}
-.tdoor:hover .door-edge,.tdoor:focus-visible .door-edge,.tdoor.flung .door-edge{opacity:1}
-.tdoor:hover .door-opening,.tdoor:focus-visible .door-opening{box-shadow:0 0 16px rgba(var(--warm),.45),0 0 60px rgba(var(--warm),.18);transition-delay:.25s}
+.tdoor:hover .door-bloom,.tdoor:focus-visible .door-bloom{opacity:.6;transition-delay:.25s}
 .tdoor:hover .door-scene::before,.tdoor:focus-visible .door-scene::before{opacity:1;transform:translate(-50%,-50%) scale(1.25);transition-delay:.25s}
 .tdoor:hover .door-spill,.tdoor:focus-visible .door-spill{opacity:.85;transition-delay:.25s}
 .tdoor:hover .keyhole{filter:drop-shadow(0 0 2px rgba(var(--warm),1)) drop-shadow(0 0 10px rgba(var(--warm),.8))}
-.tdoor:hover .plaque,.tdoor:focus-visible .plaque{opacity:.4;transition-delay:.25s}
+.tdoor:hover .plaque-fade,.tdoor:focus-visible .plaque-fade{opacity:.55;transition-delay:.25s}
 .tdoor:hover .door-caption,.tdoor:focus-visible .door-caption{color:var(--text)}
-.tdoor:focus-visible{outline:none}.tdoor:focus-visible .door-frame{outline:2px solid var(--accent);outline-offset:6px}
-/* click: it swings wide and the light floods out */
+.tdoor:focus-visible{outline:none}.tdoor:focus-visible .door-stone{outline:2px solid var(--accent);outline-offset:6px}
 .tdoor.flung .door-leaf{transform:rotateY(78deg);transition:transform .65s cubic-bezier(.5,0,.3,1) .15s}
 .tdoor.flung .shade{opacity:.8}
-.tdoor.flung .plaque{opacity:0}
-.tdoor.flung .door-opening{box-shadow:0 0 30px rgba(var(--warm),.7),0 0 120px rgba(var(--warm),.35)}
+.tdoor.flung .door-bloom{opacity:1}
 .tdoor.flung .door-scene::before{opacity:1;transform:translate(-50%,-50%) scale(1.8)}
 .tdoor.flung .door-spill{opacity:1}.tdoor.flung .door-spill::before{clip-path:polygon(calc(var(--w)*.05) 0,calc(var(--w)*1.0) 0,100% 100%,0 100%)}
-@media (max-width:420px){.tdoor{--w:170px;--h:282px}.plaque{font-size:22px}}
+@media (max-width:420px){.tdoor{--w:170px;--h:282px;--j:26px}.plaque{font-size:16px}.plaque small{font-size:10px}}
 @media (prefers-reduced-motion:reduce){.tdoor *,.door-scene::before{transition:none!important}}
-
-/* Faceted door, after the d20: straight lines and tiles, sharp corners. Only the top of the door is round, and the handle is a circle. */
-.door-opening,.door-leaf,.door-leaf::after,.shade{border-radius:var(--arch) var(--arch) 0 0/calc(var(--arch)*.9) calc(var(--arch)*.9) 0 0}
-.door-frame{border-radius:calc(var(--arch) + 10px) calc(var(--arch) + 10px) 0 0/calc(var(--arch)*.9 + 10px) calc(var(--arch)*.9 + 10px) 0 0}
-.door-frame::after{border-radius:0}
-.door-edge{border-radius:0}
-.door-tiles{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
-.plaque{position:absolute;left:0;right:0;top:25%;font-size:20px}
-.plaque small{font-size:12px;margin-bottom:5px}
-.handle{left:auto;right:12.6%;top:51.4%;width:18px;height:18px;margin:-9px -9px 0 0}
-.rose::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:10px;margin:-5px 0 0 -1px;background:currentColor;transform:rotate(0deg);transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
-.tdoor:hover .rose::after,.tdoor:focus-visible .rose::after,.tdoor.flung .rose::after{transform:rotate(-90deg);transition-delay:0s}
-.keyhole{right:calc(12.6% - 4.5px);top:calc(51.4% + 16px)}
-@media (max-width:420px){.plaque{font-size:17px}.plaque small{font-size:11px}}
-.plaque{top:calc(31% - 21px)}
-.plaque{top:calc(30% - 21px)}
