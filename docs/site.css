@@ -334,3 +334,19 @@ a.install:hover{color:var(--text)}
 .tdoor.flung .door-spill{opacity:1}.tdoor.flung .door-spill::before{clip-path:polygon(calc(var(--w)*.05) 0,calc(var(--w)*1.0) 0,100% 100%,0 100%)}
 @media (max-width:420px){.tdoor{--w:170px;--h:282px}.plaque{font-size:22px}}
 @media (prefers-reduced-motion:reduce){.tdoor *,.door-scene::before{transition:none!important}}
+
+/* Faceted door, after the d20: straight lines and tiles, sharp corners. Only the top of the door is round, and the handle is a circle. */
+.door-opening,.door-leaf,.door-leaf::after,.shade{border-radius:var(--arch) var(--arch) 0 0/calc(var(--arch)*.9) calc(var(--arch)*.9) 0 0}
+.door-frame{border-radius:calc(var(--arch) + 10px) calc(var(--arch) + 10px) 0 0/calc(var(--arch)*.9 + 10px) calc(var(--arch)*.9 + 10px) 0 0}
+.door-frame::after{border-radius:0}
+.door-edge{border-radius:0}
+.door-tiles{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.plaque{position:absolute;left:0;right:0;top:25%;font-size:20px}
+.plaque small{font-size:12px;margin-bottom:5px}
+.handle{left:auto;right:12.6%;top:51.4%;width:18px;height:18px;margin:-9px -9px 0 0}
+.rose::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:10px;margin:-5px 0 0 -1px;background:currentColor;transform:rotate(0deg);transition:transform .3s cubic-bezier(.3,.7,.3,1) .45s}
+.tdoor:hover .rose::after,.tdoor:focus-visible .rose::after,.tdoor.flung .rose::after{transform:rotate(-90deg);transition-delay:0s}
+.keyhole{right:calc(12.6% - 4.5px);top:calc(51.4% + 16px)}
+@media (max-width:420px){.plaque{font-size:17px}.plaque small{font-size:11px}}
+.plaque{top:calc(31% - 21px)}
+.plaque{top:calc(30% - 21px)}
