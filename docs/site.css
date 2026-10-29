@@ -366,9 +366,9 @@ a.install:hover{color:var(--text)}
 /* Hinges hold to the wall: a pintle plate on the left jamb with the pin's knuckle on the door's hinge line.
    Painted after the stones, in front of the door's edge. */
 .door-opening{z-index:1}
-.pintle{position:absolute;z-index:2;width:calc(30px*var(--s));height:calc(34px*var(--s));left:calc(var(--j) + 3px - 20px*var(--s));overflow:visible}
-.pintle.p1{top:calc(var(--j) + 3px + 324px*var(--s)*.58 + 1.3px*var(--s))}
-.pintle.p2{top:calc(var(--j) + 3px + 324px*var(--s)*.82 + 1.3px*var(--s))}
+.pintle{position:absolute;z-index:2;width:calc(30px*var(--s));height:calc(34px*var(--s));left:calc(var(--j) - 20px*var(--s));overflow:visible}
+.pintle.p1{top:calc(var(--j) + 330px*var(--s)*.58 + 1.3px*var(--s))}
+.pintle.p2{top:calc(var(--j) + 330px*var(--s)*.82 + 1.3px*var(--s))}
 .pintle path,.pintle rect{fill:#08080B;stroke:var(--ink);stroke-width:var(--lw);vector-effect:non-scaling-stroke}
 .pintle circle{fill:var(--ink)}
 .door-stone{z-index:0}
@@ -434,3 +434,11 @@ a.install:hover{color:var(--text)}
 .leaf-face{transform-style:flat}
 .leaf-face .hinge,.leaf-face .plaque,.leaf-face .keyhole,.leaf-face .door-planks,.leaf-face .shade{transform:none}
 .door-leaf>.handle{position:absolute;transform:translateZ(.5px)}
+
+/* A narrow gap between the wall and the door (a third of what it was), and a golden light */
+.tdoor{--warm:255,204,118}
+.door-opening{background:radial-gradient(ellipse 90% 70% at 70% 45%,#FFF3D2,#FFD887 30%,#F0B954 62%,#B98530);box-shadow:0 0 0 2.5px #E9B451}
+.door-leaf{left:0;right:0;top:0;bottom:0}
+.leaf-face{border-radius:calc(var(--w)/2) calc(var(--w)/2) 0 0}
+.leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*200/194),calc(var(--s)*330/324))}
+.keyhole{fill:#FFE7AE}
