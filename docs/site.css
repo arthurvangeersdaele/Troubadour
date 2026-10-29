@@ -362,3 +362,20 @@ a.install:hover{color:var(--text)}
 .hinge.h1{top:58%}.hinge.h2{top:82%}
 .hinge path,.hinge rect{fill:#08080B;stroke:var(--ink);stroke-width:var(--lw);vector-effect:non-scaling-stroke}
 .hinge circle{fill:var(--ink)}
+
+/* Hinges hold to the wall: a pintle plate on the left jamb with the pin's knuckle on the door's hinge line.
+   Painted after the stones, in front of the door's edge. */
+.door-opening{z-index:1}
+.pintle{position:absolute;z-index:2;width:calc(30px*var(--s));height:calc(34px*var(--s));left:calc(var(--j) + 3px - 20px*var(--s));overflow:visible}
+.pintle.p1{top:calc(var(--j) + 3px + 324px*var(--s)*.58 + 1.3px*var(--s))}
+.pintle.p2{top:calc(var(--j) + 3px + 324px*var(--s)*.82 + 1.3px*var(--s))}
+.pintle path,.pintle rect{fill:#08080B;stroke:var(--ink);stroke-width:var(--lw);vector-effect:non-scaling-stroke}
+.pintle circle{fill:var(--ink)}
+.door-stone{z-index:0}
+/* Light on the steps only: a strip under the closed door, then a wedge through the opening that widens as the door turns */
+.step-light polygon{opacity:0;transition:opacity .5s .15s}
+.step-light .sl-closed{opacity:.6}
+.tdoor:hover .sl-closed,.tdoor:focus-visible .sl-closed{opacity:.25}
+.tdoor:hover .sl-hover,.tdoor:focus-visible .sl-hover{opacity:1;transition-delay:.3s}
+.tdoor.flung .sl-closed,.tdoor.flung .sl-hover{opacity:0}
+.tdoor.flung .sl-flung{opacity:1}
