@@ -414,3 +414,7 @@ a.install:hover{color:var(--text)}
 /* the warm light shows under the rounded ends of the planks */
 .leaf-face{background:linear-gradient(180deg,#000 calc(100% - 16px),transparent calc(100% - 15px))}
 .door-planks .planks path{fill:var(--plank);stroke:var(--ink);stroke-width:var(--lw);vector-effect:non-scaling-stroke}
+
+/* Each plank stands on its own: no backing behind them, the light shows round their rounded ends,
+   and every plank has its own thickness for the 3D turn. */
+.leaf-face{background:none;overflow:visible}
