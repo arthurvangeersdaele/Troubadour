@@ -379,3 +379,20 @@ a.install:hover{color:var(--text)}
 .tdoor:hover .sl-hover,.tdoor:focus-visible .sl-hover{opacity:1;transition-delay:.3s}
 .tdoor.flung .sl-closed,.tdoor.flung .sl-hover{opacity:0}
 .tdoor.flung .sl-flung{opacity:1}
+/* La Troupe plate: a squared iron plate with an inner line and a screw in each corner */
+.plaque{left:20%;right:20%;top:23%;padding:13px 6px;border-radius:2px;
+  background:radial-gradient(circle,var(--ink) 1.6px,transparent 2.1px) 7px 7px/calc(100% - 14px) calc(100% - 14px) no-repeat,
+    radial-gradient(circle at 0 0,transparent 0) 0 0,#08080B;
+  box-shadow:0 0 0 var(--lw) var(--ink),inset 0 0 0 5px #08080B,inset 0 0 0 calc(5px + var(--lw)) var(--ink)}
+.plaque::before,.plaque::after{content:'';position:absolute;top:8px;bottom:8px;width:5px;pointer-events:none;
+  background:radial-gradient(circle,var(--ink) 1.5px,transparent 2px) 50% 0/5px 5px no-repeat,radial-gradient(circle,var(--ink) 1.5px,transparent 2px) 50% 100%/5px 5px no-repeat}
+.plaque::before{left:8px}.plaque::after{right:8px}
+.plaque{background:#08080B}
+.plaque>span>span{display:block;font-size:17px;letter-spacing:.04em}
+/* A door knob: a round back plate, the knob on it, and a highlight that turns with it */
+.handle{width:28px;height:28px;margin:-14px -14px 0 0}
+.rose{background:#08080B;box-shadow:0 0 0 var(--lw) var(--ink)}
+.rose::before{content:'';position:absolute;inset:6px;border-radius:50%;background:#08080B;box-shadow:0 0 0 var(--lw) var(--ink),2px 2px 0 1px rgba(0,0,0,.9)}
+.rose::after{left:9px;top:9px;width:10px;height:10px;margin:0;border-radius:50%;background:none;border:var(--lw) solid transparent;border-top-color:var(--ink);transform:rotate(-40deg)}
+.tdoor:hover .rose::after,.tdoor:focus-visible .rose::after,.tdoor.flung .rose::after{transform:rotate(-130deg)}
+.keyhole{top:calc(48% + 20px)}
