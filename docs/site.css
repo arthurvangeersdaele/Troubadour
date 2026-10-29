@@ -418,3 +418,19 @@ a.install:hover{color:var(--text)}
 /* Each plank stands on its own: no backing behind them, the light shows round their rounded ends,
    and every plank has its own thickness for the 3D turn. */
 .leaf-face{background:none;overflow:visible}
+
+/* The knob in 3D: a stack of discs standing out from the back plate, a stem then the ball */
+.leaf-face,.handle{transform-style:preserve-3d}
+.handle .kd{position:absolute;left:50%;top:50%;width:var(--d);height:var(--d);border-radius:50%;background:#08080B;box-shadow:0 0 0 var(--lw) var(--ink);
+  transform:translate(-50%,-50%) translateZ(var(--z))}
+/* The wood's thickness catches the warm light, so the planks' sides show as the door turns */
+.leaf-rim i{background:color-mix(in srgb,rgb(var(--warm)) 34%,#08080B)}
+/* keep the door's parts on separate layers so they never flicker through each other */
+.leaf-face .door-planks{transform:translateZ(0)}
+.leaf-face .hinge,.leaf-face .plaque,.leaf-face .keyhole{transform:translateZ(1px)}
+.leaf-face .handle{transform:translateZ(1px)}
+.leaf-face .shade{transform:translateZ(16px)}
+.leaf-rim{transform:translateZ(-.6px) scale(var(--s))}
+.leaf-face{transform-style:flat}
+.leaf-face .hinge,.leaf-face .plaque,.leaf-face .keyhole,.leaf-face .door-planks,.leaf-face .shade{transform:none}
+.door-leaf>.handle{position:absolute;transform:translateZ(.5px)}
