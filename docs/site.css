@@ -487,3 +487,4 @@ a.install:hover{color:var(--text)}
 /* door wide open: the golden source is out, the torches far inside barely touch the steps */
 .tdoor.flung .sl-flung{opacity:.07}
 .tdoor.flung .stone-light{opacity:.06}
+.tdoor.flung .sl-hover,.tdoor.flung .sl-closed{opacity:0}
