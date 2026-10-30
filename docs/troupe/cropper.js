@@ -203,7 +203,7 @@
     let original = null;     // { blob, fileName } when the whole file can be kept untouched
     let selA = 0, selB = 0;
     let src = null, playT0 = 0, raf = 0;
-    let yt = null, ytTimer = 0, recording = null, closed = false;
+    let yt = null, ytId = null, ytTimer = 0, recording = null, closed = false;
 
     function close() {
       if (closed) return;
@@ -313,19 +313,39 @@
           },
         });
       }
+      ytId = id;
       clearInterval(ytTimer);
       ytTimer = setInterval(() => {
         // Only once the recorder runs and the player sits on the chosen part: before that the player
         // can still report where the video was before the jump (the 100% at once of the first try).
         if (!recording || !recording.started || !yt || !yt.getCurrentTime) return;
-        const len = recording.b - recording.a;
-        const elapsed = Math.max(0, (Date.now() - recording.t0) / 1000 - recording.lead);
-        status(`Recording… ${fmt(Math.min(elapsed, len))} of ${fmt(len)}`);
-        $('.cr-rec span', box).textContent = `Recording ${Math.min(100, Math.round((elapsed / Math.max(0.1, len)) * 100))}%`;
+        const r = recording, rec = r.rec;
+        const len = r.b - r.a;
         const t = yt.getCurrentTime();
         const st = yt.getPlayerState ? yt.getPlayerState() : -1;
-        const reached = t >= recording.b + 0.25 && t >= recording.a - 1;
-        if (reached || st === 0 || elapsed > len + 3) stopRecording(false);
+        let vid = ytId;
+        try { vid = (yt.getVideoData && yt.getVideoData().video_id) || ytId; } catch (e) { /* keep */ }
+        // Ads: YouTube cannot be asked to skip them, so the recorder skips them. It only listens while the video
+        // itself plays and moves forward; during an ad (another video id, or the video's own clock standing
+        // still while sound goes on) and while the player buffers, the recording is paused.
+        const moving = r.lastT !== null && t > r.lastT + 0.005 && t - r.lastT < 1.5;
+        const own = vid === ytId && st === 1 && moving;
+        r.lastT = t;
+        if (rec && rec.state === 'recording' && !own) rec.pause();
+        else if (rec && rec.state === 'paused' && own) rec.resume();
+        const done = Math.min(len, Math.max(0, t - r.a));
+        if (!own && vid !== ytId) {
+          r.ad = true;
+          status('An ad is playing: it is left out, the recording goes on after it.');
+        } else if (own || !r.ad) {
+          status(`Recording… ${fmt(done)} of ${fmt(len)}`);
+        }
+        $('.cr-rec span', box).textContent = `Recording ${Math.min(100, Math.round((done / Math.max(0.1, len)) * 100))}%`;
+        const reached = vid === ytId && t >= r.b + 0.25 && t >= r.a - 1;
+        const ended = vid === ytId && st === 0;
+        // a long stall (lost connection) ends it; ads may take a few minutes
+        const stuck = (Date.now() - r.t0) / 1000 > len + 300;
+        if (reached || ended || stuck) stopRecording(false);
       }, 80);
     }
     const now = () => (yt && yt.getCurrentTime ? yt.getCurrentTime() : 0);
@@ -373,7 +393,7 @@
       if (closed) { dropCapture(); return; }
       const end = total ? Math.min(b, total) : b;
       const lead = Math.min(0.3, a);
-      recording = { a, b: end, lead, rec: null, chunks: [], cancelled: false, started: false, t0: 0 };
+      recording = { a, b: end, lead, rec: null, chunks: [], cancelled: false, started: false, t0: 0, lastT: null, ad: false };
       const r = recording;
       recUi(true);
       status('Getting the video ready…');
