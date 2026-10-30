@@ -401,3 +401,8 @@ html.enter .gold-veil{display:block;visibility:visible;background:radial-gradien
 html.enter .hall>*:nth-child(1){--d:.75s}html.enter .hall>*:nth-child(2){--d:.85s}html.enter .hall>*:nth-child(3){--d:.95s}
 html.enter .hall>*:nth-child(4){--d:1.1s}html.enter .hall>*:nth-child(5){--d:1.25s}html.enter .hall>*:nth-child(6){--d:1.45s}html.enter .hall>*:nth-child(7){--d:1.55s}
 html.enter .doors>*:nth-child(1){--d:1.3s}html.enter .doors>*:nth-child(2){--d:1.4s}html.enter .doors>*:nth-child(3){--d:1.5s}html.enter .doors>*:nth-child(4){--d:1.6s}
+
+/* Room sound toggle in the top bar */
+.sbar .ico.sound .x{display:none}
+.sbar .ico.sound.off .w{display:none}.sbar .ico.sound.off .x{display:inline}
+.sbar .ico.sound.off{color:var(--muted)}
