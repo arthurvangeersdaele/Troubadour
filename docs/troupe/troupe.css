@@ -371,3 +371,16 @@ html.enter .doors>*:nth-child(1){animation-delay:.5s}html.enter .doors>*:nth-chi
 @keyframes breathe{0%{opacity:.85}20%{opacity:1}35%{opacity:.78}55%{opacity:.95}75%{opacity:.82}100%{opacity:.9}}
 @media (max-width:700px){.hall>.torch{top:44px;width:38px;height:108px}.torch.left{left:12px}.torch.right{right:12px}.torch-glow{width:520px;height:520px}}
 @media (prefers-reduced-motion:reduce){.torch .flame,.torch-glow{animation:none}}
+
+/* La Troupe as a warm room: a stone wall in the torchlight, a wooden floor, the corners in shadow */
+html.room body{background:radial-gradient(ellipse 120% 90% at 50% 40%,transparent 55%,rgba(0,0,0,.55)),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='80'%3E%3Cg fill='none' stroke='rgba(162,159,174,0.13)' stroke-width='1.5'%3E%3Crect x='3' y='3' width='74' height='34' rx='9'/%3E%3Crect x='83' y='3' width='74' height='34' rx='9'/%3E%3Crect x='-37' y='43' width='74' height='34' rx='9'/%3E%3Crect x='43' y='43' width='74' height='34' rx='9'/%3E%3Crect x='123' y='43' width='74' height='34' rx='9'/%3E%3C/g%3E%3C/svg%3E") 0 0/160px 80px,var(--bg)}
+html.room .hall::before{background:radial-gradient(circle,rgba(255,190,100,.10) 0%,transparent 60%)}
+html.room .hall{padding-bottom:150px}
+.hall>.room-floor{position:absolute;z-index:0;left:-20%;right:-20%;bottom:0;height:170px;pointer-events:none;transform:perspective(260px) rotateX(48deg);transform-origin:50% 100%;
+  background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 40%),radial-gradient(ellipse 30% 70% at 18% 0,rgba(255,180,80,.16),transparent),radial-gradient(ellipse 30% 70% at 82% 0,rgba(255,180,80,.16),transparent),
+    repeating-linear-gradient(90deg,rgba(162,159,174,.16) 0 1.5px,transparent 1.5px 90px),linear-gradient(180deg,#17120D,#22180F);
+  border-top:1.87px solid rgba(162,159,174,.35)}
+html.room .torch-glow{background:radial-gradient(circle,rgba(255,196,96,.34),rgba(255,176,70,.14) 30%,rgba(255,160,60,.05) 55%,transparent 70%)}
+/* coming through the door: the room is already there, only the content rises */
+html.enter .gold-veil{display:none}
+html.enter .hall>.room-floor,html.enter .hall>.torch{animation:none}
