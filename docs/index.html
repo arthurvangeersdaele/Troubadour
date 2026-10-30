@@ -318,21 +318,26 @@
   })();
 
 
-  /* La Troupe door: a click swings it open, then we walk into the light and La Troupe comes out of the gold */
+  /* La Troupe door: a click swings it open, then we walk into the light: the lit doorway grows until it fills the screen,
+     and La Troupe comes out of the gold. 2D only, so it runs the same on phones. */
   (function(){
     var d=document.getElementById('door');
     if(!d||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    var veil=null;
+    var portal=null,busy=false;
     d.addEventListener('click',function(e){
       if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;
-      e.preventDefault();d.classList.add('flung');
+      e.preventDefault();if(busy)return;busy=true;d.classList.add('flung');
       try{sessionStorage.setItem('troubadour.door','1');}catch(x){}
-      if(!veil){veil=document.createElement('div');veil.className='gold-veil';document.body.appendChild(veil);}
-      setTimeout(function(){document.documentElement.classList.add('walking');d.classList.add('walk');},450);
-      setTimeout(function(){veil.classList.add('on');},650);
-      setTimeout(function(){location.href=d.href;},1150);
+      var r=d.querySelector('.door-opening').getBoundingClientRect();
+      portal=document.createElement('div');portal.className='gold-portal';
+      portal.style.left=r.left+'px';portal.style.top=r.top+'px';portal.style.width=r.width+'px';portal.style.height=r.height+'px';
+      document.body.appendChild(portal);
+      var vw=innerWidth,vh=innerHeight,k=Math.max(vw/r.width,vh/r.height)*2.6;
+      var dx=vw/2-(r.left+r.width/2),dy=vh/2-(r.top+r.height*.55);
+      setTimeout(function(){portal.classList.add('on');portal.style.transform='translate('+dx+'px,'+dy+'px) scale('+k+')';},520);
+      setTimeout(function(){location.href=d.href;},1250);
     });
-    window.addEventListener('pageshow',function(){d.classList.remove('flung','walk');document.documentElement.classList.remove('walking');if(veil)veil.classList.remove('on');});
+    window.addEventListener('pageshow',function(){busy=false;d.classList.remove('flung');if(portal){portal.remove();portal=null;}});
   })();
   /* Reduced motion: keep La Troupe logo still */
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)document.getElementById('sigil').pauseAnimations();

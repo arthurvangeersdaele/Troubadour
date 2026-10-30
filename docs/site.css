@@ -452,10 +452,9 @@ a.install:hover{color:var(--text)}
 .door-leaf{bottom:calc(1px*var(--s))}
 .leaf-rim{transform:translateZ(-.6px) scale(calc(var(--s)*201.2/194),calc(var(--s)*330.9/324))}
 
-/* Walking through the door: the view moves into the doorway, and the golden light fills the screen */
-html.walking{overflow:hidden}
-.tdoor.walk .door-scene{transform:scale(9);transform-origin:calc(var(--j) + var(--w)*.62) calc(var(--j) + var(--h)*.55);transition:transform .75s cubic-bezier(.55,0,.85,.35)}
-.tdoor.walk .door-caption{opacity:0;transition:opacity .2s}
-.door-scene{transform-origin:50% 50%}
-.gold-veil{position:fixed;inset:0;z-index:300;pointer-events:none;opacity:0;background:linear-gradient(180deg,#F0C463,#E3A93F);transition:opacity .5s ease-in}
-.gold-veil.on{opacity:1}
+
+/* Walking through the door: the lit doorway grows until its gold fills the screen */
+.gold-portal{position:fixed;z-index:300;pointer-events:none;opacity:0;transform-origin:50% 55%;border-radius:50% 50% 0 0/30% 30% 0 0;
+  background:radial-gradient(ellipse 90% 70% at 50% 45%,#FFF3D2,#FFD887 35%,#F0C463 70%,#E3A93F);
+  transition:transform .72s cubic-bezier(.55,0,.8,.3),opacity .25s,border-radius .72s}
+.gold-portal.on{opacity:1;border-radius:0}
