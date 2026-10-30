@@ -360,3 +360,14 @@ html.enter .doors>*{animation:rise .55s cubic-bezier(.2,.7,.3,1) both}
 html.enter .doors>*:nth-child(1){animation-delay:.5s}html.enter .doors>*:nth-child(2){animation-delay:.58s}html.enter .doors>*:nth-child(3){animation-delay:.66s}html.enter .doors>*:nth-child(4){animation-delay:.74s}
 @keyframes veil-out{from{opacity:1}to{opacity:0}}
 @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+/* On gold: the logo gets a thin black outline, and the cards are golden plates with a black outline (d20 line width) */
+html.gold .sigil rect{stroke:#08080B;stroke-width:1.87px;vector-effect:non-scaling-stroke}
+html.gold .door,html.gold .discord-bar{--text:#08080B;--muted:#3E2C0E;--accent:#08080B;--z:#08080B;
+  background:linear-gradient(180deg,#F6D27E,#EDBD58);border:1.87px solid #08080B;color:#08080B;box-shadow:0 10px 26px rgba(80,50,0,.22)}
+html.gold .door.recueil{background:linear-gradient(180deg,#F6D27E,#EDBD58)}
+html.gold .door.recueil b,html.gold .door b,html.gold .discord-bar b{color:#08080B}
+html.gold .door .go,html.gold .discord-bar .go{color:#08080B}
+html.gold .door:hover,html.gold .discord-bar:hover{border-color:#08080B;background:linear-gradient(180deg,#F9DC93,#F0C566);box-shadow:0 16px 34px rgba(80,50,0,.32)}
+html.gold .discord-bar .tile.dc{border:1.87px solid #08080B}
+html.gold{background:#E3A93F linear-gradient(180deg,#F0C463,#E3A93F) no-repeat;background-size:100% 100%;min-height:100%}
+html.gold body{background:transparent;min-height:100vh}
