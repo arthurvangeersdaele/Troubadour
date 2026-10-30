@@ -744,25 +744,32 @@ a.ico { color: var(--text); text-decoration: none; }
 .splash { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; overflow: hidden; background: #0A0A0D; transition: opacity .5s ease; }
 html:not(.mode-app) .splash { display: none; }
 .splash.sp-out { opacity: 0; pointer-events: none; }
-.bl-stage { position: relative; width: 80vmin; height: 80vmin; perspective: 900px; }
-.bl-wire { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.bl-wire path { fill: none; stroke: #F4C651; stroke-width: 22; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; }
-.bl-glow { filter: drop-shadow(0 0 10px rgba(240, 194, 79, .65)) drop-shadow(0 0 26px rgba(240, 194, 79, .3)); }
-.bl-dot { fill: #FFE08A; transform-box: fill-box; transform-origin: center; transform: scale(0); filter: drop-shadow(0 0 12px rgba(255, 224, 138, .9)); }
-/* The word sits between the two arms, where the logo's bars stand. */
-.bl-word { position: absolute !important; left: 0; right: 0; top: 61%; margin: -.5em 0 0; text-align: center; }
+.bl-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4vmin; perspective: 900px; }
+.bl-wire { display: block; width: 100%; height: auto; overflow: visible; }
+.bl-bars { opacity: 0; }
+.bl-wire path { fill: none; stroke-linecap: round; stroke-dasharray: 1 1; stroke-dashoffset: 1; }
+/* Molten gold, as on the wire of the player: a wide soft halo, a warmer glow, the gold, a bright core. */
+.bl-halo { opacity: .18; } .bl-halo path { stroke: #F0C24F; stroke-width: 92; }
+.bl-halo2 { opacity: .34; } .bl-halo2 path { stroke: #F0C24F; stroke-width: 50; }
+.bl-core path { stroke: #F4C651; stroke-width: 26; }
+.bl-shine { opacity: .8; } .bl-shine path { stroke: #FFE08A; stroke-width: 9; }
+.bl-dot { fill: #FFE08A; transform-box: fill-box; transform-origin: center; transform: scale(0); filter: drop-shadow(0 0 14px rgba(255, 224, 138, .9)) drop-shadow(0 0 30px rgba(240, 194, 79, .5)); }
+.bl-word { position: relative; margin: 0; text-align: center; }
 
-/* Timeline: the top dot lights (0 s), the wire runs down (.25 s) and splits (.75 s), its two ends light (1.35 s);
-   the word rises (.9 s), gold climbs it (1.4 s), the glint sweeps (1.9 s), then from 2.6 s the gold and the relief
-   melt and the wire softens to white with them: a bright white Ballade on the dark. */
-.sp-go .bl-dot.top { animation: bl-pop .45s cubic-bezier(.3, 1.6, .5, 1) forwards; }
-.sp-go .bl-stem { animation: bl-draw .5s cubic-bezier(.5, 0, .3, 1) .25s forwards; }
-.sp-go .bl-arm { animation: bl-draw .7s cubic-bezier(.4, 0, .2, 1) .72s forwards; }
-.sp-go .bl-dot.l, .sp-go .bl-dot.r { animation: bl-pop .5s cubic-bezier(.3, 1.6, .5, 1) 1.35s forwards; }
-.sp-go .bl-wire { animation: bl-white .9s ease-in-out 2.6s forwards; }
+/* Timeline: the three bars of Troubadour glow up in the dark (0 s), the top dot lights (.3 s), the wire runs down
+   (.55 s) and splits in its two arms (1.05 s), their ends light (1.7 s); the word rises (1.2 s), gold climbs it
+   (1.7 s), the glint sweeps (2.2 s), then the word melts into a pure white Ballade under the golden wire, which
+   keeps shining. */
+.sp-go .bl-bars { animation: bl-in .7s ease-out forwards; }
+.sp-go .bl-dot.top { animation: bl-pop .45s cubic-bezier(.3, 1.6, .5, 1) .3s forwards; }
+.sp-go .bl-stem { animation: bl-draw .55s cubic-bezier(.5, 0, .3, 1) .55s forwards; }
+.sp-go .bl-arm { animation: bl-draw .7s cubic-bezier(.4, 0, .2, 1) 1.05s forwards; }
+.sp-go .bl-dot.l, .sp-go .bl-dot.r { animation: bl-pop .5s cubic-bezier(.3, 1.6, .5, 1) 1.65s forwards; }
+.sp-go .bl-shine { animation: bl-glint 1.2s ease-in-out 2.2s; }
+@keyframes bl-in { to { opacity: 1; } }
 @keyframes bl-draw { to { stroke-dashoffset: 0; } }
 @keyframes bl-pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-@keyframes bl-white { to { filter: saturate(.15) brightness(1.5); opacity: .9; } }
+@keyframes bl-glint { 50% { opacity: 1; filter: brightness(1.25); } }
 
 .sp-word {
   position: relative; display: block; font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 100px;
@@ -778,16 +785,16 @@ html:not(.mode-app) .splash { display: none; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .sp-word::before {
-  background-image: linear-gradient(0deg, #F2C66A 0%, #E7B355 22%, rgba(247, 230, 190, .85) 48%, rgba(247, 243, 234, 0) 72%);
+  background-image: linear-gradient(0deg, #F4C651 0%, #FFE08A 26%, rgba(255, 236, 190, .9) 50%, rgba(247, 243, 234, 0) 74%);
   background-size: 100% 220%; background-position: 50% 0%; opacity: 0;
 }
 .sp-word::after {
   background-image: linear-gradient(105deg, rgba(255, 255, 255, 0) 38%, rgba(255, 236, 180, .95) 47%, #FFFFFF 50%, rgba(255, 220, 140, .9) 53%, rgba(255, 255, 255, 0) 62%);
   background-size: 260% 100%; background-position: 130% 0; opacity: 0;
 }
-.sp-go .sp-word { animation: sp-rise .8s cubic-bezier(.2, .8, .2, 1) .9s forwards, sp-pure .85s ease-in-out 2.6s forwards; }
-.sp-go .sp-word::before { animation: sp-gold 1.3s ease-out 1.4s forwards, sp-ungild .75s ease-in-out 2.6s forwards; }
-.sp-go .sp-word::after { animation: sp-glint .8s ease-in-out 1.9s forwards; }
+.sp-go .sp-word { animation: sp-rise .8s cubic-bezier(.2, .8, .2, 1) 1.2s forwards, sp-pure .85s ease-in-out 2.9s forwards; }
+.sp-go .sp-word::before { animation: sp-gold 1.3s ease-out 1.7s forwards, sp-ungild .75s ease-in-out 2.9s forwards; }
+.sp-go .sp-word::after { animation: sp-glint .8s ease-in-out 2.2s forwards; }
 @keyframes sp-rise { 0% { opacity: 0; transform: rotateX(28deg) translateY(.12em); } 100% { opacity: 1; transform: rotateX(12deg) translateY(0); } }
 @keyframes sp-pure {
   0% { opacity: 1; transform: rotateX(12deg); color: #F7F3EA;
@@ -803,4 +810,5 @@ html:not(.mode-app) .splash { display: none; }
   .sp-go .sp-word::before, .sp-go .sp-word::after { animation: none; opacity: 0; }
   .sp-go .bl-wire path { animation: none; stroke-dashoffset: 0; }
   .sp-go .bl-dot { animation: none; transform: scale(1); }
+  .sp-go .bl-bars { animation: none; opacity: 1; }
 }

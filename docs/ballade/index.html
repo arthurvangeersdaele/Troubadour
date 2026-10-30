@@ -118,15 +118,36 @@
      the word rises in relief, gold climbs its letters and a glint sweeps them, then all melts into a pure white Ballade. -->
 <div class="splash bl-splash" id="splash" aria-hidden="true">
   <div class="bl-stage" id="bl-stage">
-    <svg class="bl-wire" viewBox="0 0 1000 1000" aria-hidden="true">
-      <g class="bl-glow">
-        <path class="bl-stem" pathLength="1" d="M500 92V300"/>
-        <path class="bl-arm" pathLength="1" d="M500 300C500 400 170 380 170 520V770"/>
-        <path class="bl-arm" pathLength="1" d="M500 300C500 400 830 380 830 520V770"/>
+    <!-- The Troubadour Ballade logo, drawn exactly as the icon (branding/261017_troubadour_ballade_icon.svg). -->
+    <svg class="bl-wire" viewBox="160 140 704 740" aria-hidden="true">
+      <g class="bl-bars">
+        <rect x="224" y="416" width="128" height="320" rx="64" fill="#5C4627"/>
+        <rect x="448" y="256" width="128" height="512" rx="64" fill="#244E49"/>
+        <rect x="672" y="352" width="128" height="384" rx="64" fill="#5C302D"/>
       </g>
-      <circle class="bl-dot top" cx="500" cy="82" r="30"/>
-      <circle class="bl-dot l" cx="170" cy="788" r="36"/>
-      <circle class="bl-dot r" cx="830" cy="788" r="36"/>
+      <g class="bl-halo">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-halo2">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-core">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-shine">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <circle class="bl-dot top" cx="512" cy="176" r="38"/>
+      <circle class="bl-dot l" cx="352" cy="826" r="46"/>
+      <circle class="bl-dot r" cx="672" cy="826" r="46"/>
     </svg>
     <b class="sp-word bl-word" id="sp-word" data-text="Ballade">Ballade</b>
   </div>
@@ -136,14 +157,14 @@
     var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word'), stage = document.getElementById('bl-stage');
     if (!root.classList.contains('mode-app')) { sp.remove(); return; }
     var started = false, gone = false;
-    // The stage is a square: most of the width on a phone, a good part of the height on a computer.
-    // The word fills a little more than half of it, between the two arms of the wire.
+    // The logo on top, the word under it, the pair in the middle of the screen.
     function fit() {
-      var side = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.62);
-      stage.style.width = stage.style.height = side + 'px';
+      var side = Math.min(window.innerWidth * 0.62, window.innerHeight * 0.46);
+      stage.style.width = side + 'px';
+      stage.querySelector('svg').style.height = (side * 740 / 704) + 'px';
       word.style.fontSize = '100px';
       var w = word.getBoundingClientRect().width || 1;
-      word.style.fontSize = (100 * side * 0.55 / w) + 'px';
+      word.style.fontSize = Math.min(100 * Math.min(window.innerWidth * 0.7, side * 1.3) / w, window.innerHeight * 0.14) + 'px';
     }
     function hide() {
       if (gone) return; gone = true;
@@ -155,7 +176,7 @@
       fit();
       sp.classList.add('sp-go');
       var quiet = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-      setTimeout(hide, quiet ? 900 : 3500);
+      setTimeout(hide, quiet ? 900 : 3900);
     }
     window.addEventListener('resize', fit);
     try {
@@ -165,7 +186,7 @@
       } else go();
     } catch (e) { go(); }
     sp.addEventListener('click', hide);
-    setTimeout(hide, 5200);
+    setTimeout(hide, 5600);
   })();
 </script>
 
