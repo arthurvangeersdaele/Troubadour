@@ -132,21 +132,22 @@ fun LibraryScreen(m: AppModel) {
                     AddRow { m.sheet = Sheet.AddStory }
                 }
             }
+            // The last opened story stays on screen; only the other stories scroll.
             if (wide) {
                 Row(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Hero(m, first, recent[first.uid], Modifier.weight(1.15f))
-                    list(Modifier.weight(1f))
+                    Hero(m, first, recent[first.uid], Modifier.weight(1.15f).padding(bottom = 14.dp).fillMaxHeight(), fill = true)
+                    list(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(bottom = 14.dp))
                 }
             } else {
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Hero(m, first, recent[first.uid], Modifier.fillMaxWidth())
-                    list(Modifier.fillMaxWidth())
+                    list(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(bottom = 14.dp))
                 }
             }
         }
@@ -162,7 +163,7 @@ private fun sourceLabel(s: Story) = when {
 
 /** The story opened last: its cover on the right, where it stopped, and the way back in. */
 @Composable
-private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) {
+private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier, fill: Boolean = false) {
     val look = Library.coverOf(s)
     val c = tintColor(look.tint)
     val opened = r?.chapter != null
@@ -176,7 +177,7 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
     ) {
         StoryCover(look, Modifier.matchParentSize(), framed = false, rightHalf = true)
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            Modifier.fillMaxWidth().then(if (fill) Modifier.fillMaxHeight() else Modifier).padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -196,7 +197,7 @@ private fun Hero(m: AppModel, s: Story, r: Library.Recent?, modifier: Modifier) 
                 "${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))}",
                 color = C.muted, size = 12.sp, maxLines = 1, modifier = half,
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(if (fill) Modifier.weight(1f) else Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn("Play", icon = BIcons.play, kind = BtnKind.PRIMARY, height = 44.dp) { m.openTable(s.uid, 0) }
                 IconBtn(BIcons.more, "More: ${s.title}", size = 44.dp, tint = C.text, background = C.bg.copy(alpha = 0.45f), border = C.line) {

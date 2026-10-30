@@ -498,3 +498,6 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 
 /* A sound tapped while it loads: it waits to play. */
 .app .c.wanted { border-color: color-mix(in srgb, var(--z) 70%, var(--line)); animation: pulse 1.6s ease-in-out infinite; }
+
+/* iPhone: the hero stays pinned just under the top bar. */
+.app #library .lib-b { --hero-top: calc(52px + env(safe-area-inset-top) + 14px); }

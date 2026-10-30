@@ -506,3 +506,7 @@ html.phone .no-phone { display: none !important; }
 /* Install now: a gold text link, as on How to use */
 .sbar a.install { color: var(--accent); font-weight: 600; font-size: 15px; text-decoration: none; white-space: nowrap; padding: 0 6px; }
 .sbar a.install:hover { color: var(--text); }
+
+/* The last opened story stays on screen while the other stories scroll by (under it on a narrow screen). */
+.lib-b > .hero { position: sticky; top: var(--hero-top, 70px); z-index: 1; }
+@media (max-width: 720px) { .lib-b > .hero { box-shadow: 0 -16px 0 0 var(--bg), 0 10px 18px -12px var(--shadow, rgba(0,0,0,.45)); } }

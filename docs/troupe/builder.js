@@ -187,7 +187,7 @@
       return { li, play, s: e.s, key: (e.s.name || '').toLowerCase() };
     });
     ruPaint = () => rows.forEach((r) => {
-      const on = playingId === r.s.id;
+      const on = players.has(r.s.id);
       r.li.classList.toggle('playing', on);
       r.play.innerHTML = on ? ICON.stop : ICON.play;
       r.play.setAttribute('aria-label', `${on ? 'Stop' : 'Listen to'} ${r.s.name}`);
@@ -213,30 +213,42 @@
   }
 
   /* ---------- preview ---------- */
-  const player = new Audio();
-  let playingId = null;
-  player.onended = () => stopPreview();
+  // Several sounds can play together, so the troubadour hears a combination (music, ambiances, an event)
+  // before rhythming it. Endless sounds loop while they are previewed.
+  const players = new Map(); // sound id -> { audio, url }
   function togglePreview(s) {
-    if (playingId === s.id) { stopPreview(); return; }
-    stopPreview();
-    player.src = URL.createObjectURL(s.blob);
-    player.volume = s.volume ?? 0.75;
-    player.play().catch(() => {});
-    playingId = s.id;
+    if (players.has(s.id)) { stopPreview(s.id); return; }
+    const url = URL.createObjectURL(s.blob);
+    const audio = new Audio(url);
+    audio.volume = s.volume ?? 0.75;
+    audio.loop = s.loop === 'infinite';
+    audio.onended = () => stopPreview(s.id);
+    players.set(s.id, { audio, url });
+    audio.play().catch(() => stopPreview(s.id));
     paintPlaying();
   }
-  function stopPreview() {
-    if (player.src) { player.pause(); URL.revokeObjectURL(player.src); player.removeAttribute('src'); }
-    playingId = null;
+  /** Stops one preview, or all of them without an id. */
+  function stopPreview(id) {
+    const ids = id == null ? [...players.keys()] : [id];
+    ids.forEach((k) => {
+      const p = players.get(k);
+      if (!p) return;
+      p.audio.pause();
+      p.audio.removeAttribute('src');
+      URL.revokeObjectURL(p.url);
+      players.delete(k);
+    });
     paintPlaying();
   }
   function paintPlaying() {
     if (ruPaint) ruPaint();
     // A dot on the chapter whose sound is playing, as in the players.
-    const live = playingId == null ? -1 : state.chapters.findIndex((c) => ZONES.some((z) => c[z].some((x) => x.id === playingId)));
-    document.querySelectorAll('#rail .chap').forEach((b, i) => b.classList.toggle('playing', i === live));
+    document.querySelectorAll('#rail .chap').forEach((b, i) => {
+      const c = state.chapters[i];
+      b.classList.toggle('playing', !!c && ZONES.some((z) => c[z].some((x) => players.has(x.id))));
+    });
     cards.forEach((c, sid) => {
-      const on = sid === playingId;
+      const on = players.has(sid);
       c.root.classList.toggle('playing', on);
       c.play.innerHTML = on ? ICON.stop : ICON.play;
       c.play.setAttribute('aria-label', `${on ? 'Stop' : 'Listen to'} ${c.sound.name}`);
@@ -382,7 +394,7 @@
     x.type = 'button';
     x.innerHTML = ICON.x;
     x.setAttribute('aria-label', `Remove ${s.name}`);
-    x.onclick = () => { const f = findSound(s.id); if (f) { if (playingId === s.id) stopPreview(); f.list.splice(f.i, 1); renderAll(); } };
+    x.onclick = () => { const f = findSound(s.id); if (f) { stopPreview(s.id); f.list.splice(f.i, 1); renderAll(); } };
     top.append(name, x);
     const bottom = el('div', 'row');
     const play = el('button', 'pb play');
@@ -442,7 +454,8 @@
       s.volume = Math.round(+vr.value * 100) / 100;
       vp.textContent = `${Math.round(s.volume * 100)}`;
       vr.style.setProperty('--p', `${vr.value * 100}%`);
-      if (playingId === s.id) player.volume = s.volume;
+      const pv = players.get(s.id);
+      if (pv) pv.audio.volume = s.volume;
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow, blendRow);
