@@ -488,3 +488,6 @@ a.install:hover{color:var(--text)}
 .tdoor.flung .sl-flung{opacity:.07}
 .tdoor.flung .stone-light{opacity:.06}
 .tdoor.flung .sl-hover,.tdoor.flung .sl-closed{opacity:0}
+
+/* a gentler walk in: just enough to fill the screen, eased in and out */
+.gold-portal{transition:transform .9s cubic-bezier(.45,0,.25,1),opacity .3s,border-radius .9s}

@@ -384,3 +384,14 @@ html.room .torch-glow{background:radial-gradient(circle,rgba(255,196,96,.34),rgb
 /* coming through the door: the room is already there, only the content rises */
 html.enter .gold-veil{display:none}
 html.enter .hall>.room-floor,html.enter .hall>.torch{animation:none}
+
+/* La Troupe's content always comes in smoothly: a soft fade on every visit, a slow rise when coming through the door */
+@keyframes soft-in{from{opacity:0}to{opacity:1}}
+@keyframes rise-soft{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.hall>*:not(.torch):not(.room-floor){animation:soft-in .8s ease-out both}
+html.enter .hall>*:not(.torch):not(.room-floor),html.enter .doors>*{animation:rise-soft 1.1s cubic-bezier(.25,.6,.3,1) var(--d,0s) both}
+html.enter .hall>*:nth-child(1){--d:.15s}html.enter .hall>*:nth-child(2){--d:.25s}html.enter .hall>*:nth-child(3){--d:.35s}
+html.enter .hall>*:nth-child(4){--d:.5s}html.enter .hall>*:nth-child(5){--d:.65s}html.enter .hall>*:nth-child(6){--d:.85s}html.enter .hall>*:nth-child(7){--d:.95s}
+html.enter .doors>*:nth-child(1){--d:.7s}html.enter .doors>*:nth-child(2){--d:.8s}html.enter .doors>*:nth-child(3){--d:.9s}html.enter .doors>*:nth-child(4){--d:1s}
+html.enter .doors{animation:none!important;opacity:1}
+@media (prefers-reduced-motion:reduce){.hall>*,.doors>*{animation:none!important}}

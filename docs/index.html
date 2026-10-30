@@ -333,7 +333,7 @@
       portal=document.createElement('div');portal.className='gold-portal';
       portal.style.left=r.left+'px';portal.style.top=r.top+'px';portal.style.width=r.width+'px';portal.style.height=r.height+'px';
       document.body.appendChild(portal);
-      var vw=innerWidth,vh=innerHeight,k=Math.max(vw/r.width,vh/r.height)*2.6;
+      var vw=innerWidth,vh=innerHeight,k=Math.max(vw/r.width,vh/r.height)*(vw<700?1.12:1.5);
       var dx=vw/2-(r.left+r.width/2),dy=vh/2-(r.top+r.height*.55);
       setTimeout(function(){portal.classList.add('on');portal.style.transform='translate('+dx+'px,'+dy+'px) scale('+k+')';},520);
       setTimeout(function(){location.href=d.href;},1250);
