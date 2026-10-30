@@ -395,3 +395,9 @@ html.enter .hall>*:nth-child(4){--d:.5s}html.enter .hall>*:nth-child(5){--d:.65s
 html.enter .doors>*:nth-child(1){--d:.7s}html.enter .doors>*:nth-child(2){--d:.8s}html.enter .doors>*:nth-child(3){--d:.9s}html.enter .doors>*:nth-child(4){--d:1s}
 html.enter .doors{animation:none!important;opacity:1}
 @media (prefers-reduced-motion:reduce){.hall>*,.doors>*{animation:none!important}}
+
+/* Coming through the door: the screen is gold, then the gold fades and the room appears, then its content rises */
+html.enter .gold-veil{display:block;visibility:visible;background:radial-gradient(ellipse 90% 70% at 50% 45%,#FFF3D2,#FFD887 35%,#F0C463 70%,#E3A93F);animation:veil-out 1.2s ease-in-out .15s both}
+html.enter .hall>*:nth-child(1){--d:.75s}html.enter .hall>*:nth-child(2){--d:.85s}html.enter .hall>*:nth-child(3){--d:.95s}
+html.enter .hall>*:nth-child(4){--d:1.1s}html.enter .hall>*:nth-child(5){--d:1.25s}html.enter .hall>*:nth-child(6){--d:1.45s}html.enter .hall>*:nth-child(7){--d:1.55s}
+html.enter .doors>*:nth-child(1){--d:1.3s}html.enter .doors>*:nth-child(2){--d:1.4s}html.enter .doors>*:nth-child(3){--d:1.5s}html.enter .doors>*:nth-child(4){--d:1.6s}

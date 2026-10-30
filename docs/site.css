@@ -491,3 +491,14 @@ a.install:hover{color:var(--text)}
 
 /* a gentler walk in: just enough to fill the screen, eased in and out */
 .gold-portal{transition:transform .9s cubic-bezier(.45,0,.25,1),opacity .3s,border-radius .9s}
+
+/* Back to gold behind the door: no room in the doorway, the golden light stays full as the door opens,
+   and the walk-in is golden; the room appears afterwards, on La Troupe. */
+.room-view{display:none}
+.tdoor:hover .room-light,.tdoor:focus-visible .room-light,.tdoor.flung .room-light{opacity:1}
+.tdoor:hover .stone-light,.tdoor:focus-visible .stone-light{opacity:.7}
+.tdoor.flung .stone-light{opacity:1}
+.tdoor:hover .sl-hover,.tdoor:focus-visible .sl-hover{opacity:1}
+.tdoor.flung .sl-flung{opacity:1}
+.tdoor.flung .sl-hover,.tdoor.flung .sl-closed{opacity:0}
+.gold-portal{background:radial-gradient(ellipse 90% 70% at 50% 45%,#FFF3D2,#FFD887 35%,#F0C463 70%,#E3A93F)}
