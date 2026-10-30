@@ -484,3 +484,6 @@ a.install:hover{color:var(--text)}
 @keyframes flick{0%{transform:scale(1,1) skewX(0)}30%{transform:scale(.93,1.07) skewX(-3deg)}60%{transform:scale(1.05,.95) skewX(2.5deg)}100%{transform:scale(.97,1.04) skewX(-1deg)}}
 /* Walking in: the doorway, now showing the room, grows until the room fills the screen */
 .gold-portal{background:radial-gradient(ellipse 45% 40% at 12% 30%,rgba(255,180,80,.30),transparent 70%),radial-gradient(ellipse 45% 40% at 88% 30%,rgba(255,180,80,.30),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='80'%3E%3Cg fill='none' stroke='rgba(162,159,174,0.13)' stroke-width='1.5'%3E%3Crect x='3' y='3' width='74' height='34' rx='9'/%3E%3Crect x='83' y='3' width='74' height='34' rx='9'/%3E%3Crect x='-37' y='43' width='74' height='34' rx='9'/%3E%3Crect x='43' y='43' width='74' height='34' rx='9'/%3E%3Crect x='123' y='43' width='74' height='34' rx='9'/%3E%3C/g%3E%3C/svg%3E") 0 0/52px 26px,#0F0F13}
+/* door wide open: the golden source is out, the torches far inside barely touch the steps */
+.tdoor.flung .sl-flung{opacity:.07}
+.tdoor.flung .stone-light{opacity:.06}
