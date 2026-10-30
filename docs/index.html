@@ -318,16 +318,21 @@
   })();
 
 
-  /* La Troupe door: a click swings it open, then walks in */
+  /* La Troupe door: a click swings it open, then we walk into the light and La Troupe comes out of the gold */
   (function(){
     var d=document.getElementById('door');
     if(!d||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var veil=null;
     d.addEventListener('click',function(e){
       if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;
       e.preventDefault();d.classList.add('flung');
-      setTimeout(function(){location.href=d.href;},700);
+      try{sessionStorage.setItem('troubadour.door','1');}catch(x){}
+      if(!veil){veil=document.createElement('div');veil.className='gold-veil';document.body.appendChild(veil);}
+      setTimeout(function(){document.documentElement.classList.add('walking');d.classList.add('walk');},450);
+      setTimeout(function(){veil.classList.add('on');},650);
+      setTimeout(function(){location.href=d.href;},1150);
     });
-    window.addEventListener('pageshow',function(){d.classList.remove('flung');});
+    window.addEventListener('pageshow',function(){d.classList.remove('flung','walk');document.documentElement.classList.remove('walking');if(veil)veil.classList.remove('on');});
   })();
   /* Reduced motion: keep La Troupe logo still */
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)document.getElementById('sigil').pauseAnimations();

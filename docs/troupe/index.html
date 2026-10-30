@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" data-theme="obsidian" data-mode="dark">
+<html lang="en" class="gold" data-theme="obsidian" data-mode="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>La Troupe des Troubadours | Troubadour</title>
 <meta name="description" content="Join La Troupe: forge your own Troubadour stories and discover the tales other game masters share.">
-<meta name="theme-color" content="#15151B">
+<meta name="theme-color" content="#08080B">
 <link rel="icon" type="image/svg+xml" href="../icons/261013_troubadour_icon.svg">
 <link rel="apple-touch-icon" href="../icons/261013_troubadour_apple_touch_icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,8 +29,13 @@
   })();
 </script>
 <script src="../device.js"></script>
+<script>
+  // Coming through the door on the home page: the page comes out of the golden light.
+  try { if (sessionStorage.getItem('troubadour.door') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('enter'); sessionStorage.removeItem('troubadour.door'); } catch (e) {}
+</script>
 </head>
 <body>
+<div class="gold-veil" aria-hidden="true"></div>
 <div class="cpage">
 <header class="sbar">
   <a class="back" href="../" aria-label="Back to Website"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Website</span></a>

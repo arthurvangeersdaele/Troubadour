@@ -337,3 +337,26 @@ html.pc .doors.four { grid-template-columns: repeat(2, minmax(0, 360px)); }
 
 /* Phones have the app: no web player buttons there */
 html.phone .no-phone { display: none !important; }
+
+/* La Troupe, behind the door: the room is lit in gold. Black ink on gold, like the door's drawing;
+   the top bar and the cards stay dark, so the lit room frames them. */
+html.gold[data-theme][data-mode]{--bg:#ECBB55;--text:#08080B;--muted:#3E2C0E;--accent:#08080B;--line:#08080B;--shadow:rgba(80,50,0,.35)}
+html.gold body{background:linear-gradient(180deg,#F0C463,#E3A93F) fixed;color:var(--text)}
+html.gold .hall::before{background:radial-gradient(circle,rgba(255,246,214,.55) 0%,transparent 60%)}
+html.gold .sbar,html.gold .door,html.gold .discord-bar{--bar:#08080B;--card:#14141A;--line:#2E2E39;--text:#ECE8DE;--muted:#A29FAE;--accent:#E0A84B;color:var(--text)}
+html.gold .sbar{background:#08080B;border-bottom-color:#08080B}
+html.gold .door,html.gold .discord-bar{background:#08080B;border:1.87px solid #08080B;box-shadow:0 14px 34px rgba(80,50,0,.28)}
+html.gold .door.recueil{background:linear-gradient(160deg,color-mix(in srgb,#E0A84B 14%,#08080B),#08080B 55%)}
+html.gold .door:hover,html.gold .discord-bar:hover{border-color:#08080B;box-shadow:0 20px 44px rgba(80,50,0,.38)}
+html.gold .oath em{color:var(--text);font-weight:600}
+html.gold .kicker{color:#08080B}
+/* Entering from the door: the gold fades away and the page rises out of it */
+.gold-veil{position:fixed;inset:0;z-index:300;pointer-events:none;background:linear-gradient(180deg,#F0C463,#E3A93F);opacity:0;visibility:hidden}
+html.enter .gold-veil{visibility:visible;animation:veil-out .7s ease-out .05s both}
+html.enter .hall>*{animation:rise .6s cubic-bezier(.2,.7,.3,1) both}
+html.enter .hall>*:nth-child(1){animation-delay:.25s}html.enter .hall>*:nth-child(2){animation-delay:.3s}html.enter .hall>*:nth-child(3){animation-delay:.35s}
+html.enter .hall>*:nth-child(4){animation-delay:.42s}html.enter .hall>*:nth-child(5){animation-delay:.5s}html.enter .hall>*:nth-child(6){animation-delay:.58s}html.enter .hall>*:nth-child(7){animation-delay:.64s}
+html.enter .doors>*{animation:rise .55s cubic-bezier(.2,.7,.3,1) both}
+html.enter .doors>*:nth-child(1){animation-delay:.5s}html.enter .doors>*:nth-child(2){animation-delay:.58s}html.enter .doors>*:nth-child(3){animation-delay:.66s}html.enter .doors>*:nth-child(4){animation-delay:.74s}
+@keyframes veil-out{from{opacity:1}to{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
