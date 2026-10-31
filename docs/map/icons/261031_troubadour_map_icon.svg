@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Troubadour Map">
+  <title>Troubadour Map</title>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
+  </defs>
+  <rect width="1024" height="1024" rx="256" fill="#0A0A0D"/>
+  <rect x="224" y="416" width="128" height="320" rx="64" fill="#5C4627"/>
+  <rect x="448" y="256" width="128" height="512" rx="64" fill="#244E49"/>
+  <rect x="672" y="352" width="128" height="384" rx="64" fill="#5C302D"/>
+  <g filter="url(#glow)" opacity=".7" fill="none" stroke="#F0C24F" stroke-width="30" stroke-linecap="round">
+    <circle cx="512" cy="560" r="150" stroke-dasharray="1 72"/>
+    <circle cx="512" cy="560" r="290" stroke-dasharray="1 82" opacity=".7"/>
+  </g>
+  <g fill="none" stroke="#F4C651" stroke-linecap="round">
+    <circle cx="512" cy="560" r="150" stroke-width="26" stroke-dasharray="1 72"/>
+    <circle cx="512" cy="560" r="290" stroke-width="22" stroke-dasharray="1 82" opacity=".7"/>
+  </g>
+  <circle cx="512" cy="560" r="96" fill="#F0C24F" filter="url(#glow)" opacity=".8"/>
+  <circle cx="512" cy="560" r="70" fill="#FFE08A"/>
+  <circle cx="512" cy="560" r="26" fill="#0A0A0D"/>
+</svg>

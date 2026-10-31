@@ -110,12 +110,26 @@ Troubadour Ballade is for troubadours who prepare the exact timing of their soun
 
 The `.troubadour-ballade` format (a `.troubadour` plus `flow.json`) is specified in [TROUBADOUR_BALLADE_FORMAT.md](TROUBADOUR_BALLADE_FORMAT.md).
 
+## Troubadour Map
+
+`docs/map/` is a third app, in La Troupe next to the Ballade: https://arthurvangeersdaele.github.io/Troubadour/map/ (web app first; the Android version comes later).
+
+A story becomes a **world**, its chapters become **places**, and each place is a map the troubadour draws. At the table, the troubadour drags the party's golden point across the map and hears what the party hears.
+
+- **Library**: the worlds kept on the device (IndexedDB, `map-db.js`), Import (`.troubadour` or `.troubadour-map`), Settings. Importing a `.troubadour` makes one place per chapter, with the chapter's music and ambiances as sounds of the whole place.
+- **Draw** (`map-view.js`): walls (Shift for a straight one), elements drawn by hand (a shape that ends near its start is an area, otherwise a line, such as a river), the library of drawings (`map-stamps.js`: lake, mountains, hills, forest, tree, swamp, rocks, campfire, tower, ruins, cave, stairs, door, bridge, tent, well, altar, grave), eraser, select and move, undo, pan and zoom (wheel, pinch, Space or the hand). The panel gives a selected element its name, its sound cards (any sound of the story, several per element: loop, random or on tap, starting with the place or not, volume), its **reach** (one radius for all its cards, measured from its outline) and the place it **leads to**. A place has its own name, size and **whole-place** sounds; the wall muffle slider (share of a sound each wall takes away) is shared by the world.
+- **Play** (`map-audio.js`): drag the point or tap the map to send the party there. Each element's sounds play at their volume × (1 − distance / reach), full inside an area, then × (1 − muffle) for every wall crossed on the way; gains glide, no clicks. Tap an element for its cards (play, pause, volume, how much reaches the party), its reach, and **Go to** the place it leads to (the sounds of the old place fade out, the new one starts). Whole-place sounds ignore distance and walls. Pause, fade out everything, master volume.
+- Same themes and troubadour name as Troubadour. Works on a computer, an iPad and a phone (the panel slides over the map on a narrow screen); offline once opened (`sw.js`: bump `VERSION` there and in `app.js` when shipping a change).
+
+The `.troubadour-map` format (a `.troubadour` plus `map.json`) is specified in [TROUBADOUR_MAP_FORMAT.md](TROUBADOUR_MAP_FORMAT.md).
+
 ## Icons
 
 - `branding/`: the Troubadour icon and its pumpkin version, each with rounded corners (web, social) and as a full square (stores; Android and iOS cut their own shape). 1024 × 1024 SVG.
 - Android: adaptive icon in `app/src/main/res/` (`mipmap-anydpi-v26/ic_launcher.xml`, with a monochrome layer for themed icons). The pumpkin version is ready as `@mipmap/ic_launcher_pumpkin`: point `android:icon` and `android:roundIcon` in the manifest to it to switch.
 - Web: `docs/icons/` (favicon and Apple touch icon).
 - Troubadour Ballade: `branding/261017_troubadour_ballade_icon.svg` (and `_square`), the Troubadour icon darkened with a golden wire splitting in two; PNGs in `docs/ballade/icons/`.
+- Troubadour Map: `branding/261031_troubadour_map_icon.svg` (and `_square`), the Troubadour icon darkened with the golden point and the dotted rings of its reach; PNGs in `docs/map/icons/`.
 
 ## Build locally
 
