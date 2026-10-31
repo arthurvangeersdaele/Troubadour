@@ -28,7 +28,7 @@ html:not(.ios) .ios-only { display: none !important; }
 .mp-menu-item.danger { color: var(--danger); }
 
 /* ---------- A world ---------- */
-.mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 .mp-world[hidden] { display: none; }
 .mp-top { padding-top: max(7px, env(safe-area-inset-top)); }
 .mp-place-pick { display: none; max-width: 38vw; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; padding: 0 8px; }
@@ -254,3 +254,20 @@ html:not(.ios) .ios-only { display: none !important; }
 /* The page never zooms (no double-tap or pinch zoom): only the map zooms, with two fingers. */
 html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
 button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: manipulation; }
+
+/* The master bar, as in Troubadour: a chip in the top bar (pause all, fade out, Master, slider, value). */
+.mp-world[data-mode="edit"] .master { display: none; }
+.mp-top .master { margin-left: 2px; }
+.mp-top .mini.on { background: var(--text); color: var(--bg); }
+@media (max-width: 900px) { .mp-top .mlabel, .mp-top .master b { display: none; } .mp-top .master #mw-master { width: 80px; } }
+@media (max-height: 520px) { .mp-top .chip { height: 38px; } }
+@media (max-width: 640px) { .mp-top .master #mw-master { display: none; } }
+
+/* The sound menu scrolls up and down only. */
+.mp-side-body { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.mp-side-body > *, .mcard, .mcard-h, .mcard-r, .pn { min-width: 0; max-width: 100%; }
+.mcard-h .pill { max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pn-sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.master #mw-master { width: 120px; --z: var(--text); }
+.master b { width: 22px; text-align: right; }
+.mp-world[data-mode="play"] .mp-top .ttl span { display: none; }

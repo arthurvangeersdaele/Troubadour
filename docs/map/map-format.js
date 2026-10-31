@@ -216,13 +216,49 @@
     return n;
   }
 
-  /** The share of an element's sound heard at p: { gain (0 to 1), d, walls }. */
+  /** How deep the middle of a shape lies: the largest distance from a point inside it to its outline
+   *  (half the size of a stamp, 0 for a line). Worked out on a grid, kept until the shape changes. */
+  const depths = new WeakMap();
+  function depth(shape) {
+    if (shape.type === 'stamp') return shape.size / 2;
+    if (!shape.closed || shape.points.length < 3) return 0;
+    const key = shape.points.join(';');
+    const hit = depths.get(shape);
+    if (hit && hit.key === key) return hit.d;
+    const b = bounds(shape), n = 28;
+    let best = 0;
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+      const q = [b[0] + ((b[2] - b[0]) * i) / n, b[1] + ((b[3] - b[1]) * j) / n];
+      if (!inside(q, shape.points)) continue;
+      let d2 = Infinity;
+      for (let k = 0; k < shape.points.length; k++) d2 = Math.min(d2, nearestOnSegment(q, shape.points[k], shape.points[(k + 1) % shape.points.length]).d2);
+      best = Math.max(best, Math.sqrt(d2));
+    }
+    depths.set(shape, { key, d: best });
+    return best;
+  }
+
+  /** How far inside a shape p is (0 outside it, or on a line). */
+  function inDepth(p, shape) {
+    if (shape.type === 'stamp') return Math.max(0, shape.size / 2 - Math.hypot(p[0] - shape.x, p[1] - shape.y));
+    if (!shape.closed || shape.points.length < 3 || !inside(p, shape.points)) return 0;
+    let d2 = Infinity;
+    for (let k = 0; k < shape.points.length; k++) d2 = Math.min(d2, nearestOnSegment(p, shape.points[k], shape.points[(k + 1) % shape.points.length]).d2);
+    return Math.sqrt(d2);
+  }
+
+  /** The share of an element's sound heard at p: { gain (0 to 1), d, walls }.
+   *  100 % at its middle (the deepest point of an area, the centre of a drawing, the line itself), falling in a
+   *  straight line to 0 % at the edge of its reach (its outline grown by its radius). Then each wall on the way
+   *  from p to the element takes its share. */
   function hearing(p, el, walls, wallLoss) {
     const { d, q } = reach(p, el.shape);
     if (d > 0 && d >= el.radius) return { gain: 0, d, walls: 0 };
-    const near = d > 0 ? 1 - d / el.radius : 1;
+    const deep = depth(el.shape);
+    const span = el.radius + deep;
+    const near = span > 0 ? (d > 0 ? el.radius - d : el.radius + Math.min(deep, inDepth(p, el.shape))) / span : 1;
     const n = d > 0 ? wallsBetween(p, q, walls) : 0;
-    return { gain: near * Math.pow(1 - wallLoss, n), d, walls: n };
+    return { gain: Math.max(0, Math.min(1, near)) * Math.pow(1 - wallLoss, n), d, walls: n };
   }
 
   /** Bounding box of a shape: [x0, y0, x1, y1]. */

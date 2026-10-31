@@ -9,7 +9,7 @@
  *
  * Tools (edit): select (move elements and the player point), wall, pen (a shape: closed when it ends near
  * its start, else a line), stamp (a drawing of the library), eraser, hand (move the map).
- * At the table (play): drag the player point, or tap the map to send it there; double tap an element to open it.
+ * At the table (play): drag the player point to move the party (a tap moves nothing); double tap an element to open it.
  * Everywhere: wheel or pinch to zoom, two fingers, the middle button or Space to move the map.
  */
 (function (global) {
@@ -236,15 +236,11 @@
     gesture = null;
     if (g.kind === 'player' && mode === 'play' && !g.dragged) g.kind = 'tap';
     if (g.kind === 'tap' && !g.panning) {
-      // One tap sends the party there; a double tap on an element opens it instead (the party stays).
-      const t = performance.now(), dest = toWorld(g.start[0], g.start[1]);
-      const twice = last.el && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
-      clearTimeout(last.timer);
-      if (twice) { last = { t: 0, s: [0, 0], el: null }; if (api.onTap) api.onTap(g.el); }
-      else {
-        last = { t, s: g.start, el: g.el, timer: 0 };
-        if (g.el) last.timer = setTimeout(() => glidePlayer(dest), 300); else glidePlayer(dest);
-      }
+      // Only a drag moves the party: a tap moves nothing. A double tap on an element opens its sounds.
+      const t = performance.now();
+      const twice = g.el && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
+      last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
+      if (twice && api.onTap) api.onTap(g.el);
     } else if (g.kind === 'player') {
       edited();
     } else if (g.kind === 'move') {
@@ -298,23 +294,6 @@
   }
 
   function clampPoint(p) { return [Math.round(Math.max(0, Math.min(place.width, p[0]))), Math.round(Math.max(0, Math.min(place.height, p[1])))]; }
-
-  /** At the table, a tap on the map sends the party there: a short glide, so the sounds glide with it. */
-  let glide = 0;
-  function glidePlayer(to) {
-    if (!place) return;
-    to = clampPoint(to);
-    const from = place.player.slice(), t0 = performance.now(), ms = 450;
-    cancelAnimationFrame(glide);
-    const step = (t) => {
-      const u = Math.min(1, (t - t0) / ms), e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
-      place.player = [Math.round(from[0] + (to[0] - from[0]) * e), Math.round(from[1] + (to[1] - from[1]) * e)];
-      dirty = true;
-      if (api.onPlayer) api.onPlayer(place.player);
-      if (u < 1) glide = requestAnimationFrame(step); else edited();
-    };
-    glide = requestAnimationFrame(step);
-  }
 
   function hover(e) {
     if (!place) return;

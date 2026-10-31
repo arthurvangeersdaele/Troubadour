@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261101.2';
+  const VERSION = '261101.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -600,7 +600,9 @@
     if (!rec) return;
     const p = place();
     const sel = mode === 'edit' ? V.selected() : tapped;
-    $('#mw-side-title').textContent = sel ? (sel.title || (sel.shape.type === 'stamp' ? stampLabel(sel.shape.stamp) : sel.shape.closed ? 'Drawn area' : 'Drawn line')) : p.title;
+    const elName = (e) => e.title || (e.shape.type === 'stamp' ? stampLabel(e.shape.stamp) : e.shape.closed ? 'Drawn area' : 'Drawn line');
+    // At the table, the panel is the sound menu: the place's name is already in the top bar.
+    $('#mw-side-title').textContent = mode === 'play' ? 'Sound menu' : sel ? elName(sel) : p.title;
     if (mode === 'edit') { if (sel) editElement(box, sel); else editPlace(box, p); }
     else if (sel) playElement(box, sel); else playPlace(box, p);
     paintRanges(box);
@@ -764,7 +766,7 @@
   function playElement(box, e) {
     const back = el('button', 'btn slim');
     back.type = 'button';
-    back.innerHTML = `${ICON.back}<span>${place().title}</span>`;
+    back.innerHTML = `${ICON.back}<span>All sounds</span>`;
     back.addEventListener('click', () => { tapped = null; renderPanel(); });
     box.append(back);
     if (e.link) {
@@ -777,7 +779,7 @@
         box.append(go);
       }
     }
-    if (e.cards.length || !e.link) box.append(cardsBlock('Sounds', e.cards, e, 'No sound on this element.'));
+    if (e.cards.length || !e.link) box.append(cardsBlock(e.title || stampLabel(e.shape.type === 'stamp' ? e.shape.stamp : '') || 'This element', e.cards, e, 'No sound on this element.'));
     if (e.cards.length) {
       const reach = section('Reach');
       reach.append(reachSlider(e));
@@ -1136,8 +1138,10 @@
     });
     $('#mw-master').value = settings.master;
     paintRange($('#mw-master'));
+    $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
     $('#mw-master').addEventListener('input', (e) => {
       settings.master = Number(e.target.value);
+      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
       const { ctx, master } = audio();
       master.gain.setTargetAtTime(settings.master, ctx.currentTime, 0.03);
     });

@@ -125,7 +125,7 @@ Unknown fields must be kept when a tool re-saves a file.
 
 Every card of an element starts with its place and plays wherever the player point is (the troubadour can still pause it, stop it or change its loop at the table); only its loudness follows the map:
 
-1. **Distance.** `d` is the distance from the player point to the element: 0 inside a closed shape, else the distance to its outline (to its line, for an open shape). A stamp counts as a disc of diameter `size`. The card is heard at `volume × (1 − d / radius)` while `d < radius`, and not at all beyond. An element with a radius of 0 is heard only from inside it.
+1. **Distance.** An element is heard at 100 % of its volume at its middle (the deepest point of a drawn area, the centre of a library drawing, anywhere on a drawn line), and less and less in a straight line out to 0 % at the edge of its reach, which is its outline grown by `radius`. With `m` the depth of its middle (half the `size` of a stamp, the largest distance from a point inside an area to its outline, 0 for a line) and `d` the distance from the player point to the outline: outside, `volume × (radius − d) / (radius + m)` while `d < radius`; inside, `volume × (radius + depth of the point) / (radius + m)`. An element with a radius of 0 is heard only inside it.
 2. **Walls.** Draw a straight line from the player point to the nearest point of the element (no line when the point is inside). Each wall segment it crosses multiplies the sound by `1 − wallLoss`.
 3. **General cards** ignore both: they are heard at their own `volume` everywhere on their place.
 

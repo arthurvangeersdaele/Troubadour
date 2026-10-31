@@ -70,6 +70,13 @@
     <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
     <div class="ttl"><b id="mw-title"></b><span id="mw-sub"></span></div>
     <select class="mp-place-pick" id="mw-place-pick" aria-label="Place"></select>
+    <div class="chip master" id="mw-master-chip">
+      <button class="mini" type="button" id="mw-pause" aria-label="Pause all" title="Pause all"></button>
+      <button class="mini" type="button" id="mw-fade" aria-label="Fade out everything" title="Fade out everything"></button>
+      <label class="mlabel" for="mw-master">Master</label>
+      <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
+      <b id="mw-master-val">80</b>
+    </div>
     <button class="btn slim primary mp-switch" type="button" id="mw-switch"></button>
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
@@ -92,7 +99,7 @@
         <button type="button" data-act="fit" title="See the whole place (F)"></button>
       </div>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
-      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point, or tap the map to move the party. Double tap an element for its sounds.</div>
+      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to move the party. Double tap an element for its sounds.</div>
       <div class="mp-zoom">
         <button type="button" class="ico" id="mw-fill" aria-label="Fill the screen with the map, the party in the middle" title="Fill the screen (F)"></button>
       </div>
@@ -102,12 +109,6 @@
       <div class="mp-side-body" id="mw-inspector"></div>
     </aside>
   </div>
-  <footer class="mp-dock" id="mw-dock">
-    <button class="mp-round" type="button" id="mw-fade" title="Fade out every sound"></button>
-    <button class="mp-round" type="button" id="mw-pause" title="Pause"></button>
-    <label for="mw-master">Master</label>
-    <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
-  </footer>
 </main>
 
 </div><!-- .app -->
