@@ -717,7 +717,7 @@
       } else e.link = sel.value || null;
       V.redraw(); save(); renderPlaces();
     });
-    way.append(sel, el('p', '', 'At the table, tapping this element offers to take the party there: a door, stairs, a road to the next town.'));
+    way.append(sel, el('p', '', 'At the table, a double tap on this element offers to take the party there: a door, stairs, a road to the next town.'));
     box.append(way);
 
     const acts = el('div', 'pn-acts');
