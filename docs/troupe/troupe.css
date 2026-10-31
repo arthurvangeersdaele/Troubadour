@@ -406,9 +406,9 @@ html.enter .doors>*:nth-child(1){--d:1.3s}html.enter .doors>*:nth-child(2){--d:1
 .sbar .ico.sound .x{display:none}
 .sbar .ico.sound.off .w{display:none}.sbar .ico.sound.off .x{display:inline}
 .sbar .ico.sound.off{color:var(--muted)}
-/* the doorway's rays carry on in the gold, then fade with it */
-html.enter .gold-veil::before{content:'';position:absolute;left:50%;top:45%;width:260vmax;height:260vmax;margin:-130vmax 0 0 -130vmax;border-radius:50%;mix-blend-mode:screen;
-  background:repeating-conic-gradient(from 0deg,rgba(255,236,170,.55) 0deg 2.2deg,rgba(255,220,140,0) 4deg 11deg,rgba(255,240,190,.35) 12deg 13.5deg,rgba(255,220,140,0) 15deg 21deg);
-  -webkit-mask:radial-gradient(circle,transparent 0,#000 4%,rgba(0,0,0,.65) 22%,transparent 50%);mask:radial-gradient(circle,transparent 0,#000 4%,rgba(0,0,0,.65) 22%,transparent 50%);
-  animation:veil-rays 6s linear infinite}
-@keyframes veil-rays{from{transform:rotate(84deg)}to{transform:rotate(444deg)}}
+
+/* Through the door, final form: the page opens on the exact bloom the home page ended on, then the bloom dissolves
+   and the room comes up out of it. */
+html.enter .gold-veil{display:block;visibility:visible;
+  background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE3A3 30%,#F6C766 65%,#E8AE45 100%);
+  animation:veil-out 1.3s cubic-bezier(.4,0,.2,1) .2s both}

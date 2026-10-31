@@ -502,14 +502,10 @@ a.install:hover{color:var(--text)}
 .gold-portal.on{opacity:1}
 .gold-portal.go{transition:transform .9s cubic-bezier(.65,0,.35,1)}
 
-/* Rays of light out of the doorway: they reach beyond the gold, over the dark page, turning slowly as they grow */
-.gold-portal::after{display:none}
-.gold-rays{position:fixed;z-index:301;width:260vmax;height:260vmax;pointer-events:none;opacity:0;mix-blend-mode:screen;will-change:transform,opacity;
-  transform:translate(-50%,-50%) scale(.12);transition:transform 1.4s cubic-bezier(.3,.6,.3,1),opacity .5s ease-out}
-.gold-rays.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
-.gold-rays i{position:absolute;inset:0;border-radius:50%;
-  background:repeating-conic-gradient(from 0deg,rgba(255,236,170,.55) 0deg 2.2deg,rgba(255,220,140,0) 4deg 11deg,rgba(255,240,190,.35) 12deg 13.5deg,rgba(255,220,140,0) 15deg 21deg);
-  -webkit-mask:radial-gradient(circle,transparent 0,#000 4%,rgba(0,0,0,.65) 22%,transparent 50%);mask:radial-gradient(circle,transparent 0,#000 4%,rgba(0,0,0,.65) 22%,transparent 50%);
-  animation:rays-turn 6s linear infinite}
-@keyframes rays-turn{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.gold-rays{display:none}}
+
+/* The walk-in, final form. The gold and the bloom share La Troupe's gradient, so the page change is invisible. */
+.gold-portal{background:radial-gradient(ellipse 80% 70% at 50% 45%,#FFF8E6 0%,#FFE3A3 30%,#F6C766 65%,#E8AE45 100%)}
+.gold-portal.go{transition:transform .9s cubic-bezier(.65,0,.35,1)}
+.gold-bloom{position:fixed;inset:0;z-index:301;pointer-events:none;opacity:0;will-change:opacity;
+  background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE3A3 30%,#F6C766 65%,#E8AE45 100%);transition:opacity .3s ease-out}
+.gold-bloom.on{opacity:1}

@@ -199,6 +199,7 @@
 </div>
 
 <script src="troupe/pub.js"></script>
+<script src="rays.js"></script>
 <script>
 (function(){
   /* The table mock: Underwater Adventure, chapter 2, in the four everyday themes */
@@ -320,36 +321,47 @@
   })();
 
 
-  /* La Troupe door: a click swings it open, then we walk into the light: the lit doorway grows until it fills the screen,
-     and La Troupe comes out of the gold. 2D only, so it runs the same on phones. */
+  /* Walking through the La Troupe door. One clean sequence, the same on every screen:
+       0 ms     the door swings open
+     150 ms     shafts of light leave the doorway, alive and uneven (rays.js)
+     420 ms     the gold opens out of the doorway to fill the screen (one layer, moved by transform only)
+    1150 ms     a soft white-gold bloom settles over everything
+    1460 ms     La Troupe opens on that same bloom, with the same rays, and the room appears as they fade (troupe.css)
+     The rays drift from the doorway to where La Troupe expects them, so the hand-over between the pages is seamless. */
   (function(){
     var d=document.getElementById('door');
     if(!d||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    var portal=null,rays=null,busy=false;
-    // fetch the door's sounds once the door comes near the screen
+    var portal=null,bloom=null,light=null,busy=false;
     if('IntersectionObserver' in window&&window.TroupePub){var io=new IntersectionObserver(function(es){if(es.some(function(x){return x.isIntersecting;})){TroupePub.prefetch();io.disconnect();}},{rootMargin:'400px'});io.observe(d);}
+    function ease(x){x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;}
     d.addEventListener('click',function(e){
       if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;
       e.preventDefault();if(busy)return;busy=true;d.classList.add('flung');
       if(window.TroupePub)TroupePub.door();
       try{sessionStorage.setItem('troubadour.door','1');}catch(x){}
-      var r=d.querySelector('.door-opening').getBoundingClientRect(),vw=innerWidth,vh=innerHeight;
-      // A full-screen golden layer, painted once at full size and only moved: it starts squeezed onto the doorway
-      // (same arch, same gold) and opens out past the edges of the screen. Transform only, so every browser keeps it smooth.
+      var r=d.querySelector('.door-opening').getBoundingClientRect(),vw=innerWidth,vh=innerHeight,t0=Date.now(),seed=(Math.random()*4294967295)>>>0;
+      var ox=r.left+r.width/2,oy=r.top+r.height*.45,tx=vw*.5,ty=vh*.4;
+      // the gold, squeezed onto the doorway, then opened out past the screen's edges
       portal=document.createElement('div');portal.className='gold-portal';
       portal.style.transform='translate('+r.left+'px,'+r.top+'px) scale('+(r.width/vw)+','+(r.height/vh)+')';
-      document.body.appendChild(portal);
-      // Rays of light leaving the doorway, spreading out over the page as the gold opens
-      rays=document.createElement('div');rays.className='gold-rays';rays.innerHTML='<i></i>';
-      rays.style.left=(r.left+r.width/2)+'px';rays.style.top=(r.top+r.height*.45)+'px';
-      document.body.appendChild(rays);
+      bloom=document.createElement('div');bloom.className='gold-bloom';
+      document.body.appendChild(portal);document.body.appendChild(bloom);
+      if(window.TroubadourRays){
+        TroubadourRays.save(seed,t0);
+        light=TroubadourRays.start({seed:seed,t0:t0,z:302,
+          origin:function(t){var k=ease((t-420)/900);return[ox+(tx-ox)*k,oy+(ty-oy)*k];},
+          alpha:function(t){return (t-150)/550;}});
+      }
       portal.getBoundingClientRect();
-      requestAnimationFrame(function(){rays.classList.add('on');});
       setTimeout(function(){portal.classList.add('on');requestAnimationFrame(function(){requestAnimationFrame(function(){
         portal.classList.add('go');portal.style.transform='translate('+(-.3*vw)+'px,'+(-.5*vh)+'px) scale(1.6)';});});},420);
-      setTimeout(function(){location.href=d.href;},1400);
+      setTimeout(function(){bloom.classList.add('on');},1150);
+      setTimeout(function(){location.href=d.href;},1460);
     });
-    window.addEventListener('pageshow',function(){if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');if(portal){portal.remove();portal=null;}if(rays){rays.remove();rays=null;}});
+    window.addEventListener('pageshow',function(){
+      if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');
+      [portal,bloom].forEach(function(x){if(x)x.remove();});portal=bloom=null;if(light){light.stop();light=null;}
+    });
   })();
   /* Reduced motion: keep La Troupe logo still */
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)document.getElementById('sigil').pauseAnimations();
