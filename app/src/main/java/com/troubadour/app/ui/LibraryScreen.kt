@@ -94,6 +94,7 @@ fun LibraryScreen(m: AppModel) {
             Spacer(Modifier.width(8.dp))
             Tabs(m, 0)
             Spacer(Modifier.weight(1f))
+            IconBtn(BIcons.plus, "Add a story") { m.sheet = Sheet.AddStory }
             IconBtn(BIcons.gear, "Settings") { m.settingsOpen = true }
         }
         if (stories.isEmpty()) {

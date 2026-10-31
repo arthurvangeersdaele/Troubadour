@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261030.1';
+  const VERSION = '261031.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -2293,6 +2293,7 @@
   function renderStaticIcons() {
     document.querySelectorAll('[data-action="home"], [data-action="leave-table"]').forEach((b) => (b.innerHTML = ICON.back));
     document.querySelectorAll('[data-action="settings"]').forEach((b) => (b.innerHTML = ICON.gear));
+    document.querySelectorAll('.sbar [data-action="add-story"]').forEach((b) => (b.innerHTML = ICON.plus));
     document.querySelectorAll('#soundbox [data-action="soundbox"], .set-head .ico').forEach((b) => (b.innerHTML = ICON.close));
     $('[data-action="story-info"]').innerHTML = ICON.info;
     $('[data-action="export-current"]').innerHTML = ICON.share;
