@@ -1,9 +1,0 @@
-# La Troupe sounds
-
-Fades in on the home page when the La Troupe door opens, and plays in the La Troupe room. Mixed for Troubadour.
-
-| File | Made from | Author | Licence |
-|---|---|---|---|
-| `261030_pub_ambiance.mp3` *edited* | 0 A.D.: [amb_trade_10.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/building/amb_trade_10.ogg)<br>Battle for Wesnoth: [campfire.ogg](https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg)<br>Stendhal: [the_old_tavern.ogg](https://github.com/arianne/stendhal/blob/master/data/music/the_old_tavern.ogg)<br>Flare: [inventory_potion.ogg](https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_potion.ogg), [inventory_coins.ogg](https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_coins.ogg)<br>Battle for Wesnoth: [dwarf-laugh.wav](https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/dwarf-laugh.wav) | Wildfire Games<br>Iris Morelle (Iris)<br>Storyteller<br>Brandon Morris, Justin Jacobs, rubberduck<br>Lari Nieminen (zookeeper) | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)<br>[GNU GPL v2+](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html)<br>[GNU GPL](https://www.gnu.org/licenses/gpl-3.0.html)<br>[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)<br>[GNU GPL v2+](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) |
-
-Source: Stendhal's [audio-music.txt](https://github.com/arianne/stendhal/blob/master/doc/sources/audio-music.txt).

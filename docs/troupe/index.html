@@ -31,6 +31,7 @@
 <script src="../device.js"></script>
 <script>
   // Coming through the door on the home page: the page comes out of the golden light.
+  addEventListener('pagereveal', function (e) { if (e.viewTransition) document.documentElement.classList.remove('enter'); });
   try { if (sessionStorage.getItem('troubadour.door') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('enter'); sessionStorage.removeItem('troubadour.door'); } catch (e) {}
 </script>
 </head>
@@ -46,7 +47,6 @@
     <a href="../troubadour-ballade/">Ballade</a>
   </nav>
   <span class="grow"></span>
-  <button class="ico sound" id="room-sound" type="button" aria-pressed="true" aria-label="Turn the room sound off"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="w" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="x" d="m16 9 6 6m0-6-6 6"/></svg></button>
   
 </header>
 
@@ -90,7 +90,5 @@
 </script>
 <script src="../auth/account.js"></script>
 <script src="settings.js"></script>
-<script src="pub.js"></script>
-<script>TroupePub.room(document.getElementById('room-sound'));</script>
 </body>
 </html>
