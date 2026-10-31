@@ -29,7 +29,6 @@
   })();
 </script>
 <script src="../device.js"></script>
-<script src="../rays.js"></script>
 <script>
   // Coming through the door on the home page: the page comes out of the golden light.
   try { if (sessionStorage.getItem('troubadour.door') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('enter'); sessionStorage.removeItem('troubadour.door'); } catch (e) {}
@@ -93,16 +92,5 @@
 <script src="settings.js"></script>
 <script src="pub.js"></script>
 <script>TroupePub.room(document.getElementById('room-sound'));</script>
-<script>
-  // Through the door: the same rays carry on in the gold, from the same point, and fade as the room appears.
-  (function () {
-    if (!document.documentElement.classList.contains('enter') || !window.TroubadourRays) return;
-    var v = TroubadourRays.take(); if (!v) return;
-    var arrive = Date.now() - v.t0;
-    TroubadourRays.start({ seed: v.seed, t0: v.t0, z: 301, until: arrive + 1800,
-      origin: function () { return [innerWidth * .5, innerHeight * .4]; },
-      alpha: function (t) { return 1 - (t - arrive - 150) / 1250; } });
-  })();
-</script>
 </body>
 </html>

@@ -412,3 +412,9 @@ html.enter .doors>*:nth-child(1){--d:1.3s}html.enter .doors>*:nth-child(2){--d:1
 html.enter .gold-veil{display:block;visibility:visible;
   background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE3A3 30%,#F6C766 65%,#E8AE45 100%);
   animation:veil-out 1.3s cubic-bezier(.4,0,.2,1) .2s both}
+
+/* Through the door: the page opens on the home page's last light (same glare), which clears like eyes adjusting */
+html.enter .gold-veil{display:block;visibility:visible;will-change:opacity;
+  background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE9B8 35%,#F8D27F 70%,#EDB955 100%);
+  animation:veil-out 1.15s cubic-bezier(.33,0,.2,1) .12s both}
+html.enter .gold-veil::before{display:none}

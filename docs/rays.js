@@ -13,7 +13,7 @@
   }
 
   function makeRays(seed) {
-    var r = rng(seed), rays = [], n = 34;
+    var r = rng(seed), rays = [], n = 26;
     for (var i = 0; i < n; i++) {
       rays.push({
         a: (i / n) * Math.PI * 2 + (r() - 0.5) * 0.22,      // base angle
@@ -32,9 +32,9 @@
     var c = document.createElement('canvas');
     c.className = 'light-rays';
     c.setAttribute('aria-hidden', 'true');
-    c.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;mix-blend-mode:screen;z-index:' + (o.z || 302);
+    c.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:' + (o.z || 302);
     document.body.appendChild(c);
-    var ctx = c.getContext('2d'), rays = makeRays(o.seed), raf = 0, scale = 0.5, W = 0, H = 0;
+    var ctx = c.getContext('2d'), rays = makeRays(o.seed), raf = 0, scale = 0.35, W = 0, H = 0;
     function size() {
       W = Math.max(1, Math.round(innerWidth * scale)); H = Math.max(1, Math.round(innerHeight * scale));
       c.width = W; c.height = H;

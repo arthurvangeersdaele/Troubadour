@@ -509,3 +509,12 @@ a.install:hover{color:var(--text)}
 .gold-bloom{position:fixed;inset:0;z-index:301;pointer-events:none;opacity:0;will-change:opacity;
   background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE3A3 30%,#F6C766 65%,#E8AE45 100%);transition:opacity .3s ease-out}
 .gold-bloom.on{opacity:1}
+
+/* Walk-in, light only. The flood is a soft radial glow with no edge, centred on the open doorway, scaled up from there;
+   the glare is the white-gold light La Troupe opens on. */
+.light-flood{position:fixed;inset:0;z-index:300;pointer-events:none;opacity:0;will-change:transform,opacity;transform:scale(.35);
+  background:radial-gradient(circle at var(--ox) var(--oy),rgba(255,250,236,1) 0,rgba(255,236,186,.96) 7%,rgba(252,212,130,.78) 17%,rgba(244,190,96,.45) 32%,rgba(236,176,80,.16) 48%,rgba(230,170,70,0) 62%)}
+.light-flood.go{opacity:1;transform:scale(var(--k,4));transition:transform 1.15s cubic-bezier(.55,0,.25,1),opacity .5s ease-out}
+.light-glare{position:fixed;inset:0;z-index:302;pointer-events:none;opacity:0;will-change:opacity;
+  background:radial-gradient(ellipse 120% 100% at 50% 40%,#FFF8E6 0%,#FFE9B8 35%,#F8D27F 70%,#EDB955 100%);transition:opacity .4s ease-in-out}
+.light-glare.on{opacity:1}
