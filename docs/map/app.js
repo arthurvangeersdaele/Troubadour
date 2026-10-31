@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261101.1';
+  const VERSION = '261101.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -398,6 +398,15 @@
     row.append(s, input, b);
     return row;
   }
+  /** How far an element's sounds carry beyond its edge, in % of the width of its place. */
+  function reachSlider(e) {
+    const w = place().width;
+    return slider('Heard up to', Math.round((e.radius / w) * 100), 0, 100, 1, (v) => `${v} %`, (v) => {
+      e.radius = Math.round((v / 100) * w);
+      if (A.isOpen()) A.hear();
+      V.redraw();
+    });
+  }
   function section(title, extra) {
     const s = el('section', 'pn');
     const h = el('h3');
@@ -409,10 +418,36 @@
   const ZONE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
 
   /** A sound card in the panel. In Draw: how it plays. At the table: play, pause and its volume. */
+  /** The loop button, as in Troubadour: 1×, 2×, ∞, and random (not for music). */
+  const LOOPS = ['once', 'twice', 'loop', 'random'];
+  const LOOP_LABEL = { once: '1×', twice: '2×', loop: '∞' };
+  const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause' };
+  function paintLoop(btn, c) {
+    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : ''}`;
+    if (c.play === 'random') btn.innerHTML = ICON.random; else btn.textContent = LOOP_LABEL[c.play];
+    btn.title = `${LOOP_TITLE[c.play]} (tap to change)`;
+    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[c.play]}`);
+  }
+  const clockOf = (sec) => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
+
+  /** A sound card. In the editor: how it plays, a preview, its volume. At the table: a full card, as in Troubadour
+   *  (loop button, progress, play and pause, stop, volume as set in Settings), plus how much of it reaches the party. */
   function cardRow(c, list, owner) {
     const row = el('div', `mcard ${c.zone}`);
     const h = el('div', 'mcard-h');
     h.append(el('b', '', c.name), el('span', 'pill', ZONE_LABEL[c.zone] || c.zone));
+    const loop = el('button');
+    loop.type = 'button';
+    paintLoop(loop, c);
+    loop.addEventListener('click', () => {
+      const ways = c.zone === 'music' ? LOOPS.slice(0, 3) : LOOPS;
+      const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
+      Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
+      save();
+      if (A.isOpen()) A.sync();
+      if (mode === 'edit') renderPanel(); else { paintLoop(loop, c); paintGaps(); }
+    });
+    h.append(loop);
     if (mode === 'edit') {
       const x = el('button', 'x');
       x.type = 'button';
@@ -422,52 +457,65 @@
       h.append(x);
     }
     row.append(h);
-    if (mode === 'edit') {
-      const seg = el('div', 'seg small');
-      [['loop', 'Loop'], ['random', 'Random'], ['once', 'On tap']].forEach(([v, label]) => {
-        const b = el('button', '', label);
-        b.type = 'button';
-        b.setAttribute('aria-checked', String(c.play === v));
-        b.title = v === 'loop' ? 'Plays again and again' : v === 'random' ? 'Plays, waits a random pause, plays again' : 'Plays once, when you tap it at the table';
-        b.addEventListener('click', () => { Object.assign(c, M.cleanCard(Object.assign({}, c, { play: v, autoplay: v !== 'once' }))); save(); renderPanel(); });
-        seg.append(b);
-      });
-      row.append(seg);
-      const opts = el('div', 'opts');
-      if (c.play !== 'once') {
+
+    // Options: when a card of the whole place starts, and the pauses of a random card.
+    const opts = el('div', 'opts');
+    const paintGaps = () => {
+      opts.textContent = '';
+      if (mode === 'edit' && !owner) {
         const l = el('label');
         const cb = el('input'); cb.type = 'checkbox'; cb.checked = c.autoplay;
         cb.addEventListener('change', () => { c.autoplay = cb.checked; save(); });
         l.append(cb, document.createTextNode('Starts with the place'));
         opts.append(l);
       }
-      if (c.play === 'random') {
+      if (mode === 'edit' && c.play === 'random') {
         const gap = (key, label) => {
           const l = el('label');
           const i = el('input'); i.type = 'number'; i.min = 0; i.max = 600; i.step = 1; i.value = c[key];
-          i.addEventListener('change', () => { Object.assign(c, M.cleanCard(Object.assign({}, c, { [key]: Number(i.value) }))); save(); renderPanel(); });
+          i.addEventListener('change', () => { Object.assign(c, M.cleanCard(Object.assign({}, c, { [key]: Number(i.value) }))); save(); paintGaps(); });
           l.append(document.createTextNode(label), i);
           return l;
         };
         opts.append(gap('gapMin', 'Pause from'), gap('gapMax', 'to'), document.createTextNode('s'));
       }
-      if (opts.childNodes.length) row.append(opts);
+      opts.hidden = !opts.childNodes.length;
+    };
+    paintGaps();
+    row.append(opts);
+
+    // At the table: the progress of the sound.
+    let fill = null, rem = null;
+    if (mode === 'play') {
+      const track = el('div', 'track');
+      fill = el('div', 'fill');
+      track.append(fill);
+      row.append(track);
     }
+
     const r = el('div', 'mcard-r');
     const pb = el('button', 'pb');
     pb.type = 'button';
     pb.innerHTML = ICON.play;
+    r.append(pb);
+    let end = null;
     if (mode === 'edit') {
       pb.title = 'Listen';
       pb.addEventListener('click', () => listen(c.file, pb));
     } else {
       pb.addEventListener('click', () => { A.toggle(c); refreshLive(); });
+      end = el('button', 'pb end');
+      end.type = 'button';
+      end.innerHTML = ICON.stop;
+      end.title = 'Stop: fade out, back to the start';
+      end.setAttribute('aria-label', `Stop ${c.name}`);
+      end.addEventListener('click', () => { A.stop(c); refreshLive(); });
+      r.append(end);
     }
     // How the volume shows (Settings, Player interface, as in Troubadour): always a slider in the editor.
     const zoneKey = c.zone === 'soundbox' ? 'events' : c.zone;
     const vm = mode === 'edit' ? 'full' : ((settings.vol && settings.vol[zoneKey]) || 'full');
     row.classList.add(`vm-${vm}`);
-    r.append(pb);
     let lvl = null, moveEnd = 0;
     if (vm === 'full') {
       const vol = el('input');
@@ -497,26 +545,33 @@
       up.addEventListener('click', () => step(1));
       paintLvl();
       r.append(dn, lvl, up);
-    } else if (!owner) r.append(el('span', 'gap'));
+    } else {
+      rem = el('small', 'rem');
+      r.append(rem);
+    }
+    let bar = null;
     if (mode === 'play' && owner) {
       const meter = el('span', 'heard');
-      const bar = el('i');
+      bar = el('i');
       meter.append(bar);
       meter.title = 'How much of it reaches the party';
       r.append(meter);
+    }
+    if (mode === 'play') {
       liveRows.push(() => {
         const v = A.voice(c);
-        const on = !!(v && v.state === 'playing');
+        const st = v ? v.state : 'idle';
+        const on = st === 'playing';
         row.classList.toggle('on', on);
-        pb.innerHTML = on ? (c.play === 'once' ? ICON.stop : ICON.pause) : ICON.play;
-        bar.style.width = `${Math.round((v ? v.heard : 0) * 100)}%`;
-      });
-    } else if (mode === 'play') {
-      liveRows.push(() => {
-        const v = A.voice(c);
-        const on = !!(v && v.state === 'playing');
-        row.classList.toggle('on', on);
-        pb.innerHTML = on ? (c.play === 'once' ? ICON.stop : ICON.pause) : ICON.play;
+        row.classList.toggle('paused', st === 'paused');
+        const icon = on ? 'pause' : 'play';
+        if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
+        pb.setAttribute('aria-label', `${on ? 'Pause' : 'Play'} ${c.name}`);
+        end.disabled = st === 'idle';
+        const pr = A.progress(c);
+        fill.style.width = `${pr.length ? Math.min(100, (pr.at / pr.length) * 100) : 0}%`;
+        if (rem) rem.textContent = v && v.waiting ? 'waiting' : pr.length ? `${clockOf(pr.at)} / ${clockOf(pr.length)}` : '';
+        if (bar) bar.style.width = `${Math.round((v ? v.heard : 0) * 100)}%`;
       });
     }
     row.append(r);
@@ -641,8 +696,8 @@
     box.append(cardsBlock('Sounds', e.cards, e, 'No sound yet: this element is a drawing only. Add sounds of the story to hear it from the map.'));
 
     const reach = section('Reach');
-    reach.append(slider('Heard up to', e.radius, 0, 2000, 10, (v) => `${v}`, (v) => { e.radius = v; V.redraw(); }));
-    reach.append(el('p', '', 'How far beyond its edge its sounds carry, the same for all of them: full inside, fading to silence at this distance. The tinted ground shows it.'));
+    reach.append(reachSlider(e));
+    reach.append(el('p', '', 'How far beyond its edge its sounds carry, in % of the width of the map, the same for all of them: full inside, fading to silence at this distance. The tinted ground shows it.'));
     box.append(reach);
 
     const way = section('Leads to');
@@ -725,7 +780,7 @@
     if (e.cards.length || !e.link) box.append(cardsBlock('Sounds', e.cards, e, 'No sound on this element.'));
     if (e.cards.length) {
       const reach = section('Reach');
-      reach.append(slider('Heard up to', e.radius, 0, 2000, 10, (v) => `${v}`, (v) => { e.radius = v; A.hear(); V.redraw(); }));
+      reach.append(reachSlider(e));
       box.append(reach);
     }
   }
@@ -1149,6 +1204,21 @@
     window.addEventListener('pagehide', flush);
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (settings.mode === 'system') applyTheme(); });
   }
+
+  /* ================= No page zoom ================= */
+  // Safari ignores user-scalable=no: its pinch (gesture events) and a quick second tap would still zoom
+  // the page. Only the map zooms, with its own two-finger gesture.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 && !(e.target.closest && e.target.closest('#mw-canvas'))) e.preventDefault(); }, { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const t = Date.now();
+    // A second tap within 300 ms: its default (zoom) is cancelled; the map handles its own double taps.
+    // Buttons keep their quick taps (touch-action: manipulation already stops the zoom on them).
+    if (t - lastTouchEnd < 300 && !(e.target.closest && e.target.closest('button, a, input, textarea, select, label, [role="button"]'))) e.preventDefault();
+    lastTouchEnd = t;
+  }, { passive: false });
+  document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
 
   /* ================= Smooth volume sliders (as in Troubadour) ================= */
   // Safari's range inputs only move when the small thumb is hit exactly: here the whole bar is the handle.

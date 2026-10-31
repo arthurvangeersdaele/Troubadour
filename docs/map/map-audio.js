@@ -6,8 +6,8 @@
  *   MapAudio.open(place, world, buffers)  starts the voices of a place (buffers: Map(file => AudioBuffer))
  *   MapAudio.sync()                       after an edit: voices for new cards, none for removed ones
  *   MapAudio.hear(point)                  moves the listener, every gain glides to its new value
- *   MapAudio.voice(card)                  the voice of a card: { state: 'idle' | 'playing' | 'waiting', heard }
- *   MapAudio.toggle(card), stop(card), setVolume(card, v), close(), fadeAll()
+ *   MapAudio.voice(card)                  the voice of a card: { state: 'idle' | 'playing' | 'paused', waiting, heard }
+ *   MapAudio.toggle(card) play or pause, stop(card) fade out to the start, progress(card), setVolume(card, v), close(), fadeAll()
  *   MapAudio.onChange = fn                called when a voice starts or stops
  */
 (function (global) {
@@ -30,7 +30,7 @@
     own.gain.value = card.volume;
     own.connect(space); space.connect(master);
     space.gain.value = el ? 0 : 1;
-    return { card, el, own, space, src: null, state: 'idle', heard: el ? 0 : 1, offset: 0, startedAt: 0, timer: 0, token: 0 };
+    return { card, el, own, space, src: null, state: 'idle', heard: el ? 0 : 1, offset: 0, startedAt: 0, timer: 0, token: 0, left: 0 };
   }
 
   /** The cards of the place: those of the whole place, then those of every element. */
@@ -40,7 +40,15 @@
     return out;
   }
 
-  function startSource(v, fadeIn) {
+  /** Where the sound is now, in seconds into it. */
+  function position(v) {
+    if (!v.src) return v.offset;
+    const d = v.src.buffer.duration || 1;
+    const t = audio().ctx.currentTime - v.startedAt;
+    return v.card.play === 'loop' ? t % d : Math.min(d, t);
+  }
+
+  function startSource(v, fadeIn, from = 0) {
     const buf = buffers.get(v.card.file);
     if (!buf) return false;
     const { ctx } = audio();
@@ -52,15 +60,18 @@
     const t = now();
     env.gain.setValueAtTime(fadeIn ? 0 : 1, t);
     if (fadeIn) env.gain.linearRampToValueAtTime(1, t + fadeIn);
-    const offset = v.card.play === 'loop' ? v.offset % buf.duration : 0;
+    const offset = Math.max(0, Math.min(buf.duration - 0.01, from % buf.duration));
     src.start(t, offset);
     v.src = src; v.env = env; v.startedAt = t - offset;
     const token = ++v.token;
     src.onended = () => {
       if (token !== v.token) return; // stopped by hand: already handled
       v.src = null;
-      if (v.card.play === 'random' && v.state === 'playing') waitAgain(v);
-      else { v.state = 'idle'; v.offset = 0; changed(); }
+      v.offset = 0;
+      if (v.state !== 'playing') return;
+      if (v.card.play === 'random') waitAgain(v);
+      else if (v.card.play === 'twice' && v.left > 0) { v.left -= 1; startSource(v, 0); }
+      else { v.state = 'idle'; changed(); }
     };
     return true;
   }
@@ -68,28 +79,33 @@
   /** A random card: a pause of gapMin to gapMax seconds, then the sound again. */
   function waitAgain(v) {
     const gap = v.card.gapMin + Math.random() * Math.max(0, v.card.gapMax - v.card.gapMin);
-    v.state = 'playing';
     v.waiting = true;
     clearTimeout(v.timer);
     v.timer = setTimeout(() => { v.waiting = false; if (v.state === 'playing') startSource(v, 0); changed(); }, gap * 1000);
     changed();
   }
 
+  /** Plays a card: from where it was paused, else from its start. */
   function play(v) {
     if (v.state === 'playing') return;
+    const resume = v.state === 'paused';
+    if (!resume) { v.offset = 0; v.left = v.card.play === 'twice' ? 1 : 0; }
     v.state = 'playing';
     v.waiting = false;
-    if (!startSource(v, v.card.play === 'once' ? 0 : 0.6)) v.state = 'idle';
+    const fade = v.card.zone === 'events' || v.card.zone === 'soundbox' ? 0 : 0.6;
+    if (!startSource(v, fade, v.offset)) v.state = 'idle';
     changed();
   }
 
-  function halt(v, ms) {
+  /** Fades a card out. `keep`: paused, it starts again where it was; otherwise back to its start. */
+  function halt(v, ms, keep) {
     clearTimeout(v.timer);
+    const wasWaiting = v.waiting;
     v.waiting = false;
     if (v.src) {
       const { ctx } = audio();
       const src = v.src, env = v.env;
-      if (v.card.play === 'loop') v.offset = (ctx.currentTime - v.startedAt) % (src.buffer.duration || 1);
+      v.offset = keep ? position(v) : 0;
       v.token += 1;
       const t = ctx.currentTime, end = t + Math.max(0.03, ms / 1000);
       env.gain.cancelScheduledValues(t);
@@ -97,8 +113,9 @@
       env.gain.linearRampToValueAtTime(0, end);
       try { src.stop(end + 0.02); } catch (e) { /* already stopped */ }
       v.src = null;
-    }
-    v.state = 'idle';
+    } else if (!keep) v.offset = 0;
+    // A random card between two plays has nothing to keep: pausing it stops it.
+    v.state = keep && !wasWaiting && v.state === 'playing' ? 'paused' : 'idle';
   }
 
   function drop(v) {
@@ -136,6 +153,7 @@
       v.el = el;
       v.own.gain.setTargetAtTime(card.volume, now(), 0.03);
       if (v.src) v.src.loop = card.play === 'loop';
+      if (card.play !== 'twice') v.left = 0;
     });
     voices.forEach((v, card) => { if (!live.has(card)) { drop(v); voices.delete(card); } });
     hear();
@@ -147,7 +165,9 @@
     place = p; world = w; buffers = bufs; point = p.player.slice();
     sync();
     audio(true);
-    voices.forEach((v) => { if (v.card.autoplay && v.card.play !== 'once') play(v); });
+    // The cards of an element are always on: the map decides how much of them is heard.
+    // The cards of the whole place start with it when they say so.
+    voices.forEach((v) => { if (v.el || v.card.autoplay) play(v); });
     changed();
   }
 
@@ -165,11 +185,26 @@
   function fadeAll() { voices.forEach((v) => halt(v, settings.fade)); changed(); }
 
   const voiceOf = (card) => voices.get(card) || null;
+  /** Play, or pause (with a fade) where it is. */
   function toggle(card) {
     const v = voices.get(card);
     if (!v) return;
     audio(true);
-    if (v.state === 'playing') { halt(v, v.card.play === 'once' ? 120 : settings.fade); changed(); } else play(v);
+    if (v.state === 'playing') { halt(v, settings.fade, true); changed(); } else play(v);
+  }
+  /** Fade out and back to the start. */
+  function stop(card) {
+    const v = voices.get(card);
+    if (!v || v.state === 'idle') return;
+    halt(v, settings.fade);
+    changed();
+  }
+  /** How far into its sound a card is: { at, length } in seconds. */
+  function progress(card) {
+    const v = voices.get(card);
+    const buf = buffers.get(card.file);
+    if (!v || !buf) return { at: 0, length: buf ? buf.duration : 0 };
+    return { at: v.waiting ? 0 : position(v), length: buf.duration };
   }
   /** A card's own volume. `secs`: glide there over that time (the simple volume buttons), else at once. */
   function setVolume(card, vol, secs) {
@@ -183,6 +218,6 @@
   }
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100 }));
-  Object.assign(api, { open, close, sync, hear, toggle, setVolume, fadeAll, list, voice: voiceOf, isOpen: () => !!place, point: () => point });
+  Object.assign(api, { open, close, sync, hear, toggle, stop, progress, setVolume, fadeAll, list, voice: voiceOf, isOpen: () => !!place, point: () => point });
   global.MapAudio = api;
 })(window);

@@ -167,7 +167,7 @@
     if (tool === 'wall' || tool === 'pen') { gesture = { kind: 'stroke', tool, pts: [w], shift: e.shiftKey }; dirty = true; return; }
     if (tool === 'stamp') {
       snapshot();
-      const el = M.cleanElement({ id: M.shortId(), title: '', radius: 200, cards: [], shape: { type: 'stamp', stamp, x: w[0], y: w[1], size: Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
+      const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'stamp', stamp, x: w[0], y: w[1], size: Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
       place.elements.push(el);
       select(el);
       edited();
@@ -280,7 +280,7 @@
     const closed = pts.length > 2 && gap < Math.max(30 / view.k, len * 0.15);
     if (closed && gap < 2) pts.pop();
     snapshot();
-    const el = M.cleanElement({ id: M.shortId(), title: '', radius: 200, cards: [], shape: { type: 'path', closed, points: pts } }, place.width, place.height);
+    const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'path', closed, points: pts } }, place.width, place.height);
     place.elements.push(el);
     select(el);
     edited();

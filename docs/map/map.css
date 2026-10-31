@@ -101,7 +101,8 @@ html:not(.ios) .ios-only { display: none !important; }
 .mcard-h .x:hover { color: var(--danger); }
 .mcard-r { display: flex; align-items: center; gap: 8px; }
 .mcard-r .pb { width: 38px; height: 38px; border-radius: 10px; border: 0; background: var(--line); color: var(--text); display: grid; place-items: center; padding: 0; flex: none; }
-.mcard.on .pb { background: var(--z); color: var(--on-z); }
+.mcard.on .pb:not(.end) { background: var(--z); color: var(--on-z); }
+.mcard.paused { border-color: color-mix(in srgb, var(--z) 55%, var(--line)); }
 .mcard-r input[type="range"] { flex: 1; min-width: 0; --z: inherit; }
 .mcard-r .heard { width: 44px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
 .mcard-r .heard i { display: block; height: 100%; background: var(--z); width: 0; transition: width .2s; }
@@ -239,5 +240,17 @@ html:not(.ios) .ios-only { display: none !important; }
 .mcard-r .vb:active { background: var(--line); }
 .mcard-r .lvl { flex: 1; min-width: 34px; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .mcard-r .lvl.moving { color: var(--z); }
-.mcard.vm-hidden .mcard-r .heard { flex: 1; width: auto; }
-.mcard.vm-hidden .mcard-r .gap { flex: 1; }
+
+/* Full cards at the table, as in Troubadour: loop button, progress, play and pause, stop. */
+.mcard-h .loop { flex: none; cursor: pointer; color: var(--text); }
+.mcard .opts[hidden] { display: none; }
+.mcard .track { height: 5px; }
+.mcard .fill { background: var(--z); }
+.mcard-r .pb.end { background: transparent; border: 1px solid var(--line); color: var(--text); }
+.mcard-r .pb.end:disabled { opacity: .4; cursor: default; }
+.mcard-r .rem { flex: 1; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mcard.vm-hidden .mcard-r .heard { flex: none; width: 44px; }
+
+/* The page never zooms (no double-tap or pinch zoom): only the map zooms, with two fingers. */
+html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: manipulation; }

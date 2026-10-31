@@ -12,7 +12,7 @@
   const B = global.Troubadour;
   const MAP_VERSION = 1;
   const ZONES = ['music', 'ambience', 'events'];
-  const PLAYS = ['loop', 'once', 'random'];
+  const PLAYS = ['once', 'twice', 'loop', 'random'];
   const STAMPS = ['lake', 'mountains', 'hill', 'forest', 'tree', 'swamp', 'rocks', 'fire', 'tower', 'ruins', 'cave', 'stairs', 'door', 'bridge', 'tent', 'well', 'altar', 'grave'];
   const W = 2000, H = 1250;
 
@@ -38,7 +38,7 @@
     out.file = String(c.file || '');
     out.zone = ['music', 'ambience', 'events', 'soundbox'].includes(c.zone) ? c.zone : 'events';
     out.play = PLAYS.includes(c.play) ? c.play : 'loop';
-    out.autoplay = out.play !== 'once' && c.autoplay !== false;
+    out.autoplay = c.autoplay !== false;
     if (out.play === 'random') {
       out.gapMin = r1(num(c.gapMin, 5, 0, 600));
       out.gapMax = r1(num(c.gapMax, Math.max(out.gapMin, 30), out.gapMin, 600));

@@ -101,7 +101,7 @@ An **element**:
 | `id` | string | Unique in the place. |
 | `title` | string | May be empty. |
 | `shape` | object | `{ "type": "path", "closed": bool, "points": [[x, y], ...] }` for a shape drawn by hand (closed: an area, open: a line such as a river), or `{ "type": "stamp", "stamp": "<name>", "x", "y", "size", "rotation" }` for a library drawing centred on `x`, `y`, `size` units wide, turned by `rotation` degrees. |
-| `radius` | number | 0 to 4000: how far beyond its outline its sounds carry. Shared by all its cards. |
+| `radius` | number | 0 to 4000 map units: how far beyond its outline its sounds carry. Shared by all its cards. Troubadour Map shows it as a share of the place's width (200 on a 2000-wide place: 10 %). |
 | `cards` | array of cards | 0 or more sounds of the story. An element without cards is a drawing only. |
 | `link` | string or `null` | `id` of another place of the world: tapping the element at the table offers to go there. |
 
@@ -114,8 +114,8 @@ A **card**:
 | `name` | string | Card title. |
 | `file` | string | Path of the audio entry in the archive (any sound of the story, from any chapter or the soundbox). |
 | `zone` | string | `music`, `ambience`, `events` or `soundbox`: the colour of the card. |
-| `play` | string | `loop`: again and again without a break. `once`: one time, when the troubadour taps it. `random`: it plays, waits a random pause of `gapMin` to `gapMax` seconds, and plays again. |
-| `autoplay` | boolean | `true`: the card starts when its place opens (`loop` and `random` only). `false`: it waits for the troubadour's tap. |
+| `play` | string | As the loop button of Troubadour: `once` (1×) one time, `twice` (2×) two times in a row, `loop` (∞) again and again without a break, `random`: it plays, waits a random pause of `gapMin` to `gapMax` seconds, and plays again. |
+| `autoplay` | boolean | Cards of the whole place only: `true`, the card starts when its place opens; `false`, it waits for the troubadour's Play. The cards of an element always start with their place: the map alone decides how much of them is heard. |
 | `gapMin`, `gapMax` | number | `random` only, in seconds (default 5 and 30). |
 | `volume` | number | 0 to 1, default 0.75. |
 
@@ -123,7 +123,7 @@ Unknown fields must be kept when a tool re-saves a file.
 
 ## Hearing a place
 
-Every card of an element plays (or waits) wherever the player point is; only its loudness follows the map:
+Every card of an element starts with its place and plays wherever the player point is (the troubadour can still pause it, stop it or change its loop at the table); only its loudness follows the map:
 
 1. **Distance.** `d` is the distance from the player point to the element: 0 inside a closed shape, else the distance to its outline (to its line, for an open shape). A stamp counts as a disc of diameter `size`. The card is heard at `volume × (1 − d / radius)` while `d < radius`, and not at all beyond. An element with a radius of 0 is heard only from inside it.
 2. **Walls.** Draw a straight line from the player point to the nearest point of the element (no line when the point is inside). Each wall segment it crosses multiplies the sound by `1 − wallLoss`.
