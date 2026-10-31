@@ -1,4 +1,4 @@
-/* La Troupe's sound: a heavy wooden door opening, then the room's pub ambiance (voices, mugs and bottles, a bard
+/* La Troupe's sound: as the door opens, the room's pub ambiance (voices, mugs and bottles, a bard
  * in the corner, the fire) fading in and looping with a long crossfade, so the loop is never heard.
  * Used by the home page (the door) and La Troupe (the room). The sound toggle in La Troupe's bar turns it off for good
  * on this device ('troubadour.pubSound' = 'off'). Sounds and credits: troupe/sounds/. */
@@ -67,18 +67,10 @@
     master.gain.linearRampToValueAtTime(0, ctx.currentTime + (fade || 0.6));
   }
 
-  /** The door: a heavy wooden door creaking open, and the pub fading in behind it. Call from the click. */
+  /** The door opens: the pub fades in behind it. Call from the click. */
   function door() {
     if (muted() || !audio()) return;
     if (ctx.state === 'suspended') ctx.resume();
-    buffer('261030_door_open.mp3').then(function (b) {
-      var src = ctx.createBufferSource(), gain = ctx.createGain();
-      src.buffer = b; src.connect(gain); gain.connect(ctx.destination);
-      gain.gain.value = 0.95; src.start();
-      // the page changes about 1.5 s later: fade the creak just before
-      gain.gain.setValueAtTime(0.95, ctx.currentTime + 1.2);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.45);
-    }).catch(function () {});
     start(1.6);
     try { sessionStorage.setItem(HANDOFF, String(Date.now())); } catch (e) { /* none */ }
   }
@@ -112,5 +104,5 @@
     addEventListener('pagehide', function () { stop(0.2); });
   }
 
-  g.TroupePub = { door: door, room: room, stop: stop, prefetch: function () { prefetch('261030_door_open.mp3'); prefetch('261030_pub_ambiance.mp3'); }, muted: muted };
+  g.TroupePub = { door: door, room: room, stop: stop, prefetch: function () { prefetch('261030_pub_ambiance.mp3'); }, muted: muted };
 })(window);

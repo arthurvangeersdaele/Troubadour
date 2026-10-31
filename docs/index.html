@@ -333,14 +333,16 @@
       e.preventDefault();if(busy)return;busy=true;d.classList.add('flung');
       if(window.TroupePub)TroupePub.door();
       try{sessionStorage.setItem('troubadour.door','1');}catch(x){}
-      var r=d.querySelector('.door-opening').getBoundingClientRect();
+      var r=d.querySelector('.door-opening').getBoundingClientRect(),vw=innerWidth,vh=innerHeight;
+      // A full-screen golden layer, painted once at full size and only moved: it starts squeezed onto the doorway
+      // (same arch, same gold) and opens out past the edges of the screen. Transform only, so every browser keeps it smooth.
       portal=document.createElement('div');portal.className='gold-portal';
-      portal.style.left=r.left+'px';portal.style.top=r.top+'px';portal.style.width=r.width+'px';portal.style.height=r.height+'px';
+      portal.style.transform='translate('+r.left+'px,'+r.top+'px) scale('+(r.width/vw)+','+(r.height/vh)+')';
       document.body.appendChild(portal);
-      var vw=innerWidth,vh=innerHeight,k=Math.max(vw/r.width,vh/r.height)*(vw<700?1.12:1.5);
-      var dx=vw/2-(r.left+r.width/2),dy=vh/2-(r.top+r.height*.55);
-      setTimeout(function(){portal.classList.add('on');portal.style.transform='translate('+dx+'px,'+dy+'px) scale('+k+')';},480);
-      setTimeout(function(){location.href=d.href;},1480);
+      portal.getBoundingClientRect();
+      setTimeout(function(){portal.classList.add('on');requestAnimationFrame(function(){requestAnimationFrame(function(){
+        portal.classList.add('go');portal.style.transform='translate('+(-.3*vw)+'px,'+(-.5*vh)+'px) scale(1.6)';});});},420);
+      setTimeout(function(){location.href=d.href;},1400);
     });
     window.addEventListener('pageshow',function(){if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');if(portal){portal.remove();portal=null;}});
   })();
