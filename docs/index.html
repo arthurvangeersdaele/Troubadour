@@ -198,7 +198,6 @@
   </footer>
 </div>
 
-<script src="troupe/pub.js"></script>
 <script src="rays.js"></script>
 <script>
 (function(){
@@ -336,7 +335,6 @@
     function warm(){ // fetch La Troupe and its styles ahead, so the page change is instant
       if(warmed)return;warmed=true;
       ['troupe/','troupe/troupe.css','play/style.css','troupe/settings.js','troupe/pub.js'].forEach(function(u){try{fetch(u,{credentials:'same-origin'}).catch(function(){});}catch(e){}});
-      if(window.TroupePub)TroupePub.prefetch();
     }
     if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){if(es.some(function(x){return x.isIntersecting;})){warm();io.disconnect();}},{rootMargin:'400px'});io.observe(d);}else warm();
     function ease(x){x=Math.max(0,Math.min(1,x));return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;}
@@ -348,7 +346,6 @@
       var leaf=d.querySelector('.door-leaf');
       leaf.style.transition='transform .65s cubic-bezier(.5,0,.3,1) .1s';leaf.style.transform='rotateY(-72deg)';
       leaf.addEventListener('transitionend',function(){leaf.style.transition='none';},{once:true});
-      if(window.TroupePub)TroupePub.door();
       try{sessionStorage.setItem('troubadour.door','1');}catch(x){}
       var r=d.querySelector('.door-opening').getBoundingClientRect(),vw=innerWidth,vh=innerHeight,t0=Date.now(),seed=(Math.random()*4294967295)>>>0;
       var ox=r.left+r.width*.62,oy=r.top+r.height*.5;
@@ -372,7 +369,7 @@
       setTimeout(function(){location.href=d.href;},1700);
     });
     window.addEventListener('pageshow',function(){
-      if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');
+      busy=false;d.classList.remove('flung');
       [flood,glare].forEach(function(x){if(x)x.remove();});var lf=d.querySelector('.door-leaf');if(lf){lf.style.transition='';lf.style.transform='';}flood=glare=null;if(light){light.stop();light=null;}
     });
   })();
