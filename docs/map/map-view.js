@@ -55,17 +55,32 @@
   const toScreen = (p) => [p[0] * view.k + view.x, p[1] * view.k + view.y];
   function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 
-  let needFit = false;
-  function fit() {
-    if (!place || W < 50 || H < 50) { needFit = true; return; }
-    needFit = false;
+  let needFit = null;
+  let fillOnResize = true; // at the table, the map keeps filling the screen until the troubadour zooms or pans
+  /** `fit()` shows the whole place. `fill()` fills the screen with the map, the party's point at mid-height
+   *  (and as near the middle across as the map allows). */
+  function fit(kind) {
+    if (kind === 'fill') return fill();
+    if (!place || W < 50 || H < 50) { needFit = 'fit'; return; }
+    needFit = null;
     // Room for the tools on the left while drawing.
     const m = 24, left = mode === 'edit' && W > 600 ? 70 : m;
     const k = Math.min((W - m - left) / place.width, (H - m * 2) / place.height);
     view = { k, x: left + (W - m - left - place.width * k) / 2, y: (H - place.height * k) / 2 };
     dirty = true;
   }
+  function fill() {
+    if (!place || W < 50 || H < 50) { needFit = 'fill'; return; }
+    needFit = null;
+    const k = Math.max(W / place.width, H / place.height);
+    const [px, py] = place.player;
+    const x = Math.min(0, Math.max(W - place.width * k, W / 2 - px * k));
+    view = { k, x, y: H / 2 - py * k };
+    fillOnResize = true;
+    dirty = true;
+  }
   function zoomAt(sx, sy, f) {
+    fillOnResize = false;
     const k = Math.max(0.05, Math.min(8, view.k * f));
     const [wx, wy] = toWorld(sx, sy);
     view.k = k; view.x = sx - wx * k; view.y = sy - wy * k;
@@ -178,11 +193,11 @@
     }
     const w = toWorld(s[0], s[1]);
     switch (gesture.kind) {
-      case 'pan':
+      case 'pan': fillOnResize = false;
         view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; gesture.last = s; dirty = true; break;
       case 'tap':
         if (Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) > 6) gesture.panning = true;
-        if (gesture.panning) { view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; dirty = true; }
+        if (gesture.panning) { fillOnResize = false; view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; dirty = true; }
         gesture.last = s; break;
       case 'player':
         if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
@@ -480,21 +495,32 @@
     W = Math.max(1, r.width); H = Math.max(1, r.height);
     dpr = Math.min(3, global.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    if (!needFit && place && mode === 'play' && fillOnResize) fill();
     cv.style.width = `${W}px`; cv.style.height = `${H}px`;
-    if (needFit) fit();
+    if (needFit) fit(needFit);
     dirty = true;
   }
 
   /** A small picture of a place, for the library. */
-  function thumb(canvas, p) {
+  function thumb(canvas, p, cover) {
     if (!pal) readPalette();
     const r = canvas.getBoundingClientRect();
     const d = Math.min(2, global.devicePixelRatio || 1);
     const w = Math.max(60, r.width || 140), h = Math.max(60, r.height || 110);
     canvas.width = Math.round(w * d); canvas.height = Math.round(h * d);
     const c = canvas.getContext('2d');
-    const k = Math.min((w - 12) / p.width, (h - 12) / p.height);
-    const ox = (w - p.width * k) / 2, oy = (h - p.height * k) / 2;
+    // `cover`: the map fills the picture, centred on its drawings (the big card of the library).
+    let k, ox, oy;
+    if (cover) {
+      k = Math.max(w / p.width, h / p.height);
+      const b = p.elements.length ? p.elements.map((e) => M.bounds(e.shape)).reduce((a, x) => [Math.min(a[0], x[0]), Math.min(a[1], x[1]), Math.max(a[2], x[2]), Math.max(a[3], x[3])]) : [0, 0, p.width, p.height];
+      const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+      ox = Math.min(0, Math.max(w - p.width * k, w / 2 - cx * k));
+      oy = Math.min(0, Math.max(h - p.height * k, h / 2 - cy * k));
+    } else {
+      k = Math.min((w - 12) / p.width, (h - 12) / p.height);
+      ox = (w - p.width * k) / 2; oy = (h - p.height * k) / 2;
+    }
     c.setTransform(d, 0, 0, d, 0, 0);
     c.fillStyle = pal.bg; c.fillRect(0, 0, w, h);
     c.setTransform(d * k, 0, 0, d * k, d * ox, d * oy);
@@ -536,7 +562,7 @@
   }
   function show(p, w) {
     place = p; world = w; selected = null; undoStack.length = 0;
-    fit();
+    fit(mode === 'play' ? 'fill' : 'fit');
     dirty = true;
   }
   function setMode(m) { mode = m; if (m === 'play') select(null); dirty = true; }
@@ -558,7 +584,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, undo, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, snapshot, deleteSelected, centreOn,
     redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,
   });

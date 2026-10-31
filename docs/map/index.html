@@ -52,14 +52,15 @@
 <main id="library" class="mp-screen" hidden>
   <header class="sbar mp-sbar">
     <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
     <span class="logo">Troubadour <em>Map</em></span>
     <span class="grow"></span>
-    <button class="btn slim" type="button" data-action="import"><span class="i-import"></span><span>Import</span></button>
+    <button class="ico" type="button" data-action="add-world" aria-label="Add a world" title="Add a world"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
-  <div class="mp-lib">
+  <div class="lib-wrap">
     <p class="mp-hint ios-hint" id="ios-hint" hidden>On iPhone and iPad, add this page to your Home Screen (Share, then Add to Home Screen): your worlds stay on the device and the map opens full screen. <button type="button" class="btn-link" id="ios-hint-close">Got it</button></p>
-    <div id="world-list" class="mp-list"></div>
+    <div id="world-list" class="lib-grid"></div>
   </div>
 </main>
 
@@ -93,8 +94,7 @@
       <div class="mp-stamps" id="mw-stamps" hidden></div>
       <div class="mp-play-tip" id="mw-play-tip">Drag the golden point, or tap the map to move the party. Double tap an element for its sounds.</div>
       <div class="mp-zoom">
-        <button type="button" class="ico small" data-zoom="1.25" aria-label="Zoom in">+</button>
-        <button type="button" class="ico small" data-zoom="0.8" aria-label="Zoom out">−</button>
+        <button type="button" class="ico" id="mw-fill" aria-label="Fill the screen with the map, the party in the middle" title="Fill the screen (F)"></button>
       </div>
     </section>
     <aside class="mp-side" id="mw-side" aria-label="Panel">
@@ -133,6 +133,34 @@
   <section>
     <h3>Troubadour name</h3>
     <div class="troubadour-account" id="troubadour-account"></div>
+  </section>
+  <section>
+    <h3>Player interface</h3>
+    <p class="muted small set-note">Hidden keeps the cards small. Simple adds two buttons that move the volume by 25&nbsp;% steps, smoothly over 2&nbsp;s. Full adds a slider. Each sound starts at the volume set in the editor.</p>
+    <div class="row-set">
+      <span>Music</span>
+      <div class="seg small" id="vol-music" data-zone="music" role="radiogroup" aria-label="Volume on the Music cards">
+        <button type="button" role="radio" data-v="hidden">Hidden</button>
+        <button type="button" role="radio" data-v="simple">Simple</button>
+        <button type="button" role="radio" data-v="full">Full</button>
+      </div>
+    </div>
+    <div class="row-set">
+      <span>Ambiances</span>
+      <div class="seg small" id="vol-ambience" data-zone="ambience" role="radiogroup" aria-label="Volume on the Ambiances cards">
+        <button type="button" role="radio" data-v="hidden">Hidden</button>
+        <button type="button" role="radio" data-v="simple">Simple</button>
+        <button type="button" role="radio" data-v="full">Full</button>
+      </div>
+    </div>
+    <div class="row-set">
+      <span>Events</span>
+      <div class="seg small" id="vol-events" data-zone="events" role="radiogroup" aria-label="Volume on the Events cards">
+        <button type="button" role="radio" data-v="hidden">Hidden</button>
+        <button type="button" role="radio" data-v="simple">Simple</button>
+        <button type="button" role="radio" data-v="full">Full</button>
+      </div>
+    </div>
   </section>
   <section>
     <h3>At the table</h3>

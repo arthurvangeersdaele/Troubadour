@@ -171,10 +171,15 @@
     audio(true);
     if (v.state === 'playing') { halt(v, v.card.play === 'once' ? 120 : settings.fade); changed(); } else play(v);
   }
-  function setVolume(card, vol) {
+  /** A card's own volume. `secs`: glide there over that time (the simple volume buttons), else at once. */
+  function setVolume(card, vol, secs) {
     card.volume = vol;
     const v = voices.get(card);
-    if (v) v.own.gain.setTargetAtTime(vol, now(), 0.03);
+    if (!v) return;
+    const g = v.own.gain, t = now();
+    g.cancelScheduledValues(t);
+    if (secs) { g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(vol, t + secs); }
+    else g.setTargetAtTime(vol, t, 0.03);
   }
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100 }));

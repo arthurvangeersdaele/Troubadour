@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261031.2';
+  const VERSION = '261101.1';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -24,77 +24,117 @@
   const place = () => rec.world.places[pi];
 
   /* ================= Library ================= */
-  const MAP_ART = '<svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 18l30-10 44 10 30-10v64l-30 10-44-10-30 10z" opacity=".5"/><path d="M38 8v64M82 18v64" opacity=".35"/><circle cx="60" cy="46" r="7" fill="currentColor" stroke="none"/><circle cx="60" cy="46" r="17" stroke-dasharray="4 5"/><circle cx="60" cy="46" r="29" stroke-dasharray="3 6" opacity=".6"/></svg>';
 
-  /** The two ways to begin a world, on top of the library. */
-  function doors() {
-    const box = el('div', 'mp-doors');
-    const door = (cls, icon, title, text, fn) => {
-      const d = el('button', `mp-door ${cls}`);
+  /** The ways to add a world: on the library when it is empty, and behind the + of the top bar. */
+  function addDoors(then = () => {}) {
+    const go = (fn) => () => { then(); fn(); };
+    const door = (kind, icon, title, text, fn) => {
+      const d = el('button', `ldoor d-${kind}`);
       d.type = 'button';
       d.innerHTML = `<span class="di">${icon}</span>`;
-      const t = el('span');
-      t.append(el('b', '', title), el('small', '', text));
-      d.append(t);
+      d.append(el('b', '', title), el('span', '', text));
       d.addEventListener('click', fn);
       return d;
     };
-    box.append(
-      door('new', ICON.plus, 'New world', 'A blank map, with your own sounds', newWorld),
-      door('import', ICON.import, 'Import', 'A .troubadour story, or a .troubadour-map world', pickFile),
+    return [
+      door('new', ICON.plus, 'New world', 'A blank map, with your own sounds', go(newWorld)),
+      door('import', ICON.import, 'Import', 'A .troubadour or .troubadour-map file', go(pickFile)),
+    ];
+  }
+  function openAddWorld() {
+    $('#sheet-title').textContent = 'Add a world';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = '';
+    const doors = el('div', 'lib-doors add-doors');
+    doors.append(...addDoors(() => $('#sheet').close()));
+    body.append(doors);
+    $('#sheet').showModal();
+  }
+
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const cardCount = (r) => r.world.places.reduce((a, p) => a + p.general.length + p.elements.reduce((b, e) => b + e.cards.length, 0), 0);
+  /** A small picture of the world's first place, in place of a cover. */
+  function mapCover(r, big) {
+    const cv = el('canvas', 'cover');
+    cv.setAttribute('aria-hidden', 'true');
+    requestAnimationFrame(() => V.thumb(cv, r.world.places[0], big));
+    return cv;
+  }
+  function btnEl(cls, html, label, fn) {
+    const b = el('button', cls);
+    b.type = 'button';
+    b.innerHTML = html;
+    if (label) b.setAttribute('aria-label', label);
+    b.addEventListener('click', fn);
+    return b;
+  }
+  const playAt = (r) => { location.hash = `#/play/${r.uid}/0`; };
+  const editAt = (r) => { location.hash = `#/edit/${r.uid}/0`; };
+
+  function heroCard(r) {
+    const c = el('section', 'hero mp-hero');
+    c.style.setProperty('--c', 'var(--accent)');
+    c.append(mapCover(r, true));
+    const inner = el('div', 'hero-in');
+    const kick = el('div', 'hero-kick');
+    kick.append(el('span', 'tag', r.world.revision ? `Revision ${r.world.revision}` : 'World'), el('span', 'kick', 'Last opened'));
+    inner.append(kick, el('h2', '', r.story.title || 'World'));
+    inner.append(el('p', 'hero-sub clamp', r.world.places.map((p) => p.title).join(', ')));
+    inner.append(el('p', 'hero-meta', `${plural(r.world.places.length, 'place')}, ${plural(cardCount(r), 'sound card')}, by ${r.world.bard || r.story.bard || 'Forgotten Troubadour'}`));
+    inner.append(el('span', 'grow'));
+    const acts = el('div', 'hero-acts');
+    acts.append(
+      btnEl('hb primary', `${ICON.play}<span>Play</span>`, null, () => playAt(r)),
+      btnEl('hb', `${ICON.edit}<span>Edit</span>`, null, () => editAt(r)),
+      btnEl('hb more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
     );
-    return box;
+    inner.append(acts);
+    c.append(inner);
+    return c;
+  }
+
+  function worldRow(r) {
+    const row = el('div', 'srow');
+    row.style.setProperty('--c', 'var(--line)');
+    const txt = el('div', 'stxt');
+    txt.append(el('b', '', r.story.title || 'World'), el('span', 'meta', `${plural(r.world.places.length, 'place')}, ${plural(cardCount(r), 'sound card')}`));
+    row.append(mapCover(r), txt,
+      btnEl('more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
+      btnEl('go', ICON.play, `Play ${r.story.title}`, () => playAt(r)));
+    return row;
   }
 
   async function renderLibrary() {
-    const list = $('#world-list');
+    const grid = $('#world-list');
     const recs = await DB.list();
-    list.textContent = '';
+    grid.textContent = '';
     if (!recs.length) {
-      const w = el('div', 'mp-welcome');
-      w.innerHTML = `${MAP_ART}
-        <h1>Hear the world as they walk it.</h1>
-        <p>Draw each place of your world: its walls, its lakes and forests, its shrines. Lay your sounds on the map, then move the party's golden point at the table. Every sound swells as they come close, and walls muffle what lies behind them.</p>
-        <p class="muted">Start a blank world with your own sounds, or import a <b>.troubadour</b> story: its chapters become places, and its sounds wait for you in the sound list.</p>`;
-      list.append(w);
+      const hello = el('div', 'hello');
+      hello.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
+      hello.append(el('h1', '', 'Your world awaits'), el('p', 'lead', 'Draw the places of your world, lay your sounds on the map, and hear what the party hears as it walks. Start a blank world, or import a .troubadour story.'));
+      grid.append(hello, el('h3', 'lib-h', 'Add a world'));
+      const doors = el('div', 'lib-doors');
+      doors.append(...addDoors());
+      grid.append(doors);
+      return;
     }
-    list.append(doors());
-    recs.forEach((r) => {
-      const card = el('article', 'mp-item');
-      const cv = el('canvas');
-      cv.setAttribute('aria-hidden', 'true');
-      const body = el('div');
-      const main = el('button', 'mp-item-main');
-      main.type = 'button';
-      const n = r.world.places.length;
-      const sounds = r.world.places.reduce((a, p) => a + p.general.length + p.elements.reduce((b, e) => b + e.cards.length, 0), 0);
-      main.append(el('h2', '', r.story.title || 'World'));
-      main.append(el('p', 'muted', `${n} place${n > 1 ? 's' : ''}, ${sounds} sound card${sounds === 1 ? '' : 's'}, by ${r.world.bard || r.story.bard || 'Forgotten Troubadour'}`));
-      const chips = el('ul', 'mp-chips');
-      r.world.places.slice(0, 6).forEach((p) => chips.append(el('li', '', p.title)));
-      if (n > 6) chips.append(el('li', '', `and ${n - 6} more`));
-      main.append(chips);
-      main.addEventListener('click', () => { location.hash = `#/play/${r.uid}/0`; });
-      const acts = el('div', 'mp-item-acts');
-      const play = el('button', 'btn primary slim');
-      play.type = 'button';
-      play.innerHTML = `${ICON.play}<span>Play</span>`;
-      play.addEventListener('click', () => { location.hash = `#/play/${r.uid}/0`; });
-      const edit = el('button', 'btn slim');
-      edit.type = 'button';
-      edit.innerHTML = `${ICON.edit}<span>Edit the world</span>`;
-      edit.addEventListener('click', () => { location.hash = `#/edit/${r.uid}/0`; });
-      const more = el('button', 'ico small');
-      more.type = 'button';
-      more.innerHTML = ICON.more;
-      more.setAttribute('aria-label', `More for ${r.story.title}`);
-      more.addEventListener('click', () => worldMenu(r));
-      acts.append(play, edit, el('span', 'grow'), more);
-      body.append(main, acts);
-      card.append(cv, body);
-      list.append(card);
-      requestAnimationFrame(() => V.thumb(cv, r.world.places[0]));
-    });
+    const [first, ...rest] = recs;
+    const wrap = el('div', 'lib-b');
+    wrap.append(heroCard(first));
+    const list = el('div', 'lib-list');
+    list.append(el('h3', 'lib-h', rest.length ? 'All worlds' : 'Your worlds'));
+    rest.forEach((r) => list.append(worldRow(r)));
+    const add = el('button', 'srow add');
+    add.type = 'button';
+    add.innerHTML = `<span class="add-i">${ICON.plus}</span>`;
+    const at = el('span', 'stxt');
+    at.append(el('b', '', 'Add a world'), el('span', 'meta', 'New, or a .troubadour or .troubadour-map file'));
+    add.append(at);
+    add.addEventListener('click', openAddWorld);
+    list.append(add);
+    wrap.append(list);
+    grid.append(wrap);
   }
 
   async function newWorld() {
@@ -126,8 +166,9 @@
     $('#sheet').showModal();
   }
 
-  function worldMenu(r) {
+  function worldMenu(r, fromTable) {
     menu(r.story.title || 'World', [
+      ...(fromTable ? [] : [[ICON.edit, 'Edit the world', 'Draw its places, lay its sounds', () => editAt(r)]]),
       [ICON.share, 'Export .troubadour-map', 'Forges the next revision, signed with your troubadour name', () => exportWorld(r)],
       [ICON.share, 'Export .troubadour', 'The story alone, for Troubadour and Ballade', () => exportTroubadour(r)],
       [ICON.trash, 'Remove from this device', 'Keep a .troubadour-map if you want it back', async () => {
@@ -271,6 +312,7 @@
     tapped = null;
     $('#mw-title').textContent = rec.story.title || 'World';
     $('#mw-sub').textContent = place().title;
+    V.setMode(mode);
     V.show(place(), rec.world);
     renderPlaces();
     if (location.hash !== here()) history.replaceState(null, '', here());
@@ -280,10 +322,17 @@
   async function setMode(m, keepAudio) {
     mode = m;
     $('#world').dataset.mode = m;
+    // The player leads nowhere but the table: the editor opens from the library.
     const sw = $('#mw-switch');
-    sw.innerHTML = m === 'edit' ? `${ICON.play}<span>Play</span>` : `${ICON.edit}<span>Edit</span>`;
-    sw.title = m === 'edit' ? 'Play this place at the table' : 'Edit this world: draw, lay sounds';
+    sw.hidden = m === 'play';
+    sw.innerHTML = `${ICON.play}<span>Play</span>`;
+    sw.title = 'Play this place at the table';
+    // At the table, the map on the left and the sounds of the whole place open beside it.
+    $('#world').classList.toggle('panel', m === 'play');
+    $('#mw-panel').setAttribute('aria-label', m === 'play' ? 'Show or hide the sounds' : 'Show the panel');
+    const was = V.mode();
     V.setMode(m);
+    if (was !== m) { V.fit(m === 'play' ? 'fill' : 'fit'); renderPlaces(); }
     $('#mw-stamps').hidden = true;
     if (m === 'play') {
       await ensure(placeFiles(place()));
@@ -323,7 +372,7 @@
     const pick = $('#mw-place-pick');
     pick.textContent = '';
     rec.world.places.forEach((p, i) => { const o = el('option', '', p.title); o.value = String(i); pick.append(o); });
-    const o = el('option', '', '+ New place'); o.value = 'new'; pick.append(o);
+    if (mode === 'edit') { const o = el('option', '', '+ New place'); o.value = 'new'; pick.append(o); }
     pick.value = String(pi);
   }
 
@@ -414,12 +463,41 @@
     } else {
       pb.addEventListener('click', () => { A.toggle(c); refreshLive(); });
     }
-    const vol = el('input');
-    vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
-    vol.setAttribute('aria-label', `Volume of ${c.name}`);
-    vol.addEventListener('input', () => A.setVolume(c, Number(vol.value)));
-    vol.addEventListener('change', save);
-    r.append(pb, vol);
+    // How the volume shows (Settings, Player interface, as in Troubadour): always a slider in the editor.
+    const zoneKey = c.zone === 'soundbox' ? 'events' : c.zone;
+    const vm = mode === 'edit' ? 'full' : ((settings.vol && settings.vol[zoneKey]) || 'full');
+    row.classList.add(`vm-${vm}`);
+    r.append(pb);
+    let lvl = null, moveEnd = 0;
+    if (vm === 'full') {
+      const vol = el('input');
+      vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
+      vol.setAttribute('aria-label', `Volume of ${c.name}`);
+      vol.addEventListener('input', () => A.setVolume(c, Number(vol.value)));
+      vol.addEventListener('change', save);
+      r.append(vol);
+    } else if (vm === 'simple') {
+      // Two buttons: 25 % steps, gliding 2 s per step.
+      lvl = el('span', 'lvl');
+      const paintLvl = () => { lvl.textContent = `${Math.round(c.volume * 100)}`; lvl.classList.toggle('moving', performance.now() < moveEnd); };
+      const step = (dir) => {
+        const q = c.volume * 4;
+        const t = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4);
+        if (t === c.volume) return;
+        const secs = Math.max(0.3, (Math.abs(t - c.volume) / 0.25) * 2);
+        A.setVolume(c, t, secs);
+        moveEnd = performance.now() + secs * 1000;
+        paintLvl();
+        setTimeout(paintLvl, secs * 1000 + 20);
+        save();
+      };
+      const dn = el('button', 'vb'); dn.type = 'button'; dn.innerHTML = ICON.volDown; dn.setAttribute('aria-label', `Lower ${c.name}`);
+      dn.addEventListener('click', () => step(-1));
+      const up = el('button', 'vb'); up.type = 'button'; up.innerHTML = ICON.volUp; up.setAttribute('aria-label', `Raise ${c.name}`);
+      up.addEventListener('click', () => step(1));
+      paintLvl();
+      r.append(dn, lvl, up);
+    } else if (!owner) r.append(el('span', 'gap'));
     if (mode === 'play' && owner) {
       const meter = el('span', 'heard');
       const bar = el('i');
@@ -852,6 +930,11 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.fade = Number(b.dataset.v); saveSettings(); paintSettings();
     });
+    document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.vol[g.dataset.zone] = b.dataset.v; saveSettings(); paintSettings();
+      if (rec && mode === 'play') renderPanel();
+    }));
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
@@ -872,6 +955,7 @@
     buildSettings.paintThemes();
     document.querySelectorAll('#mode-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.mode)));
     document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
+    document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.vol[g.dataset.zone]))));
     $('#opt-rings').checked = settings.rings;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
@@ -928,6 +1012,7 @@
     }
     const r = await DB.get(m[2]);
     if (!r) { location.hash = '#/'; return; }
+    DB.put(r).catch(() => {}); // last opened: first in the library
     show('world');
     await openWorld(r, n, m[1]);
   }
@@ -938,7 +1023,8 @@
     document.querySelectorAll('.set-head .ico, [data-action="close-sheet"]').forEach((b) => { b.innerHTML = ICON.close; });
     $('[data-action="close-sheet"]').addEventListener('click', () => $('#sheet').close());
     document.querySelectorAll('.i-import').forEach((s) => { s.outerHTML = ICON.import; });
-    $('[data-action="import"]').addEventListener('click', pickFile);
+    $('[data-action="add-world"]').innerHTML = ICON.plus;
+    $('[data-action="add-world"]').addEventListener('click', openAddWorld);
     $('#pick-file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); });
     $('#library').addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });
     $('#library').addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); importFile(f); } });
@@ -954,12 +1040,12 @@
     $('#mw-back').innerHTML = ICON.back;
     $('#mw-back').addEventListener('click', () => { location.hash = '#/'; });
     $('#mw-more').innerHTML = ICON.share;
-    $('#mw-more').addEventListener('click', () => rec && worldMenu(rec));
+    $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
     $('#mw-panel').innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/>', 19);
     $('#mw-panel').addEventListener('click', () => $('#world').classList.toggle('panel'));
     $('#mw-side-close').innerHTML = ICON.close;
     $('#mw-side-close').addEventListener('click', () => $('#world').classList.remove('panel'));
-    $('#mw-switch').addEventListener('click', () => { location.hash = `#/${mode === 'edit' ? 'play' : 'edit'}/${rec.uid}/${pi}`; });
+    $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
     $('#mw-place-pick').addEventListener('change', (e) => {
       if (e.target.value === 'new') addPlace(); else goPlace(Number(e.target.value));
     });
@@ -981,7 +1067,8 @@
       else if (b.dataset.act === 'undo') { if (!V.undo()) toast('Nothing to undo.', 1400); }
       else if (b.dataset.act === 'fit') V.fit();
     });
-    document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => V.zoom(Number(b.dataset.zoom))));
+    $('#mw-fill').innerHTML = ICON.fit;
+    $('#mw-fill').addEventListener('click', () => V.fill());
 
     $('#mw-fade').innerHTML = ICON.stop;
     $('#mw-fade').addEventListener('click', () => { A.fadeAll(); refreshLive(); });
@@ -1018,7 +1105,7 @@
     V.onTap = (e) => {
       tapped = e;
       renderPanel();
-      if (!pc()) $('#world').classList.add('panel');
+      $('#world').classList.add('panel');
     };
     A.onChange = () => { V.redraw(); };
 
@@ -1054,7 +1141,7 @@
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
       }
-      if (e.key.toLowerCase() === 'f') V.fit();
+      if (e.key.toLowerCase() === 'f') V.fill();
       if (mode === 'play' && e.code === 'Space') { e.preventDefault(); $('#mw-pause').click(); }
     });
 
@@ -1062,6 +1149,48 @@
     window.addEventListener('pagehide', flush);
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (settings.mode === 'system') applyTheme(); });
   }
+
+  /* ================= Smooth volume sliders (as in Troubadour) ================= */
+  // Safari's range inputs only move when the small thumb is hit exactly: here the whole bar is the handle.
+  function rangeValue(input, clientX) {
+    const r = input.getBoundingClientRect();
+    const pad = 8;
+    const f = Math.min(1, Math.max(0, (clientX - r.left - pad) / Math.max(1, r.width - 2 * pad)));
+    const min = +input.min || 0, max = input.max === '' ? 100 : +input.max, step = +input.step || 1;
+    return Math.round((min + f * (max - min)) / step) * step;
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const input = e.target.closest && e.target.closest('input[type="range"]');
+    if (!input || input.disabled || e.button > 0) return;
+    e.preventDefault();
+    const id = e.pointerId;
+    try { input.setPointerCapture(id); } catch (err) { /* older iOS */ }
+    const set = (x) => {
+      const v = rangeValue(input, x);
+      if (+input.value === v) return;
+      input.value = v;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    set(e.clientX);
+    let frame = 0, lastX = e.clientX;
+    const move = (ev) => {
+      if (ev.pointerId !== id) return;
+      ev.preventDefault();
+      lastX = ev.clientX;
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; set(lastX); });
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== id) return;
+      if (frame) { cancelAnimationFrame(frame); frame = 0; set(lastX); }
+      input.removeEventListener('pointermove', move);
+      input.removeEventListener('pointerup', up);
+      input.removeEventListener('pointercancel', up);
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    input.addEventListener('pointermove', move);
+    input.addEventListener('pointerup', up);
+    input.addEventListener('pointercancel', up);
+  }, { passive: false });
 
   async function boot() {
     applyTheme();
