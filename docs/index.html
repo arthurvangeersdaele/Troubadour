@@ -325,7 +325,7 @@
   (function(){
     var d=document.getElementById('door');
     if(!d||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-    var portal=null,busy=false;
+    var portal=null,rays=null,busy=false;
     // fetch the door's sounds once the door comes near the screen
     if('IntersectionObserver' in window&&window.TroupePub){var io=new IntersectionObserver(function(es){if(es.some(function(x){return x.isIntersecting;})){TroupePub.prefetch();io.disconnect();}},{rootMargin:'400px'});io.observe(d);}
     d.addEventListener('click',function(e){
@@ -339,12 +339,17 @@
       portal=document.createElement('div');portal.className='gold-portal';
       portal.style.transform='translate('+r.left+'px,'+r.top+'px) scale('+(r.width/vw)+','+(r.height/vh)+')';
       document.body.appendChild(portal);
+      // Rays of light leaving the doorway, spreading out over the page as the gold opens
+      rays=document.createElement('div');rays.className='gold-rays';rays.innerHTML='<i></i>';
+      rays.style.left=(r.left+r.width/2)+'px';rays.style.top=(r.top+r.height*.45)+'px';
+      document.body.appendChild(rays);
       portal.getBoundingClientRect();
+      requestAnimationFrame(function(){rays.classList.add('on');});
       setTimeout(function(){portal.classList.add('on');requestAnimationFrame(function(){requestAnimationFrame(function(){
         portal.classList.add('go');portal.style.transform='translate('+(-.3*vw)+'px,'+(-.5*vh)+'px) scale(1.6)';});});},420);
       setTimeout(function(){location.href=d.href;},1400);
     });
-    window.addEventListener('pageshow',function(){if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');if(portal){portal.remove();portal=null;}});
+    window.addEventListener('pageshow',function(){if(window.TroupePub)TroupePub.stop(.3);busy=false;d.classList.remove('flung');if(portal){portal.remove();portal=null;}if(rays){rays.remove();rays=null;}});
   })();
   /* Reduced motion: keep La Troupe logo still */
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)document.getElementById('sigil').pauseAnimations();
