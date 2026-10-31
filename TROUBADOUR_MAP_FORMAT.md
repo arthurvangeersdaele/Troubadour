@@ -133,4 +133,8 @@ Moving the player point changes every gain smoothly (a short glide, no clicks). 
 
 ## A first world from a `.troubadour`
 
-Importing a plain `.troubadour` builds a world with one place per chapter, named after it. The chapter's music and ambiances become the place's general cards (the first music and every endless ambiance start with the place); its events wait in the sound list, to be laid on the map. Nothing is drawn yet: the troubadour draws walls and elements, and drops sound cards on them.
+Importing a plain `.troubadour` builds a world with one empty place per chapter, named after it. No sound is laid anywhere: every sound of the story waits in the sound list, and the troubadour draws walls and elements and lays the sounds on them. A card laid on the map starts as a loop for music and ambiances, at random for events and soundbox effects, starting with its place.
+
+## A blank world, and sounds added later
+
+A world can start blank: its `story.json` has a title and one chapter, `"Map sounds"` with `"map": true`, that holds the sounds added in Troubadour Map (audio files of the device, in `sounds/map/<row>/`). Every sound of another `.troubadour` can also join a world: they are copied into a chapter of their own, named after that story, with `"map": true` (audio in `sounds/x<n>/`). Chapters with `"map": true` are sound lists, not places: a reader making places from chapters skips them. Troubadour and the Ballade read them as ordinary chapters.

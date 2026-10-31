@@ -4,11 +4,12 @@
  *   MapView.show(place, world)       draws a place and fits it to the screen
  *   MapView.setMode('edit' | 'play') MapView.setTool(id)  MapView.setStamp(id)
  *   MapView.select(element | null)   MapView.fit()  MapView.undo()  MapView.redraw()
- *   callbacks: onSelect(el), onEdit() (the place changed: save it), onTap(el), onPlayer(point), onTool(id)
+ *   callbacks: onSelect(el), onEdit() (the place changed: save it), onTap(el) (a double tap at the table),
+ *   onOpen(el) (a double tap while drawing), onPlayer(point), onTool(id)
  *
  * Tools (edit): select (move elements and the player point), wall, pen (a shape: closed when it ends near
  * its start, else a line), stamp (a drawing of the library), eraser, hand (move the map).
- * At the table (play): drag the player point, or tap the map to send it there; tap an element to open it.
+ * At the table (play): drag the player point, or tap the map to send it there; double tap an element to open it.
  * Everywhere: wheel or pinch to zoom, two fingers, the middle button or Space to move the map.
  */
 (function (global) {
@@ -23,7 +24,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [];
-  const api = { onSelect: null, onEdit: null, onTap: null, onPlayer: null, onTool: null };
+  const api = { onSelect: null, onEdit: null, onTap: null, onOpen: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -111,6 +112,7 @@
 
   /* ---------- Pointer input ---------- */
   const pointers = new Map();
+  let last = { t: 0, s: [0, 0], el: null }; // the last tap, to tell a double tap
   let gesture = null; // { kind, ... }
   let spaceDown = false;
 
@@ -133,13 +135,14 @@
     if (panning) { gesture = { kind: 'pan', last: s }; cv.classList.add('grabbing'); return; }
 
     if (mode === 'play') {
-      if (onPlayer(s[0], s[1])) { gesture = { kind: 'player', moved: true }; cv.classList.add('grabbing'); return; }
+      // On the point: a drag moves it, a tap (or a double tap) counts as a tap on the map below it.
+      if (onPlayer(s[0], s[1])) { gesture = { kind: 'player', start: s, el: elementAt(w), dragged: false }; return; }
       gesture = { kind: 'tap', start: s, last: s, el: elementAt(w) };
       return;
     }
     // Edit
     if (tool === 'select') {
-      if (onPlayer(s[0], s[1])) { snapshot(); gesture = { kind: 'player' }; cv.classList.add('grabbing'); return; }
+      if (onPlayer(s[0], s[1])) { snapshot(); gesture = { kind: 'player', start: s, dragged: false }; cv.classList.add('grabbing'); return; }
       const el = elementAt(w);
       if (el) { select(el); snapshot(); gesture = { kind: 'move', el, last: w, moved: false }; cv.classList.add('grabbing'); return; }
       select(null);
@@ -182,6 +185,9 @@
         if (gesture.panning) { view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; dirty = true; }
         gesture.last = s; break;
       case 'player':
+        if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
+        gesture.dragged = true;
+        cv.classList.add('grabbing');
         place.player = clampPoint(w);
         dirty = true;
         if (api.onPlayer) api.onPlayer(place.player);
@@ -213,12 +219,25 @@
     if (gesture.kind === 'pinch') { if (pointers.size < 2) gesture = null; return; }
     const g = gesture;
     gesture = null;
+    if (g.kind === 'player' && mode === 'play' && !g.dragged) g.kind = 'tap';
     if (g.kind === 'tap' && !g.panning) {
-      if (g.el) { if (api.onTap) api.onTap(g.el); }
-      else glidePlayer(toWorld(g.start[0], g.start[1]));
+      // One tap sends the party there; a double tap on an element opens it instead (the party stays).
+      const t = performance.now(), dest = toWorld(g.start[0], g.start[1]);
+      const twice = last.el && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
+      clearTimeout(last.timer);
+      if (twice) { last = { t: 0, s: [0, 0], el: null }; if (api.onTap) api.onTap(g.el); }
+      else {
+        last = { t, s: g.start, el: g.el, timer: 0 };
+        if (g.el) last.timer = setTimeout(() => glidePlayer(dest), 300); else glidePlayer(dest);
+      }
     } else if (g.kind === 'player') {
       edited();
     } else if (g.kind === 'move') {
+      if (!g.moved) {
+        const t = performance.now();
+        if (last.el === g.el && t - last.t < 350) { last = { t: 0, s: [0, 0], el: null }; if (api.onOpen) api.onOpen(g.el); }
+        else last = { t, s: [0, 0], el: g.el };
+      }
       const sh = g.el.shape;
       if (sh.type === 'stamp') { sh.x = Math.round(sh.x); sh.y = Math.round(sh.y); } else sh.points.forEach((p) => { p[0] = Math.round(p[0]); p[1] = Math.round(p[1]); });
       if (g.moved || tool === 'stamp') edited(); else undoStack.pop();

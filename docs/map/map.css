@@ -166,3 +166,36 @@ html:not(.ios) .ios-only { display: none !important; }
   .mp-stamps { left: 8px; top: 64px; max-height: calc(100% - 76px); }
   .mp-play-tip { display: none; }
 }
+.ask-field { display: block; width: 100%; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; margin: 0 0 14px; }
+.ask-field:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- Landscape only, like Troubadour (a computer turns nothing) ---------- */
+.rotate { display: none; }
+@media (orientation: portrait) {
+  html:not(.pc) .rotate {
+    position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 24px;
+  }
+  html:not(.pc) .app { visibility: hidden; }
+  .rotate b { font-family: 'Cormorant SC', serif; font-size: 30px; line-height: 1.1; }
+  .rotate span { color: var(--muted); font-size: 17px; }
+}
+.phone-turn { width: 46px; height: 78px; border: 3px solid var(--text); border-radius: 10px; position: relative; margin-bottom: 18px; animation: mp-turn 2.4s ease-in-out infinite; }
+.phone-turn i { position: absolute; left: 50%; bottom: 6px; width: 10px; height: 3px; border-radius: 2px; background: var(--text); transform: translateX(-50%); }
+@keyframes mp-turn { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .phone-turn { animation: none; transform: rotate(-90deg); } }
+
+/* ---------- Library doors ---------- */
+.mp-doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mp-door { display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+.mp-door:hover { border-color: var(--accent); }
+.mp-door .di { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.mp-door.new { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card) 60%); }
+.mp-door b { display: block; font-family: 'Cormorant SC', serif; font-size: 24px; line-height: 1.1; }
+.mp-door small { display: block; color: var(--muted); font-size: 14px; }
+.mp-welcome + .mp-doors { margin-top: 4px; }
+
+/* ---------- Player and editor ---------- */
+.mp-switch { min-width: 92px; justify-content: center; }
+.mp-world[data-mode="play"] .mp-rail .add { display: none; }
+.pick-src { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }

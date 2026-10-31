@@ -177,6 +177,7 @@
     if (v) v.own.gain.setTargetAtTime(vol, now(), 0.03);
   }
 
-  Object.assign(api, { open, close, sync, hear, toggle, setVolume, fadeAll, voice: voiceOf, isOpen: () => !!place, point: () => point });
+  const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100 }));
+  Object.assign(api, { open, close, sync, hear, toggle, setVolume, fadeAll, list, voice: voiceOf, isOpen: () => !!place, point: () => point });
   global.MapAudio = api;
 })(window);

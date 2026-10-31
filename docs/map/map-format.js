@@ -120,27 +120,43 @@
     return { id: id || `place-${shortId()}`, title: title || 'New place', width: W, height: H, player: [W / 2, Math.round(H * 0.72)], general: [], walls: [], elements: [] };
   }
 
-  /** A card made from a sound of the story. */
+  /** A card made from a sound of the story, ready to be heard on the map: music and ambiances loop,
+   *  events and soundbox effects come back at random; all start with the place. */
   function card(sound, opts = {}) {
-    let play = 'loop';
-    if (sound.loop === 'random') play = 'random';
-    else if (sound.zone === 'events' || sound.zone === 'soundbox' || sound.loop === 'once') play = 'once';
-    return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: play !== 'once', volume: typeof sound.volume === 'number' ? sound.volume : 0.75 }, opts));
+    const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : 'loop';
+    return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: true, volume: typeof sound.volume === 'number' ? sound.volume : 0.75 }, opts));
   }
 
-  /** A first world from a plain .troubadour: one place per chapter, its music and ambiances on the whole place. */
-  function defaultWorld(story, bard) {
-    const places = (story.chapters || []).map((c, i) => {
-      const p = newPlace(c.title || `Chapter ${i + 1}`, `place-${i + 1}`);
-      (c.music || []).forEach((s, k) => p.general.push(card(Object.assign({ zone: 'music' }, s), { play: 'loop', autoplay: k === 0 })));
-      (c.ambience || []).forEach((s) => p.general.push(card(Object.assign({ zone: 'ambience' }, s), { autoplay: s.loop === 'infinite' || s.loop === 'random' })));
-      return p;
-    });
+  function worldOf(story, places, bard) {
     return normalize({
       format: 'troubadour-map', version: MAP_VERSION, id: B.uuid(), story: story.id || null, revision: 0,
       bard: bard || B.FORGOTTEN, created: now(), wallLoss: 0.7, places,
     });
   }
+
+  /** A first world from a plain .troubadour: one empty place per chapter. Its sounds wait in the sound list,
+   *  nothing is laid on the map yet. */
+  function defaultWorld(story, bard) {
+    const chs = (story.chapters || []).filter((c) => c.map !== true);
+    return worldOf(story, chs.length ? chs.map((c, i) => newPlace(c.title || `Chapter ${i + 1}`, `place-${i + 1}`)) : [newPlace('The first place', 'place-1')], bard);
+  }
+
+  /** The chapter of story.json that holds the sounds added in Troubadour Map (made when first needed). */
+  const OWN = 'Map sounds';
+  function ownChapter(story) {
+    let c = (story.chapters || []).find((x) => x.title === OWN && x.map === true);
+    if (!c) { c = { title: OWN, map: true, music: [], ambience: [], events: [] }; story.chapters = (story.chapters || []).concat(c); }
+    return c;
+  }
+
+  /** A blank world: a story with no sound yet, and one empty place. */
+  function blankStory(title, bard) {
+    const stamp = now();
+    const story = { format: 'troubadour', version: 2, id: B.uuid(), revision: 0, bard: bard || B.FORGOTTEN, title: title || 'New world', description: '', created: stamp, generator: 'Troubadour Map (web)', chapters: [], soundbox: [] };
+    ownChapter(story);
+    return story;
+  }
+  function blankWorld(story, bard) { return worldOf(story, [newPlace('The first place', 'place-1')], bard); }
 
   /* ---------- Geometry of hearing ---------- */
 
@@ -309,7 +325,7 @@
   }
 
   global.TroubadourMap = {
-    MAP_VERSION, ZONES, PLAYS, STAMPS, soundsOf, cleanCard, cleanElement, cleanPlace, normalize, newPlace, card, defaultWorld,
+    MAP_VERSION, ZONES, PLAYS, STAMPS, OWN, soundsOf, ownChapter, blankStory, blankWorld, cleanCard, cleanElement, cleanPlace, normalize, newPlace, card, defaultWorld,
     reach, crosses, wallsBetween, hearing, bounds, centre, simplify, inside, nearestOnSegment, shortId,
     read, pack, packTroubadour, yymmdd,
   };

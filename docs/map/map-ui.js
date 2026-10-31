@@ -104,25 +104,46 @@
   }
   function idle() { $('#busy').hidden = true; }
 
-  /** A small question: resolves with the value of the button tapped (null when dismissed). */
-  function ask(title, text, buttons) {
+  /** A small question: resolves with the value of the button tapped (null when dismissed).
+   *  With `field` ({ placeholder, max, value }), it also asks for a line of text: resolves with { value, text }. */
+  function ask(title, text, buttons, field) {
     const dlg = $('#ask');
     $('#ask-title').textContent = title;
     $('#ask-text').textContent = text || '';
     $('#ask-text').hidden = !text;
     const acts = $('#ask-acts');
     acts.textContent = '';
+    const old = dlg.querySelector('.ask-field');
+    if (old) old.remove();
+    let input = null;
+    if (field) {
+      input = el('input', 'ask-field');
+      input.type = 'text';
+      input.placeholder = field.placeholder || '';
+      input.maxLength = field.max || 120;
+      input.value = field.value || '';
+      acts.before(input);
+    }
     return new Promise((resolve) => {
       let answered = false;
-      const finish = (v) => { if (answered) return; answered = true; if (dlg.open) dlg.close(); resolve(v); };
+      const finish = (v) => {
+        if (answered) return; answered = true;
+        if (dlg.open) dlg.close();
+        resolve(field ? (v == null ? null : { value: v, text: input.value.trim() }) : v);
+      };
       buttons.forEach((b) => {
         const x = el('button', `btn ${b.cls || ''}`, b.label);
         x.type = 'button';
         x.onclick = () => finish(b.value);
         acts.append(x);
       });
+      if (input) {
+        const main = buttons[buttons.length - 1];
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(main.value); } });
+      }
       dlg.addEventListener('close', () => finish(null), { once: true });
       dlg.showModal();
+      if (input) input.focus();
     });
   }
 

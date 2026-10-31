@@ -1,11 +1,12 @@
 /* Troubadour Map: library, import and export, the panel beside the map, settings and routing.
  *   #/                  the worlds kept on this device
- *   #/world/<uid>/<n>   a world, on its place n
+ *   #/play/<uid>/<n>    a world at the table, on its place n
+ *   #/edit/<uid>/<n>    the editor of a world (drawing, sounds, places)
  */
 (function () {
   'use strict';
 
-  const VERSION = '261031.1';
+  const VERSION = '261031.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -25,6 +26,26 @@
   /* ================= Library ================= */
   const MAP_ART = '<svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 18l30-10 44 10 30-10v64l-30 10-44-10-30 10z" opacity=".5"/><path d="M38 8v64M82 18v64" opacity=".35"/><circle cx="60" cy="46" r="7" fill="currentColor" stroke="none"/><circle cx="60" cy="46" r="17" stroke-dasharray="4 5"/><circle cx="60" cy="46" r="29" stroke-dasharray="3 6" opacity=".6"/></svg>';
 
+  /** The two ways to begin a world, on top of the library. */
+  function doors() {
+    const box = el('div', 'mp-doors');
+    const door = (cls, icon, title, text, fn) => {
+      const d = el('button', `mp-door ${cls}`);
+      d.type = 'button';
+      d.innerHTML = `<span class="di">${icon}</span>`;
+      const t = el('span');
+      t.append(el('b', '', title), el('small', '', text));
+      d.append(t);
+      d.addEventListener('click', fn);
+      return d;
+    };
+    box.append(
+      door('new', ICON.plus, 'New world', 'A blank map, with your own sounds', newWorld),
+      door('import', ICON.import, 'Import', 'A .troubadour story, or a .troubadour-map world', pickFile),
+    );
+    return box;
+  }
+
   async function renderLibrary() {
     const list = $('#world-list');
     const recs = await DB.list();
@@ -34,14 +55,10 @@
       w.innerHTML = `${MAP_ART}
         <h1>Hear the world as they walk it.</h1>
         <p>Draw each place of your world: its walls, its lakes and forests, its shrines. Lay your sounds on the map, then move the party's golden point at the table. Every sound swells as they come close, and walls muffle what lies behind them.</p>
-        <p class="muted">Start from a <b>.troubadour</b> story: its chapters become the places of your world, its sounds wait to be laid on the map. A <b>.troubadour-map</b> opens as it was forged.</p>`;
-      const b = el('button', 'btn primary', 'Import a story');
-      b.type = 'button';
-      b.addEventListener('click', pickFile);
-      w.append(b);
+        <p class="muted">Start a blank world with your own sounds, or import a <b>.troubadour</b> story: its chapters become places, and its sounds wait for you in the sound list.</p>`;
       list.append(w);
-      return;
     }
+    list.append(doors());
     recs.forEach((r) => {
       const card = el('article', 'mp-item');
       const cv = el('canvas');
@@ -57,23 +74,38 @@
       r.world.places.slice(0, 6).forEach((p) => chips.append(el('li', '', p.title)));
       if (n > 6) chips.append(el('li', '', `and ${n - 6} more`));
       main.append(chips);
-      main.addEventListener('click', () => { location.hash = `#/world/${r.uid}/0`; });
+      main.addEventListener('click', () => { location.hash = `#/play/${r.uid}/0`; });
       const acts = el('div', 'mp-item-acts');
-      const open = el('button', 'btn primary slim');
-      open.type = 'button';
-      open.innerHTML = `${ICON.play}<span>Open</span>`;
-      open.addEventListener('click', () => { location.hash = `#/world/${r.uid}/0`; });
+      const play = el('button', 'btn primary slim');
+      play.type = 'button';
+      play.innerHTML = `${ICON.play}<span>Play</span>`;
+      play.addEventListener('click', () => { location.hash = `#/play/${r.uid}/0`; });
+      const edit = el('button', 'btn slim');
+      edit.type = 'button';
+      edit.innerHTML = `${ICON.edit}<span>Edit the world</span>`;
+      edit.addEventListener('click', () => { location.hash = `#/edit/${r.uid}/0`; });
       const more = el('button', 'ico small');
       more.type = 'button';
       more.innerHTML = ICON.more;
       more.setAttribute('aria-label', `More for ${r.story.title}`);
       more.addEventListener('click', () => worldMenu(r));
-      acts.append(open, el('span', 'grow'), more);
+      acts.append(play, edit, el('span', 'grow'), more);
       body.append(main, acts);
       card.append(cv, body);
       list.append(card);
       requestAnimationFrame(() => V.thumb(cv, r.world.places[0]));
     });
+  }
+
+  async function newWorld() {
+    const a = await ask('New world', 'Give your world a name. You add its sounds while you draw it.', [
+      { label: 'Cancel', value: null }, { label: 'Create', value: 'ok', cls: 'primary' },
+    ], { placeholder: 'The Drowned Abbey', max: 120 });
+    if (!a || !a.value) return;
+    const bard = window.Troubadour.bardName();
+    const story = M.blankStory(a.text || 'New world', bard);
+    const r = await DB.put({ uid: DB.uid(), story, world: M.blankWorld(story, bard), files: {} });
+    location.hash = `#/edit/${r.uid}/0`;
   }
 
   function menu(title, items) {
@@ -171,9 +203,8 @@
       const r = await DB.put({ uid, story, world: wd, files: keys });
       await DB.collect();
       idle();
-      if (!world) toast('Your world is ready: one place per chapter. Draw its walls and elements, then lay the sounds on them.', 5200);
-      else toast(`${story.title} is ready.`);
-      location.hash = `#/world/${r.uid}/0`;
+      if (!world) { toast('Your world is ready: one place per chapter. Its sounds wait in Add sounds: draw the map, then lay them on it.', 5200); location.hash = `#/edit/${r.uid}/0`; }
+      else { toast(`${story.title} is ready.`); location.hash = `#/play/${r.uid}/0`; }
     } catch (e) {
       idle();
       toast(`${isMap ? 'This .troubadour-map' : 'This file'} could not be opened: ${e.message || e}`, 5200);
@@ -223,14 +254,14 @@
   function stopPreview() { if (preview) listen(preview.file); }
 
   /* ================= A world ================= */
-  async function openWorld(r, n) {
-    const same = rec && rec.uid === r.uid;
-    if (!same) {
+  const here = () => `#/${mode}/${rec.uid}/${pi}`;
+  async function openWorld(r, n, m) {
+    if (!(rec && rec.uid === r.uid)) {
       A.close(0);
       buffers.clear();
       rec = r;
-      mode = pc() ? 'edit' : 'play';
     }
+    mode = m;
     goPlace(Math.max(0, Math.min(rec.world.places.length - 1, n || 0)), true);
   }
 
@@ -242,14 +273,16 @@
     $('#mw-sub').textContent = place().title;
     V.show(place(), rec.world);
     renderPlaces();
-    if (location.hash !== `#/world/${rec.uid}/${pi}`) history.replaceState(null, '', `#/world/${rec.uid}/${pi}`);
+    if (location.hash !== here()) history.replaceState(null, '', here());
     await setMode(mode, !first);
   }
 
   async function setMode(m, keepAudio) {
     mode = m;
     $('#world').dataset.mode = m;
-    document.querySelectorAll('#mw-mode [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === m)));
+    const sw = $('#mw-switch');
+    sw.innerHTML = m === 'edit' ? `${ICON.play}<span>Play</span>` : `${ICON.edit}<span>Edit</span>`;
+    sw.title = m === 'edit' ? 'Play this place at the table' : 'Edit this world: draw, lay sounds';
     V.setMode(m);
     $('#mw-stamps').hidden = true;
     if (m === 'play') {
@@ -473,7 +506,7 @@
     box.append(walls);
 
     const how = section('Drawing');
-    how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Select an element to give it sounds, a reach and a way to another place.'));
+    how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Double tap an element (with the select tool) to give it sounds, a reach and a way to another place.'));
     box.append(how);
 
     const acts = section('This place');
@@ -504,7 +537,7 @@
     save();
     renderPlaces();
     renderPanel();
-    history.replaceState(null, '', `#/world/${rec.uid}/${pi}`);
+    history.replaceState(null, '', here());
   }
 
   function editElement(box, e) {
@@ -564,13 +597,13 @@
   }
 
   function playPlace(box, p) {
-    box.append(cardsBlock('Whole place', p.general, null, 'No sound for the whole place. Add some in Draw.'));
+    box.append(cardsBlock('Whole place', p.general, null, 'No sound for the whole place. Add some in Edit.'));
     const near = section('Around the party');
     const list = el('div', 'pn');
     near.append(list);
     box.append(near);
     const els = p.elements.filter((e) => e.cards.length || e.link);
-    if (!els.length) near.append(el('div', 'pn-empty', 'No element has sounds on this map yet. Switch to Draw, select a shape and add sounds to it.'));
+    if (!els.length) near.append(el('div', 'pn-empty', 'No element has sounds on this map yet. Open Edit, double tap a shape and add sounds to it.'));
     const rows = els.map((e) => {
       const b = el('button', 'mp-menu-item');
       b.type = 'button';
@@ -637,6 +670,76 @@
   }
 
   /* ================= The sound picker ================= */
+  /** Picks files with a hidden input of its own (several at once when `multiple`). */
+  function chooseFiles(accept, multiple) {
+    return new Promise((ok) => {
+      const i = el('input');
+      i.type = 'file';
+      if (accept && !document.documentElement.classList.contains('ios')) i.accept = accept;
+      i.multiple = !!multiple;
+      i.addEventListener('change', () => ok([...i.files]));
+      i.click();
+    });
+  }
+  function freePath(base) {
+    let p = base, n = 2;
+    while (rec.files[p]) { p = base.replace(/(\.[a-z0-9]+)$/i, `-${n}$1`); n += 1; }
+    return p;
+  }
+
+  /** Audio files of this device become sounds of the world (in its Map sounds chapter). */
+  async function addFromDevice(after) {
+    const files = (await chooseFiles('audio/*,.mp3,.ogg,.m4a,.wav', true)).filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
+    if (!files.length) return;
+    const zone = await ask(files.length > 1 ? `${files.length} sounds: what are they?` : `${files[0].name}: what is it?`, 'It sets their colour and how they play once laid on the map: music and ambiances loop, events come back at random.', [
+      { label: 'Music', value: 'music' }, { label: 'Ambiance', value: 'ambience' }, { label: 'Event', value: 'events', cls: 'primary' },
+    ]);
+    if (!zone) return;
+    try {
+      const ch = M.ownChapter(rec.story);
+      let n = 0;
+      for (const f of files) {
+        n += 1;
+        busy('Keeping the sounds on this device', `${n} of ${files.length}`, n / files.length);
+        const ext = (f.name.split('.').pop() || 'mp3').toLowerCase();
+        const name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 120) || 'Sound';
+        const path = freePath(`sounds/map/${zone}/${window.Troubadour.slug(name, 'sound')}.${ext}`);
+        rec.files[path] = await DB.putBlob(f);
+        ch[zone].push({ name, file: path, loop: zone === 'events' ? 'random' : 'infinite', volume: 0.75 });
+      }
+      idle();
+      flush();
+      after();
+    } catch (e) { idle(); toast(`Could not keep the sounds: ${e.message || e}`, 4200); }
+  }
+
+  /** Every sound of another .troubadour story joins the world, in a chapter named after it. */
+  async function addFromStory(after) {
+    const [f] = await chooseFiles('.troubadour,.bardic,.troubadour-map,.troubadour-ballade', false);
+    if (!f) return;
+    try {
+      busy('Opening the story', f.name, 0);
+      const { story, files } = await M.read(f, (n, t) => busy('Opening the story', `Sound ${n} of ${t}`, n / t));
+      const k = (rec.story.chapters || []).length + 1;
+      const ch = { title: story.title || f.name, map: true, music: [], ambience: [], events: [] };
+      const seen = new Set();
+      const list = M.soundsOf(story).filter((x) => files.has(x.file) && (seen.has(x.file) ? false : seen.add(x.file)));
+      let n = 0;
+      for (const x of list) {
+        n += 1;
+        busy('Keeping the sounds on this device', `${n} of ${list.length}`, n / list.length);
+        const path = freePath(`sounds/x${k}/${x.file.replace(/^sounds\//, '')}`);
+        rec.files[path] = await DB.putBlob(files.get(x.file));
+        ch[x.zone === 'soundbox' ? 'events' : x.zone].push({ name: x.name, file: path, loop: x.loop || 'once', volume: typeof x.volume === 'number' ? x.volume : 0.75 });
+      }
+      rec.story.chapters = (rec.story.chapters || []).concat(ch);
+      idle();
+      flush();
+      toast(`${list.length} sound${list.length > 1 ? 's' : ''} of ${ch.title} added.`);
+      after();
+    } catch (e) { idle(); toast(`This story could not be opened: ${e.message || e}`, 4200); }
+  }
+
   function pickSounds(list) {
     stopPreview();
     $('#sheet-title').textContent = 'Add sounds';
@@ -651,11 +754,11 @@
     const go = el('button', 'btn primary');
     go.type = 'button';
     const paintGo = () => { go.disabled = !chosen.size; go.textContent = chosen.size ? `Add ${chosen.size} sound${chosen.size > 1 ? 's' : ''}` : 'Pick sounds'; };
-    const all = M.soundsOf(rec.story).filter((s) => rec.files[s.file]);
-    // The same file once: the first place it appears.
-    const seen = new Set();
-    const sounds = all.filter((s) => (seen.has(s.file) ? false : seen.add(s.file)));
+    let sounds = [];
     const paint = () => {
+      // The same file once: the first place it appears.
+      const seen = new Set();
+      sounds = M.soundsOf(rec.story).filter((x) => rec.files[x.file] && (seen.has(x.file) ? false : seen.add(x.file)));
       box.textContent = '';
       const q = search.value.trim().toLowerCase();
       let group = null;
@@ -666,7 +769,7 @@
         const b = el('div', `pick ${s.zone}`);
         b.setAttribute('role', 'button');
         b.tabIndex = 0;
-        b.setAttribute('aria-pressed', String(chosen.has(s)));
+        b.setAttribute('aria-pressed', String(chosen.has(s.file)));
         const lis = el('button', 'lis');
         lis.type = 'button';
         lis.innerHTML = ICON.play;
@@ -674,16 +777,16 @@
         lis.addEventListener('click', (ev) => { ev.stopPropagation(); listen(s.file, lis); });
         const t = el('b', '', s.name);
         b.append(el('i'), lis, t, el('small', '', ZONE_LABEL[s.zone]));
-        const toggle = () => { if (chosen.has(s)) chosen.delete(s); else chosen.add(s); b.setAttribute('aria-pressed', String(chosen.has(s))); paintGo(); };
+        const toggle = () => { if (chosen.has(s.file)) chosen.delete(s.file); else chosen.add(s.file); b.setAttribute('aria-pressed', String(chosen.has(s.file))); paintGo(); };
         b.addEventListener('click', toggle);
         b.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
         box.append(b);
       });
-      if (!box.childNodes.length) box.append(el('div', 'pn-empty', q ? 'No sound by that name.' : 'This story has no sounds.'));
+      if (!box.childNodes.length) box.append(el('div', 'pn-empty', q ? 'No sound by that name.' : 'No sound in this world yet: bring some from this device, or from a .troubadour story.'));
     };
     search.addEventListener('input', paint);
     go.addEventListener('click', () => {
-      [...chosen].forEach((s) => list.push(M.card(s)));
+      [...chosen].forEach((f) => { const x = sounds.find((y) => y.file === f); if (x) list.push(M.card(x)); });
       $('#sheet').close();
       save();
       syncAudio();
@@ -694,7 +797,18 @@
     const acts = el('div', 'ask-acts');
     acts.style.marginTop = '10px';
     acts.append(go);
-    body.append(search, box, acts);
+    // More sounds for the world: audio files, or every sound of another story.
+    const src = el('div', 'pick-src');
+    const fromDevice = el('button', 'btn slim');
+    fromDevice.type = 'button';
+    fromDevice.innerHTML = `${ICON.import}<span>From this device</span>`;
+    fromDevice.addEventListener('click', () => addFromDevice(paint));
+    const fromStory = el('button', 'btn slim');
+    fromStory.type = 'button';
+    fromStory.innerHTML = `${ICON.import}<span>From a .troubadour</span>`;
+    fromStory.addEventListener('click', () => addFromStory(paint));
+    src.append(fromDevice, fromStory);
+    body.append(src, search, box, acts);
     paint();
     paintGo();
     $('#sheet').addEventListener('close', stopPreview, { once: true });
@@ -804,13 +918,18 @@
   }
 
   async function route() {
-    const m = /^#\/world\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
+    const m = /^#\/(play|edit)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
     if (!m) { flush(); show('library'); rec = null; await renderLibrary(); return; }
-    if (rec && rec.uid === m[1] && screen === 'world') { const n = Number(m[2] || 0); if (n !== pi) goPlace(n); return; }
-    const r = await DB.get(m[1]);
+    const n = Number(m[3] || 0);
+    if (rec && rec.uid === m[2] && screen === 'world') {
+      if (m[1] !== mode) { flush(); mode = m[1]; if (n !== pi) await goPlace(n); else await setMode(mode); }
+      else if (n !== pi) goPlace(n);
+      return;
+    }
+    const r = await DB.get(m[2]);
     if (!r) { location.hash = '#/'; return; }
     show('world');
-    await openWorld(r, Number(m[2] || 0));
+    await openWorld(r, n, m[1]);
   }
 
   /* ================= Wiring ================= */
@@ -840,7 +959,7 @@
     $('#mw-panel').addEventListener('click', () => $('#world').classList.toggle('panel'));
     $('#mw-side-close').innerHTML = ICON.close;
     $('#mw-side-close').addEventListener('click', () => $('#world').classList.remove('panel'));
-    $('#mw-mode').addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b && b.dataset.v !== mode) setMode(b.dataset.v); });
+    $('#mw-switch').addEventListener('click', () => { location.hash = `#/${mode === 'edit' ? 'play' : 'edit'}/${rec.uid}/${pi}`; });
     $('#mw-place-pick').addEventListener('change', (e) => {
       if (e.target.value === 'new') addPlace(); else goPlace(Number(e.target.value));
     });
@@ -885,7 +1004,15 @@
     // The map.
     V.mount($('#mw-canvas'));
     V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; };
-    V.onSelect = () => { if (mode === 'edit') { renderPanel(); if (V.selected() && !pc()) $('#world').classList.add('panel'); } };
+    V.onSelect = () => { if (mode === 'edit') renderPanel(); };
+    // A double tap on an element opens its panel (over the map on a narrow screen), and its name to type.
+    V.onOpen = () => {
+      if (mode !== 'edit') return;
+      renderPanel();
+      $('#world').classList.add('panel');
+      const t = $('#mw-inspector input[type="text"]');
+      if (t && pc()) t.focus();
+    };
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); } if (A.isOpen()) { A.sync(); } };
     V.onPlayer = (p) => { if (A.isOpen()) A.hear(p); };
     V.onTap = (e) => {
@@ -894,6 +1021,22 @@
       if (!pc()) $('#world').classList.add('panel');
     };
     A.onChange = () => { V.redraw(); };
+
+    // Browsers keep sound off until a touch or a click: every gesture wakes the audio, unless paused by hand.
+    // iPhone also wants a sound started inside that gesture: a silent one, once.
+    const unlock = () => {
+      if ($('#mw-pause').classList.contains('on')) return;
+      const { ctx } = audio();
+      if (ctx.state !== 'running') ctx.resume().catch(() => {});
+      if (!unlock.done) {
+        unlock.done = true;
+        const src = ctx.createBufferSource();
+        src.buffer = ctx.createBuffer(1, 1, 22050);
+        src.connect(ctx.destination);
+        src.start(0);
+      }
+    };
+    ['pointerdown', 'touchend', 'keydown'].forEach((t) => document.addEventListener(t, unlock, { capture: true, passive: true }));
     buildStamps();
     paintStamps('lake');
     V.setTool(pc() ? 'pen' : 'select');

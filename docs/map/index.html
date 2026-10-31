@@ -40,6 +40,12 @@
 </script>
 </head>
 <body>
+<div class="rotate" aria-hidden="true">
+  <div class="phone-turn"><i></i></div>
+  <b>Turn your phone sideways</b>
+  <span>Troubadour Map plays in landscape.</span>
+</div>
+
 <div class="app" id="app">
 
 <!-- ============ Library ============ -->
@@ -63,10 +69,7 @@
     <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
     <div class="ttl"><b id="mw-title"></b><span id="mw-sub"></span></div>
     <select class="mp-place-pick" id="mw-place-pick" aria-label="Place"></select>
-    <div class="seg mp-mode" id="mw-mode" role="radiogroup" aria-label="Mode">
-      <button type="button" role="radio" data-v="edit">Draw</button>
-      <button type="button" role="radio" data-v="play">Play</button>
-    </div>
+    <button class="btn slim primary mp-switch" type="button" id="mw-switch"></button>
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
@@ -88,7 +91,7 @@
         <button type="button" data-act="fit" title="See the whole place (F)"></button>
       </div>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
-      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point, or tap the map to move the party. Tap an element for its sounds.</div>
+      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point, or tap the map to move the party. Double tap an element for its sounds.</div>
       <div class="mp-zoom">
         <button type="button" class="ico small" data-zoom="1.25" aria-label="Zoom in">+</button>
         <button type="button" class="ico small" data-zoom="0.8" aria-label="Zoom out">−</button>
