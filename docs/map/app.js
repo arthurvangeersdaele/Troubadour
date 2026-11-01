@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261101.3';
+  const VERSION = '261101.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -278,9 +278,16 @@
 
   /** One sound previewed in the editor or the sound picker, on its own. */
   let preview = null;
-  async function listen(file, btn) {
+  async function listen(file, btn, getBlob) {
+    const { ctx: c0 } = audio(true); // inside the tap: wakes the audio before anything waits
+    if (c0.state !== 'running') c0.resume().catch(() => {});
     if (preview) { const was = preview; preview = null; try { was.src.stop(); } catch (e) { /* done */ } if (was.btn) was.btn.innerHTML = ICON.play; if (was.file === file) return; }
-    await ensure([file], false);
+    if (btn) btn.classList.add('wait');
+    try {
+      if (getBlob && !buffers.has(file)) buffers.set(file, await decode(await getBlob()));
+      else await ensure([file], false);
+    } catch (e) { /* unreadable */ }
+    if (btn) btn.classList.remove('wait');
     const buf = buffers.get(file);
     if (!buf) { toast('This sound cannot be read here.'); return; }
     const { ctx, master } = audio(true);
@@ -578,16 +585,17 @@
     return row;
   }
 
-  function addSoundsButton(list, label) {
+  function addSoundsButton(list, label, target) {
     const b = el('button', 'btn slim');
     b.type = 'button';
     b.innerHTML = `${ICON.plus}<span>${label || 'Add sounds'}</span>`;
-    b.addEventListener('click', () => pickSounds(list));
+    b.addEventListener('click', () => pickSounds(list, target));
     return b;
   }
 
   function cardsBlock(title, list, owner, empty) {
-    const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add') : null);
+    const target = owner ? (owner.title || stampLabel(owner.shape.type === 'stamp' ? owner.shape.stamp : '') || 'this element') : null;
+    const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add', target) : null);
     if (!list.length) s.append(el('div', 'pn-empty', empty));
     list.forEach((c) => s.append(cardRow(c, list, owner)));
     return s;
@@ -812,7 +820,10 @@
       i.type = 'file';
       if (accept && !document.documentElement.classList.contains('ios')) i.accept = accept;
       i.multiple = !!multiple;
-      i.addEventListener('change', () => ok([...i.files]));
+      // iPhone fires `change` only for an input that stays in the page.
+      i.hidden = true;
+      document.body.append(i);
+      i.addEventListener('change', () => { ok([...i.files]); i.remove(); });
       i.click();
     });
   }
@@ -875,78 +886,214 @@
     } catch (e) { idle(); toast(`This story could not be opened: ${e.message || e}`, 4200); }
   }
 
-  function pickSounds(list) {
+  /* ================= The Recueil's sounds ================= */
+  // Every sound of every tale of the Recueil (docs/recueil/sounds.json). Only a sound's own bytes are fetched:
+  // the tales store their sounds uncompressed, so each one is a byte range of its .troubadour file.
+  const RECUEIL = '../recueil/';
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  let recueil = null, recueilLoad = null;
+  const recueilBytes = new Map(); // id -> Promise<Blob>
+  const taleBlobs = new Map();    // .troubadour file -> Promise<Blob>, when a whole tale had to be fetched
+  function loadRecueil() {
+    if (!recueilLoad) {
+      recueilLoad = fetch(`${RECUEIL}sounds.json`, { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => { recueil = (d.sounds || []).map((x) => Object.assign(x, { key: fold(`${x.name} ${x.tale} ${x.bard}`) })); return recueil; })
+        .catch((e) => { recueilLoad = null; throw e; });
+    }
+    return recueilLoad;
+  }
+  function wholeTale(file) {
+    if (!taleBlobs.has(file)) {
+      taleBlobs.set(file, fetch(RECUEIL + encodeURIComponent(file)).then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .catch((e) => { taleBlobs.delete(file); throw e; }));
+    }
+    return taleBlobs.get(file);
+  }
+  function recueilBlob(x) {
+    if (!recueilBytes.has(x.id)) {
+      recueilBytes.set(x.id, (async () => {
+        let part = null;
+        if (!taleBlobs.has(x.file)) {
+          try {
+            const res = await fetch(RECUEIL + encodeURIComponent(x.file), { headers: { Range: `bytes=${x.offset}-${x.offset + x.length - 1}` } });
+            if (res.status === 206) { const bl = await res.blob(); if (bl.size === x.length) part = bl; }
+            else if (res.ok) taleBlobs.set(x.file, res.blob());
+          } catch (e) { /* the whole tale, below */ }
+        }
+        if (!part) part = (await wholeTale(x.file)).slice(x.offset, x.offset + x.length);
+        if (x.deflated) part = await new Response(part.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+        if (part.size !== x.size) throw new Error('The sound came back damaged. Try again.');
+        const ext = (x.path.split('.').pop() || 'mp3').toLowerCase();
+        return new Blob([part], { type: ext === 'ogg' ? 'audio/ogg' : ext === 'm4a' ? 'audio/mp4' : ext === 'wav' ? 'audio/wav' : 'audio/mpeg' });
+      })().catch((e) => { recueilBytes.delete(x.id); throw e; }));
+    }
+    return recueilBytes.get(x.id);
+  }
+  /** A sound of the Recueil joins the world (once): its bytes on this device, a line in the Recueil chapter. */
+  async function keepRecueil(x) {
+    const zone = x.row === 'soundbox' ? 'events' : (x.row || 'events');
+    let ch = (rec.story.chapters || []).find((c) => c.map === true && c.title === 'Recueil');
+    if (!ch) { ch = { title: 'Recueil', map: true, music: [], ambience: [], events: [] }; rec.story.chapters.push(ch); }
+    const had = ch[zone].find((s) => s.recueil === x.id);
+    if (had) return Object.assign({ zone }, had);
+    const blob = await recueilBlob(x);
+    const path = freePath(`sounds/recueil/${zone}/${window.Troubadour.slug(x.name, 'sound')}.${(x.path.split('.').pop() || 'mp3').toLowerCase()}`);
+    rec.files[path] = await DB.putBlob(blob);
+    const s = { name: x.name, file: path, loop: zone === 'events' ? 'random' : 'infinite', volume: 0.75, recueil: x.id, tale: x.tale };
+    ch[zone].push(s);
+    flush();
+    return Object.assign({ zone }, s);
+  }
+
+  /* ================= The sound picker ================= */
+  const pickState = { src: 'world', type: 'all', q: '' };
+  const TYPE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+
+  /** Adds sounds to a list of cards (an element's, or the whole place's). A tap on a sound adds it at once
+   *  (a second tap takes it away again); the play button previews it. */
+  function pickSounds(list, target) {
     stopPreview();
-    $('#sheet-title').textContent = 'Add sounds';
+    $('#sheet-title').textContent = target ? `Sounds of ${target}` : 'Sounds of the whole place';
     const body = $('#sheet-body');
     body.textContent = '';
-    body.className = '';
-    const search = el('input', 'pick-search');
-    search.type = 'search';
-    search.placeholder = 'Search the sounds of the story';
-    const box = el('div', 'pick-list');
-    const chosen = new Set();
-    const go = el('button', 'btn primary');
-    go.type = 'button';
-    const paintGo = () => { go.disabled = !chosen.size; go.textContent = chosen.size ? `Add ${chosen.size} sound${chosen.size > 1 ? 's' : ''}` : 'Pick sounds'; };
-    let sounds = [];
-    const paint = () => {
-      // The same file once: the first place it appears.
-      const seen = new Set();
-      sounds = M.soundsOf(rec.story).filter((x) => rec.files[x.file] && (seen.has(x.file) ? false : seen.add(x.file)));
-      box.textContent = '';
-      const q = search.value.trim().toLowerCase();
-      let group = null;
-      sounds.forEach((s) => {
-        if (q && !s.name.toLowerCase().includes(q)) return;
-        const g = s.chapter >= 0 ? (rec.story.chapters[s.chapter].title || `Chapter ${s.chapter + 1}`) : 'Soundbox';
-        if (g !== group) { group = g; box.append(el('h4', '', g)); }
-        const b = el('div', `pick ${s.zone}`);
-        b.setAttribute('role', 'button');
-        b.tabIndex = 0;
-        b.setAttribute('aria-pressed', String(chosen.has(s.file)));
-        const lis = el('button', 'lis');
-        lis.type = 'button';
-        lis.innerHTML = ICON.play;
-        lis.title = 'Listen';
-        lis.addEventListener('click', (ev) => { ev.stopPropagation(); listen(s.file, lis); });
-        const t = el('b', '', s.name);
-        b.append(el('i'), lis, t, el('small', '', ZONE_LABEL[s.zone]));
-        const toggle = () => { if (chosen.has(s.file)) chosen.delete(s.file); else chosen.add(s.file); b.setAttribute('aria-pressed', String(chosen.has(s.file))); paintGo(); };
-        b.addEventListener('click', toggle);
-        b.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
-        box.append(b);
+    body.className = 'snd-pick';
+    $('#sheet').classList.add('wide');
+
+    const bar = el('div', 'snd-bar');
+    const seg = (cls, items, key, after) => {
+      const g = el('div', `seg small ${cls}`);
+      g.setAttribute('role', 'radiogroup');
+      items.forEach(([v, label]) => {
+        const b = el('button', '', label);
+        b.type = 'button';
+        b.dataset.v = v;
+        b.setAttribute('role', 'radio');
+        b.addEventListener('click', () => { pickState[key] = v; paintSegs(); after(); });
+        g.append(b);
       });
-      if (!box.childNodes.length) box.append(el('div', 'pn-empty', q ? 'No sound by that name.' : 'No sound in this world yet: bring some from this device, or from a .troubadour story.'));
+      return g;
     };
-    search.addEventListener('input', paint);
-    go.addEventListener('click', () => {
-      [...chosen].forEach((f) => { const x = sounds.find((y) => y.file === f); if (x) list.push(M.card(x)); });
-      $('#sheet').close();
-      save();
-      syncAudio();
-      renderPanel();
-      renderPlaces();
-      V.redraw();
-    });
-    const acts = el('div', 'ask-acts');
-    acts.style.marginTop = '10px';
-    acts.append(go);
-    // More sounds for the world: audio files, or every sound of another story.
-    const src = el('div', 'pick-src');
+    const srcSeg = seg('snd-src', [['world', 'This world'], ['recueil', 'Recueil']], 'src', () => paint());
+    const typeSeg = seg('snd-type', [['all', 'All'], ['music', 'Music'], ['ambience', 'Ambiances'], ['events', 'Events']], 'type', () => paint());
+    const paintSegs = () => {
+      srcSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === pickState.src)));
+      typeSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === pickState.type)));
+    };
+    const search = el('input', 'snd-search');
+    search.type = 'search';
+    search.placeholder = 'Search a sound';
+    search.value = pickState.q;
+    search.addEventListener('input', () => { pickState.q = search.value; paint(); });
+    bar.append(srcSeg, typeSeg, search);
+
+    const box = el('div', 'snd-list');
+    const foot = el('div', 'snd-foot');
     const fromDevice = el('button', 'btn slim');
     fromDevice.type = 'button';
     fromDevice.innerHTML = `${ICON.import}<span>From this device</span>`;
-    fromDevice.addEventListener('click', () => addFromDevice(paint));
+    fromDevice.addEventListener('click', () => addFromDevice(() => { pickState.src = 'world'; paintSegs(); paint(); }));
     const fromStory = el('button', 'btn slim');
     fromStory.type = 'button';
     fromStory.innerHTML = `${ICON.import}<span>From a .troubadour</span>`;
-    fromStory.addEventListener('click', () => addFromStory(paint));
-    src.append(fromDevice, fromStory);
-    body.append(src, search, box, acts);
+    fromStory.addEventListener('click', () => addFromStory(() => { pickState.src = 'world'; paintSegs(); paint(); }));
+    const done = el('button', 'btn primary slim', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', () => $('#sheet').close());
+    foot.append(fromDevice, fromStory, el('span', 'grow'), done);
+    body.append(bar, box, foot);
+
+    const changed = () => { save(); syncAudio(); renderPanel(); renderPlaces(); V.redraw(); };
+    const inList = (file) => list.find((c) => c.file === file);
+    const typeOk = (zone) => pickState.type === 'all' || pickState.type === zone || (pickState.type === 'events' && zone === 'soundbox');
+    const words = () => fold(pickState.q).split(/\s+/).filter(Boolean);
+
+    /** One row: preview, name, where it comes from, its kind, and the add mark. */
+    function row(name, sub, zone, isIn, onTap, onListen) {
+      const r = el('div', `snd ${zone}`);
+      r.setAttribute('role', 'button');
+      r.tabIndex = 0;
+      const lis = el('button', 'snd-play');
+      lis.type = 'button';
+      lis.innerHTML = ICON.play;
+      lis.setAttribute('aria-label', `Listen to ${name}`);
+      lis.addEventListener('click', (ev) => { ev.stopPropagation(); onListen(lis); });
+      const t = el('span', 'snd-t');
+      t.append(el('b', '', name), el('small', '', sub));
+      const tag = el('span', 'snd-tag', TYPE_LABEL[zone] || zone);
+      const mark = el('span', 'snd-mark');
+      const paintMark = (on, busyNow) => {
+        r.classList.toggle('in', on);
+        mark.innerHTML = busyNow ? '<i class="spin"></i>' : on ? ICON.check : ICON.plus;
+        r.setAttribute('aria-pressed', String(on));
+      };
+      paintMark(isIn());
+      const go = async () => {
+        if (r.classList.contains('busy')) return;
+        r.classList.add('busy'); paintMark(isIn(), true);
+        try { await onTap(); } catch (e) { toast(`Could not add it: ${e.message || e}`, 3600); }
+        r.classList.remove('busy'); paintMark(isIn());
+      };
+      r.addEventListener('click', go);
+      r.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
+      r.append(lis, t, tag, mark);
+      return r;
+    }
+
+    function paintWorld() {
+      const seen = new Set();
+      const sounds = M.soundsOf(rec.story).filter((x) => rec.files[x.file] && (seen.has(x.file) ? false : seen.add(x.file)));
+      const w = words();
+      let group = null, n = 0;
+      sounds.forEach((x) => {
+        if (!typeOk(x.zone)) return;
+        if (w.length && !w.every((k) => fold(x.name).includes(k))) return;
+        const g = x.chapter >= 0 ? (rec.story.chapters[x.chapter].title || `Chapter ${x.chapter + 1}`) : 'Soundbox';
+        if (g !== group) { group = g; box.append(el('h4', '', g)); }
+        n += 1;
+        box.append(row(x.name, g, x.zone, () => !!inList(x.file), () => {
+          const had = inList(x.file);
+          if (had) list.splice(list.indexOf(had), 1); else list.push(M.card(x));
+          changed();
+        }, (btn) => listen(x.file, btn)));
+      });
+      if (!n) box.append(el('div', 'pn-empty', pickState.q || pickState.type !== 'all' ? 'No sound here with these filters.' : 'No sound in this world yet: take some from the Recueil, from this device or from a .troubadour story.'));
+    }
+
+    function paintRecueil() {
+      if (!recueil) {
+        box.append(el('div', 'pn-empty', 'Opening the Recueil…'));
+        loadRecueil().then(() => { if (pickState.src === 'recueil' && $('#sheet').open) paint(); },
+          () => { box.textContent = ''; box.append(el('div', 'pn-empty', 'The Recueil cannot be reached right now. Check your connection.')); });
+        return;
+      }
+      const w = words();
+      const hits = recueil.filter((x) => typeOk(x.row) && w.every((k) => x.key.includes(k)));
+      const shown = hits.slice(0, 150);
+      let group = null;
+      shown.forEach((x) => {
+        const zone = x.row === 'soundbox' ? 'events' : x.row;
+        if (x.tale !== group) { group = x.tale; box.append(el('h4', '', x.tale)); }
+        const mine = () => (rec.story.chapters || []).some((c) => c.map === true && c.title === 'Recueil' && (c[zone] || []).some((s) => s.recueil === x.id && inList(s.file)));
+        box.append(row(x.name, `${x.tale}${x.duration ? `, ${clockOf(x.duration)}` : ''}`, x.row, mine, async () => {
+          const s = await keepRecueil(x);
+          const had = inList(s.file);
+          if (had) list.splice(list.indexOf(had), 1); else list.push(M.card(s));
+          changed();
+        }, (btn) => listen(`recueil:${x.id}`, btn, () => recueilBlob(x))));
+      });
+      if (!hits.length) box.append(el('div', 'pn-empty', 'No sound of the Recueil with these filters.'));
+      else if (hits.length > shown.length) box.append(el('p', 'snd-more', `${hits.length - shown.length} more: search to narrow them down.`));
+    }
+
+    function paint() {
+      box.textContent = '';
+      box.scrollTop = 0;
+      if (pickState.src === 'recueil') paintRecueil(); else paintWorld();
+    }
+    paintSegs();
     paint();
-    paintGo();
-    $('#sheet').addEventListener('close', stopPreview, { once: true });
+    $('#sheet').addEventListener('close', () => { stopPreview(); $('#sheet').classList.remove('wide'); }, { once: true });
     $('#sheet').showModal();
   }
 

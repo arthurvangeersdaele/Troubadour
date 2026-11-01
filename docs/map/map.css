@@ -113,16 +113,6 @@ html:not(.ios) .ios-only { display: none !important; }
 .mcard .opts input[type="number"] { width: 56px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); font: inherit; padding: 0 6px; }
 .go-place { justify-content: center; }
 
-.pick-list { display: grid; gap: 6px; max-height: min(60dvh, 520px); overflow: auto; padding: 2px; }
-.pick-list h4 { margin: 8px 2px 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.pick { --z: var(--accent); display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
-.pick.music { --z: var(--music); } .pick.ambience { --z: var(--amb); } .pick.events { --z: var(--evt); } .pick.soundbox { --z: var(--blue); }
-.pick i { width: 4px; align-self: stretch; border-radius: 2px; background: var(--z); flex: none; }
-.pick b { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick small { color: var(--muted); font-size: 12px; }
-.pick .lis { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); display: grid; place-items: center; padding: 0; flex: none; }
-.pick[aria-pressed="true"] { border-color: var(--z); box-shadow: 0 0 0 1px var(--z) inset; }
-.pick-search { width: 100%; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; padding: 0 10px; margin-bottom: 6px; }
 
 /* ---------- Narrow screens (editor): the places in a menu, the panel over the map ---------- */
 @media (max-width: 1100px) { .mp-body { grid-template-columns: 180px minmax(0, 1fr) 300px; } }
@@ -187,7 +177,6 @@ html:not(.ios) .ios-only { display: none !important; }
 /* ---------- Player and editor ---------- */
 .mp-switch { min-width: 92px; justify-content: center; }
 .mp-world[data-mode="play"] .mp-rail .add { display: none; }
-.pick-src { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
 
 /* ---------- Library, as in Troubadour (hero card, rows, doors) ---------- */
 .lib-wrap { padding: 14px max(14px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); max-width: 1180px; margin: 0 auto; }
@@ -271,3 +260,38 @@ button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: ma
 .master #mw-master { width: 120px; --z: var(--text); }
 .master b { width: 22px; text-align: right; }
 .mp-world[data-mode="play"] .mp-top .ttl span { display: none; }
+
+/* ---------- The sound picker (its own names: .pick is a soundbox pad in Troubadour's sheet) ---------- */
+.settings.wide { width: min(760px, calc(100vw - 24px)); height: min(640px, calc(100dvh - 24px)); display: flex; flex-direction: column; }
+.settings.wide[open] { display: flex; }
+.settings.wide #sheet-body { flex: 1; min-height: 0; }
+.snd-pick { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; padding-bottom: 2px; }
+.snd-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.snd-search { flex: 1; min-width: 140px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; padding: 0 10px; }
+.snd-search:focus { outline: none; border-color: var(--accent); }
+.snd-list { flex: 1; min-height: 120px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 6px; padding: 2px; }
+.snd-list h4 { margin: 8px 2px 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
+.snd { --z: var(--accent); flex: none; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 10px 6px 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; border-left: 4px solid var(--z); }
+.snd.music { --z: var(--music); } .snd.ambience { --z: var(--amb); } .snd.events { --z: var(--evt); } .snd.soundbox { --z: var(--blue); }
+.snd:active { transform: scale(.99); }
+.snd.in { border-color: var(--z); background: color-mix(in srgb, var(--z) 12%, var(--card)); }
+.snd-play { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--bar); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.snd-play.wait { animation: snd-wait 1s ease-in-out infinite; }
+@keyframes snd-wait { 50% { opacity: .4; } }
+.snd-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.snd-t b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snd-t small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snd-tag { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .3px; padding: 0 6px; line-height: 18px; border-radius: 6px; color: var(--z); background: color-mix(in srgb, var(--z) 16%, transparent); border: 1px solid color-mix(in srgb, var(--z) 45%, transparent); }
+.snd-mark { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--z); border: 1px solid color-mix(in srgb, var(--z) 50%, var(--line)); }
+.snd.in .snd-mark { background: var(--z); color: var(--on-z); border-color: var(--z); }
+.snd-mark .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: snd-spin .8s linear infinite; }
+@keyframes snd-spin { to { transform: rotate(360deg); } }
+.snd-more { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0; }
+.snd-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+@media (max-height: 520px) {
+  .settings.wide { height: calc(100dvh - 16px); max-height: none; padding-bottom: 10px; }
+  .settings.wide .set-head h2 { font-size: 22px; }
+  .snd { padding-top: 4px; padding-bottom: 4px; }
+  .snd-play { width: 34px; height: 34px; }
+}
+@media (max-width: 700px) { .snd-tag { display: none; } .snd-foot .btn span { font-size: 14px; } }
