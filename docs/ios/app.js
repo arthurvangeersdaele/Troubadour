@@ -2294,6 +2294,8 @@
     document.querySelectorAll('[data-action="home"], [data-action="leave-table"]').forEach((b) => (b.innerHTML = ICON.back));
     document.querySelectorAll('[data-action="settings"]').forEach((b) => (b.innerHTML = ICON.gear));
     document.querySelectorAll('.sbar [data-action="add-story"]').forEach((b) => (b.innerHTML = ICON.plus));
+    // The soundbox toggle: the same star as the Soundbox button of a story, lit while the soundbox is open.
+    document.querySelectorAll('.sbx-toggle').forEach((b) => (b.innerHTML = ICON.starFill));
     document.querySelectorAll('#soundbox [data-action="soundbox"], .set-head .ico').forEach((b) => (b.innerHTML = ICON.close));
     $('[data-action="story-info"]').innerHTML = ICON.info;
     $('[data-action="export-current"]').innerHTML = ICON.share;
