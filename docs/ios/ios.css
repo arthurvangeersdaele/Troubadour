@@ -96,7 +96,7 @@ html.mode-app input[type="text"], html.mode-app input[type="search"], html.mode-
 @media (max-width: 700px) { .lib-doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ldoor {
   display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; margin: 0;
-  text-align: left; padding: 12px 14px; border-radius: 14px; height: 104px; min-width: 0;
+  text-align: left; padding: 12px 14px; border-radius: 14px; height: auto; min-height: 104px; min-width: 0;
   background: var(--card); border: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.3;
 }
 .ldoor .di { color: var(--accent); display: grid; place-items: center; height: 22px; }
@@ -467,7 +467,9 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
 .pick-tag { --z: var(--accent); display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .3px; line-height: 17px; vertical-align: 1px;
   color: var(--z); background: color-mix(in srgb, var(--z) 16%, transparent); border: 1px solid color-mix(in srgb, var(--z) 45%, transparent); }
 .add-doors { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-.add-doors .ldoor b { white-space: normal; overflow-wrap: anywhere; }
+.add-doors .ldoor b { white-space: normal; overflow-wrap: anywhere; line-height: 1.05; }
+/* A long title (Import .troubadour) takes two lines: the card grows, its text is never cut. */
+.add-doors .ldoor > span:last-child { -webkit-line-clamp: 3; }
 .app .ico.danger, .app .ico.danger svg { color: var(--danger); }
 #life-row.off { opacity: .45; }
 html.mode-app input[type="range"].living { background: radial-gradient(circle at calc(11px + (100% - 22px) * var(--lp, .5)) calc(100% - 4px), var(--text) 0 1.8px, transparent 2.5px) no-repeat; }
@@ -511,4 +513,16 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library .lib-b { height: 100%; align-items: stretch; }
   .app #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: max(14px, env(safe-area-inset-bottom)); }
   .app #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+}
+
+/* Portrait (one column): the same, stacked. The page never scrolls: the hero card and the
+   "All stories" title stay still under the top bar, and only the stories below them scroll. */
+@media (max-width: 720px) {
+  .app #library:not([hidden]):has(.lib-b) { overflow: hidden; display: flex; flex-direction: column; }
+  .app #library:has(.lib-b) .lib-wrap { flex: 1; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
+  .app #library .lib-grid:has(.lib-b) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .app #library .lib-b { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; }
+  .app #library .lib-b > .hero { position: relative; top: auto; flex: none; min-height: 0; margin-bottom: 14px; }
+  .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .app #library .lib-list > .lib-h:first-child { position: sticky; top: 0; z-index: 1; margin: 0; padding: 4px 2px 8px; background: var(--bg); }
 }
