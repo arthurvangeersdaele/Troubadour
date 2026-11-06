@@ -131,8 +131,20 @@
   <script>
     (function () {
       var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word');
-      if (!root.classList.contains('mode-app')) { sp.remove(); return; }
-      var started = false, gone = false;
+      // The strip iOS keeps under a Home Screen app (by the home indicator) shows the page's own background,
+      // not the screen on top of it: keep that background the colour of what is on screen, the opening
+      // first, then the theme (and follow every theme or light/dark change).
+      var meta = document.querySelector('meta[name="theme-color"]');
+      function paint(c) { if (!c || root.style.backgroundColor === c) return; root.style.backgroundColor = c; if (document.body) document.body.style.backgroundColor = c; if (meta) meta.setAttribute('content', c); }
+      function themeBg() { return getComputedStyle(root).getPropertyValue('--bg').trim(); }
+      var gone = false;
+      function sync() { if (gone) paint(themeBg()); }
+      window.TroubadourPaintRoot = sync;
+      new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-mode', 'class'] });
+      if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { setTimeout(sync, 0); }); } catch (e) {} }
+      if (!root.classList.contains('mode-app')) { sp.remove(); gone = true; sync(); return; }
+      paint('#0F0F13');
+      var started = false;
       // The word takes the middle three fifths of the screen width, whatever the orientation.
       function fit() {
         word.style.fontSize = '100px';
@@ -143,6 +155,7 @@
       function hide() {
         if (gone) return; gone = true;
         sp.classList.add('sp-out');
+        sync();
         setTimeout(function () { sp.remove(); window.removeEventListener('resize', fit); }, 520);
       }
       function go() {
