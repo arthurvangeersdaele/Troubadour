@@ -941,6 +941,8 @@
     const path = freePath(`sounds/recueil/${zone}/${window.Troubadour.slug(x.name, 'sound')}.${(x.path.split('.').pop() || 'mp3').toLowerCase()}`);
     rec.files[path] = await DB.putBlob(blob);
     const s = { name: x.name, file: path, loop: zone === 'events' ? 'random' : 'infinite', volume: 0.75, recueil: x.id, tale: x.tale };
+    // Its locked identity travels with it (TROUBADOUR_FORMAT.md, "sound"), like in the Story builder.
+    if (x.origin && x.origin.length) s.sound = Object.assign({ id: x.id, origin: x.origin }, x.edited ? { edited: true } : {}, x.parent ? { parent: x.parent } : {}, x.brought ? { brought: x.brought } : {});
     ch[zone].push(s);
     flush();
     return Object.assign({ zone }, s);

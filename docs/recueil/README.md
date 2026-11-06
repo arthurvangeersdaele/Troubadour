@@ -11,11 +11,12 @@ The Recueil of La Troupe: `.troubadour` stories shared by game masters. Browse i
 Rules:
 
 - one story per `.troubadour` file, under 100 MB;
-- only sounds you have the right to share (your own recordings, or audio under a licence that allows sharing, credited in the story description);
+- every sound names its source, its author and its licence (the **i** on each card of the Story builder). Accepted licences: CC0, public domain, CC BY, CC BY-SA, OGA-BY, GNU GPL and BSD; non-commercial and no-derivatives licences stay out. Your own recordings are welcome too: tick *I recorded or made it myself*;
 - a clear file name, for example `the-drowned-abbey.troubadour`;
 - signed **Forgotten Troubadour**, or with your own troubadour name: register it once and for all in Troubadour's settings (Connect with GitHub), then send the tale from that same GitHub account. Only its owner can send tales signed with a registered name;
 - a tale already in the Recueil keeps its troubadour: to update yours, rhythm it again (the revision goes up) and send the new file under the same name;
-- its sounds also join the sound library of the Story builder (**Recueil sounds**), where other troubadours can pick them one by one for their own tales. A sound picked there remembers its tale, so it can be credited.
+- its sounds also join the sound library of the Story builder (**Recueil sounds**), where other troubadours can pick them one by one for their own tales;
+- once in the Recueil, a sound is locked: it is known by its bytes, and its origin and the troubadour who brought it can never change, whichever tale carries it. Its name stays free: the Recueil shows the sound once, with every name troubadours gave it. A crop or a mix of it becomes a new version, kept with the same origin and shown under the sound.
 
 The sounds of the tales rhythmed by Troubadour are credited file by file in [CREDITS.md](CREDITS.md).
 

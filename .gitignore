@@ -14,3 +14,4 @@
 /.github/scripts/recueil-tales/out/
 /.github/scripts/recueil-tales/work/
 /.github/scripts/recueil-tales/needed.txt
+__pycache__/

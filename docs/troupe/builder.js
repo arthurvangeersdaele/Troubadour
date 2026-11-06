@@ -105,8 +105,8 @@
     });
   }
   /* ---------- sounds of the Recueil (library.js) ---------- */
-  // A library sound comes with its file, its name and its duration; it keeps where it comes from
-  // (extra.recueil, written in the .troubadour), so its tale can be credited.
+  // A library sound comes with its file, its name and its duration, and its locked identity (extra.sound:
+  // origin, author, licence, who brought it), written in the .troubadour so it keeps its credits everywhere.
   async function addFromLibrary(libId, zone, beforeId) {
     if (!window.TroubadourLibrary || !ZONE_INFO[zone]) return;
     const list = listOf(zone);
@@ -116,7 +116,7 @@
       const { file, item } = await window.TroubadourLibrary.fileOf(libId);
       const s = {
         id: id(), name: item.name, blob: file, fileName: file.name, loop: ZONE_INFO[zone].loop, volume: 0.75,
-        duration: item.duration, extra: { recueil: { tale: item.tale, bard: item.bard } },
+        duration: item.duration, extra: { sound: window.TroubadourCredit.blockOf(item) },
       };
       const at = beforeId ? list.findIndex((x) => x.id === beforeId) : -1;
       if (at >= 0) list.splice(at, 0, s); else list.push(s);
@@ -435,8 +435,19 @@
     cut.title = 'Edit: crop, fades, name';
     cut.setAttribute('aria-label', `Edit ${s.name}`);
     cut.onclick = () => cropSound(s, zone);
+    const src = el('button', 'cut src');
+    src.type = 'button';
+    src.innerHTML = window.TroubadourCredit.INFO;
+    const paintSrc = () => {
+      const has = window.TroubadourCredit.hasOrigin(s.extra && s.extra.sound);
+      src.classList.toggle('need', !has);
+      src.title = has ? 'Source, author and licence' : 'No source yet: the Recueil needs one';
+      src.setAttribute('aria-label', `${has ? 'Source of' : 'Give the source of'} ${s.name}`);
+    };
+    paintSrc();
+    src.onclick = () => openSource(s, paintSrc);
     // Soundbox effects fire once per tap: no loop button for them.
-    bottom.append(play, meta, cut);
+    bottom.append(play, meta, src, cut);
     if (zone !== 'soundbox') bottom.append(loop);
     // Default volume: the level the sound starts at on the table, in every Troubadour.
     const volRow = el('label', 'row edvol');
@@ -468,6 +479,44 @@
     cards.set(s.id, { root: c, play, meta, sound: s });
     paintMeta(s);
     return c;
+  }
+
+  /* ---------- the source of a sound (sound-credit.js) ---------- */
+  // A sound already in the Recueil (same bytes) shows its locked credits. Another one can be given its origin
+  // here; it is locked too once its tale is in the Recueil.
+  async function openSource(s, repaint) {
+    stopPreview();
+    const C = window.TroubadourCredit;
+    let known = null;
+    try {
+      const [sid, reg] = await Promise.all([C.idOf(s.blob), C.registry().catch(() => null)]);
+      const parent = s.extra && s.extra.sound && s.extra.sound.parent;
+      known = reg && (reg.get(sid) ? { item: reg.get(sid), same: true } : parent && reg.get(parent) ? { item: reg.get(parent), same: false } : null);
+      if (known && known.same) {
+        // Same bytes as a sound of the Recueil: it takes the Recueil's identity, whatever it said before.
+        s.extra = Object.assign({}, s.extra, { sound: C.blockOf(known.item) });
+        saveSoon();
+        repaint();
+        C.show(Object.assign({}, known.item, { name: s.name }));
+        return;
+      }
+    } catch (e) { /* not reachable: the form below still works */ }
+    const block = (s.extra && s.extra.sound) || (known ? C.blockOf(known.item) : null);
+    C.edit(s.name, block, ({ origin, edited }) => {
+      s.extra = s.extra || {};
+      const b = Object.assign({}, s.extra.sound || {}, { origin });
+      if (edited) b.edited = true; else delete b.edited;
+      s.extra.sound = b;
+      saveSoon();
+      repaint();
+      toast(`Source saved for “${s.name}”.`);
+    });
+  }
+  function unsourced(story) {
+    const out = [];
+    (story.chapters || []).forEach((c) => ZONES.forEach((z) => (c[z] || []).forEach((x) => { if (!window.TroubadourCredit.hasOrigin(x.sound)) out.push(x.name); })));
+    (story.soundbox || []).forEach((x) => { if (!window.TroubadourCredit.hasOrigin(x.sound)) out.push(x.name); });
+    return [...new Set(out)];
   }
 
   function paintMeta(s) {
@@ -612,17 +661,21 @@
 
   function showForged(out) {
     const heavy = out.blob.size > SHARE_LIMIT;
+    const missing = unsourced(out.story);
     const box = veil(`<h2>Your tale is rhythmed</h2>
       <p><b class="fname"></b> (${formatSize(out.blob.size)}) is in your downloads, revision ${out.story.revision} signed by <b class="bname"></b>. Open it in the Troubadour app, or keep it for your next session.</p>
       <p>The builder is now empty, ready for a new tale. To change this one again, open its .troubadour file with <b>Open a .troubadour</b>.</p>
       ${heavy ? '<p class="errors" style="list-style:none;padding:0">It weighs more than 100 MB, the limit for the Recueil on GitHub. Lighter MP3s (128 kbps) will make it fit.</p>'
-              : '<p>Want other bards to play it? Lay it in the Recueil: GitHub opens a pull request for you, and once accepted your tale appears in the book.</p>'}
+        : missing.length ? '<p class="errors nosrc" style="list-style:none;padding:0"></p>'
+        : '<p>Want other troubadours to play it? Lay it in the Recueil: GitHub opens a pull request for you, and once accepted your tale appears in the book.</p>'}
       <div class="acts">
-        ${heavy ? '' : `<a class="btn primary" href="${UPLOAD_URL}" target="_blank" rel="noopener">Lay it in the Recueil</a>`}
+        ${heavy || missing.length ? '' : `<a class="btn primary" href="${UPLOAD_URL}" target="_blank" rel="noopener">Lay it in the Recueil</a>`}
         <button class="btn" type="button" data-again>Download again</button>
         <button class="btn" type="button" data-close>Rhythm a new tale</button>
       </div>`);
     box.querySelector('.fname').textContent = out.fileName;
+    const ns = box.querySelector('.nosrc');
+    if (ns) ns.textContent = `The Recueil only takes tales whose every sound names its source. ${missing.length === 1 ? 'One sound has' : `${missing.length} sounds have`} none yet: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ', and more' : ''}. Open the .troubadour again and tap the i on each card.`;
     box.querySelector('.bname').textContent = out.story.bard;
     box.querySelector('[data-again]').onclick = () => download(lastForged);
     box.querySelector('[data-close]').onclick = () => { closeVeil(); $('#f-title').focus(); };

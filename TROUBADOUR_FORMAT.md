@@ -87,11 +87,47 @@ The JSON keys stay `music`, `ambience` and `events`; the apps show the rows as M
 
 Unknown fields must be kept when a tool re-saves a file, so later versions can add things without breaking older ones.
 
-Known optional extras: a sound taken from the Recueil's sound library by the Story builder carries `"recueil": { "tale": "Werewolf", "bard": "Troubadour" }`, the tale it comes from, so it can be credited.
+Known optional extras: files from before November 2026 may carry `"recueil": { "tale": "Werewolf", "bard": "Troubadour" }` on a sound taken from the Recueil's sound library. The `sound` block below replaces it.
+
+### The identity of a sound
+
+A sound may carry a `sound` block: who made it and who brought it, locked once it is in the Recueil.
+
+```json
+{ "name": "Rain on the windows", "file": "sounds/2/ambience/02-rain-on-the-windows.mp3", "loop": "infinite",
+  "sound": {
+    "id": "9f2c41d07a3be815",
+    "origin": [ { "title": "indoors_rain.ogg", "url": "https://github.com/…/indoors_rain.ogg",
+                  "original": "https://freesound.org/people/InspectorJ/sounds/346641/",
+                  "project": "Cataclysm: DDA CC-Sounds", "author": "InspectorJ", "licence": "CC BY 3.0" } ],
+    "edited": true,
+    "parent": "1b07c3e59d40aa12",
+    "brought": { "troubadour": "Chiffon", "tale": "The 1950 Asylum", "date": "2026-10-15" }
+  } }
+```
+
+| Field | Notes |
+| --- | --- |
+| `id` | The first 16 hexadecimal digits of the SHA-256 of the audio entry's bytes. The same bytes are the same sound, whatever its name, its row or its tale. |
+| `origin` | Where it comes from, one entry per source (a mix has several). `author` and `licence` are required, and `url` (the page or file of the source) unless `own` is `true` (recorded or made by its troubadour). `title`, `project` (the game or pack it comes from) and `original` (the first upload, when `url` is a copy) are optional. Licences: `CC0`, `Public domain`, `CC BY 3.0`, `CC BY 4.0`, `CC BY-SA 3.0`, `CC BY-SA 4.0`, `OGA-BY 3.0`, `GNU GPL`, `GNU GPL v2+`, `GNU GPL v3`, `GNU GPL v3+`, `BSD`. |
+| `edited` | `true` when it was cut, mixed, filtered… from its origin. It stays under the licence of its origin. |
+| `parent` | The `id` of the sound it was made from, when a tool changed its bytes. |
+| `brought` | The troubadour who first rhythmed it into a tale, that tale and the day. |
+
+Writers:
+
+1. compute `id` from the bytes they store, every time they rhythm;
+2. same `id` as the opened block: keep the block as it is, and add `brought` (the troubadour who rhythms, the story's title, today) if it has none;
+3. different `id` (the sound was cropped or re-encoded): write a new block with the new `id`, `parent` set to the old `id`, the same `origin`, `edited: true` and a new `brought`;
+4. no block: write `id` and `brought`, and `origin` once the troubadour gives it (the Story builder asks, on each card).
+
+Readers that do not show it keep it untouched when they re-save, like any unknown field. The Android app and the iPhone app do.
+
+The Recueil is strict: every sound of a tale in it has a `sound` block whose `id` matches its bytes, with an `origin`. Once a sound is in the Recueil, its `origin`, `edited`, `parent` and `brought` are locked: a pull request that changes them for a known `id` is refused, in any tale. Its `name` stays free, and [`docs/recueil/sounds.json`](docs/recueil/sounds.json) lists each sound once, by `id`, with every name it has in the tales (`names`), the rows it plays in (`rows`), its credits and where to fetch its bytes. A sound made from another one (`parent`) must keep every origin of it, and is shown under it in the sound libraries.
 
 The story's own `extra` may carry `"cover": { "kind": "book", "tint": "amb", "color": "#4DB6A6" }`: the cover the apps draw for it in the library. `kind` is one of `bard` (the Troubadour wire and bars), `music`, `book`, `scroll` (chronicle) or `map` (journey). `tint` is a role of the theme, not a colour: `amb`, `evt` and `blue` are theme colours, `violet` and `ember` mixes of them, so the cover follows whatever theme the troubadour picks. `color` is that tint in the default theme, for tools that do not know themes (files from before `tint` carry only `color`, matched back to its tint). The apps pick a cover the first time they see a story (from its `id`, so the same story gets the same cover everywhere) and keep it from then on, so it travels with the file.
 
-The Recueil's sound library (`docs/recueil/sounds.json`) relies on stored entries: a sound's bytes are one contiguous range of the `.troubadour` file, which the Story builder downloads on its own. Deflated entries still work, they are inflated after download.
+The Recueil's sound library relies on stored entries: a sound's bytes are one contiguous range of the `.troubadour` file, which the Story builder downloads on its own. Deflated entries still work, they are inflated after download.
 
 ## Versioning a story
 

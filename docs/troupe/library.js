@@ -1,5 +1,6 @@
 /* Troubadour Story builder: the sound library of the Recueil.
- * Every sound of every tale in the Recueil (docs/recueil/sounds.json, built by the Recueil action),
+ * Every sound of the Recueil once (docs/recueil/sounds.json, built by the Recueil action), whatever the names
+ * troubadours gave it in their tales, and the versions made from it (crops, mixes) grouped under it;
  * searchable, with Music, Ambiances, Events and Soundbox kept apart. Drag one onto a row of the story or the
  * soundbox, or tap Add.
  * Only the sound's own bytes are downloaded: the tales store their sounds uncompressed, so each one is
@@ -50,10 +51,27 @@
     if (!loading) {
       loading = fetch(`${BASE}sounds.json`, { cache: 'no-cache' })
         .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then((d) => { sounds = (d.sounds || []).map((x) => Object.assign(x, { key: fold(`${x.name} ${x.tale} ${(x.tales || []).join(' ')} ${x.bard}`) })); return sounds; })
+        .then((d) => { sounds = group(d.sounds || []); return sounds; })
         .catch((e) => { loading = null; throw e; });
     }
     return loading;
+  }
+
+  /** The sounds with their versions: a sound made from another (its parent) is shown under the first one. */
+  function group(list) {
+    const ids = new Map(list.map((x) => [x.id, x]));
+    const root = (x) => { const seen = new Set(); while (x.parent && ids.has(x.parent) && !seen.has(x.id)) { seen.add(x.id); x = ids.get(x.parent); } return x; };
+    list.forEach((x) => { x.variants = []; });
+    list.forEach((x) => { const r = root(x); if (r !== x) r.variants.push(x); else x.top = true; });
+    const words = (x) => [x.name, x.tale, x.bard, ...(x.tales || []), ...(x.names || []).map((n) => n.name),
+      ...(x.origin || []).flatMap((o) => [o.author, o.project, o.title, o.licence])].join(' ');
+    list.forEach((x) => { x.key = fold(words(x)); });
+    list.forEach((x) => {
+      if (!x.top) return;
+      x.groupKey = fold([words(x), ...x.variants.map(words)].join(' '));
+      x.groupRows = [...new Set([...(x.rows || [x.row]), ...x.variants.flatMap((v) => v.rows || [v.row])])];
+    });
+    return list;
   }
 
   /* ---------- fetching one sound ---------- */
@@ -108,10 +126,10 @@
     panel.setAttribute('aria-label', 'Sounds of the Recueil');
     panel.innerHTML = `<div class="lib-head"><h2>Sounds of the Recueil</h2><button class="lib-close" type="button" aria-label="Close">${ICON.x}</button></div>
       <p class="lib-lead">Every sound of the tales in the Recueil. Drag one onto a row of your story or the soundbox, or tap Add.</p>
-      <input class="lib-find" type="search" placeholder="Search a sound, a tale or a troubadour" aria-label="Search the sounds of the Recueil" autocomplete="off" spellcheck="false">
+      <input class="lib-find" type="search" placeholder="Search a sound, a tale, an author or a troubadour" aria-label="Search the sounds of the Recueil" autocomplete="off" spellcheck="false">
       <div class="lib-tabs" role="tablist"></div>
       <ul class="lib-list" role="tabpanel"></ul>
-      <p class="lib-note">A sound keeps the licence of its tale: credit the tale in your story's description when you share it.</p>`;
+      <p class="lib-note">Each sound keeps its source, its author and its licence wherever it goes: they travel inside your .troubadour. Rename it as you like.</p>`;
     const bld = $('#bld');
     const sb = bld && bld.querySelector('.soundbox');
     if (sb) bld.insertBefore(panel, sb); else document.body.append(panel);
@@ -136,7 +154,11 @@
   function matches() {
     const words = fold(query).split(/\s+/).filter(Boolean);
     const out = { music: [], ambience: [], events: [], soundbox: [] };
-    (sounds || []).forEach((x) => { if (words.every((w) => x.key.includes(w))) (out[x.row] || out.events).push(x); });
+    // One sound, one entry per tab: it shows in every row it plays in, never twice in the same one.
+    (sounds || []).forEach((x) => {
+      if (!x.top || !words.every((w) => x.groupKey.includes(w))) return;
+      x.groupRows.forEach((r) => (out[r] || out.events).push(x));
+    });
     return out;
   }
 
@@ -168,11 +190,14 @@
         : `No ${row.label.toLowerCase()} in the Recueil yet.`));
       return;
     }
-    items.slice(0, 300).forEach((x) => list.append(item(x, row)));
+    items.slice(0, 300).forEach((x) => {
+      list.append(item(x, row));
+      x.variants.forEach((v) => list.append(item(v, row, true)));
+    });
   }
 
-  function item(x, row) {
-    const li = el('li', 'lib-item');
+  function item(x, row, variant) {
+    const li = el('li', variant ? 'lib-item var' : 'lib-item');
     li.style.setProperty('--z', row.color);
     li.draggable = true;
     li.title = 'Drag onto a row of your story';
@@ -189,13 +214,22 @@
     play.onclick = () => (playing === x.id ? stop() : listen(x, li));
     li.paint = paint;
     const t = el('div', 't');
-    const from = (x.tales || [x.tale]).join(', ');
-    t.append(el('b', '', x.name), el('small', '', [x.duration ? fmtTime(x.duration) : null, `${from}, by ${x.bard}`].filter(Boolean).join('   ')));
+    const C = window.TroubadourCredit;
+    const others = [...new Set((x.names || []).map((n) => n.name).filter((n) => n.toLowerCase() !== x.name.toLowerCase()))];
+    t.append(el('b', '', variant ? `Version: ${x.name}` : x.name),
+      el('small', '', [x.duration ? fmtTime(x.duration) : null, C.short(x) || `${x.tale}, by ${x.bard}`].filter(Boolean).join('   ')));
+    if (others.length) t.append(el('small', 'aka', `Also known as ${others.join(', ')}`));
+    const info = el('button', 'cut src');
+    info.type = 'button';
+    info.innerHTML = C.INFO;
+    info.title = 'Source, author, licence and names';
+    info.setAttribute('aria-label', `Credits of ${x.name}`);
+    info.onclick = () => C.show(x);
     const add = el('button', 'btn small', 'Add');
     add.type = 'button';
     add.title = x.row === 'soundbox' ? 'Add to the Soundbox of the story' : `Add to ${row.label} in the chapter on screen`;
     add.onclick = () => window.TroubadourBuilder && window.TroubadourBuilder.addFromLibrary(x.id, ROWS.some((r) => r.id === x.row) ? x.row : 'events');
-    li.append(grip, play, t, add);
+    li.append(grip, play, t, info, add);
     li.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-troubadour-library', x.id);
       e.dataTransfer.effectAllowed = 'copy';

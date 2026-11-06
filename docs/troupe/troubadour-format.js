@@ -167,9 +167,34 @@
   }
 
   /** Forges the next revision of the draft, signed by `bard`. options.generator names the tool (default: the web Story builder). */
+  /* The id of a sound: the first 16 hex digits of the SHA-256 of its bytes (TROUBADOUR_FORMAT.md, "sound"). */
+  async function soundId(blob) {
+    const d = await crypto.subtle.digest('SHA-256', blob instanceof Blob ? await blob.arrayBuffer() : blob);
+    return [...new Uint8Array(d)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /** The locked identity written for a sound: kept as it is while its bytes stay the same; when a tool changed
+   *  the bytes (a crop), a new sound made from the old one, keeping its origin. */
+  function identity(prev, id, brought) {
+    if (prev && prev.id && prev.id !== id) {
+      const b = { id, origin: JSON.parse(JSON.stringify(prev.origin || [])), edited: true, parent: prev.id, brought };
+      if (!b.origin.length) delete b.origin;
+      return b;
+    }
+    const b = Object.assign({}, prev || {}, { id });
+    if (!b.brought || !b.brought.troubadour) b.brought = brought;
+    if (!Array.isArray(b.origin) || !b.origin.length) delete b.origin;
+    if (!b.edited) delete b.edited;
+    return b;
+  }
+
   async function pack(draft, bard, onProgress, options) {
     const entries = [];
     const used = new Set();
+    const ids = new Map();
+    const every = draft.chapters.flatMap((c) => ZONES.flatMap((z) => c[z])).concat(draft.soundbox);
+    for (const s of every) if (!ids.has(s.blob)) ids.set(s.blob, await soundId(s.blob));
+    const brought = { troubadour: bard.trim(), tale: draft.title.trim(), date: now().slice(0, 10) };
     // A sound used in several places (reused in another chapter) is stored once: they all point to its path.
     const stored = new Map();
     const place = (dir, index, s) => {
@@ -184,6 +209,7 @@
       }
       const out = Object.assign({}, s.extra || {}, { name: s.name.trim() || 'Sound', file: path, loop: s.loop, volume: round(s.volume ?? 0.75) });
       if (s.duration) out.duration = round(s.duration, 1);
+      out.sound = identity(s.extra && s.extra.sound, ids.get(s.blob), brought);
       return out;
     };
     const story = Object.assign({}, draft.extra || {}, {
@@ -284,5 +310,5 @@
     return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
   }
 
-  global.Troubadour = { ZONES, LOOPS, SHARE_LIMIT, FORMAT_VERSION, pack, unpack, validate, isAudio, formatSize, slug, bardName, FORGOTTEN, writeZip, readZip, uuid };
+  global.Troubadour = { soundId, ZONES, LOOPS, SHARE_LIMIT, FORMAT_VERSION, pack, unpack, validate, isAudio, formatSize, slug, bardName, FORGOTTEN, writeZip, readZip, uuid };
 })(window);

@@ -55,8 +55,18 @@
       dl.setAttribute('download', t.file);
       const open = el('a', 'btn pc-only', 'Open in the builder');
       open.href = `builder.html?open=${encodeURIComponent(href)}`;
-      acts.append(play, dl, open);
-      inside.append(ol, acts);
+      const credits = el('button', 'btn', 'Sounds and credits');
+      credits.type = 'button';
+      credits.setAttribute('aria-expanded', 'false');
+      const box = el('div', 'tale-sounds');
+      box.hidden = true;
+      credits.onclick = () => {
+        box.hidden = !box.hidden;
+        credits.setAttribute('aria-expanded', String(!box.hidden));
+        if (!box.hidden && !box.dataset.done) fillSounds(box, t);
+      };
+      acts.append(play, dl, open, credits);
+      inside.append(ol, acts, box);
       head.onclick = () => {
         const on = !li.hasAttribute('open');
         li.toggleAttribute('open', on);
@@ -64,6 +74,46 @@
       };
       li.append(head, inside);
       list.append(li);
+    });
+  }
+
+  /* Every sound of a tale, once, under the name(s) this tale gives it, with its locked credits (sound-credit.js). */
+  function fillSounds(box, t) {
+    const C = window.TroubadourCredit;
+    box.textContent = '';
+    box.append(el('p', 'tale-wait', 'Fetching the sounds…'));
+    C.registry().then((reg) => {
+      box.dataset.done = '1';
+      box.textContent = '';
+      const mine = [...reg.values()].filter((x) => (x.tales || [x.tale]).includes(t.title));
+      if (!mine.length) { box.append(el('p', 'tale-wait', 'No sound of this tale is in the library yet.')); return; }
+      const ROW = { music: 'Music', ambience: 'Ambiances', events: 'Events', soundbox: 'Soundbox' };
+      const ul = el('ul', 'snd-list');
+      ['music', 'ambience', 'events', 'soundbox'].forEach((row) => {
+        const here = mine.filter((x) => (x.rows || [x.row])[0] === row);
+        if (!here.length) return;
+        ul.append(el('li', 'snd-row', ROW[row]));
+        here.sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => {
+          const names = [...new Set((x.names || []).filter((n) => n.tale === t.title).map((n) => n.name))];
+          const others = [...new Set((x.names || []).filter((n) => n.tale !== t.title).map((n) => n.name))].filter((n) => !names.includes(n));
+          const li = el('li', 'snd');
+          const txt = el('div', 'snd-t');
+          txt.append(el('b', '', names.join(', ') || x.name), el('small', '', C.short(x) || 'No source'));
+          if (others.length) txt.append(el('small', 'aka', `Also known as ${others.join(', ')}`));
+          if (x.brought && x.brought.tale && x.brought.tale !== t.title) txt.append(el('small', 'aka', `Brought by ${x.brought.troubadour} in ${x.brought.tale}`));
+          const info = el('button', 'cut src');
+          info.type = 'button';
+          info.innerHTML = C.INFO;
+          info.setAttribute('aria-label', `Credits of ${names[0] || x.name}`);
+          info.onclick = () => C.show(Object.assign({}, x, { name: names[0] || x.name }));
+          li.append(txt, info);
+          ul.append(li);
+        });
+      });
+      box.append(ul);
+    }, () => {
+      box.textContent = '';
+      box.append(el('p', 'tale-wait', 'The sounds could not be fetched. Check your connection and try again.'));
     });
   }
 

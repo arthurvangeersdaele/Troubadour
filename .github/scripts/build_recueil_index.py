@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Checks every .troubadour file in docs/recueil/ and writes docs/recueil/index.json for the Recueil page,
-and docs/recueil/sounds.json: every sound of every tale, for the Story builder's sound library.
+and docs/recueil/sounds.json: every sound of the Recueil once, with all its names, for the sound libraries.
 
     python3 .github/scripts/build_recueil_index.py          # rebuild index.json
     python3 .github/scripts/build_recueil_index.py --check  # only validate (pull requests)
 
+Every sound must carry its locked identity (the "sound" block: id of its bytes, origin, who brought it).
+
 In a pull request (PR_AUTHOR and BASE_REF set), --check also guards ownership:
 a bard name registered in docs/recueil/troubadours.json (by "Connect with GitHub" in Troubadour's settings)
 can only sign tales sent by its GitHub owner; "Forgotten Troubadour" is open to everyone;
-a tale already in the Recueil keeps its bard, and an update must raise its revision.
+a tale already in the Recueil keeps its bard, and an update must raise its revision;
+a sound already in the Recueil keeps its origin and the troubadour who brought it (only its name is free).
 
 Format: TROUBADOUR_FORMAT.md at the repo root.
 """
@@ -22,6 +25,9 @@ import unicodedata
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sound_identity import contains_origin, origin_errors, same_origin, sound_id  # noqa: E402
 
 RECUEIL = Path(__file__).resolve().parents[2] / "docs" / "recueil"
 ZONES = ("music", "ambience", "events")
@@ -59,12 +65,84 @@ def from_base(base, rel, default):
         return default
 
 
+def tale_sounds(file):
+    """(row, sound) for every sound of a tale of the Recueil, in the order of the tale."""
+    story = json.loads(zipfile.ZipFile(RECUEIL / file).read("story.json").decode("utf-8"))
+    for ch in story.get("chapters", []):
+        for z in ZONES:
+            for s in ch.get(z, []) or []:
+                yield LIBRARY_ROW[z], s
+    for s in story.get("soundbox", []) or []:
+        yield "soundbox", s
+
+
+def same_lock(a, b):
+    return (same_origin(a.get("origin"), b.get("origin")) and bool(a.get("edited")) == bool(b.get("edited"))
+            and (a.get("parent") or None) == (b.get("parent") or None)
+            and {k: str((a.get("brought") or {}).get(k, "")) for k in ("troubadour", "tale", "date")}
+            == {k: str((b.get("brought") or {}).get(k, "")) for k in ("troubadour", "tale", "date")})
+
+
+def consistency(entries):
+    """A sound is the same sound in every tale: one origin, one troubadour who brought it."""
+    errors, first = {}, {}
+    for e in entries:
+        for _, s in tale_sounds(e["file"]):
+            b = s.get("sound") or {}
+            if not b.get("id"):
+                continue
+            if b["id"] not in first:
+                first[b["id"]] = (e["file"], b)
+            elif not same_lock(first[b["id"]][1], b):
+                errors.setdefault(e["file"], []).append(
+                    f'{s.get("name")}: sound {b["id"]} has another origin or troubadour in {first[b["id"]][0]}: '
+                    "a sound keeps its identity everywhere")
+    return errors, {k: v[1] for k, v in first.items()}
+
+
+def sound_locks(entries, changed, base, is_maintainer, owners):
+    """The Recueil's sounds (sounds.json on the base branch) lock what a pull request may say about them."""
+    known = {x["id"]: x for x in from_base(base, "docs/recueil/sounds.json", {"sounds": []}).get("sounds", [])
+             if x.get("origin")}
+    _, current = consistency(entries)
+    errors = {}
+    for e in entries:
+        if f"docs/recueil/{e['file']}" not in changed:
+            continue
+        errs = errors.setdefault(e["file"], [])
+        for _, s in tale_sounds(e["file"]):
+            b = s.get("sound") or {}
+            sid = b.get("id")
+            if not sid:
+                continue
+            old = known.get(sid)
+            if old:
+                if not same_lock(old, b):
+                    who = (old.get("brought") or {}).get("troubadour", "")
+                    errs.append(f'{s.get("name")}: this sound is already in the Recueil, brought by {who}: '
+                                "its origin and its troubadour cannot change (its name can)")
+                continue
+            # A new sound keeps the troubadour who first rhythmed it, even when another one sends the tale:
+            # any registered name, or Forgotten Troubadour; names kept for Troubadour itself only by its maintainer.
+            who = (b.get("brought") or {}).get("troubadour")
+            key = name_key(who)
+            if key in RESERVED and key != name_key(FORGOTTEN) and not is_maintainer:
+                errs.append(f'{s.get("name")}: is brought by "{who}", a name kept for Troubadour itself')
+            elif key not in owners and key != name_key(FORGOTTEN) and key != name_key(e["bard"]) and not is_maintainer:
+                errs.append(f'{s.get("name")}: is brought by "{who}", which is not a registered troubadour name')
+            # Made from a sound of the Recueil: it keeps every origin of it (it may add more, when mixed).
+            parent = known.get(b.get("parent")) or current.get(b.get("parent"))
+            if parent and not contains_origin(b.get("origin"), parent.get("origin")):
+                errs.append(f'{s.get("name")}: a sound made from another keeps every origin of it')
+    return {k: v for k, v in errors.items() if v}
+
+
 def ownership(entries, author, base, maintainer):
     """Errors per file name for a pull request by `author` against `base` (e.g. origin/main)."""
     errors = {}
     is_maintainer = author.lower() == maintainer.lower()
     changed = git("diff", "--name-only", f"{base}...HEAD", "--", "docs/recueil/").stdout.split()
-    for rel in ("docs/recueil/troubadours.json", "docs/recueil/index.json"):
+    for rel in ("docs/recueil/troubadours.json", "docs/recueil/index.json", "docs/recueil/sounds.json"):
         if rel in changed and not is_maintainer:
             errors.setdefault(Path(rel).name, []).append(
                 "is kept by Troubadour: register a troubadour name in Troubadour's settings (Connect with GitHub) instead")
@@ -82,20 +160,39 @@ def ownership(entries, author, base, maintainer):
         elif key in owners:
             owner = owners[key].get("github", "")
             if owner.lower() != author.lower() and not is_maintainer:
-                errs.append(f'is signed "{troubadour}", a troubadour name registered to @{owner}: only its owner can send tales signed with it')
+                errs.append(f'is signed "{bard}", a troubadour name registered to @{owner}: only its owner can send tales signed with it')
         elif key in RESERVED:
             if not is_maintainer:
-                errs.append(f'is signed "{troubadour}", a name kept for Troubadour itself')
+                errs.append(f'is signed "{bard}", a name kept for Troubadour itself')
         else:
-            errs.append(f'is signed "{troubadour}", which is not a registered troubadour name: connect GitHub in Troubadour\'s settings '
+            errs.append(f'is signed "{bard}", which is not a registered troubadour name: connect GitHub in Troubadour\'s settings '
                         f'and register it, or rhythm the tale as {FORGOTTEN}')
         old = known.get(e["id"])
         if old:
             if name_key(old.get("bard")) != key and not is_maintainer:
-                errs.append(f'updates "{old.get("title")}" by {old.get("troubadour")}: a tale keeps its troubadour, rhythm yours with a new id')
+                errs.append(f'updates "{old.get("title")}" by {old.get("bard")}: a tale keeps its troubadour, rhythm yours with a new id')
             elif isinstance(e.get("revision"), int) and e["revision"] <= int(old.get("revision") or 0):
                 errs.append(f"is revision {e['revision']}, the Recueil already has revision {old.get('revision')}: rhythm it again")
+    for name, errs in sound_locks(entries, changed, base, is_maintainer, owners).items():
+        errors.setdefault(name, []).extend(errs)
     return {k: v for k, v in errors.items() if v}
+
+
+def identity_errors(s, zf, ids):
+    """Every sound of the Recueil carries its locked identity, and the identity matches its bytes."""
+    block = s.get("sound")
+    if not isinstance(block, dict):
+        return ["has no source: open the tale in the Story builder and give each sound its source (the i on its card)"]
+    if s["file"] not in ids:
+        ids[s["file"]] = sound_id(zf.read(s["file"]))
+    errs = []
+    if block.get("id") != ids[s["file"]]:
+        errs.append(f"says it is sound {block.get('id')}, its bytes are sound {ids[s['file']]}: rhythm the tale again")
+    errs += origin_errors(block.get("origin"))
+    b = block.get("brought")
+    if not isinstance(b, dict) or not str(b.get("troubadour", "")).strip():
+        errs.append("does not say who brought it")
+    return errs
 
 
 def check(path: Path):
@@ -134,6 +231,7 @@ def check(path: Path):
         errors.append("at least one chapter is needed")
         chapters = []
     sounds = 0
+    ids = {}  # archive path -> id of its bytes
 
     def sound_list(items, where):
         nonlocal sounds
@@ -147,6 +245,9 @@ def check(path: Path):
                 continue
             if s["file"] not in names:
                 errors.append(f"{where}: {s['file']} is missing from the archive")
+            else:
+                for e in identity_errors(s, zf, ids):
+                    errors.append(f"{where}: {s['name']} {e}")
             if s.get("loop") not in LOOPS:
                 errors.append(f"{where}: {s['name']} has an unknown loop mode")
 
@@ -183,55 +284,59 @@ def data_span(path: Path, info: zipfile.ZipInfo):
 
 
 def library(entries):
-    """sounds.json: each distinct sound file once, in the row it was used, with where to fetch its bytes.
+    """sounds.json: each sound of the Recueil once, by its identity (the "sound" block), with every name the
+    troubadours gave it, the rows it plays in, and where to fetch its bytes.
 
-    The builder downloads only these bytes (an HTTP range of the .troubadour file), so the sounds are not
-    stored twice in the repository.
+    The builder and the Map download only these bytes (an HTTP range of the .troubadour file), so the sounds
+    are not stored twice in the repository. The bytes are taken from the tale that brought the sound.
     """
     seen = {}
     for e in entries:
         path = RECUEIL / e["file"]
         zf = zipfile.ZipFile(path)
-        story = json.loads(zf.read("story.json").decode("utf-8"))
         infos = {i.filename: i for i in zf.infolist()}
-        places = []
-        for ch in story.get("chapters", []):
-            for z in ZONES:
-                places += [(z, s) for s in ch.get(z, []) or []]
-        places += [("soundbox", s) for s in story.get("soundbox", []) or []]
-        for zone, s in places:
+        for row, s in tale_sounds(e["file"]):
             info = infos.get(s.get("file"))
-            if info is None or info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+            block = s.get("sound") or {}
+            sid = block.get("id")
+            if info is None or not sid or info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
                 continue
-            row = LIBRARY_ROW[zone]
-            # Same audio (CRC and size) in the same row is one library entry, whichever tale it comes from.
-            key = (row, info.CRC, info.file_size)
-            if key in seen:
-                if e["title"] not in seen[key]["tales"]:
-                    seen[key]["tales"].append(e["title"])
-                continue
-            offset, length = data_span(path, info)
-            item = {
-                "id": hashlib.sha1(f"{row}:{info.CRC}:{info.file_size}".encode()).hexdigest()[:12],
-                "row": row,
-                "name": str(s.get("name") or Path(info.filename).stem).strip(),
-                "tale": e["title"],
-                "tales": [e["title"]],
-                "bard": e["bard"],
-                "file": e["file"],
-                "path": info.filename,
-                "offset": offset,
-                "length": length,
-                "size": info.file_size,
-                "deflated": info.compress_type == zipfile.ZIP_DEFLATED,
-            }
-            if isinstance(s.get("duration"), (int, float)) and s["duration"] > 0:
-                item["duration"] = round(float(s["duration"]), 1)
-            seen[key] = item
+            name = str(s.get("name") or Path(info.filename).stem).strip()
+            brought = block.get("brought") or {}
+            item = seen.get(sid)
+            if item is None:
+                item = seen[sid] = {
+                    "id": sid, "row": row, "rows": [], "name": name, "names": [],
+                    "origin": block.get("origin") or [], "brought": brought,
+                    "tale": e["title"], "tales": [], "bard": e["bard"],
+                }
+                if block.get("edited"):
+                    item["edited"] = True
+                if block.get("parent"):
+                    item["parent"] = block["parent"]
+                item["_bytes"] = None
+            if row not in item["rows"]:
+                item["rows"].append(row)
+            if e["title"] not in item["tales"]:
+                item["tales"].append(e["title"])
+            if not any(n["name"].lower() == name.lower() and n["tale"] == e["title"] for n in item["names"]):
+                item["names"].append({"name": name, "tale": e["title"], "bard": e["bard"]})
+            # Bytes, name and row of the tale that brought it (else the first tale that has it).
+            from_brought = brought.get("tale") == e["title"]
+            if item["_bytes"] is None or (from_brought and not item["_bytes"]):
+                offset, length = data_span(path, info)
+                item.update({"file": e["file"], "path": info.filename, "offset": offset, "length": length,
+                             "size": info.file_size, "deflated": info.compress_type == zipfile.ZIP_DEFLATED})
+                if from_brought:
+                    item.update({"name": name, "row": row, "tale": e["title"], "bard": e["bard"]})
+                if isinstance(s.get("duration"), (int, float)) and s["duration"] > 0:
+                    item["duration"] = round(float(s["duration"]), 1)
+                item["_bytes"] = from_brought
     sounds = list(seen.values())
     for item in sounds:
-        if len(item["tales"]) == 1:
-            del item["tales"]
+        del item["_bytes"]
+        # The bringing tale's name first, then the others in the order of the tales.
+        item["names"].sort(key=lambda n: (n["tale"] != item["tale"] or n["name"] != item["name"]))
     sounds.sort(key=lambda x: (LIBRARY_ORDER.index(x["row"]), x["name"].lower(), x["tale"].lower()))
     return sounds
 
@@ -255,8 +360,10 @@ def main():
     only_check = "--check" in sys.argv
     files = sorted(RECUEIL.glob("*.troubadour"))
     tales, failed = [], False
-    for f in files:
-        entry, errors = check(f)
+    checked = [(f, *check(f)) for f in files]
+    clash, _ = consistency([e for _, e, errs in checked if e and not errs])
+    for f, entry, errors in checked:
+        errors = errors + clash.get(f.name, [])
         if errors:
             failed = True
             print(f"::error file=docs/recueil/{f.name}::{f.name}: " + "; ".join(errors))

@@ -12,6 +12,7 @@ on:
     paths:
       - "docs/recueil/**"
       - ".github/scripts/build_recueil_index.py"
+      - ".github/scripts/sound_identity.py"
   workflow_dispatch:
 
 permissions:
