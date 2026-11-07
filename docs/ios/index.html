@@ -230,10 +230,10 @@
     <header class="tbar">
       <button class="ico" data-action="home" aria-label="Back to stories" title="Back to stories"></button>
       <input class="ed-title" id="ed-title" maxlength="120" placeholder="Story title" aria-label="Story title" autocomplete="off" enterkeyhint="done">
-      <span class="saved" id="ed-saved" aria-live="polite"></span>
+      <button class="ico ed-save" id="ed-saved" data-action="save-state" type="button" aria-live="polite"></button>
       <button class="ico" data-action="story-info" aria-label="Story details" title="Story details"></button>
-      <button class="ico" data-action="export-current" aria-label="Export as .troubadour" title="Export as .troubadour"></button>
-      <button class="btn slim primary" data-action="play-current" type="button"><span class="i-play"></span><span>Play</span></button>
+      <button class="ico ed-sbx" data-action="edit-soundbox" type="button" aria-pressed="false" aria-label="This story's soundbox" title="This story's soundbox"></button>
+      <button class="ico ed-play" data-action="play-current" type="button" aria-label="Play this story" title="Play"></button>
     </header>
     <div class="ed-body">
       <nav class="rail" id="ed-rail" aria-label="Chapters"></nav>

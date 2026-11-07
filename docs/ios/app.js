@@ -46,6 +46,11 @@
     star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16),
     starFill: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16, true),
     plus: svg('<path d="M12 5v14M5 12h14"/>', 16),
+    // Saved on this device: a phone with a check. Not saved: a save disk.
+    savedOk: svg('<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/><path d="M9.2 10.8l2 2 3.8-4"/>', 20),
+    saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
+    // The story's own soundbox: a yellow star over an open book.
+    bookStar: '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-1.4-5.5-1.9-9-1.2v9.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2v-9.6c-3.5-.7-7-.2-9 1.2zM12 12v9.6"/><path d="M12 1.6l1.3 2.7 2.9.4-2.1 2 .5 2.9L12 8.2l-2.6 1.4.5-2.9-2.1-2 2.9-.4z" fill="var(--music)" stroke="var(--music)" stroke-width="1"/></svg>',
     import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 18),
     edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
@@ -849,9 +854,33 @@
   let ed = null; // { story, ch: index | 'soundbox' }
   const saveSoon = debounce(async () => {
     if (!ed) return;
-    try { await DB.putStory(ed.story); $('#ed-saved').textContent = 'Saved'; }
-    catch (e) { $('#ed-saved').textContent = 'Not saved'; toast(quotaMessage(e).message); }
+    const cur = ed;
+    try { await DB.putStory(cur.story); cur.unsaved = false; paintSave(); }
+    catch (e) { cur.unsaved = true; paintSave(); toast(quotaMessage(e).message); }
   }, 500);
+  /** The save button of the editor: a green phone with a check while every change is kept on this device;
+   *  a red save disk when autosave failed, which explains it and offers to export. */
+  function paintSave() {
+    const b = $('#ed-saved');
+    const bad = !!(ed && ed.unsaved);
+    b.classList.toggle('bad', bad);
+    b.innerHTML = bad ? ICON.saveDisk : ICON.savedOk;
+    b.setAttribute('aria-label', bad ? 'Not saved: export the story to keep it' : 'Saved on this iPhone');
+    b.title = bad ? 'Not saved' : 'Saved on this iPhone';
+  }
+  async function saveState() {
+    if (!ed) return;
+    if (!ed.unsaved) { toast('Saved on this iPhone: every change is kept as you make it.'); return; }
+    const v = await ask('Autosave stopped working', 'Troubadour could not keep your last changes on this iPhone (its storage is full or blocked). Export the story as a .troubadour now so you do not lose your work: you can import it again later. Freeing some space on the iPhone lets autosave work again.', [
+      { label: 'Try again', value: 'retry' }, { label: 'Export now', value: 'export', cls: 'primary' },
+    ]);
+    if (v === 'export') exportStories([ed.story]);
+    else if (v === 'retry') { saveSoon(); saveSoon.flush(); }
+  }
+  function paintSbx() {
+    const b = document.querySelector('.ed-sbx');
+    if (b) b.setAttribute('aria-pressed', String(!!ed && ed.ch === 'soundbox'));
+  }
   function openEditor(story, ch) {
     const fresh = !ed || ed.story.uid !== story.uid;
     if (fresh) { stopPreview(); ed = { story, ch: 0 }; forgeTip(); }
@@ -860,7 +889,8 @@
     document.title = `${story.title} | Troubadour`;
     const t = $('#ed-title');
     if (document.activeElement !== t) t.value = story.title;
-    $('#ed-saved').textContent = '';
+    paintSave();
+    paintSbx();
     renderEdRail();
     renderEdMain();
     acquireWake();
@@ -885,6 +915,7 @@
   }
   function goEd(ch) {
     if (!ed) return;
+    if (ch !== 'soundbox') ed.last = ch;
     history.replaceState(null, '', `#/edit/${encodeURIComponent(ed.story.uid)}/${ch === 'soundbox' ? 'soundbox' : ch + 1}`);
     openEditor(ed.story, ch);
   }
@@ -922,16 +953,7 @@
       setTimeout(() => $('.chap-title')?.select(), 30);
     });
     rail.append(add);
-    const sb = el('div', 'chap sbchap');
-    sb.setAttribute('role', 'button');
-    sb.tabIndex = 0;
-    sb.setAttribute('aria-current', String(ed.ch === 'soundbox'));
-    sb.innerHTML = `<span class="n">${ICON.starFill}</span>`;
-    const t = el('span', 't');
-    t.append(el('span', '', 'Soundbox'), el('div', 'cnt', plural(ed.story.soundbox.length, 'effect')));
-    sb.append(t);
-    sb.onclick = () => goEd('soundbox');
-    rail.append(sb);
+    // The story's soundbox opens from its book-and-star button in the top bar.
     rail.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
@@ -1014,7 +1036,9 @@
     name.oninput = () => { s.name = name.value; dirty(); };
     name.onblur = () => { if (!s.name.trim()) { s.name = cleanName(s.fileName); name.value = s.name; dirty(); } };
     name.onkeydown = (e) => { if (e.key === 'Enter') name.blur(); };
-    const x = btn('x', ICON.x, `Remove ${s.name}`, () => {
+    const x = btn('x', ICON.x, `Remove ${s.name}`, async () => {
+      const v = await ask(`Remove “${s.name}”?`, screen === 'sbx' ? 'It leaves your shared soundbox.' : 'Its card leaves this chapter.', [{ label: 'Cancel', value: null }, { label: 'Remove', value: 'rm', cls: 'danger' }]);
+      if (v !== 'rm') return;
       if (previews.has(s.uid)) stopPreview(s.uid);
       list.splice(i, 1);
       dirty();
@@ -1435,7 +1459,6 @@
   // Cards call dirty() when they change: on the shared screen that saves the shared soundbox, in the editor the story.
   function dirty() {
     if (screen === 'sbx') { saveShared(); return; }
-    $('#ed-saved').textContent = '';
     saveSoon();
   }
 
@@ -2347,7 +2370,8 @@
     document.querySelectorAll('.sbx-toggle').forEach((b) => (b.innerHTML = ICON.starFill));
     document.querySelectorAll('#soundbox [data-action="soundbox"], .set-head .ico').forEach((b) => (b.innerHTML = ICON.close));
     $('[data-action="story-info"]').innerHTML = ICON.info;
-    $('[data-action="export-current"]').innerHTML = ICON.share;
+    $('.ed-sbx').innerHTML = ICON.bookStar;
+    $('.ed-play').innerHTML = ICON.play;
     $('#sb-toggle .star').innerHTML = ICON.starFill;
     $('[data-action="stop-all"]').innerHTML = ICON.stop;
     document.querySelectorAll('.i-plus').forEach((n) => (n.outerHTML = ICON.plus));
@@ -2370,7 +2394,8 @@
       case 'add-story': openAddStory(); break;
       case 'add-shared': openPicker({ ...SOUNDBOX_ZONE, label: 'the shared soundbox' }, SHARED, () => { saveShared(); renderShared(); }); break;
       case 'story-info': openStoryInfo(); break;
-      case 'export-current': if (ed) { saveSoon.flush(); exportStories([ed.story]); } break;
+      case 'save-state': saveState(); break;
+      case 'edit-soundbox': if (ed) goEd(ed.ch === 'soundbox' ? (ed.last ?? 0) : 'soundbox'); break;
       case 'play-current':
         if (ed) { saveSoon.flush(); audio(); const ch = ed.ch === 'soundbox' ? 1 : ed.ch + 1; location.hash = `#/play/${encodeURIComponent(ed.story.uid)}/${ch}`; }
         break;

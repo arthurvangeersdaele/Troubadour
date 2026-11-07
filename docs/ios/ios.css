@@ -417,7 +417,9 @@ html.mode-app input[type="range"].dragging::-webkit-slider-thumb { transform: sc
   html.allow-portrait .ed-body .rail .chap:not(.sbchap) { width: auto; flex: none; max-width: 70vw; grid-template-areas: "n title mv"; grid-template-columns: 16px auto auto; }
   html.allow-portrait .ed-body .rail .chap:not(.sbchap) .cnt { display: none; }
   html.allow-portrait .ed-body .rail .chap:not(.sbchap) .t > span:first-child { -webkit-line-clamp: 1; white-space: nowrap; }
-  html.allow-portrait .ed-body .add-chap, html.allow-portrait .ed-body .sbchap { width: auto; flex: none; margin: 0; }
+  /* Add a chapter: as tall as the chapters beside it. */
+  html.allow-portrait .ed-body .rail { align-items: stretch; }
+  html.allow-portrait .ed-body .add-chap { width: auto; flex: none; margin: 0; height: auto; align-self: stretch; }
   html.allow-portrait .ed .dz { grid-template-columns: minmax(0, 1fr); }
   html.allow-portrait .lib-doors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   html.allow-portrait .sbar .tabs a { padding: 0 8px; }
@@ -556,3 +558,10 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lib-fade)), transparent);
 }
 @media (max-width: 720px) { .app #library { --lib-fade: 40px; } }
+
+/* Editor top bar: save state, the story's soundbox, play (icons only). */
+.app .tbar .ed-save { color: #3DAA63; border-color: color-mix(in srgb, #3DAA63 45%, var(--line)); }
+.app .tbar .ed-save.bad { color: var(--evt); border-color: var(--evt); background: color-mix(in srgb, var(--evt) 14%, transparent); }
+.app .tbar .ed-sbx[aria-pressed="true"] { border-color: var(--music); background: color-mix(in srgb, var(--music) 16%, transparent); }
+.app .tbar .ed-play { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.app .tbar .ed-play svg { margin-left: 2px; }
