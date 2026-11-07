@@ -119,7 +119,7 @@ fun EngineTestScreen() {
                         LoopMode.ONCE -> NativeEngine.LOOP_ONCE
                         LoopMode.TWICE -> NativeEngine.LOOP_TWICE
                         LoopMode.INFINITE -> NativeEngine.LOOP_INFINITE
-                        LoopMode.RANDOM -> NativeEngine.LOOP_ONCE
+                        LoopMode.RANDOM, LoopMode.AFTER -> NativeEngine.LOOP_ONCE
                     }
                     val volume = sound.volume.toFloat().coerceIn(0f, 1f)
                     loops[slot] = loop

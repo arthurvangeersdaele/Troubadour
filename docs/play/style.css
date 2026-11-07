@@ -183,6 +183,7 @@ svg { display: block; }
 }
 .loop.inf { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 50%, var(--line)); }
 .loop.rnd { color: var(--evt); border-color: color-mix(in srgb, var(--evt) 55%, var(--line)); }
+.loop.aft { color: var(--music); border-color: color-mix(in srgb, var(--music) 55%, var(--line)); }
 .loop svg { display: block; }
 .track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .fill { height: 100%; width: 0; border-radius: 3px; }

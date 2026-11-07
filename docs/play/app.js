@@ -27,6 +27,8 @@
     pause: svg('<rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/>', 16, true),
     stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
     random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 14),
+    // Play after: a queue of tracks, the next one ready to play.
+    after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
     star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16),
     volDown: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5"/>', 15),
     volUp: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5M18.5 9.5v5"/>', 15),
@@ -270,7 +272,10 @@
     ended() {
       this.plays += 1;
       if (this.loop === 1 && this.plays < 2 && this.active) { this.el.currentTime = 0; this.el.play().catch(() => {}); return; }
+      const natural = this.state === 'playing';
       this.reset();
+      // A music that played through on its own hands over to the next one set to play after it.
+      if (natural && this.zone.id === 'music') playAfter(this);
     }
     /** Random event between two plays (Android: randomOn && nextAt > 0). */
     get waiting() { return this.rnd && this.next > 0; }
@@ -346,7 +351,7 @@
   // A .troubadour file opened from this computer: { meta, chapters: [{ music|ambience|events: [sound] }], soundbox: [sound] }.
   // Its sounds carry their blob, so nothing is downloaded.
   let CUSTOM = null;
-  const LOOP_INDEX = { once: 0, twice: 1, infinite: 2, random: 3 };
+  const LOOP_INDEX = { once: 0, twice: 1, infinite: 2, random: 3, after: 4 };
 
   async function boot() {
     renderStaticIcons();
@@ -517,7 +522,7 @@
       ZONES.forEach((zone) => {
         ch.voices[zone.id] = (lib[zone.id] || []).map((s) => {
           const v = new Voice(s, zone, ch);
-          if (s.loop in LOOP_INDEX && (s.loop !== 'random' || zone.id !== 'music')) v.loop = LOOP_INDEX[s.loop];
+          if (s.loop in LOOP_INDEX && (s.loop !== 'random' || zone.id !== 'music') && (s.loop !== 'after' || zone.id === 'music')) v.loop = LOOP_INDEX[s.loop];
           if (typeof s.volume === 'number') v.vol = s.volume;
           story.all.push(v);
           return v;
@@ -766,8 +771,8 @@
     const name = el('b', 'nm'); name.title = v.sound.name; name.append(el('span', '', v.sound.name));
     const rem = el('small');
     const loop = el('button', 'loop');
-    loop.type = 'button'; loop.title = v.zone.id !== 'music' ? 'Loop: once, twice, forever, random' : 'Loop: once, twice, forever';
-    loop.addEventListener('click', () => v.setLoop((v.loop + 1) % (v.zone.id !== 'music' ? 4 : 3)));
+    loop.type = 'button'; loop.title = v.zone.id !== 'music' ? 'Loop: once, twice, forever, random' : 'Loop: once, twice, forever, play after';
+    loop.addEventListener('click', () => v.setLoop(nextLoop(v.loop, v.zone.id)));
     head.append(name);
     if (mode !== 'hidden') head.append(rem);
     head.append(loop);
@@ -801,6 +806,23 @@
 
   /** Fade-in of a sound started with Play, in seconds (Off: a click-free 30 ms). */
   const startFade = () => Math.max(0.03, (+settings.fadeIn || 0) / 1000);
+  /** The loop button: 1×, 2×, ∞, then random (ambiances, events) or play after (music). */
+  function nextLoop(l, zone) {
+    if (zone === 'music') return l === 2 ? 4 : l === 4 ? 0 : (l + 1) % 3;
+    return (l + 1) % 4;
+  }
+  /** When a music ends on its own (its 1× or 2× played through, not stopped), the next music of its row set to
+   *  "play after" starts: the first one after it in the row, from the start again past the end. */
+  function playAfter(v) {
+    if (!story || !v.chapter) return;
+    const row = v.chapter.voices.music || [];
+    if (row.some((o) => o !== v && (o.active || o.state === 'ending'))) return; // another music already took over
+    const at = row.indexOf(v);
+    for (let i = 1; i < row.length; i++) {
+      const o = row[(at + i) % row.length];
+      if (o.loop === 4 && o.usable) { if (o.state !== 'playing') toggleVoice(o); return; }
+    }
+  }
   function toggleVoice(v) {
     audio();
     // Between two plays, a tap stops the random event.
@@ -841,11 +863,13 @@
     k.end.disabled = !(on || v.state === 'paused');
     if (k.loopShown !== v.loop) {
       if (v.loop === 3) { k.loop.innerHTML = ICON.random; k.loop.setAttribute('aria-label', 'Random: plays again after a short random pause'); }
+      else if (v.loop === 4) { k.loop.innerHTML = ICON.after; k.loop.setAttribute('aria-label', 'Play after: starts when another music ends on its own'); }
       else { k.loop.textContent = LOOP_LABELS[v.loop]; k.loop.removeAttribute('aria-label'); }
       k.loopShown = v.loop;
     }
     k.loop.classList.toggle('inf', v.loop === 2);
     k.loop.classList.toggle('rnd', v.loop === 3);
+    k.loop.classList.toggle('aft', v.loop === 4);
     const p = v.progress();
     if (p < 0) { k.fill.style.width = on || v.state === 'paused' ? '100%' : '0'; k.fill.style.background = 'var(--blue)'; }
     else { k.fill.style.width = `${p * 100}%`; k.fill.style.background = `hsl(${Math.round(130 * (1 - p))},72%,50%)`; }

@@ -11,7 +11,8 @@
   };
   const LOOP_LABEL = { once: '1×', twice: '2×', infinite: '∞' };
   // Events and ambiances can also come back at random (the table plays them again after a short random pause).
-  const nextLoop = (loop, zone) => ({ once: 'twice', twice: 'infinite', infinite: zone === 'events' || zone === 'ambience' ? 'random' : 'once', random: 'once' })[loop] || 'once';
+  // 1×, 2×, ∞, then random (ambiances, events) or play after (music: starts when another music ends on its own).
+  const nextLoop = (loop, zone) => ({ once: 'twice', twice: 'infinite', infinite: zone === 'events' || zone === 'ambience' ? 'random' : zone === 'music' ? 'after' : 'once', random: 'once', after: 'once' })[loop] || 'once';
   const UPLOAD_URL = 'https://github.com/arthurvangeersdaele/Troubadour/upload/main/docs/recueil';
 
   const svg = (d, size = 16, fill = false) =>
@@ -29,6 +30,7 @@
     link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>', 15),
     cut: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 14), // a pencil: edit the sound (crop, fades, name)
     random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 14),
+    after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
     reuse: svg('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', 15),
   };
 
@@ -403,12 +405,14 @@
     const meta = el('span', 'meta');
     const loop = el('button', 'loop');
     loop.type = 'button';
-    loop.title = zone === 'events' || zone === 'ambience' ? 'Loop: once, twice, forever, random' : 'Loop: once, twice, forever';
+    loop.title = zone === 'events' || zone === 'ambience' ? 'Loop: once, twice, forever, random' : zone === 'music' ? 'Loop: once, twice, forever, play after' : 'Loop: once, twice, forever';
     const paintLoop = () => {
       if (s.loop === 'random') { loop.innerHTML = ICON.random; loop.setAttribute('aria-label', 'Random: plays again after a short random pause'); }
+      else if (s.loop === 'after') { loop.innerHTML = ICON.after; loop.setAttribute('aria-label', 'Play after: starts when another music of the chapter ends on its own'); }
       else { loop.textContent = LOOP_LABEL[s.loop] || '1×'; loop.removeAttribute('aria-label'); }
       loop.classList.toggle('inf', s.loop === 'infinite');
       loop.classList.toggle('rnd', s.loop === 'random');
+      loop.classList.toggle('aft', s.loop === 'after');
     };
     // Blend: a sound that repeats forever can melt its end into its own new start (a crossfade of the loop).
     const blendRow = el('label', 'row edblend');

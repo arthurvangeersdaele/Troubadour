@@ -31,7 +31,7 @@ from sound_identity import contains_origin, origin_errors, same_origin, sound_id
 
 RECUEIL = Path(__file__).resolve().parents[2] / "docs" / "recueil"
 ZONES = ("music", "ambience", "events")
-LOOPS = ("once", "twice", "infinite", "random")
+LOOPS = ("once", "twice", "infinite", "random", "after")
 # Rows of the builder's sound library, in the order of its tabs.
 LIBRARY_ROW = {"music": "music", "ambience": "ambience", "events": "events", "soundbox": "soundbox"}
 LIBRARY_ORDER = list(LIBRARY_ROW)

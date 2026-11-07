@@ -11,17 +11,21 @@ import java.util.UUID
 enum class LoopMode(val json: String) {
     ONCE("once"), TWICE("twice"), INFINITE("infinite"),
     /** Events and ambiances: plays once, then again and again after a random pause (0.5 s to the maximum set in the settings). */
-    RANDOM("random");
+    RANDOM("random"),
+    /** Music: plays once, and starts by itself when another music of its chapter ends on its own (after its
+     *  1× or 2×, not stopped). Several of them follow the order of the row. */
+    AFTER("after");
 
-    /** Loop mode handed to the audio engine: a random event is played once at a time. */
-    val engine: Int get() = if (this == RANDOM) 0 else ordinal
+    /** Loop mode handed to the audio engine: a random event or a music played after another is played once at a time. */
+    val engine: Int get() = if (this == RANDOM || this == AFTER) 0 else ordinal
 
-    /** The next mode of the loop button: 1×, 2×, ∞, then the random mode where it is allowed (events). */
-    fun next(allowRandom: Boolean): LoopMode = when (this) {
+    /** The next mode of the loop button: 1×, 2×, ∞, then random (events, ambiances) or play after (music). */
+    fun next(allowRandom: Boolean, allowAfter: Boolean = false): LoopMode = when (this) {
         ONCE -> TWICE
         TWICE -> INFINITE
-        INFINITE -> if (allowRandom) RANDOM else ONCE
+        INFINITE -> if (allowRandom) RANDOM else if (allowAfter) AFTER else ONCE
         RANDOM -> ONCE
+        AFTER -> ONCE
     }
 
     companion object {

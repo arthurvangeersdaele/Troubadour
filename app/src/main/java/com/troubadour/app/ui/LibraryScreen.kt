@@ -420,7 +420,7 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
             IconBtn(BIcons.left, "Move earlier", size = 28.dp, iconSize = 12.dp, enabled = index > 0) { m.moveSound(t, index, -1) }
             IconBtn(BIcons.right, "Move later", size = 28.dp, iconSize = 12.dp, enabled = index < count - 1) { m.moveSound(t, index, 1) }
             // Soundbox effects fire once per tap: no loop button for them.
-            if (t is Target.ChapterZone) LoopChip(s.loop, height = 24.dp) { m.updateSound(t, s.uid) { x -> x.copy(loop = x.loop.next(allowRandom = t.zone != Zone.MUSIC)) } }
+            if (t is Target.ChapterZone) LoopChip(s.loop, height = 24.dp) { m.updateSound(t, s.uid) { x -> x.copy(loop = x.loop.next(allowRandom = t.zone != Zone.MUSIC, allowAfter = t.zone == Zone.MUSIC)) } }
             // A random sound may set its own longest pause, over the settings: each tap takes the next choice.
             if (t is Target.ChapterZone && s.loop == LoopMode.RANDOM) PauseChip(s.ownPause, height = 24.dp) {
                 val steps = listOf<Int?>(null) + Sound.PAUSE_STEPS
@@ -460,9 +460,11 @@ fun PauseChip(seconds: Int?, height: androidx.compose.ui.unit.Dp = 26.dp, onClic
 fun LoopChip(loop: LoopMode, height: androidx.compose.ui.unit.Dp = 26.dp, onClick: () -> Unit) {
     val inf = loop == LoopMode.INFINITE
     val rnd = loop == LoopMode.RANDOM
+    val aft = loop == LoopMode.AFTER
     val color = when {
         inf -> C.blue
         rnd -> C.evt
+        aft -> C.music
         else -> C.text
     }
     Box(
@@ -470,11 +472,12 @@ fun LoopChip(loop: LoopMode, height: androidx.compose.ui.unit.Dp = 26.dp, onClic
             .height(height)
             .width(38.dp)
             .clip(RoundedCornerShape(6.dp))
-            .border(1.dp, if (inf || rnd) color.copy(alpha = 0.6f) else C.line, RoundedCornerShape(6.dp))
-            .clickable(role = Role.Button, onClickLabel = "Loop: once, twice, forever, random", onClick = onClick),
+            .border(1.dp, if (inf || rnd || aft) color.copy(alpha = 0.6f) else C.line, RoundedCornerShape(6.dp))
+            .clickable(role = Role.Button, onClickLabel = "Loop: once, twice, forever, then random or play after", onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (rnd) Icon(BIcons.random, "Random", tint = color, modifier = Modifier.size(15.dp))
+        else if (aft) Icon(BIcons.after, "Plays after another music", tint = color, modifier = Modifier.size(16.dp))
         else T(listOf("1×", "2×", "∞")[loop.ordinal], color = color, size = 13.sp, weight = FontWeight.SemiBold)
     }
 }

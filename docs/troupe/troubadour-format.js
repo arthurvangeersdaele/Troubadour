@@ -262,7 +262,7 @@
         name: s.name || fileName,
         blob,
         fileName,
-        loop: LOOPS.includes(s.loop) || s.loop === 'random' ? s.loop : 'once',
+        loop: LOOPS.includes(s.loop) || s.loop === 'random' || s.loop === 'after' ? s.loop : 'once',
         volume: typeof s.volume === 'number' ? s.volume : 0.75,
         duration: s.duration,
         extra,

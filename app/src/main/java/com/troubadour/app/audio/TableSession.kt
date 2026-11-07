@@ -36,6 +36,9 @@ class Card(val chapterIndex: Int, val zone: Zone, sound: Sound) {
     /** Random events: when it plays again (uptime ms), 0 while it plays. */
     var nextAt by mutableLongStateOf(0L)
     @Volatile var startedAt = 0L
+    /** Play after: the engine state seen at the last poll, and whether its end was asked for (stop, fade, chapter). */
+    var lastState = -1
+    @Volatile var endAsked = false
     /** Simple volume buttons: the volume heard right now while it moves to [Sound.volume], or -1 when still. */
     var shownVolume by mutableStateOf(-1f)
     var volumeJob: Job? = null
@@ -117,6 +120,7 @@ class TableSession(
                     }
                 ) pausedByAll = emptyList()
                 runRandom()
+                runAfter()
                 runLife()
                 PlaybackController.update(anyPlaying())
                 delay(66)
@@ -253,6 +257,24 @@ class TableSession(
         }
     }
 
+    /** A music that ended on its own (its 1× or 2× played through, not stopped) starts the next music of its row
+     *  set to play after another: the first one after it in the row, from the start again past the end. */
+    private fun runAfter() {
+        for (c in cards) {
+            if (c.zone != Zone.MUSIC) continue
+            val st = stateOf(c)
+            val was = c.lastState
+            c.lastState = st
+            if (was != NativeEngine.PLAYING || st != NativeEngine.DONE || c.endAsked) continue
+            val row = cards.filter { it.chapterIndex == c.chapterIndex && it.zone == Zone.MUSIC }
+            if (row.any { it !== c && isActive(it) }) continue // another music already took over
+            val at = row.indexOf(c)
+            val next = (1 until row.size).map { row[(at + it) % row.size] }.firstOrNull { it.sound.loop == LoopMode.AFTER } ?: continue
+            next.startedAt = SystemClock.uptimeMillis()
+            play(next, settings.fadeInMs.coerceAtLeast(30))
+        }
+    }
+
     /** Between two plays of a random sound: 0.5 s up to its card's own longest pause, else the one of the settings. */
     private fun randomPause(card: Card): Long {
         val max = (card.sound.ownPause ?: settings.randomMax) * 1000L
@@ -273,6 +295,7 @@ class TableSession(
                 }
                 if (!loadInto(card, slot)) return@launch
             }
+            card.endAsked = false
             NativeEngine.play(slot, fadeInMs)
         }
     }
@@ -284,6 +307,7 @@ class TableSession(
     }
 
     fun end(card: Card, ms: Int = settings.fadeMs) {
+        card.endAsked = true
         card.randomOn = false
         card.nextAt = 0L
         val s = card.slot ?: return

@@ -64,5 +64,7 @@ object BIcons {
     val check = stroke("M5 12.5l4.5 4.5L19 7.5")
     val save = stroke("M12 4v10M7.5 9.5L12 14l4.5-4.5M5 18v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1")
     val random = stroke("M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5")
+    /** Play after: a queue of tracks, the next one ready to play. */
+    val after = stroke("M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z")
     val volume = stroke("M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7")
 }
