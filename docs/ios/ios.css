@@ -566,3 +566,11 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 .app .tbar .ed-sbx[aria-pressed="true"] { border-color: var(--music); background: color-mix(in srgb, var(--music) 16%, transparent); }
 .app .tbar .ed-play { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
 .app .tbar .ed-play svg { margin-left: 2px; }
+
+/* Story details: the cover picker, 5 drawings by 5 colours. */
+.cv-h { margin: 14px 0 8px; }
+.cv-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+.cv-opt { padding: 0; border: 0; background: none; border-radius: 10px; aspect-ratio: 64 / 46; cursor: pointer; }
+.cv-opt .cover { width: 100%; height: 100%; border-radius: 9px; border: 1.5px solid color-mix(in srgb, var(--c) 55%, transparent); }
+.cv-opt[aria-checked="true"] { outline: 2.5px solid var(--accent); outline-offset: 2px; }
+.cv-opt[aria-checked="true"] .cover { border-color: var(--c); }

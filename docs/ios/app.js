@@ -1162,6 +1162,36 @@
     ta.oninput = () => { s.description = ta.value; dirty(); };
     f.append(ta);
     body.append(f);
+    // Its cover in the library: one of the drawings in one of the colours of the theme. It travels in the .troubadour.
+    body.append(el('h3', 'cv-h', 'Cover'));
+    const grid = el('div', 'cv-pick');
+    grid.setAttribute('role', 'radiogroup');
+    grid.setAttribute('aria-label', 'Cover of the story');
+    const NAMES = { bard: 'Troubadour wire', music: 'Lute', book: 'Book', scroll: 'Chronicle', map: 'Journey' };
+    const TN = { amb: 'teal', evt: 'red', blue: 'blue', violet: 'violet', ember: 'ember', gold: 'gold' };
+    const paintPick = () => {
+      const cur = lookOf(s);
+      grid.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.k === cur.kind && b.dataset.t === cur.tint)));
+    };
+    TroubadourCover.KINDS.forEach((k) => TroubadourCover.TINTS.forEach((t) => {
+      const b = el('button', 'cv-opt');
+      b.type = 'button';
+      b.dataset.k = k;
+      b.dataset.t = t;
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-label', `${NAMES[k]}, ${TN[t]}`);
+      const c = TroubadourCover.element({ kind: k, tint: t });
+      c.style.setProperty('--c', TroubadourCover.tintCss(t));
+      b.append(c);
+      b.onclick = () => {
+        s.extra = Object.assign({}, s.extra || {}, { cover: TroubadourCover.stored({ kind: k, tint: t }) });
+        paintPick();
+        dirty();
+      };
+      grid.append(b);
+    }));
+    paintPick();
+    body.append(grid);
     const facts = [];
     facts.push(s.revision ? `Exported as revision ${s.revision}${s.bard ? `, signed by ${s.bard}` : ''}.` : 'Not exported yet: the first export rhythms revision 1.');
     if (s.source && s.source.startsWith('discovery')) facts.push('A discovery story of the web edition.');
