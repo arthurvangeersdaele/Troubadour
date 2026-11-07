@@ -560,7 +560,8 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 @media (max-width: 720px) { .app #library { --lib-fade: 40px; } }
 
 /* Editor top bar: save state, the story's soundbox, play (icons only). */
-.app .tbar .ed-save { color: #3DAA63; border-color: color-mix(in srgb, #3DAA63 45%, var(--line)); }
+.app .tbar .ed-save { color: #3DAA63; border-color: transparent; background: transparent; outline: none; box-shadow: none; }
+.app .tbar .ed-save:focus-visible { outline: 2px solid color-mix(in srgb, #3DAA63 50%, transparent); }
 .app .tbar .ed-save.bad { color: var(--evt); border-color: var(--evt); background: color-mix(in srgb, var(--evt) 14%, transparent); }
 .app .tbar .ed-sbx[aria-pressed="true"] { border-color: var(--music); background: color-mix(in srgb, var(--music) 16%, transparent); }
 .app .tbar .ed-play { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
