@@ -38,7 +38,7 @@
     out.file = String(c.file || '');
     out.zone = ['music', 'ambience', 'events', 'soundbox'].includes(c.zone) ? c.zone : 'events';
     out.play = PLAYS.includes(c.play) ? c.play : 'loop';
-    out.autoplay = c.autoplay !== false;
+    out.autoplay = true; // every card starts with its map (kept in the file for older readers)
     if (out.play === 'random') {
       out.gapMin = r1(num(c.gapMin, 5, 0, 600));
       out.gapMax = r1(num(c.gapMax, Math.max(out.gapMin, 30), out.gapMin, 600));
@@ -80,7 +80,7 @@
   function cleanPlace(p, i) {
     const out = Object.assign({}, p);
     out.id = String(p.id || `place-${i + 1}`);
-    out.title = String(p.title || `Place ${i + 1}`).slice(0, 80);
+    out.title = String(p.title || `Map ${i + 1}`).slice(0, 80);
     out.width = Math.round(num(p.width, W, 400, 8000));
     out.height = Math.round(num(p.height, H, 400, 8000));
     out.player = pt(p.player || [out.width / 2, out.height / 2], out.width, out.height);
@@ -94,13 +94,14 @@
   function normalize(world, files) {
     const out = Object.assign({}, world);
     out.wallLoss = r2(num(world.wallLoss, 0.7, 0, 1));
+    out.soundbox = (world.soundbox || []).map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { play: 'once' }));
     const seen = new Set();
     out.places = (world.places || []).map(cleanPlace).map((p) => {
       while (seen.has(p.id)) p.id = `${p.id}-${shortId()}`;
       seen.add(p.id);
       return p;
     });
-    if (!out.places.length) out.places = [newPlace('The first place')];
+    if (!out.places.length) out.places = [newPlace('The first map')];
     const ids = new Set(out.places.map((p) => p.id));
     const keep = (c) => !files || files.has(c.file);
     out.places.forEach((p) => {
@@ -117,13 +118,14 @@
   }
 
   function newPlace(title, id) {
-    return { id: id || `place-${shortId()}`, title: title || 'New place', width: W, height: H, player: [W / 2, Math.round(H * 0.72)], general: [], walls: [], elements: [] };
+    return { id: id || `place-${shortId()}`, title: title || 'New map', width: W, height: H, player: [W / 2, Math.round(H * 0.72)], general: [], walls: [], elements: [] };
   }
 
   /** A card made from a sound of the story, ready to be heard on the map: music and ambiances loop,
    *  events and soundbox effects come back at random; all start with the place. */
   function card(sound, opts = {}) {
-    const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : 'loop';
+    // Musics play once, one after another (the next starts when one ends); ambiances loop; events come back at random.
+    const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : sound.zone === 'music' ? 'once' : 'loop';
     return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: true, volume: typeof sound.volume === 'number' ? sound.volume : 0.75 }, opts));
   }
 
@@ -138,7 +140,10 @@
    *  nothing is laid on the map yet. */
   function defaultWorld(story, bard) {
     const chs = (story.chapters || []).filter((c) => c.map !== true);
-    return worldOf(story, chs.length ? chs.map((c, i) => newPlace(c.title || `Chapter ${i + 1}`, `place-${i + 1}`)) : [newPlace('The first place', 'place-1')], bard);
+    const w = worldOf(story, chs.length ? chs.map((c, i) => newPlace(c.title || `Chapter ${i + 1}`, `place-${i + 1}`)) : [newPlace('The first map', 'place-1')], bard);
+    // The story's soundbox becomes the world's: one-shot sounds at hand on every map.
+    w.soundbox = (story.soundbox || []).map((x) => card(Object.assign({ zone: 'soundbox' }, x), { play: 'once' }));
+    return w;
   }
 
   /** The chapter of story.json that holds the sounds added in Troubadour Map (made when first needed). */
@@ -156,7 +161,7 @@
     ownChapter(story);
     return story;
   }
-  function blankWorld(story, bard) { return worldOf(story, [newPlace('The first place', 'place-1')], bard); }
+  function blankWorld(story, bard) { return worldOf(story, [newPlace('The first map', 'place-1')], bard); }
 
   /* ---------- Geometry of hearing ---------- */
 
@@ -308,7 +313,7 @@
       if (world.format !== 'troubadour-map') throw new Error('map.json is not a Troubadour Map.');
       if (world.version !== MAP_VERSION) throw new Error(`This world uses version ${world.version}, which this Troubadour Map does not know yet. Update the app.`);
     }
-    const fromMap = world ? (world.places || []).flatMap((p) => (p.general || []).concat(...(p.elements || []).map((e) => e.cards || [])).map((c) => c.file)) : [];
+    const fromMap = world ? (world.places || []).flatMap((p) => (p.general || []).concat(...(p.elements || []).map((e) => e.cards || [])).map((c) => c.file)).concat((world.soundbox || []).map((c) => c.file)) : [];
     const paths = [...new Set(soundsOf(story).map((s) => s.file).concat(fromMap))].filter((p) => p && zip.has(p));
     const files = new Map();
     let n = 0;

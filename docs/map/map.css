@@ -31,17 +31,7 @@ html:not(.ios) .ios-only { display: none !important; }
 .mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 .mp-world[hidden] { display: none; }
 .mp-top { padding-top: max(7px, env(safe-area-inset-top)); }
-.mp-place-pick { display: none; max-width: 38vw; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; padding: 0 8px; }
 .mp-mode button { min-width: 64px; }
-.mp-body { display: grid; grid-template-columns: 210px minmax(0, 1fr) 330px; min-height: 0; }
-.mp-rail { min-height: 0; }
-.mp-rail .place { display: flex; align-items: center; gap: 6px; text-align: left; border: 1px solid transparent; border-radius: 10px; background: none; color: var(--text); padding: 9px 10px; font-weight: 600; width: 100%; }
-.mp-rail .place span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mp-rail .place small { color: var(--muted); font-weight: 500; font-size: 12px; }
-.mp-rail .place:hover { background: var(--card); }
-.mp-rail .place[aria-current="true"] { background: var(--card); border-color: var(--accent); }
-.mp-rail .add { margin-top: 6px; color: var(--accent); }
-.mp-rail .linked { color: var(--accent); }
 
 .mp-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
 .mp-stage > canvas { position: absolute; inset: 0; touch-action: none; display: block; }
@@ -91,47 +81,19 @@ html:not(.ios) .ios-only { display: none !important; }
 .pn-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .pn-empty { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; color: var(--muted); font-size: 14px; }
 
-.mcard { --z: var(--accent); position: relative; border-radius: 12px; background: var(--card); border: 1px solid var(--line); padding: 8px 10px; display: grid; gap: 6px; }
-.mcard.music { --z: var(--music); } .mcard.ambience { --z: var(--amb); } .mcard.events { --z: var(--evt); } .mcard.soundbox { --z: var(--blue); }
-.mcard.on { border-color: var(--z); box-shadow: 0 0 0 1px var(--z) inset, 0 0 22px color-mix(in srgb, var(--z) 22%, transparent); }
-.mcard-h { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.mcard-h b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mcard-h .pill { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--z); border: 1px solid color-mix(in srgb, var(--z) 50%, var(--line)); border-radius: 999px; padding: 1px 7px; flex: none; }
-.mcard-h .x { width: 28px; height: 28px; border-radius: 8px; border: 0; background: none; color: var(--muted); display: grid; place-items: center; padding: 0; }
-.mcard-h .x:hover { color: var(--danger); }
-.mcard-r { display: flex; align-items: center; gap: 8px; }
-.mcard-r .pb { width: 38px; height: 38px; border-radius: 10px; border: 0; background: var(--line); color: var(--text); display: grid; place-items: center; padding: 0; flex: none; }
-.mcard.on .pb:not(.end) { background: var(--z); color: var(--on-z); }
-.mcard.paused { border-color: color-mix(in srgb, var(--z) 55%, var(--line)); }
-.mcard-r input[type="range"] { flex: 1; min-width: 0; --z: inherit; }
-.mcard-r .heard { width: 44px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
-.mcard-r .heard i { display: block; height: 100%; background: var(--z); width: 0; transition: width .2s; }
-.mcard .seg { width: 100%; }
-.mcard .seg button { flex: 1; padding: 0 6px; }
-.mcard .opts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.mcard .opts label { display: inline-flex; align-items: center; gap: 6px; }
-.mcard .opts input[type="number"] { width: 56px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); font: inherit; padding: 0 6px; }
 .go-place { justify-content: center; }
 
 
 /* ---------- Narrow screens (editor): the places in a menu, the panel over the map ---------- */
-@media (max-width: 1100px) { .mp-body { grid-template-columns: 180px minmax(0, 1fr) 300px; } }
+
 @media (max-width: 900px) {
-  .mp-world[data-mode="edit"] .mp-body { grid-template-columns: minmax(0, 1fr); position: relative; }
-  .mp-world[data-mode="edit"] .mp-rail { display: none; }
-  .mp-world[data-mode="edit"] .mp-place-pick { display: block; }
   .mp-world[data-mode="edit"] #mw-panel { display: grid; }
   .mp-world[data-mode="edit"] .mp-side { position: absolute; right: 0; top: 0; bottom: 0; width: min(340px, 92vw); z-index: 4; box-shadow: -20px 0 50px var(--shadow); transform: translateX(105%); transition: transform .2s; }
   .mp-world[data-mode="edit"].panel .mp-side { transform: none; }
   .mp-world[data-mode="edit"] .mp-side-head .ico { display: grid; }
-  .mp-top .ttl span { display: none; }
 }
 
 /* ---------- The player: the map on the left, the sounds beside it (open by default), places in a menu ---------- */
-.mp-world[data-mode="play"] .mp-body { grid-template-columns: minmax(0, 1fr) 0; }
-.mp-world[data-mode="play"].panel .mp-body { grid-template-columns: minmax(0, 1fr) clamp(250px, 34vw, 380px); }
-.mp-world[data-mode="play"] .mp-rail { display: none; }
-.mp-world[data-mode="play"] .mp-place-pick { display: block; }
 .mp-world[data-mode="play"] #mw-panel { display: grid; }
 .mp-world[data-mode="play"] .mp-side { overflow: hidden; }
 .mp-world[data-mode="play"]:not(.panel) .mp-side { border-left: 0; }
@@ -140,7 +102,6 @@ html:not(.ios) .ios-only { display: none !important; }
 
 @media (max-width: 560px) {
   .mp-top .ttl { display: none; }
-  .mp-place-pick { flex: 1; max-width: none; }
   .mp-tools { left: 8px; top: 8px; padding: 4px; }
   .mp-tools button { width: 38px; height: 38px; }
   .mp-stamps { left: 58px; top: 8px; }
@@ -175,8 +136,6 @@ html:not(.ios) .ios-only { display: none !important; }
 
 
 /* ---------- Player and editor ---------- */
-.mp-switch { min-width: 92px; justify-content: center; }
-.mp-world[data-mode="play"] .mp-rail .add { display: none; }
 
 /* ---------- Library, as in Troubadour (hero card, rows, doors) ---------- */
 .lib-wrap { padding: 14px max(14px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); max-width: 1180px; margin: 0 auto; }
@@ -225,24 +184,12 @@ html:not(.ios) .ios-only { display: none !important; }
 .set-note { margin: -4px 0 6px; font-size: 13px; }
 
 /* ---------- Sound cards at the table: hidden, simple or full volume ---------- */
-.mcard-r .vb { width: 34px; height: 34px; flex: none; border-radius: 9px; border: 1px solid var(--line); background: transparent; display: grid; place-items: center; padding: 0; color: var(--text); }
-.mcard-r .vb:active { background: var(--line); }
-.mcard-r .lvl { flex: 1; min-width: 34px; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-.mcard-r .lvl.moving { color: var(--z); }
 
 /* Full cards at the table, as in Troubadour: loop button, progress, play and pause, stop. */
-.mcard-h .loop { flex: none; cursor: pointer; color: var(--text); }
-.mcard .opts[hidden] { display: none; }
-.mcard .track { height: 5px; }
-.mcard .fill { background: var(--z); }
-.mcard-r .pb.end { background: transparent; border: 1px solid var(--line); color: var(--text); }
-.mcard-r .pb.end:disabled { opacity: .4; cursor: default; }
-.mcard-r .rem { flex: 1; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.mcard.vm-hidden .mcard-r .heard { flex: none; width: 44px; }
 
 /* The page never zooms (no double-tap or pinch zoom): only the map zooms, with two fingers. */
 html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
-button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: manipulation; }
+button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: manipulation; }
 
 /* The master bar, as in Troubadour: a chip in the top bar (pause all, fade out, Master, slider, value). */
 .mp-world[data-mode="edit"] .master { display: none; }
@@ -254,12 +201,10 @@ button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: ma
 
 /* The sound menu scrolls up and down only. */
 .mp-side-body { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.mp-side-body > *, .mcard, .mcard-h, .mcard-r, .pn { min-width: 0; max-width: 100%; }
-.mcard-h .pill { max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-side-body > *, .mp-side-body .c, .mp-side-body .ch, .mp-side-body .ctrl, .pn { min-width: 0; max-width: 100%; }
 .pn-sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .master #mw-master { width: 120px; --z: var(--text); }
 .master b { width: 22px; text-align: right; }
-.mp-world[data-mode="play"] .mp-top .ttl span { display: none; }
 
 /* ---------- The sound picker (its own names: .pick is a soundbox pad in Troubadour's sheet) ---------- */
 .settings.wide { width: min(760px, calc(100vw - 24px)); height: min(640px, calc(100dvh - 24px)); display: flex; flex-direction: column; }
@@ -272,7 +217,7 @@ button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: ma
 .snd-list { flex: 1; min-height: 120px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 6px; padding: 2px; }
 .snd-list h4 { margin: 8px 2px 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .snd { --z: var(--accent); flex: none; display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 10px 6px 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; border-left: 4px solid var(--z); }
-.snd.music { --z: var(--music); } .snd.ambience { --z: var(--amb); } .snd.events { --z: var(--evt); } .snd.soundbox { --z: var(--blue); }
+.snd.z-music { --z: var(--music); } .snd.z-ambience { --z: var(--amb); } .snd.z-events { --z: var(--evt); } .snd.z-soundbox { --z: var(--blue); }
 .snd:active { transform: scale(.99); }
 .snd.in { border-color: var(--z); background: color-mix(in srgb, var(--z) 12%, var(--card)); }
 .snd-play { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--bar); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
@@ -295,3 +240,127 @@ button, a, input, select, label, .mcard, .pick, .ldoor, .srow { touch-action: ma
   .snd-play { width: 34px; height: 34px; }
 }
 @media (max-width: 700px) { .snd-tag { display: none; } .snd-foot .btn span { font-size: 14px; } }
+
+/* ---------- Top bar: what each screen offers ---------- */
+.mp-world[data-mode="play"] #mw-panel, .mp-world[data-mode="play"] #mw-more, .mp-world[data-mode="play"] #mw-lib { display: none !important; }
+.mp-world[data-mode="edit"] #mw-sb { display: none; }
+.mp-switch { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.mp-switch svg { margin-left: 2px; }
+#mw-lib[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.mp-top .sb-toggle { cursor: pointer; }
+@media (max-width: 900px) { .mp-top .sb-label { display: none; } }
+
+/* ---------- The sound menu's title: small, with what it shows ---------- */
+.mp-menu-title { display: flex; flex-direction: column; gap: 0; font-family: inherit !important; }
+.mp-menu-title small { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.mp-menu-title span { font-family: 'Cormorant SC', serif; font-size: 20px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.heard-pct { font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 500; flex: none; }
+
+/* ---------- The soundbox over the sound menu ---------- */
+.mp-sbx[hidden] { display: none; }
+.mp-sbx .sb-head .ico { color: var(--text); }
+.mp-sbx .pad { cursor: pointer; color: var(--text); }
+
+/* ---------- Rolling names on the cards (as in Troubadour) ---------- */
+
+/* ---------- Drawing tools: moved by their grip ---------- */
+.mp-tools { touch-action: none; }
+.mp-grip { display: grid; place-items: center; height: 22px; color: var(--muted); cursor: grab; touch-action: none; border-radius: 8px; }
+.mp-grip:hover { color: var(--text); background: var(--card); }
+.mp-tools.moving { box-shadow: 0 16px 40px var(--shadow); opacity: .95; }
+.mp-tools.moving .mp-grip { cursor: grabbing; }
+@media (max-height: 520px) and (orientation: landscape) { .mp-grip { height: auto; width: 22px; } }
+
+/* ---------- The library drawer of the editor ---------- */
+.mp-libdrawer { position: absolute; right: 10px; top: 10px; bottom: 10px; width: min(380px, calc(100% - 90px)); z-index: 4; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 10px; border-radius: 14px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 16px 40px var(--shadow); }
+.mp-libdrawer[hidden] { display: none; }
+.mp-lib-head { display: flex; align-items: center; gap: 8px; }
+.mp-lib-head b { font-family: 'Cormorant SC', serif; font-size: 22px; }
+.mp-lib-hint { margin: 0; font-size: 12px; color: var(--muted); }
+.mp-lib-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mp-lib-body .snd-bar { gap: 6px; }
+.mp-lib-body .snd-search { flex-basis: 100%; }
+.mp-lib-body .seg button { padding: 0 8px; }
+.mp-lib-body .snd { touch-action: pan-y; }
+.mp-lib-body .snd-foot .btn { flex: 1; justify-content: center; }
+.snd-holder { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
+.snd.dragging { opacity: .5; }
+.snd-ghost { --z: var(--accent); position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; padding: 8px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--z); border-left: 4px solid var(--z); color: var(--text); font-weight: 600; box-shadow: 0 12px 30px var(--shadow); white-space: nowrap; }
+.snd-ghost.z-music { --z: var(--music); } .snd-ghost.z-ambience { --z: var(--amb); } .snd-ghost.z-events { --z: var(--evt); } .snd-ghost.z-soundbox { --z: var(--blue); }
+.snd-ghost.on::after { content: "→ " attr(data-to); display: block; font-size: 12px; font-weight: 500; color: var(--z); }
+.mp-top .mp-switch { min-width: 0; width: 40px; padding: 0; display: grid; place-items: center; }
+.mp-lib-body .snd-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; }
+.mp-lib-body .snd-type { grid-column: 1 / -1; justify-self: start; }
+.mp-lib-body .snd-search { min-width: 0; height: 32px; }
+.mp-lib-body .seg.small button { height: 26px; font-size: 13px; }
+@media (max-height: 520px) {
+  .mp-libdrawer { top: 6px; bottom: 6px; right: 6px; padding: 6px 8px; gap: 4px; }
+  .mp-lib-head b { font-size: 18px; }
+  .mp-lib-head .ico { width: 30px; height: 30px; }
+  .mp-lib-hint { display: none; }
+  .mp-lib-body { gap: 5px; }
+  .mp-lib-body .snd-foot { padding-top: 5px; }
+  .mp-lib-body .snd-foot .btn { height: 30px; font-size: 13px; }
+  .mp-lib-body .snd { padding: 3px 8px 3px 4px; gap: 8px; }
+  .mp-lib-body .snd-play { width: 30px; height: 30px; }
+  .mp-lib-body .snd-mark { width: 26px; height: 26px; }
+  .mp-lib-body .snd-t small { display: none; }
+  .mp-lib-body .snd-list h4 { margin-top: 4px; }
+}
+.snd-bar, .snd-foot, .mp-lib-head, .mp-lib-hint { flex: none; }
+.mp-lib-body .snd-list { min-height: 70px; }
+
+
+/* ================= As in Troubadour (Nov 2026): cards, the map rail, the layout ================= */
+
+/* The world's layout: the maps on a rail like Troubadour's chapters. While drawing on a wide screen, a column
+ * on the left; on a narrow screen, and always at the table, a strip under the top bar. */
+.mp-body { position: relative; display: grid; min-height: 0; grid-template-columns: 220px minmax(0, 1fr) 330px; grid-template-rows: minmax(0, 1fr); grid-template-areas: "rail stage side"; }
+.mp-rail { grid-area: rail; min-height: 0; }
+.mp-stage { grid-area: stage; }
+.mp-side { grid-area: side; }
+.mp-rail .chap .way { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; align-self: center; }
+.mp-rail .chap.add .n { color: var(--accent); }
+.mp-rail .chap.add { color: var(--accent); }
+@media (max-width: 1100px) { .mp-body { grid-template-columns: 190px minmax(0, 1fr) 300px; } }
+
+/* The strip: as Troubadour's narrow screens. */
+@media (max-width: 900px) {
+  .mp-world[data-mode="edit"] .mp-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "rail" "stage"; }
+  .mp-world[data-mode="edit"] #mw-panel { display: grid; }
+  .mp-world[data-mode="edit"] .mp-side { position: absolute; right: 0; top: 0; bottom: 0; width: min(340px, 92vw); z-index: 4; box-shadow: -20px 0 50px var(--shadow); transform: translateX(105%); transition: transform .2s; }
+  .mp-world[data-mode="edit"].panel .mp-side { transform: none; }
+  .mp-world[data-mode="edit"] .mp-side-head .ico { display: grid; }
+}
+.mp-world[data-mode="play"] .mp-body { grid-template-columns: minmax(0, 1fr) 0; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "rail rail" "stage side"; }
+.mp-world[data-mode="play"].panel .mp-body { grid-template-columns: minmax(0, 1fr) clamp(250px, 34vw, 380px); }
+.mp-world[data-mode="play"] .rail { flex-direction: row; border-right: 0; border-bottom: 1px solid var(--line); padding: 6px 8px; overflow-x: auto; overflow-y: hidden; gap: 4px; scrollbar-width: none; }
+.mp-world[data-mode="play"] .rail h3 { display: none; }
+.mp-world[data-mode="play"] .chap { width: auto; flex: none; padding: 6px 10px; align-items: center; }
+.mp-world[data-mode="play"] .chap .t { white-space: nowrap; font-size: 14px; }
+.mp-world[data-mode="play"] .chap .n { font-size: 16px; }
+@media (max-height: 520px) { .mp-world .rail { padding: 4px 8px; } .mp-world .chap { padding: 4px 10px; } }
+.mp-world[data-mode="play"] .mp-side { overflow: hidden; }
+.mp-world[data-mode="play"]:not(.panel) .mp-side { border-left: 0; }
+.mp-world[data-mode="play"] .mp-side-head .ico { display: grid; }
+
+/* The top bar: the world's name and its map, as Troubadour's story and chapter. */
+.mp-top .ttl { min-width: 0; }
+.mp-top .ttl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The soundbox, over the sound menu (under the strip of maps). */
+.mp-sbx { grid-row: 2; grid-column: 1 / -1; justify-self: end; align-self: stretch; position: relative; width: clamp(250px, 34vw, 380px); z-index: 6; box-shadow: -20px 0 50px var(--shadow); }
+
+/* Sound cards: Troubadour's own (.c, in ../play/style.css), with what a map adds. */
+.mp-side-body .c { gap: 6px; }
+.c .fill { background: var(--z); }
+.c.paused { border-color: color-mix(in srgb, var(--z) 55%, var(--line)); }
+.c .loop { cursor: pointer; color: var(--text); flex: none; }
+.c .loop.x { min-width: 24px; padding: 0; display: grid; place-items: center; color: var(--muted); }
+.c .loop.x:hover { color: var(--danger); border-color: var(--danger); }
+.c .ctrl input[type="range"] { flex: 1; min-width: 0; }
+.c .ctrl .heard { width: 34px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
+.c .ctrl .heard i { display: block; height: 100%; background: var(--z); width: 0; transition: width .2s; }
+.c .opts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.c .opts label { display: inline-flex; align-items: center; gap: 6px; }
+.c .opts input[type="number"] { width: 56px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); font: inherit; padding: 0 6px; }

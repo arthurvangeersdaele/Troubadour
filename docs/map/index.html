@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Troubadour Map</title>
-<meta name="description" content="Troubadour Map: draw the places of your world, lay their sounds on the map, and hear what the party hears as it moves.">
+<meta name="description" content="Troubadour Map: draw the maps of your world, lay their sounds on the map, and hear what the party hears as it moves.">
 <meta name="theme-color" content="#15151B">
 <meta name="robots" content="noindex">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -69,7 +69,6 @@
   <header class="tbar mp-top">
     <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
     <div class="ttl"><b id="mw-title"></b><span id="mw-sub"></span></div>
-    <select class="mp-place-pick" id="mw-place-pick" aria-label="Place"></select>
     <div class="chip master" id="mw-master-chip">
       <button class="mini" type="button" id="mw-pause" aria-label="Pause all" title="Pause all"></button>
       <button class="mini" type="button" id="mw-fade" aria-label="Fade out everything" title="Fade out everything"></button>
@@ -77,16 +76,19 @@
       <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
       <b id="mw-master-val">80</b>
     </div>
-    <button class="btn slim primary mp-switch" type="button" id="mw-switch"></button>
+    <button class="ico mp-lib-btn" type="button" id="mw-lib" aria-label="Sound library" title="Sound library: drag sounds onto the elements" aria-pressed="false"></button>
+    <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
+    <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
   <div class="mp-body">
-    <nav class="rail mp-rail" id="mw-places" aria-label="Places"></nav>
+    <nav class="rail mp-rail" id="mw-places" aria-label="Maps"></nav>
     <section class="mp-stage" id="mw-stage">
-      <canvas id="mw-canvas" aria-label="The map of the place"></canvas>
+      <canvas id="mw-canvas" aria-label="The map"></canvas>
       <div class="mp-tools" id="mw-tools" role="toolbar" aria-label="Drawing tools">
+        <span class="mp-grip" id="mw-grip" title="Drag to move the tools" aria-hidden="true"></span>
         <button type="button" data-tool="select" title="Select and move (V)"></button>
         <button type="button" data-tool="hand" title="Move the map (H, or hold Space)"></button>
         <i></i>
@@ -96,17 +98,27 @@
         <button type="button" data-tool="eraser" title="Eraser (E)"></button>
         <i></i>
         <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
-        <button type="button" data-act="fit" title="See the whole place (F)"></button>
+        <button type="button" data-act="fit" title="See the whole map (F)"></button>
       </div>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
-      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to move the party. Double tap an element for its sounds.</div>
+      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to move the party. Double tap an element, or the map, for its sounds. Long press a sign to take its way.</div>
+      <aside class="mp-libdrawer" id="mw-libdrawer" hidden aria-label="Sound library">
+        <div class="mp-lib-head"><b>Sound library</b><span class="grow"></span><button class="ico small" type="button" id="mw-lib-close" aria-label="Close the sound library"></button></div>
+        <p class="mp-lib-hint" id="mw-lib-hint"></p>
+        <div class="mp-lib-body" id="mw-lib-body"></div>
+      </aside>
       <div class="mp-zoom">
-        <button type="button" class="ico" id="mw-fill" aria-label="Fill the screen with the map, the party in the middle" title="Fill the screen (F)"></button>
+        <button type="button" class="ico" id="mw-fill" aria-label="See the whole map" title="See the whole map (F)"></button>
       </div>
     </section>
     <aside class="mp-side" id="mw-side" aria-label="Panel">
       <div class="mp-side-head"><b id="mw-side-title"></b><button class="ico small" type="button" id="mw-side-close" aria-label="Close the panel"></button></div>
       <div class="mp-side-body" id="mw-inspector"></div>
+    </aside>
+    <aside class="soundbox mp-sbx" id="mw-sbx" hidden aria-label="Soundbox">
+      <div class="sb-head"><h2>Soundbox</h2><button class="ico small" type="button" id="mw-sbx-close" aria-label="Close the soundbox"></button></div>
+      <div class="sb-vol"><label for="mw-sbvol">Volume</label><input type="range" id="mw-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
+      <div class="pads" id="mw-pads"></div>
     </aside>
   </div>
 </main>
@@ -168,7 +180,7 @@
     <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Keep screen awake<small>While a world plays</small></span><input type="checkbox" id="opt-awake"><i></i></label>
     <div class="row-set">
-      <span>Fade-out<small>When a sound stops, or you leave a place</small></span>
+      <span>Fade-out<small>When a sound stops, or you leave a map</small></span>
       <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
         <button type="button" role="radio" data-v="500">0.5 s</button>
         <button type="button" role="radio" data-v="1500">1.5 s</button>

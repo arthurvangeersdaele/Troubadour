@@ -71,7 +71,7 @@
       if (v.state !== 'playing') return;
       if (v.card.play === 'random') waitAgain(v);
       else if (v.card.play === 'twice' && v.left > 0) { v.left -= 1; startSource(v, 0); }
-      else { v.state = 'idle'; changed(); }
+      else { v.state = 'idle'; changed(); if (v.card.zone === 'music') nextMusic(v); }
     };
     return true;
   }
@@ -85,9 +85,22 @@
     changed();
   }
 
-  /** Plays a card: from where it was paused, else from its start. */
-  function play(v) {
+  /** The musics of a group (the whole map, or one element), in their order. */
+  const musicsOf = (v) => [...voices.values()].filter((o) => o.el === v.el && o.card.zone === 'music');
+  /** Several musics in a group play one after another: when one ends by itself, the next one starts
+   *  (after the last, the first again). */
+  function nextMusic(v) {
+    const list = musicsOf(v);
+    if (list.length < 2 || list.some((o) => o.state === 'playing')) return;
+    const n = list[(list.indexOf(v) + 1) % list.length];
+    play(n);
+  }
+
+  /** Plays a card: from where it was paused, else from its start. A music started by hand takes over from
+   *  the other musics of its group (they fade out). */
+  function play(v, alone) {
     if (v.state === 'playing') return;
+    if (v.card.zone === 'music' && !alone) musicsOf(v).forEach((o) => { if (o !== v && o.state !== 'idle') halt(o, settings.fade); });
     const resume = v.state === 'paused';
     if (!resume) { v.offset = 0; v.left = v.card.play === 'twice' ? 1 : 0; }
     v.state = 'playing';
@@ -165,9 +178,13 @@
     place = p; world = w; buffers = bufs; point = p.player.slice();
     sync();
     audio(true);
-    // The cards of an element are always on: the map decides how much of them is heard.
-    // The cards of the whole place start with it when they say so.
-    voices.forEach((v) => { if (v.el || v.card.autoplay) play(v); });
+    // Every card starts with its map: the map decides how much of an element is heard. Of several musics in
+    // a group, only the first starts; the others follow it, one after another.
+    const groups = new Set();
+    voices.forEach((v) => {
+      if (v.card.zone === 'music') { if (groups.has(v.el || 'map')) return; groups.add(v.el || 'map'); }
+      play(v, true);
+    });
     changed();
   }
 

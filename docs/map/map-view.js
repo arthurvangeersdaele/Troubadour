@@ -24,7 +24,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [];
-  const api = { onSelect: null, onEdit: null, onTap: null, onOpen: null, onPlayer: null, onTool: null };
+  const api = { onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -63,6 +63,14 @@
     if (kind === 'fill') return fill();
     if (!place || W < 50 || H < 50) { needFit = 'fit'; return; }
     needFit = null;
+    fillOnResize = true;
+    if (mode === 'play') {
+      // At the table: the whole map, as large as the screen allows, centred.
+      const k = containK();
+      view = { k, x: (W - place.width * k) / 2, y: (H - place.height * k) / 2 };
+      dirty = true;
+      return;
+    }
     // Room for the tools on the left while drawing.
     const m = 24, left = mode === 'edit' && W > 600 ? 70 : m;
     const k = Math.min((W - m - left) / place.width, (H - m * 2) / place.height);
@@ -81,10 +89,26 @@
   }
   function zoomAt(sx, sy, f) {
     fillOnResize = false;
-    const k = Math.max(0.05, Math.min(8, view.k * f));
+    const lo = mode === 'play' && place ? containK() : 0.05;
+    const k = Math.max(lo, Math.min(8, view.k * f));
     const [wx, wy] = toWorld(sx, sy);
     view.k = k; view.x = sx - wx * k; view.y = sy - wy * k;
+    keepOnMap();
     dirty = true;
+  }
+
+  /** The largest scale that shows the whole map. */
+  function containK() { return Math.min(W / place.width, H / place.height); }
+
+  /** At the table, the screen never leaves the map: no zooming out past the whole map, and no panning past
+   *  its edges (along a side shorter than the screen, the map stays centred). */
+  function keepOnMap() {
+    if (mode !== 'play' || !place || W < 50 || H < 50) return;
+    const lo = containK();
+    if (view.k < lo) { view.k = lo; }
+    const mw = place.width * view.k, mh = place.height * view.k;
+    view.x = mw <= W ? (W - mw) / 2 : Math.min(0, Math.max(W - mw, view.x));
+    view.y = mh <= H ? (H - mh) / 2 : Math.min(0, Math.max(H - mh, view.y));
   }
 
   /* ---------- Hit tests ---------- */
@@ -128,6 +152,19 @@
   /* ---------- Pointer input ---------- */
   const pointers = new Map();
   let last = { t: 0, s: [0, 0], el: null }; // the last tap, to tell a double tap
+  const PRESS_MS = 650;
+  let press = null; // a long press on the link of an element: { el, t0, timer, s }
+  function linkAt(sx, sy) {
+    if (!place) return null;
+    for (let i = place.elements.length - 1; i >= 0; i--) {
+      const e = place.elements[i];
+      if (!e.link) continue;
+      const q = toScreen(M.centre(e.shape));
+      if (Math.hypot(sx - q[0], sy - q[1]) <= 24) return e;
+    }
+    return null;
+  }
+  function endPress() { if (press) { clearTimeout(press.timer); press = null; dirty = true; } }
   let gesture = null; // { kind, ... }
   let spaceDown = false;
 
@@ -150,6 +187,12 @@
     if (panning) { gesture = { kind: 'pan', last: s }; cv.classList.add('grabbing'); return; }
 
     if (mode === 'play') {
+      const lk = linkAt(s[0], s[1]);
+      if (lk) {
+        endPress();
+        press = { el: lk, t0: performance.now(), s, timer: setTimeout(() => { const e2 = press && press.el; endPress(); gesture = null; if (e2 && api.onLink) api.onLink(e2); }, PRESS_MS) };
+        dirty = true;
+      }
       // On the point: a drag moves it, a tap (or a double tap) counts as a tap on the map below it.
       if (onPlayer(s[0], s[1])) { gesture = { kind: 'player', start: s, el: elementAt(w), dragged: false }; return; }
       gesture = { kind: 'tap', start: s, last: s, el: elementAt(w) };
@@ -186,18 +229,20 @@
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
       view.x += c[0] - gesture.c[0]; view.y += c[1] - gesture.c[1];
+      keepOnMap();
       if (gesture.d > 0) zoomAt(c[0], c[1], d / gesture.d);
       gesture.d = d; gesture.c = c;
       dirty = true;
       return;
     }
+    if (press && Math.hypot(s[0] - press.s[0], s[1] - press.s[1]) > 10) endPress();
     const w = toWorld(s[0], s[1]);
     switch (gesture.kind) {
       case 'pan': fillOnResize = false;
-        view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; gesture.last = s; dirty = true; break;
+        view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); gesture.last = s; dirty = true; break;
       case 'tap':
         if (Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) > 6) gesture.panning = true;
-        if (gesture.panning) { fillOnResize = false; view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; dirty = true; }
+        if (gesture.panning) { fillOnResize = false; view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); dirty = true; }
         gesture.last = s; break;
       case 'player':
         if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
@@ -228,6 +273,7 @@
   }
 
   function up(e) {
+    endPress();
     pointers.delete(e.pointerId);
     cv.classList.remove('grabbing');
     if (!gesture) return;
@@ -238,9 +284,9 @@
     if (g.kind === 'tap' && !g.panning) {
       // Only a drag moves the party: a tap moves nothing. A double tap on an element opens its sounds.
       const t = performance.now();
-      const twice = g.el && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
+      const twice = last.t && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
       last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
-      if (twice && api.onTap) api.onTap(g.el);
+      if (twice && api.onTap) api.onTap(g.el || null);
     } else if (g.kind === 'player') {
       edited();
     } else if (g.kind === 'move') {
@@ -314,7 +360,7 @@
     e.preventDefault();
     const s = local(e);
     if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) zoomAt(s[0], s[1], Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
-    else { view.x -= e.deltaX; view.y -= e.deltaY; dirty = true; }
+    else { fillOnResize = false; view.x -= e.deltaX; view.y -= e.deltaY; keepOnMap(); dirty = true; }
   }
 
   /* ---------- Drawing ---------- */
@@ -445,12 +491,27 @@
         ctx.strokeText(label, cx, by + 18); ctx.fillText(label, cx, by + 18);
       }
       if (el.link) {
-        const [lx, ly] = toScreen([b[2], b[1]]);
-        ctx.beginPath(); ctx.arc(lx, ly, 11, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
-        ctx.strokeStyle = pal.bg; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(lx - 4, ly + 4); ctx.lineTo(lx + 4, ly - 4); ctx.moveTo(lx - 1, ly - 4); ctx.lineTo(lx + 4, ly - 4); ctx.lineTo(lx + 4, ly + 1); ctx.stroke();
+        // The way to another map, in the middle of the element: a long press on it goes there.
+        const [lx, ly] = toScreen(M.centre(el.shape));
+        ctx.beginPath(); ctx.arc(lx, ly, 15, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
+        ctx.lineWidth = 2.5; ctx.strokeStyle = pal.bg; ctx.stroke();
+        ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(lx - 5, ly + 5); ctx.lineTo(lx + 5, ly - 5); ctx.moveTo(lx - 1, ly - 5); ctx.lineTo(lx + 5, ly - 5); ctx.lineTo(lx + 5, ly + 1); ctx.stroke();
+        if (press && press.el === el) {
+          const f = Math.min(1, (performance.now() - press.t0) / PRESS_MS);
+          ctx.beginPath(); ctx.arc(lx, ly, 21, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
+          ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.stroke();
+          dirty = true;
+        }
       }
     });
+    if (hoverEl) {
+      const b = M.bounds(hoverEl.shape);
+      const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
+      ctx.save(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.fillStyle = alpha(pal.accent, 0.12);
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20, 12) : ctx.rect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20);
+      ctx.fill(); ctx.stroke(); ctx.restore();
+    }
     if (selected && mode === 'edit') {
       const b = M.bounds(selected.shape);
       const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
@@ -474,7 +535,7 @@
     W = Math.max(1, r.width); H = Math.max(1, r.height);
     dpr = Math.min(3, global.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-    if (!needFit && place && mode === 'play' && fillOnResize) fill();
+    if (!needFit && place && mode === 'play') { if (fillOnResize) fit(); else keepOnMap(); }
     cv.style.width = `${W}px`; cv.style.height = `${H}px`;
     if (needFit) fit(needFit);
     dirty = true;
@@ -482,7 +543,7 @@
 
   /** A small picture of a place, for the library. */
   function thumb(canvas, p, cover) {
-    if (!pal) readPalette();
+    readPalette(); // the theme may have changed since the last picture
     const r = canvas.getBoundingClientRect();
     const d = Math.min(2, global.devicePixelRatio || 1);
     const w = Math.max(60, r.width || 140), h = Math.max(60, r.height || 110);
@@ -541,7 +602,7 @@
   }
   function show(p, w) {
     place = p; world = w; selected = null; undoStack.length = 0;
-    fit(mode === 'play' ? 'fill' : 'fit');
+    fit();
     dirty = true;
   }
   function setMode(m) { mode = m; if (m === 'play') select(null); dirty = true; }
@@ -560,11 +621,22 @@
     select(null);
     edited();
   }
+  /** The element under a point of the screen (client coordinates), for a sound dropped on the map. */
+  function elementAtClient(cx, cy) {
+    if (!place || !cv) return null;
+    const r = cv.getBoundingClientRect();
+    if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return undefined;
+    return elementAt(toWorld(cx - r.left, cy - r.top));
+  }
+  /** The element a dragged sound would join (null: none), outlined on the map. */
+  let hoverEl = null;
+  function dropHover(el) { if (hoverEl !== el) { hoverEl = el || null; dirty = true; } }
+  function flash(el) { selected = el; dirty = true; if (api.onSelect) api.onSelect(el); }
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, snapshot, deleteSelected, centreOn,
-    redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
+    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    __toScreen: (p) => toScreen(p), redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,
   });
   global.MapView = api;
