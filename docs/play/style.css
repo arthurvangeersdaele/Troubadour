@@ -238,9 +238,10 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   border: 1px solid var(--line); background: var(--bar); color: var(--text); box-shadow: 0 30px 80px var(--shadow);
 }
 .settings::backdrop { background: rgba(0,0,0,.45); }
-.set-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bar); padding: 16px 20px 8px; margin: 0 -20px; z-index: 5; }
+/* The title stays above what scrolls; the content starts below its fade, so nothing is faded at rest. */
+.set-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bar); padding: 16px 20px 0; margin: 0 -20px 14px; z-index: 5; }
 /* What scrolls under the title fades out instead of being cut. */
-.set-head::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 18px; pointer-events: none; background: linear-gradient(to bottom, var(--bar), color-mix(in srgb, var(--bar) 0%, transparent)); }
+.set-head::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; pointer-events: none; background: linear-gradient(to bottom, var(--bar), color-mix(in srgb, var(--bar) 0%, transparent)); }
 .set-head h2 { margin: 0; font-size: 26px; }
 .settings section { padding: 12px 0; border-top: 1px solid var(--line); }
 .settings h3 { font-family: inherit; font-weight: 600; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
