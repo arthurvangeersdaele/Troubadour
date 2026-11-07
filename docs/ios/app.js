@@ -395,7 +395,14 @@
     acts.append(btn('hb more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
     inner.append(acts);
     c.append(inner);
+    openOnTap(c, s);
     return c;
+  }
+  /** A tap anywhere on a story card (not on one of its buttons) opens its player, like its Play button. */
+  function openOnTap(card, s) {
+    if (s.damaged) return;
+    card.classList.add('tappable');
+    card.addEventListener('click', (e) => { if (!e.target.closest('button, a')) playAt(s, 0); });
   }
 
   function storyRow(s) {
@@ -408,6 +415,7 @@
     row.append(art, txt, btn('more', ICON.more, `More: ${s.title}`, () => storyMenu(s)));
     if (s.damaged) row.append(btn('btn slim repair', '<span>Repair</span>', null, () => repairStory(s)));
     else row.append(btn('go', ICON.play, `Play ${s.title}`, () => playAt(s, 0)));
+    openOnTap(row, s);
     return row;
   }
 

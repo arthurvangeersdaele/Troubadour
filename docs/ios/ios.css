@@ -577,3 +577,8 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 .cv-opt .cover { width: 100%; height: 100%; border-radius: 9px; border: 1.5px solid color-mix(in srgb, var(--c) 55%, transparent); }
 .cv-opt[aria-checked="true"] { outline: 2.5px solid var(--accent); outline-offset: 2px; }
 .cv-opt[aria-checked="true"] .cover { border-color: var(--c); }
+
+/* Story cards open their player on a tap anywhere; the play triangle sits in the optical centre of its circle. */
+.app #library .tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.app #library .srow.tappable:active { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
+.app #library .srow .go svg { margin-left: 0; transform: translateX(-1px); }
