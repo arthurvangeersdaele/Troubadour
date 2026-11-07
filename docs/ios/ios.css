@@ -517,7 +517,7 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library .lib-b { height: 100%; align-items: stretch; }
   .app #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: var(--lib-foot); }
   /* The list's window ends exactly where the hero card ends. */
-  .app #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-bottom: var(--lib-foot); padding-bottom: var(--lib-fade); }
+  .app #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-bottom: var(--lib-foot); padding-bottom: 0; }
 }
 
 /* Portrait (one column): the same, stacked. The page never scrolls: the hero card and the
@@ -529,7 +529,7 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library .lib-b { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
   .app #library .lib-b > .hero { position: relative; top: auto; flex: none; min-height: 0; margin-bottom: 14px; }
   /* The list runs to the very bottom of the screen, under the home indicator; its last story scrolls clear of it. */
-  .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--lib-fade) + max(10px, env(safe-area-inset-bottom)) + var(--under, 0px)); }
+  .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 0; }
 }
 
 /* Soundbox toggle in the top bar: the star of a story's Soundbox button, lit on the soundbox screen. */
@@ -552,12 +552,15 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 /* The library uses the whole screen: iOS sometimes stops a Home Screen app above the home indicator
    (--under, measured in index.html); the library screen reaches down over that strip. */
 .app #library { --lib-fade: 26px; --lib-foot: calc(max(14px, env(safe-area-inset-bottom)) + var(--under, 0px)); bottom: calc(-1 * var(--under, 0px)); }
-/* The stories fade out at the bottom of their window too, as under "All stories". */
-.app #library .lib-list {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lib-fade)), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lib-fade)), transparent);
+/* The stories fade out at the bottom of their window too, as under "All stories": a veil that sticks to the
+   bottom of the scrolling list (a mask is not drawn on a scrolling list by Safari). */
+/* It also makes the room that lets the last story scroll clear of it (and, upright, of the home indicator). */
+.app #library .lib-list::after {
+  content: ''; display: block; flex: none; position: sticky; bottom: 0; z-index: 1; pointer-events: none;
+  height: calc(2 * var(--lib-fade) + var(--lib-extra, 0px)); margin-top: calc(-1 * var(--lib-fade) - 8px);
+  background: linear-gradient(to bottom, transparent 0, transparent calc(100% - var(--lib-fade) - var(--lib-extra, 0px)), var(--bg) 100%);
 }
-@media (max-width: 720px) { .app #library { --lib-fade: 40px; } }
+@media (max-width: 720px) { .app #library { --lib-fade: 40px; --lib-extra: calc(max(10px, env(safe-area-inset-bottom)) + var(--under, 0px)); } }
 
 /* Editor top bar: save state, the story's soundbox, play (icons only). */
 .app .tbar .ed-save { color: #3DAA63; border-color: transparent; background: transparent; outline: none; box-shadow: none; }

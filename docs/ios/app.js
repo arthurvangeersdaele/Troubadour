@@ -51,7 +51,7 @@
     savedOk: svg('<path d="M16.5 13.5V5A2.5 2.5 0 0 0 14 2.5H8A2.5 2.5 0 0 0 5.5 5v14A2.5 2.5 0 0 0 8 21.5h3.2"/><path d="M13.6 18l2.7 2.7 5.4-6.2" stroke-width="2.1"/>', 21),
     saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
     // The story's own soundbox: a yellow star over an open book.
-    bookStar: '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-2-1.4-5.5-1.9-9-1.2v12.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2V5.2c-3.5-.7-7-.2-9 1.2z"/><path d="M12.00 8.80L13.03 11.48L15.90 11.63L13.66 13.44L14.41 16.22L12.00 14.65L9.59 16.22L10.34 13.44L8.10 11.63L10.97 11.48Z" fill="var(--music)" stroke="var(--music)" stroke-width="0.9"/></svg>',
+    bookStar: '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-2-1.4-5.5-1.9-9-1.2v12.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2V5.2c-3.5-.7-7-.2-9 1.2z"/><path d="M12.00 9.40L12.79 11.51L15.04 11.61L13.28 13.02L13.88 15.19L12.00 13.95L10.12 15.19L10.72 13.02L8.96 11.61L11.21 11.51Z" fill="var(--music)" stroke="var(--music)" stroke-width="0.6"/></svg>',
     import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 18),
     edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
