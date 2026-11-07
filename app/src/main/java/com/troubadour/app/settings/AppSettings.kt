@@ -87,7 +87,7 @@ class AppSettings(context: Context) {
     var soundboxOpen by mutableStateOf(prefs.getBoolean("sbOpen", false))
         private set
     /** Random events: longest pause before a sound plays again, in seconds (1 to 10). The shortest is 0.5 s. */
-    var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 5).coerceIn(1, 10))
+    var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 5).coerceIn(1, com.troubadour.app.data.Sound.RANDOM_TOP))
         private set
     /** Living ambiances: ambiances drift up to 10 points around their volume, a new drift about every [lifeEvery] s. Off by default. */
     var lifeEvents by mutableStateOf(prefs.getBoolean("life", false))
@@ -128,7 +128,7 @@ class AppSettings(context: Context) {
     fun changeKeepAwake(v: Boolean) { keepAwake = v; prefs.edit().putBoolean("awake", v).apply() }
     fun changeMaster(v: Float) { master = v; prefs.edit().putFloat("master", v).apply() }
     fun changeSoundboxVolume(v: Float) { soundboxVolume = v; prefs.edit().putFloat("sbVol", v).apply() }
-    fun changeRandomMax(v: Int) { randomMax = v.coerceIn(1, 10); prefs.edit().putInt("randomMax", randomMax).apply() }
+    fun changeRandomMax(v: Int) { randomMax = v.coerceIn(1, com.troubadour.app.data.Sound.RANDOM_TOP); prefs.edit().putInt("randomMax", randomMax).apply() }
     fun changeLifeEvents(v: Boolean) { lifeEvents = v; prefs.edit().putBoolean("life", v).apply() }
     fun changeLifeEvery(v: Int) { lifeEvery = v.coerceIn(2, 30); prefs.edit().putInt("lifeEvery", lifeEvery).apply() }
     fun changeVolMusic(v: VolumeMode) { volMusic = v; prefs.edit().putString("volMusic", v.id).apply() }

@@ -412,7 +412,7 @@ private fun SettingsPanel(m: AppModel) {
             Segmented(listOf(0 to "Off", 500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeInMs) { st.changeFadeIn(it) }
         }
         SetRow("Fade-out on stop", null) {
-            Segmented(listOf(500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeMs) { st.changeFade(it) }
+            Segmented(listOf(0 to "Off", 500 to "0.5 s", 1000 to "1 s", 2000 to "2 s", 4000 to "4 s"), st.fadeMs) { st.changeFade(it) }
         }
         SetRow("Crossfade music tracks", "Starting a track fades out the one playing") {
             Toggle(st.crossfade) { st.changeCrossfade(it) }
@@ -424,7 +424,7 @@ private fun SettingsPanel(m: AppModel) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconBtn(BIcons.left, "Shorter", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax > 1) { st.changeRandomMax(st.randomMax - 1) }
                 T("${st.randomMax} s", weight = FontWeight.SemiBold, size = 16.sp, align = TextAlign.Center, modifier = Modifier.width(40.dp))
-                IconBtn(BIcons.right, "Longer", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax < 10) { st.changeRandomMax(st.randomMax + 1) }
+                IconBtn(BIcons.right, "Longer", size = 34.dp, iconSize = 13.dp, enabled = st.randomMax < com.troubadour.app.data.Sound.RANDOM_TOP) { st.changeRandomMax(st.randomMax + 1) }
             }
         }
         SetRow("Living ambiances", "Each ambiance drifts up to 10 above or below its volume, now and then, so it feels alive") {

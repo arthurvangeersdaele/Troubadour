@@ -421,6 +421,12 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
             IconBtn(BIcons.right, "Move later", size = 28.dp, iconSize = 12.dp, enabled = index < count - 1) { m.moveSound(t, index, 1) }
             // Soundbox effects fire once per tap: no loop button for them.
             if (t is Target.ChapterZone) LoopChip(s.loop, height = 24.dp) { m.updateSound(t, s.uid) { x -> x.copy(loop = x.loop.next(allowRandom = t.zone != Zone.MUSIC)) } }
+            // A random sound may set its own longest pause, over the settings: each tap takes the next choice.
+            if (t is Target.ChapterZone && s.loop == LoopMode.RANDOM) PauseChip(s.ownPause, height = 24.dp) {
+                val steps = listOf<Int?>(null) + Sound.PAUSE_STEPS
+                val i = steps.indexOf(s.ownPause).coerceAtLeast(0)
+                m.updateSound(t, s.uid) { x -> x.withOwnPause(steps[(i + 1) % steps.size]) }
+            }
         }
         // Default volume: the level the sound starts at on the table.
         Row(Modifier.height(28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -431,6 +437,22 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
             )
             T("${(s.volume * 100).roundToInt()}", color = C.muted, size = 12.sp, weight = FontWeight.SemiBold, align = TextAlign.End, modifier = Modifier.width(28.dp))
         }
+    }
+}
+
+/** The longest pause of a random sound on its card: "Auto" follows the settings, else its own seconds. */
+@Composable
+fun PauseChip(seconds: Int?, height: androidx.compose.ui.unit.Dp = 26.dp, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .height(height)
+            .width(40.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .border(1.dp, if (seconds != null) C.evt.copy(alpha = 0.6f) else C.line, RoundedCornerShape(6.dp))
+            .clickable(role = Role.Button, onClickLabel = "Longest pause before it plays again", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        T(seconds?.let { "${it} s" } ?: "Auto", color = if (seconds != null) C.evt else C.muted, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 

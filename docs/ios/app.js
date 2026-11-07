@@ -1001,6 +1001,7 @@
     return row;
   }
 
+  const PAUSE_STEPS = [1, 2, 3, 5, 8, 10, 15, 20, 25, 30];
   function editCard(s, i, list, zone, rerender) {
     const c = el('div', 'sc');
     c.style.setProperty('--z', zone.color);
@@ -1039,8 +1040,20 @@
       loop.classList.toggle('inf', s.loop === 'infinite');
       loop.classList.toggle('rnd', s.loop === 'random');
     };
+    // A random sound may have its own longest pause, over the one of the settings.
+    const pauseRow = el('label', 'row edpause');
+    pauseRow.append(el('span', 'vl', 'Plays again within'));
+    const ps = el('select');
+    ps.setAttribute('aria-label', `Longest pause of ${s.name}`);
+    [['', `Settings (${randomMax()} s)`], ...PAUSE_STEPS.map((n) => [String(n), `${n} s`])].forEach(([v, t]) => { const o = el('option', '', t); o.value = v; ps.append(o); });
+    ps.value = ownPause(s) ? String(ownPause(s)) : '';
+    if (ps.value !== '' && ![...ps.options].some((o) => o.value === ps.value)) { const o = el('option', '', `${ps.value} s`); o.value = ps.value; ps.append(o); ps.value = o.value; }
+    ps.onchange = () => { s.extra = s.extra || {}; if (ps.value) s.extra.randomMax = Number(ps.value); else delete s.extra.randomMax; dirty(); };
+    pauseRow.append(ps);
+    const paintPause = () => { pauseRow.hidden = s.loop !== 'random' || zone.id === 'soundbox'; };
     paintLoop();
-    loop.onclick = () => { s.loop = LOOP_NAMES[((LOOP_INDEX[s.loop] ?? 0) + 1) % (zone.id !== 'music' ? 4 : 3)]; paintLoop(); dirty(); };
+    paintPause();
+    loop.onclick = () => { s.loop = LOOP_NAMES[((LOOP_INDEX[s.loop] ?? 0) + 1) % (zone.id !== 'music' ? 4 : 3)]; paintLoop(); paintPause(); dirty(); };
     // Soundbox effects fire once per tap: no loop button for them.
     bottom.append(play, meta, mv);
     if (zone.id !== 'soundbox') bottom.append(loop);
@@ -1061,7 +1074,7 @@
       dirty();
     });
     volRow.append(vr, vp);
-    c.append(top, bottom, volRow);
+    c.append(top, bottom, volRow, pauseRow);
     return c;
   }
 
@@ -1429,7 +1442,13 @@
   /* ================= Audio ================= */
   let ctx = null, masterGain = null, sbGain = null;
   const curve = (v) => v * v;
-  const randomMax = () => Math.min(10, Math.max(1, Math.round(+settings.randomMax || 5)));
+  const RANDOM_TOP = 30;
+  const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 5)));
+  /** A sound's own longest pause (the "randomMax" of its card, 1 to 30 s), else the one of the settings. */
+  const ownPause = (sound) => {
+    const n = Number(sound && (sound.randomMax ?? (sound.extra && sound.extra.randomMax)));
+    return n >= 1 && n <= RANDOM_TOP ? n : null;
+  };
   /* Living ambiances: while it plays, an ambiance drifts up to 10 points above or below its volume, a new drift about every
    * settings.lifeEvery seconds (a little sooner or later each time), glided so it never jumps. Off: back to its volume. */
   /** The volume an ambiance is heard at right now, from the drift it is gliding through. */
@@ -1464,7 +1483,7 @@
       v.lifeAt = now + lifeEvery() * 1000 * (0.75 + Math.random() * 0.5);
     });
   }, 250);
-  const randomPause = () => 500 + Math.floor(Math.random() * Math.max(1, randomMax() * 1000 - 500));
+  const randomPause = (v) => 500 + Math.floor(Math.random() * Math.max(1, (ownPause(v && v.sound) || randomMax()) * 1000 - 500));
   function applyAudioSession() {
     try { if (navigator.audioSession) navigator.audioSession.type = settings.silent ? 'playback' : 'auto'; } catch (e) { /* older iOS */ }
   }
@@ -2034,7 +2053,7 @@
       pausedByAll.forEach((v) => v.state === 'paused' && v.play(MASTER_FADE / 1000));
       pausedByAll = [];
       const now = Date.now();
-      heldRandom.forEach((v) => { v.rnd = true; v.next = now + randomPause(); v.paint(); });
+      heldRandom.forEach((v) => { v.rnd = true; v.next = now + randomPause(v); v.paint(); });
       heldRandom = [];
     } else {
       pausedByAll = tbl.all.filter((v) => v.state === 'playing');
@@ -2181,7 +2200,7 @@
       const sounding = v.state === 'playing' || v.state === 'paused' || v.state === 'ending';
       if (sounding) { if (v.next) v.next = 0; return; }
       if (now - v.startedAt <= 400) return;
-      if (!v.next) { v.next = now + randomPause(); v.paint(); }
+      if (!v.next) { v.next = now + randomPause(v); v.paint(); }
       else if (now >= v.next) { v.next = 0; v.play(); }
     });
   }, 50);
@@ -2195,7 +2214,7 @@
     segment('#mode-pick', 'mode', (v) => v);
     segment('#fade-pick', 'fade', Number);
     segment('#fadein-pick', 'fadeIn', Number);
-    const stepRandom = (d) => { settings.randomMax = Math.min(10, Math.max(1, randomMax() + d)); save(); syncSettings(); };
+    const stepRandom = (d) => { settings.randomMax = Math.min(RANDOM_TOP, Math.max(1, randomMax() + d)); save(); syncSettings(); };
     $('#random-less').addEventListener('click', () => stepRandom(-1));
     $('#opt-life').addEventListener('change', (e) => { settings.life = e.target.checked; save(); syncSettings(); });
     const stepLife = (d) => { settings.lifeEvery = Math.min(30, Math.max(2, lifeEvery() + d)); save(); syncSettings(); };
@@ -2239,7 +2258,7 @@
     $('#life-less').disabled = !settings.life || lifeEvery() <= 2;
     $('#life-more').disabled = !settings.life || lifeEvery() >= 30;
     $('#life-row').classList.toggle('off', !settings.life);
-    $('#random-more').disabled = randomMax() >= 10;
+    $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;

@@ -28,7 +28,24 @@ data class Sound(
     val duration: Double? = null,
     /** Unknown .troubadour fields, kept as JSON text and written back on export. */
     val extra: String = "{}",
-)
+) {
+    /** A random sound's own longest pause before it plays again (the "randomMax" of its card), 1 to 30 s, or null. */
+    val ownPause: Int?
+        get() = runCatching { org.json.JSONObject(extra).optInt("randomMax", 0) }.getOrDefault(0).takeIf { it in 1..RANDOM_TOP }
+
+    fun withOwnPause(seconds: Int?): Sound {
+        val o = runCatching { org.json.JSONObject(extra) }.getOrDefault(org.json.JSONObject())
+        if (seconds == null) o.remove("randomMax") else o.put("randomMax", seconds)
+        return copy(extra = o.toString())
+    }
+
+    companion object {
+        /** The longest pause a random sound may wait, in seconds (settings and cards). */
+        const val RANDOM_TOP = 30
+        /** The choices of a card's own pause, after "the settings". */
+        val PAUSE_STEPS = listOf(1, 2, 3, 5, 8, 10, 15, 20, 25, 30)
+    }
+}
 
 data class Chapter(
     val uid: String,

@@ -41,6 +41,8 @@ html.iphone .not-iphone { display: none !important; }
 /* ---------- Base ---------- */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+/* iOS must not enlarge text on its own (it did in landscape, in the settings). */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font: 15px/1.35 'Barlow Semi Condensed', system-ui, sans-serif;

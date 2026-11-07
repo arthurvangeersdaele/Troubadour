@@ -243,7 +243,7 @@ class TableSession(
                 if (c.nextAt != 0L) c.nextAt = 0L
             } else if (now - c.startedAt > 400) {
                 if (c.nextAt == 0L) {
-                    c.nextAt = now + randomPause()
+                    c.nextAt = now + randomPause(c)
                 } else if (now >= c.nextAt) {
                     c.nextAt = 0L
                     c.startedAt = now
@@ -253,8 +253,9 @@ class TableSession(
         }
     }
 
-    private fun randomPause(): Long {
-        val max = settings.randomMax * 1000L
+    /** Between two plays of a random sound: 0.5 s up to its card's own longest pause, else the one of the settings. */
+    private fun randomPause(card: Card): Long {
+        val max = (card.sound.ownPause ?: settings.randomMax) * 1000L
         return 500L + kotlin.random.Random.nextLong((max - 500L).coerceAtLeast(1L))
     }
 
@@ -286,7 +287,8 @@ class TableSession(
         card.randomOn = false
         card.nextAt = 0L
         val s = card.slot ?: return
-        if (owner[s] === card) NativeEngine.end(s, ms)
+        // Fade-out Off: a click-free 30 ms.
+        if (owner[s] === card) NativeEngine.end(s, ms.coerceAtLeast(30))
     }
 
     fun setLoop(card: Card, loop: LoopMode) {
@@ -369,7 +371,7 @@ class TableSession(
             pausedByAll.forEach { if (stateOf(it) == NativeEngine.PAUSED || stateOf(it) == NativeEngine.PAUSING) play(it, fadeMs) }
             pausedByAll = emptyList()
             val now = SystemClock.uptimeMillis()
-            heldRandom.forEach { it.randomOn = true; it.nextAt = now + randomPause() }
+            heldRandom.forEach { it.randomOn = true; it.nextAt = now + randomPause(it) }
             heldRandom = emptyList()
         } else {
             val playing = cards.filter { stateOf(it) == NativeEngine.PLAYING }

@@ -425,8 +425,24 @@
       if (v > 0) s.extra.blend = v; else delete s.extra.blend;
     };
     blendRow.append(blend);
+    // Random: its own longest pause before it plays again, over the one of each player's settings.
+    const pauseRow = el('label', 'row edblend');
+    pauseRow.append(el('span', 'vl', 'Plays again within'));
+    const ps = el('select');
+    ps.setAttribute('aria-label', `Longest pause of ${s.name} before it plays again`);
+    ps.title = 'The longest random pause between two plays. Players use their own setting (5 s unless changed) when this says Player setting.';
+    [['', 'Player setting'], ...[1, 2, 3, 5, 8, 10, 15, 20, 25, 30].map((n) => [String(n), `${n} s`])].forEach(([v, t]) => { const o = el('option', '', t); o.value = v; ps.append(o); });
+    const own = Number(s.extra && s.extra.randomMax);
+    ps.value = own >= 1 && own <= 30 ? String(own) : '';
+    if (ps.value && ps.value !== String(own)) ps.value = '';
+    ps.addEventListener('mousedown', (e) => e.stopPropagation());
+    ps.onchange = () => { s.extra = s.extra || {}; if (ps.value) s.extra.randomMax = Number(ps.value); else delete s.extra.randomMax; saveSoon(); };
+    pauseRow.append(ps);
     paintLoop();
-    const paintBlend = () => { blendRow.hidden = s.loop !== 'infinite' || zone === 'soundbox' || zone === 'events'; };
+    const paintBlend = () => {
+      blendRow.hidden = s.loop !== 'infinite' || zone === 'soundbox' || zone === 'events';
+      pauseRow.hidden = s.loop !== 'random' || zone === 'soundbox';
+    };
     paintBlend();
     loop.onclick = () => { s.loop = nextLoop(s.loop, zone); paintLoop(); paintBlend(); };
     const cut = el('button', 'cut');
@@ -469,7 +485,7 @@
       if (pv) pv.audio.volume = s.volume;
     });
     volRow.append(vr, vp);
-    c.append(top, bottom, volRow, blendRow);
+    c.append(top, bottom, volRow, blendRow, pauseRow);
     c.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-troubadour-sound', s.id);
       e.dataTransfer.effectAllowed = 'move';
