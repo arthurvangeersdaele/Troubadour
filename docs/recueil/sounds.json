@@ -1,6 +1,47 @@
 {
- "updated": "2026-11-07T08:01:40Z",
+ "updated": "2026-11-07T11:42:32Z",
  "sounds": [
+  {
+   "id": "c09828ec2c0d6c6c",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "A cry in the valley",
+   "names": [
+    {
+     "name": "A cry in the valley",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "cry_from_elensefar.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/cry_from_elensefar.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "(pluft)",
+     "licence": "CC BY-SA 4.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/music/05-a-cry-in-the-valley.mp3",
+   "offset": 12964864,
+   "length": 3470262,
+   "size": 3470262,
+   "deflated": false,
+   "duration": 247.8
+  },
   {
    "id": "a0c8c68f92d0d9f8",
    "row": "music",
@@ -576,6 +617,47 @@
    "duration": 49.8
   },
   {
+   "id": "ad5fc176d283945a",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Breaking the chains",
+   "names": [
+    {
+     "name": "Breaking the chains",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "breaking_the_chains.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/breaking_the_chains.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Mattias Westlund(West)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/music/04-breaking-the-chains.mp3",
+   "offset": 29724945,
+   "length": 2957165,
+   "size": 2957165,
+   "deflated": false,
+   "duration": 211.2
+  },
+  {
    "id": "0a3c3980e7a11a06",
    "row": "music",
    "rows": [
@@ -656,6 +738,47 @@
    "size": 1962422,
    "deflated": false,
    "duration": 140.1
+  },
+  {
+   "id": "c947e638a6eb8029",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Casualties of the night",
+   "names": [
+    {
+     "name": "Casualties of the night",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "casualties_of_war.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/casualties_of_war.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Tyler Johnson",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/music/02-casualties-of-the-night.mp3",
+   "offset": 55560763,
+   "length": 4531930,
+   "size": 4531930,
+   "deflated": false,
+   "duration": 323.7
   },
   {
    "id": "4625bb3dd7f02244",
@@ -1027,6 +1150,47 @@
    "size": 1778468,
    "deflated": false,
    "duration": 127.0
+  },
+  {
+   "id": "87117eba17ea3cdc",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Dawn over Ravenmoor",
+   "names": [
+    {
+     "name": "Dawn over Ravenmoor",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "journeys_end.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/journeys_end.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Mattias Westlund(West)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/music/05-dawn-over-ravenmoor.mp3",
+   "offset": 63628622,
+   "length": 3091382,
+   "size": 3091382,
+   "deflated": false,
+   "duration": 220.8
   },
   {
    "id": "520e04716adc795e",
@@ -1809,6 +1973,47 @@
    "duration": 162.9
   },
   {
+   "id": "fa32976c27080e9b",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Frantic accusations",
+   "names": [
+    {
+     "name": "Frantic accusations",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "frantic.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/frantic.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Stephen Rozanc(TreizeCouleurs)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/music/01-frantic-accusations.mp3",
+   "offset": 20404148,
+   "length": 2278033,
+   "size": 2278033,
+   "deflated": false,
+   "duration": 162.7
+  },
+  {
    "id": "3800a8e8859e885f",
    "row": "music",
    "rows": [
@@ -2260,6 +2465,47 @@
    "duration": 90.1
   },
   {
+   "id": "198284d994ba76b4",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Into the dark",
+   "names": [
+    {
+     "name": "Into the dark",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "dungeon_theme.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/music/dungeon_theme.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, remaxim",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/music/02-into-the-dark.mp3",
+   "offset": 41034327,
+   "length": 2468936,
+   "size": 2468936,
+   "deflated": false,
+   "duration": 176.3
+  },
+  {
    "id": "3df0a2ddd0807690",
    "row": "music",
    "rows": [
@@ -2640,6 +2886,11 @@
      "name": "Last breath on the surface",
      "tale": "Dungeon Crawler Carl, Tome 1",
      "bard": "Troubadour"
+    },
+    {
+     "name": "Hiding in the shadows",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
     }
    ],
    "origin": [
@@ -2658,7 +2909,8 @@
    },
    "tale": "Dungeon Crawler Carl, Tome 1",
    "tales": [
-    "Dungeon Crawler Carl, Tome 1"
+    "Dungeon Crawler Carl, Tome 1",
+    "Werewolves of Ravenmoor"
    ],
    "bard": "Troubadour",
    "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
@@ -2668,6 +2920,47 @@
    "size": 1759450,
    "deflated": false,
    "duration": 125.6
+  },
+  {
+   "id": "9a3c24d142ce6a52",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Legends of the wolf",
+   "names": [
+    {
+     "name": "Legends of the wolf",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "legends_of_the_north.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/legends_of_the_north.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Mattias Westlund(West)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/music/03-legends-of-the-wolf.mp3",
+   "offset": 7101963,
+   "length": 2976182,
+   "size": 2976182,
+   "deflated": false,
+   "duration": 212.6
   },
   {
    "id": "2512093037580608",
@@ -3010,6 +3303,11 @@
      "name": "Mob on the corner",
      "tale": "Dungeon Crawler Carl, Tome 1",
      "bard": "Troubadour"
+    },
+    {
+     "name": "The tense square",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
     }
    ],
    "origin": [
@@ -3028,7 +3326,8 @@
    },
    "tale": "Dungeon Crawler Carl, Tome 1",
    "tales": [
-    "Dungeon Crawler Carl, Tome 1"
+    "Dungeon Crawler Carl, Tome 1",
+    "Werewolves of Ravenmoor"
    ],
    "bard": "Troubadour",
    "file": "261022_dungeon_crawler_carl_tome_1.troubadour",
@@ -3367,6 +3666,47 @@
    "size": 2337279,
    "deflated": false,
    "duration": 166.9
+  },
+  {
+   "id": "a0c0fa705d78fac3",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Northern dread",
+   "names": [
+    {
+     "name": "Northern dread",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "northerners.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/northerners.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Stephen Rozanc(TreizeCouleurs)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/music/04-northern-dread.mp3",
+   "offset": 10078211,
+   "length": 2886582,
+   "size": 2886582,
+   "deflated": false,
+   "duration": 206.2
   },
   {
    "id": "b96e057944a0ba56",
@@ -4273,6 +4613,47 @@
    "duration": 152.5
   },
   {
+   "id": "13846b8d82ff83d1",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Siege of doubt",
+   "names": [
+    {
+     "name": "Siege of doubt",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "siege_of_laurelmor.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/siege_of_laurelmor.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Doug Kaufman(dkaufman)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/music/02-siege-of-doubt.mp3",
+   "offset": 22682247,
+   "length": 3659336,
+   "size": 3659336,
+   "deflated": false,
+   "duration": 261.4
+  },
+  {
    "id": "f38a47d3d7468552",
    "row": "music",
    "rows": [
@@ -4645,6 +5026,88 @@
    "duration": 134.0
   },
   {
+   "id": "013007e617956c45",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Teeth in the dark",
+   "names": [
+    {
+     "name": "Teeth in the dark",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "caves_tense.ogg",
+     "url": "https://github.com/00-Evan/shattered-pixel-dungeon/blob/master/core/src/main/assets/music/caves_tense.ogg",
+     "project": "Shattered Pixel Dungeon",
+     "author": "Kristjan Haaristo",
+     "licence": "GNU GPL v3"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/music/03-teeth-in-the-dark.mp3",
+   "offset": 43503332,
+   "length": 1593782,
+   "size": 1593782,
+   "deflated": false,
+   "duration": 113.8
+  },
+  {
+   "id": "1dc7259fe6947f02",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The cards are dealt",
+   "names": [
+    {
+     "name": "The cards are dealt",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "the_deep_path.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/the_deep_path.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Gianmarco Leone(gmlion)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/music/01-the-cards-are-dealt.mp3",
+   "offset": 95103,
+   "length": 3048959,
+   "size": 3048959,
+   "deflated": false,
+   "duration": 217.8
+  },
+  {
    "id": "c244a5e527b0d5fb",
    "row": "music",
    "rows": [
@@ -4852,6 +5315,47 @@
    "duration": 84.9
   },
   {
+   "id": "4fdf9f1a23a04680",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The forsaken",
+   "names": [
+    {
+     "name": "The forsaken",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "the_forsaken_mine.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/music/the_forsaken_mine.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/music/05-the-forsaken.mp3",
+   "offset": 46856701,
+   "length": 1081782,
+   "size": 1081782,
+   "deflated": false,
+   "duration": 77.2
+  },
+  {
    "id": "ca1cbf7998681167",
    "row": "music",
    "rows": [
@@ -4973,6 +5477,88 @@
    "size": 1958399,
    "deflated": false,
    "duration": 139.9
+  },
+  {
+   "id": "2e8833d92c9fcd9e",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The last stand",
+   "names": [
+    {
+     "name": "The last stand",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "battle-epic.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/battle-epic.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Doug Kaufman(dkaufman)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/music/03-the-last-stand.mp3",
+   "offset": 60092759,
+   "length": 1028753,
+   "size": 1028753,
+   "deflated": false,
+   "duration": 73.5
+  },
+  {
+   "id": "b6bcd48230e8c095",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The last werewolf",
+   "names": [
+    {
+     "name": "The last werewolf",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "boss_theme.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/music/boss_theme.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, remaxim",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/music/04-the-last-werewolf.mp3",
+   "offset": 61121581,
+   "length": 2506970,
+   "size": 2506970,
+   "deflated": false,
+   "duration": 179.0
   },
   {
    "id": "8cea0e9ddb0d04d0",
@@ -5137,6 +5723,88 @@
    "size": 4218148,
    "deflated": false,
    "duration": 301.3
+  },
+  {
+   "id": "44ed7c638d0576b0",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The village falls",
+   "names": [
+    {
+     "name": "The village falls",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "the_city_falls.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/the_city_falls.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Doug Kaufman(dkaufman)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/music/01-the-village-falls.mp3",
+   "offset": 52114563,
+   "length": 3446125,
+   "size": 3446125,
+   "deflated": false,
+   "duration": 246.1
+  },
+  {
+   "id": "a665a4c8c3ed3e65",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "The wolves gather",
+   "names": [
+    {
+     "name": "The wolves gather",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "undead_siege.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/undead_siege.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Tomek Szczęsny(mctom)",
+     "licence": "CC BY-SA 4.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/music/01-the-wolves-gather.mp3",
+   "offset": 38327977,
+   "length": 2706285,
+   "size": 2706285,
+   "deflated": false,
+   "duration": 193.3
   },
   {
    "id": "2d26dc0804378af1",
@@ -5508,6 +6176,47 @@
    "duration": 105.3
   },
   {
+   "id": "0f4c569c5d9806fd",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Unrest in Ravenmoor",
+   "names": [
+    {
+     "name": "Unrest in Ravenmoor",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "unrest_theme.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/music/unrest_theme.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, remaxim",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/music/02-unrest-in-ravenmoor.mp3",
+   "offset": 3144133,
+   "length": 3957759,
+   "size": 3957759,
+   "deflated": false,
+   "duration": 282.7
+  },
+  {
    "id": "4f90d82efa26eecd",
    "row": "music",
    "rows": [
@@ -5752,6 +6461,47 @@
    "size": 2632045,
    "deflated": false,
    "duration": 188.0
+  },
+  {
+   "id": "3f99ddbc4a52075c",
+   "row": "music",
+   "rows": [
+    "music"
+   ],
+   "name": "Weight of revenge",
+   "names": [
+    {
+     "name": "Weight of revenge",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "weight_of_revenge.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/music/weight_of_revenge.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Doug Kaufman(dkaufman)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/music/03-weight-of-revenge.mp3",
+   "offset": 26341652,
+   "length": 3383222,
+   "size": 3383222,
+   "deflated": false,
+   "duration": 241.6
   },
   {
    "id": "5577611968634332",
@@ -6410,6 +7160,70 @@
    "size": 378461,
    "deflated": false,
    "duration": 47.3
+  },
+  {
+   "id": "09144f81f161e5a5",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Burning houses",
+   "names": [
+    {
+     "name": "Burning houses",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "fire.ogg",
+     "url": "https://github.com/redeclipse/sounds/blob/master/ambience/fire.ogg",
+     "project": "Red Eclipse",
+     "author": "Quinton \"quin\" Reeves, Alex \"blackshoe\" Anguix",
+     "licence": "CC BY-SA 4.0"
+    },
+    {
+     "title": "campfire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Iris Morelle(Iris)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/ambience/01-burning-houses.mp3",
+   "offset": 66720073,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
   },
   {
    "id": "3253a1583ae8a28f",
@@ -7700,6 +8514,56 @@
    "duration": 53.4
   },
   {
+   "id": "2f0084ebbb6dbeb8",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Dawn after the last night",
+   "names": [
+    {
+     "name": "Dawn after the last night",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "morning.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/morning.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/ambience/05-dawn-after-the-last-night.mp3",
+   "offset": 69490811,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
+  },
+  {
    "id": "c76108b75acb1496",
    "row": "ambience",
    "rows": [
@@ -8035,6 +8899,65 @@
    "size": 7836,
    "deflated": false,
    "duration": 0.6
+  },
+  {
+   "id": "d8b4a1e55d1d3c9c",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Distant howls",
+   "names": [
+    {
+     "name": "Distant howls",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "wolf-howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-01.ogg",
+     "project": "Stendhal",
+     "author": "y89312",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/y89312/sounds/139901/"
+    },
+    {
+     "title": "wolf-howl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg",
+     "project": "Stendhal",
+     "author": "killyourpepe",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/killyourpepe/sounds/395192/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/ambience/05-distant-howls.mp3",
+   "offset": 19240319,
+   "length": 720666,
+   "size": 720666,
+   "deflated": false,
+   "duration": 60.0
   },
   {
    "id": "0488c45a5890cb0c",
@@ -8510,6 +9433,47 @@
    "size": 407300,
    "deflated": false,
    "duration": 50.9
+  },
+  {
+   "id": "c2e0b6933e0911cf",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Drums of judgement",
+   "names": [
+    {
+     "name": "Drums of judgement",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wardrums.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/wardrums.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/ambience/03-drums-of-judgement.mp3",
+   "offset": 35377024,
+   "length": 641671,
+   "size": 641671,
+   "deflated": false,
+   "duration": 53.4
   },
   {
    "id": "1406be4cba61878a",
@@ -9453,6 +10417,47 @@
    "duration": 45.3
   },
   {
+   "id": "05f48ea5ab2b0bc5",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Ghostly wind",
+   "names": [
+    {
+     "name": "Ghostly wind",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "ghosty_wind.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/music/antag/bloodcult/ghosty_wind.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/ambience/03-ghostly-wind.mp3",
+   "offset": 68033658,
+   "length": 544182,
+   "size": 544182,
+   "deflated": false,
+   "duration": 45.3
+  },
+  {
    "id": "5d80612b0385993d",
    "row": "ambience",
    "rows": [
@@ -9492,6 +10497,72 @@
    "size": 378043,
    "deflated": false,
    "duration": 47.2
+  },
+  {
+   "id": "7fb97573c4dd9168",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Grey morning",
+   "names": [
+    {
+     "name": "Grey morning",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bird-crow-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bird-crow-01.ogg",
+     "project": "Stendhal",
+     "author": "Jonathan Shaw (InspectorJ)",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/InspectorJ/sounds/418262/"
+    },
+    {
+     "title": "bird-crow-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bird-crow-02.ogg",
+     "project": "Stendhal",
+     "author": "Samuel Strågefors (straget)",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/straget/sounds/404687/"
+    },
+    {
+     "title": "raven_loop.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/raven_loop.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/ambience/01-grey-morning.mp3",
+   "offset": 34389033,
+   "length": 630700,
+   "size": 630700,
+   "deflated": false,
+   "duration": 52.5
   },
   {
    "id": "51789ce9afed31f4",
@@ -11002,6 +12073,49 @@
    "duration": 45.7
   },
   {
+   "id": "8c17feea31c31815",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Murmurs of the villagers",
+   "names": [
+    {
+     "name": "Murmurs of the villagers",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "inaudible_chatter.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/radio/inaudible_chatter.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "kwahmah_02",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/kwahmah_02/sounds/255851/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/ambience/02-murmurs-of-the-villagers.mp3",
+   "offset": 17367540,
+   "length": 365713,
+   "size": 365713,
+   "deflated": false,
+   "duration": 45.7
+  },
+  {
    "id": "ccb6e4363eed1bc1",
    "row": "ambience",
    "rows": [
@@ -11303,6 +12417,56 @@
    "duration": 53.9
   },
   {
+   "id": "42518f5614221ad3",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Owls in the forest",
+   "names": [
+    {
+     "name": "Owls in the forest",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "forest_owl_loop.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/forest_owl_loop.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/ambience/02-owls-in-the-forest.mp3",
+   "offset": 48308937,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
+  },
+  {
    "id": "266cc2dcbb86e554",
    "row": "ambience",
    "rows": [
@@ -11478,6 +12642,56 @@
    "size": 365922,
    "deflated": false,
    "duration": 45.7
+  },
+  {
+   "id": "b5811ea0ffae8c8a",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Pounding heart",
+   "names": [
+    {
+     "name": "Pounding heart",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "heartbeat.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/heartbeat.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/ambience/05-pounding-heart.mp3",
+   "offset": 36951100,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
   },
   {
    "id": "970c3f497620e809",
@@ -11957,6 +13171,113 @@
    "duration": 64.8
   },
   {
+   "id": "341e1e01fa1acd92",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Ravens on the rooftops",
+   "names": [
+    {
+     "name": "Ravens on the rooftops",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "raven_loop.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/raven_loop.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/ambience/04-ravens-on-the-rooftops.mp3",
+   "offset": 18307993,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
+  },
+  {
+   "id": "c0a12dc2d9a0731a",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Ravens over the gallows",
+   "names": [
+    {
+     "name": "Ravens over the gallows",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "raven_loop.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/raven_loop.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/ambience/04-ravens-over-the-gallows.mp3",
+   "offset": 36018773,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
+  },
+  {
    "id": "a6affee9e2ce5298",
    "row": "ambience",
    "rows": [
@@ -12037,6 +13358,105 @@
    "size": 566125,
    "deflated": false,
    "duration": 47.2
+  },
+  {
+   "id": "9ce4f996d3ddf0db",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Restless sleep",
+   "names": [
+    {
+     "name": "Restless sleep",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "fastbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/fastbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "WindLoop.ogg",
+     "url": "https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Environment.ocg/WindLoop.ogg",
+     "project": "OpenClonk",
+     "author": "OpenClonk team",
+     "licence": "CC BY 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/ambience/05-restless-sleep.mp3",
+   "offset": 51115014,
+   "length": 601547,
+   "size": 601547,
+   "deflated": false,
+   "duration": 50.1
+  },
+  {
+   "id": "5048d8055b3c6fad",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Restless villagers",
+   "names": [
+    {
+     "name": "Restless villagers",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "inaudible_chatter_2.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/radio/inaudible_chatter_2.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "kwahmah_02",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/kwahmah_02/sounds/255851/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/ambience/02-restless-villagers.mp3",
+   "offset": 35019806,
+   "length": 357145,
+   "size": 357145,
+   "deflated": false,
+   "duration": 44.6
   },
   {
    "id": "6fe288cbf7d615a5",
@@ -13705,6 +15125,80 @@
    "duration": 47.0
   },
   {
+   "id": "cdaf0b10281480b1",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "The pack howls",
+   "names": [
+    {
+     "name": "The pack howls",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "werewolf_howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_howl-01.ogg",
+     "project": "Stendhal",
+     "author": "NaturesTemper",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/NaturesTemper/sounds/398430/"
+    },
+    {
+     "title": "wolf-howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-01.ogg",
+     "project": "Stendhal",
+     "author": "y89312",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/y89312/sounds/139901/"
+    },
+    {
+     "title": "wolf-howl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg",
+     "project": "Stendhal",
+     "author": "killyourpepe",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/killyourpepe/sounds/395192/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/ambience/04-the-pack-howls.mp3",
+   "offset": 68577909,
+   "length": 912822,
+   "size": 912822,
+   "deflated": false,
+   "duration": 76.0
+  },
+  {
    "id": "5989c63da2054c00",
    "row": "ambience",
    "rows": [
@@ -13789,6 +15283,48 @@
    "file": "261015_le_camping_rondin_des_bois.troubadour",
    "path": "sounds/4/ambience/02-thunderstorm.mp3",
    "offset": 32410530,
+   "length": 381177,
+   "size": 381177,
+   "deflated": false,
+   "duration": 47.6
+  },
+  {
+   "id": "73ed94673b832592",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Thunderstorm over the valley",
+   "names": [
+    {
+     "name": "Thunderstorm over the valley",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "thunderstorm.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/environment/weather/thunderstorm.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "bruno.auzet",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/bruno.auzet/sounds/531041/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/ambience/02-thunderstorm-over-the-valley.mp3",
+   "offset": 67652414,
    "length": 381177,
    "size": 381177,
    "deflated": false,
@@ -13926,6 +15462,55 @@
    "size": 535405,
    "deflated": false,
    "duration": 44.6
+  },
+  {
+   "id": "0734f0d4c8ec96ef",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Torches in the wind",
+   "names": [
+    {
+     "name": "Torches in the wind",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "campfire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Iris Morelle(Iris)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/ambience/03-torches-in-the-wind.mp3",
+   "offset": 17733327,
+   "length": 574589,
+   "size": 574589,
+   "deflated": false,
+   "duration": 47.9
   },
   {
    "id": "1ab94b619b47ef6d",
@@ -14360,6 +15945,47 @@
    "duration": 70.1
   },
   {
+   "id": "f2610e4b73c82d66",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Village at night",
+   "names": [
+    {
+     "name": "Village at night",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/ambience/01-village-at-night.mp3",
+   "offset": 47938554,
+   "length": 370310,
+   "size": 370310,
+   "deflated": false,
+   "duration": 46.3
+  },
+  {
    "id": "521b03cb1f514489",
    "row": "ambience",
    "rows": [
@@ -14441,6 +16067,56 @@
    "size": 312179,
    "deflated": false,
    "duration": 38.9
+  },
+  {
+   "id": "b32f74e270066be6",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Village square at dusk",
+   "names": [
+    {
+     "name": "Village square at dusk",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "amb_farm_10.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/building/amb_farm_10.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/ambience/01-village-square-at-dusk.mp3",
+   "offset": 16435203,
+   "length": 932258,
+   "size": 932258,
+   "deflated": false,
+   "duration": 77.7
   },
   {
    "id": "b853a6a8fe190567",
@@ -14862,6 +16538,57 @@
    "duration": 44.7
   },
   {
+   "id": "8d721647a735197e",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Wind in the shutters",
+   "names": [
+    {
+     "name": "Wind in the shutters",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind_heavy.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind_heavy.ogg",
+     "project": "Stendhal",
+     "author": "stewdio2003",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/stewdio2003/sounds/238374/"
+    },
+    {
+     "title": "creak-2.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creak-2.ogg",
+     "project": "Stendhal",
+     "author": "stephan",
+     "licence": "Public domain",
+     "original": "https://soundbible.com/1717-Creaking-Door-Spooky.html"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/ambience/03-wind-in-the-shutters.mp3",
+   "offset": 49241270,
+   "length": 912822,
+   "size": 912822,
+   "deflated": false,
+   "duration": 76.0
+  },
+  {
    "id": "0c04ab0b5c395c1b",
    "row": "ambience",
    "rows": [
@@ -15039,6 +16766,87 @@
    "duration": 58.0
   },
   {
+   "id": "c20f5c1252bbdd67",
+   "row": "ambience",
+   "rows": [
+    "ambience"
+   ],
+   "name": "Wolves circling",
+   "names": [
+    {
+     "name": "Wolves circling",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "WindLoop.ogg",
+     "url": "https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Environment.ocg/WindLoop.ogg",
+     "project": "OpenClonk",
+     "author": "OpenClonk team",
+     "licence": "CC BY 3.0"
+    },
+    {
+     "title": "wolf-growl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-growl-01.ogg",
+     "project": "Stendhal",
+     "author": "newagesoup",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/newagesoup/sounds/338674/"
+    },
+    {
+     "title": "werewolf_growl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_growl-02.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "wolf-howl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg",
+     "project": "Stendhal",
+     "author": "killyourpepe",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/killyourpepe/sounds/395192/"
+    },
+    {
+     "title": "werewolf_snarl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_snarl-01.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/ambience/04-wolves-circling.mp3",
+   "offset": 50154162,
+   "length": 960783,
+   "size": 960783,
+   "deflated": false,
+   "duration": 80.0
+  },
+  {
    "id": "95c6472069e6eccb",
    "row": "events",
    "rows": [
@@ -15078,6 +16886,70 @@
    "size": 21693,
    "deflated": false,
    "duration": 2.6
+  },
+  {
+   "id": "e55710a92ee9f9db",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "A body is found at dawn",
+   "names": [
+    {
+     "name": "A body is found at dawn",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "gasp_female1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/mobs/humanoids/human/gasp/gasp_female1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "gasp_male1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/mobs/humanoids/human/gasp/gasp_male1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/events/01-a-body-is-found-at-dawn.mp3",
+   "offset": 37883434,
+   "length": 87771,
+   "size": 87771,
+   "deflated": false,
+   "duration": 7.3
   },
   {
    "id": "273f6bce7352e70f",
@@ -15894,6 +17766,78 @@
    "size": 6477,
    "deflated": false,
    "duration": 0.8
+  },
+  {
+   "id": "ec80b2a688b4ddf2",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "Building the gallows",
+   "names": [
+    {
+     "name": "Building the gallows",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "treechop1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/treechop/treechop1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "treechop2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/treechop/treechop2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "treechop3.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/treechop/treechop3.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creak-2.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creak-2.ogg",
+     "project": "Stendhal",
+     "author": "stephan",
+     "licence": "Public domain",
+     "original": "https://soundbible.com/1717-Creaking-Door-Spooky.html"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/events/02-building-the-gallows.mp3",
+   "offset": 37971278,
+   "length": 84636,
+   "size": 84636,
+   "deflated": false,
+   "duration": 7.0
   },
   {
    "id": "e66a9439f66325c3",
@@ -16970,6 +18914,70 @@
    "size": 20571,
    "deflated": false,
    "duration": 1.6
+  },
+  {
+   "id": "103ce0f7079f3459",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "Cupid's arrow",
+   "names": [
+    {
+     "name": "Cupid's arrow",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bow.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/bow.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "magic-faeriefire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-faeriefire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "heartbeat.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/heartbeat.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/events/03-cupids-arrow.mp3",
+   "offset": 20111775,
+   "length": 84636,
+   "size": 84636,
+   "deflated": false,
+   "duration": 7.0
   },
   {
    "id": "1f04b330ae6082b4",
@@ -19148,6 +21156,77 @@
    "duration": 0.6
   },
   {
+   "id": "d5e1b2a901f9995f",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "Hanged at the gallows",
+   "names": [
+    {
+     "name": "Hanged at the gallows",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creaky-door-close-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creaky-door-close-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "bodyfall2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creak-2.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creak-2.ogg",
+     "project": "Stendhal",
+     "author": "stephan",
+     "licence": "Public domain",
+     "original": "https://soundbible.com/1717-Creaking-Door-Spooky.html"
+    },
+    {
+     "title": "creak1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/creak/creak1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/events/04-hanged-at-the-gallows.mp3",
+   "offset": 38152919,
+   "length": 87771,
+   "size": 87771,
+   "deflated": false,
+   "duration": 7.3
+  },
+  {
    "id": "9deb4c0787b17abe",
    "row": "events",
    "rows": [
@@ -20817,6 +22896,63 @@
    "size": 53483,
    "deflated": false,
    "duration": 4.4
+  },
+  {
+   "id": "e08b76b35a01b52a",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "Night falls on Ravenmoor",
+   "names": [
+    {
+     "name": "Night falls on Ravenmoor",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_howl-01.ogg",
+     "project": "Stendhal",
+     "author": "NaturesTemper",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/NaturesTemper/sounds/398430/"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/events/05-night-falls-on-ravenmoor.mp3",
+   "offset": 20287467,
+   "length": 116610,
+   "size": 116610,
+   "deflated": false,
+   "duration": 9.7
   },
   {
    "id": "f6f6e8547c1a1795",
@@ -23507,6 +25643,55 @@
    "duration": 1.8
   },
   {
+   "id": "b74350eb8c0cd101",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The cards are dealt",
+   "names": [
+    {
+     "name": "The cards are dealt",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "campfire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Iris Morelle(Iris)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "inventory_page.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_page.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/events/02-the-cards-are-dealt.mp3",
+   "offset": 20059258,
+   "length": 52452,
+   "size": 52452,
+   "deflated": false,
+   "duration": 6.5
+  },
+  {
    "id": "730be236f44543da",
    "row": "events",
    "rows": [
@@ -23547,6 +25732,62 @@
    "size": 34689,
    "deflated": false,
    "duration": 4.3
+  },
+  {
+   "id": "88d71c4ee8a0c10d",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The final vote",
+   "names": [
+    {
+     "name": "The final vote",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wardrums.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/wardrums.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/events/01-the-final-vote.mp3",
+   "offset": 70423136,
+   "length": 110341,
+   "size": 110341,
+   "deflated": false,
+   "duration": 9.2
   },
   {
    "id": "7eec422548024e5a",
@@ -23630,6 +25871,323 @@
    "size": 14599,
    "deflated": false,
    "duration": 1.7
+  },
+  {
+   "id": "eb497bfb017ac50b",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The Hunter's last shot",
+   "names": [
+    {
+     "name": "The Hunter's last shot",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "Musket_1.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/attack/weapon/Musket_1.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "bodyfall3.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall3.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/events/05-the-hunters-last-shot.mp3",
+   "offset": 38240764,
+   "length": 87144,
+   "size": 87144,
+   "deflated": false,
+   "duration": 7.2
+  },
+  {
+   "id": "5dc666c86c8fd813",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The last card is revealed",
+   "names": [
+    {
+     "name": "The last card is revealed",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-dark-big.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-dark-big.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "Thunder2.ogg",
+     "url": "https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Environment.ocg/Lightning.ocg/Thunder2.ogg",
+     "project": "OpenClonk",
+     "author": "OpenClonk team",
+     "licence": "CC BY 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/events/02-the-last-card-is-revealed.mp3",
+   "offset": 70533555,
+   "length": 93727,
+   "size": 93727,
+   "deflated": false,
+   "duration": 7.8
+  },
+  {
+   "id": "c36ecbef495233a5",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The Little Girl peeks",
+   "names": [
+    {
+     "name": "The Little Girl peeks",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "step_cloth1.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_cloth1.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "step_cloth2.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_cloth2.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creaky-door-open-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creaky-door-open-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "step_cloth3.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_cloth3.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "slowbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/slowbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/events/05-the-little-girl-peeks.mp3",
+   "offset": 52023902,
+   "length": 90592,
+   "size": 90592,
+   "deflated": false,
+   "duration": 7.5
+  },
+  {
+   "id": "725a4d3bbd633cc7",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The lovers are bound",
+   "names": [
+    {
+     "name": "The lovers are bound",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "magic-holy-2.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-holy-2.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Richard Kettering(Jetrel)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "slowbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/slowbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "heal.wav",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/heal.wav",
+     "project": "Battle for Wesnoth",
+     "author": "unknown",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/events/04-the-lovers-are-bound.mp3",
+   "offset": 20196484,
+   "length": 90906,
+   "size": 90906,
+   "deflated": false,
+   "duration": 7.5
+  },
+  {
+   "id": "f5a8add426aed745",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The lovers win together",
+   "names": [
+    {
+     "name": "The lovers win together",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "morning.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/morning.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "slowbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/slowbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-faeriefire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-faeriefire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "heal.wav",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/heal.wav",
+     "project": "Battle for Wesnoth",
+     "author": "unknown",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/events/05-the-lovers-win-together.mp3",
+   "offset": 70851948,
+   "length": 96862,
+   "size": 96862,
+   "deflated": false,
+   "duration": 8.0
   },
   {
    "id": "5f4603fab8a7cf0a",
@@ -23724,6 +26282,72 @@
    "duration": 6.1
   },
   {
+   "id": "5e93ba8ba8a3aa3c",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The pack's victory howl",
+   "names": [
+    {
+     "name": "The pack's victory howl",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_howl-01.ogg",
+     "project": "Stendhal",
+     "author": "NaturesTemper",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/NaturesTemper/sounds/398430/"
+    },
+    {
+     "title": "wolf-howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-01.ogg",
+     "project": "Stendhal",
+     "author": "y89312",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/y89312/sounds/139901/"
+    },
+    {
+     "title": "wolf-howl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg",
+     "project": "Stendhal",
+     "author": "killyourpepe",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/killyourpepe/sounds/395192/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/events/03-the-packs-victory-howl.mp3",
+   "offset": 70627357,
+   "length": 127895,
+   "size": 127895,
+   "deflated": false,
+   "duration": 10.6
+  },
+  {
    "id": "bb6c7940ed98b50d",
    "row": "events",
    "rows": [
@@ -23807,6 +26431,69 @@
    "duration": 2.2
   },
   {
+   "id": "7ce85179857a95e6",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The Seer's vision",
+   "names": [
+    {
+     "name": "The Seer's vision",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "castsummon.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/magic/castsummon.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "ambiholy2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/ambience/holy/ambiholy2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-holy-1.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-holy-1.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Richard Kettering(Jetrel)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/events/03-the-seers-vision.mp3",
+   "offset": 51899002,
+   "length": 64155,
+   "size": 64155,
+   "deflated": false,
+   "duration": 8.0
+  },
+  {
    "id": "bdf3c72bea3fabb3",
    "row": "events",
    "rows": [
@@ -23847,6 +26534,105 @@
    "size": 6059,
    "deflated": false,
    "duration": 0.7
+  },
+  {
+   "id": "bd570343c0d46d55",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The town bell gathers the village",
+   "names": [
+    {
+     "name": "The town bell gathers the village",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/1/events/01-the-town-bell-gathers-the-village.mp3",
+   "offset": 19961071,
+   "length": 98115,
+   "size": 98115,
+   "deflated": false,
+   "duration": 8.2
+  },
+  {
+   "id": "51da69015aeea33e",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The village is saved",
+   "names": [
+    {
+     "name": "The village is saved",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "morning.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/morning.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "magic-holy-3.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-holy-3.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Richard Kettering(Jetrel)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "church_bells.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/environment/ambient/church_bells.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "Nox_Sound",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/Nox_Sound/sounds/563885/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/4/events/04-the-village-is-saved.mp3",
+   "offset": 70755325,
+   "length": 96547,
+   "size": 96547,
+   "deflated": false,
+   "duration": 12.0
   },
   {
    "id": "a47bccd0a6248fac",
@@ -23931,6 +26717,137 @@
    "size": 255029,
    "deflated": false,
    "duration": 21.2
+  },
+  {
+   "id": "d167a4219ebb486e",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The vote is cast",
+   "names": [
+    {
+     "name": "The vote is cast",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "inaudible_chatter_3.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/radio/inaudible_chatter_3.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "kwahmah_02",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/kwahmah_02/sounds/255851/"
+    },
+    {
+     "title": "wardrums.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/wardrums.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/2/events/03-the-vote-is-cast.mp3",
+   "offset": 38055983,
+   "length": 96862,
+   "size": 96862,
+   "deflated": false,
+   "duration": 8.0
+  },
+  {
+   "id": "25be82e7c12a697e",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The werewolves awaken",
+   "names": [
+    {
+     "name": "The werewolves awaken",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_growl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_growl-01.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "werewolf_snarl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_snarl-01.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "werewolf_howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_howl-01.ogg",
+     "project": "Stendhal",
+     "author": "NaturesTemper",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/NaturesTemper/sounds/398430/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/events/01-the-werewolves-awaken.mp3",
+   "offset": 51716635,
+   "length": 126014,
+   "size": 126014,
+   "deflated": false,
+   "duration": 10.5
   },
   {
    "id": "5cdd6af5a6952e41",
@@ -24026,6 +26943,69 @@
    "duration": 4.3
   },
   {
+   "id": "8559b905434d5242",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The Witch's brew",
+   "names": [
+    {
+     "name": "The Witch's brew",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "campfire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Iris Morelle(Iris)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "bubbles.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bubbles/bubbles.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "potion.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/powers/potion.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-dark.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-dark.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/events/04-the-witchs-brew.mp3",
+   "offset": 51963225,
+   "length": 60603,
+   "size": 60603,
+   "deflated": false,
+   "duration": 7.5
+  },
+  {
    "id": "1dd8bcbe9ae68ce9",
    "row": "events",
    "rows": [
@@ -24075,6 +27055,86 @@
    "size": 37186,
    "deflated": false,
    "duration": 3.0
+  },
+  {
+   "id": "abec0ab84119b65d",
+   "row": "events",
+   "rows": [
+    "events"
+   ],
+   "name": "The wolves strike",
+   "names": [
+    {
+     "name": "The wolves strike",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_snarl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_snarl-01.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "bite.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/bite.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "wolf-growl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-growl-01.ogg",
+     "project": "Stendhal",
+     "author": "newagesoup",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/newagesoup/sounds/338674/"
+    },
+    {
+     "title": "bodyfall1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "werewolf_growl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_growl-02.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/3/events/02-the-wolves-strike.mp3",
+   "offset": 51842719,
+   "length": 56214,
+   "size": 56214,
+   "deflated": false,
+   "duration": 7.0
   },
   {
    "id": "f13a852c56b294dc",
@@ -25022,6 +28082,239 @@
    "duration": 1.6
   },
   {
+   "id": "ecd7d907e76bffa5",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Cupid card",
+   "names": [
+    {
+     "name": "Cupid card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bow.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/bow.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "magic-faeriefire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-faeriefire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "slowbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/slowbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/15-cupid-card.mp3",
+   "offset": 72321991,
+   "length": 84636,
+   "size": 84636,
+   "deflated": false,
+   "duration": 7.0
+  },
+  {
+   "id": "12fdd1919dc456bf",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Death by the wolves",
+   "names": [
+    {
+     "name": "Death by the wolves",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_snarl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_snarl-01.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "bite.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/bite.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "bodyfall4.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall4.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/01-death-by-the-wolves.mp3",
+   "offset": 70948882,
+   "length": 86831,
+   "size": 86831,
+   "deflated": false,
+   "duration": 7.2
+  },
+  {
+   "id": "7cbfa92d819f055f",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Death knell",
+   "names": [
+    {
+     "name": "Death knell",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/06-death-knell.mp3",
+   "offset": 71359360,
+   "length": 179931,
+   "size": 179931,
+   "deflated": false,
+   "duration": 15.0
+  },
+  {
+   "id": "c4100398fe5597c1",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Died of a broken heart",
+   "names": [
+    {
+     "name": "Died of a broken heart",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "slowbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/slowbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-dark-miss.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-dark-miss.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/05-died-of-a-broken-heart.mp3",
+   "offset": 71268390,
+   "length": 90906,
+   "size": 90906,
+   "deflated": false,
+   "duration": 7.5
+  },
+  {
    "id": "7ec2c9d7a477aae9",
    "row": "soundbox",
    "rows": [
@@ -25102,6 +28395,63 @@
    "size": 34664,
    "deflated": false,
    "duration": 2.8
+  },
+  {
+   "id": "588ba823b56cc368",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Elder card",
+   "names": [
+    {
+     "name": "Elder card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "ambicha1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/ambience/holy/ambicha1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/20-elder-card.mp3",
+   "offset": 72669945,
+   "length": 84636,
+   "size": 84636,
+   "deflated": false,
+   "duration": 7.0
   },
   {
    "id": "fa8c1b83cf979ecf",
@@ -25309,6 +28659,134 @@
    "duration": 1.7
   },
   {
+   "id": "cd40f13733747124",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Guard card",
+   "names": [
+    {
+     "name": "Guard card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "shield_wood_03.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/attack/impact/shield_wood_03.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic_block_holy.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/magic/magic_block_holy.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/19-guard-card.mp3",
+   "offset": 72597158,
+   "length": 72724,
+   "size": 72724,
+   "deflated": false,
+   "duration": 6.0
+  },
+  {
+   "id": "0df1191a520a18cb",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Hanged by the village",
+   "names": [
+    {
+     "name": "Hanged by the village",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "windgust_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windgust_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "wardrums.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/wardrums.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "creaky-door-close-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creaky-door-close-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "bodyfall2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creak-2.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creak-2.ogg",
+     "project": "Stendhal",
+     "author": "stephan",
+     "licence": "Public domain",
+     "original": "https://soundbible.com/1717-Creaking-Door-Spooky.html"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/02-hanged-by-the-village.mp3",
+   "offset": 71035787,
+   "length": 94981,
+   "size": 94981,
+   "deflated": false,
+   "duration": 7.9
+  },
+  {
    "id": "ae64e620c5761c5b",
    "row": "soundbox",
    "rows": [
@@ -25348,6 +28826,104 @@
    "size": 7054,
    "deflated": false,
    "duration": 0.8
+  },
+  {
+   "id": "7615966502cb354d",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Howling gale",
+   "names": [
+    {
+     "name": "Howling gale",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "windstorm_11.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windstorm_11.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/09-howling-gale.mp3",
+   "offset": 71783057,
+   "length": 144822,
+   "size": 144822,
+   "deflated": false,
+   "duration": 12.0
+  },
+  {
+   "id": "0fa36e4a93100d54",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Hunter card",
+   "names": [
+    {
+     "name": "Hunter card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bow.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/bow.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "Musket_3.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/attack/weapon/Musket_3.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/17-hunter-card.mp3",
+   "offset": 72462974,
+   "length": 81815,
+   "size": 81815,
+   "deflated": false,
+   "duration": 6.8
   },
   {
    "id": "ae1487e42a91179e",
@@ -25432,6 +29008,69 @@
    "duration": 3.5
   },
   {
+   "id": "3bf37c4bcbdc39df",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Little Girl card",
+   "names": [
+    {
+     "name": "Little Girl card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "step_cloth4.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_cloth4.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creaky-door-open-2.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creaky-door-open-2.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "fastbeat.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/health/fastbeat.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/16-little-girl-card.mp3",
+   "offset": 72406696,
+   "length": 56214,
+   "size": 56214,
+   "deflated": false,
+   "duration": 7.0
+  },
+  {
    "id": "e2e689e730872e56",
    "row": "soundbox",
    "rows": [
@@ -25471,6 +29110,64 @@
    "size": 6868,
    "deflated": false,
    "duration": 0.8
+  },
+  {
+   "id": "2d6bfab60f3307e1",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Mayor card",
+   "names": [
+    {
+     "name": "Mayor card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "bell-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/bell-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    },
+    {
+     "title": "inaudible_chatter.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/radio/inaudible_chatter.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "kwahmah_02",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/kwahmah_02/sounds/255851/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/21-mayor-card.mp3",
+   "offset": 72754644,
+   "length": 81815,
+   "size": 81815,
+   "deflated": false,
+   "duration": 6.8
   },
   {
    "id": "a20db1f14db19908",
@@ -25514,6 +29211,139 @@
    "duration": 0.1
   },
   {
+   "id": "d7742ebf9804ad4e",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Poisoned by the Witch",
+   "names": [
+    {
+     "name": "Poisoned by the Witch",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "potion.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/powers/potion.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "curse1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/curse/curse1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "gasp_male2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/mobs/humanoids/human/gasp/gasp_male2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "bodyfall3.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall3.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/03-poisoned-by-the-witch.mp3",
+   "offset": 71130842,
+   "length": 56214,
+   "size": 56214,
+   "deflated": false,
+   "duration": 7.0
+  },
+  {
+   "id": "86004a8bf9d409c4",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Seer card (the Watcher)",
+   "names": [
+    {
+     "name": "Seer card (the Watcher)",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "blink.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/magic/blink.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "ambiholy.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/ambience/holy/ambiholy.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-holy-4.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-holy-4.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Richard Kettering(Jetrel)",
+     "licence": "GNU GPL v2+"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/13-seer-card-the-watcher.mp3",
+   "offset": 72209646,
+   "length": 55796,
+   "size": 55796,
+   "deflated": false,
+   "duration": 6.9
+  },
+  {
    "id": "0bb3d8d9fcc2ef23",
    "row": "soundbox",
    "rows": [
@@ -25553,6 +29383,163 @@
    "size": 6676,
    "deflated": false,
    "duration": 0.7
+  },
+  {
+   "id": "9127ac09273f6179",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Shot by the Hunter",
+   "names": [
+    {
+     "name": "Shot by the Hunter",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "wind.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/wind.ogg",
+     "project": "Stendhal",
+     "author": "Félix Blume",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/felix.blume/sounds/146436/"
+    },
+    {
+     "title": "Musket_2.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/attack/weapon/Musket_2.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "bodyfall1.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bodyfall/bodyfall1.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/04-shot-by-the-hunter.mp3",
+   "offset": 71187127,
+   "length": 81188,
+   "size": 81188,
+   "deflated": false,
+   "duration": 6.7
+  },
+  {
+   "id": "5717d9f5764500f6",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Snowstorm rises",
+   "names": [
+    {
+     "name": "Snowstorm rises",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "snow_start.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/ambience/weather/snowstorm/snow_start.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/10-snowstorm-rises.mp3",
+   "offset": 71927947,
+   "length": 80875,
+   "size": 80875,
+   "deflated": false,
+   "duration": 6.7
+  },
+  {
+   "id": "e0199a9d1d15925d",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Storm breaks",
+   "names": [
+    {
+     "name": "Storm breaks",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "rain_heavy.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/rain_heavy.ogg",
+     "project": "Stendhal",
+     "author": "Marcus Dellicompagni - www.PoundSound.co.uk",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/dingo1/sounds/134721 (file & uploader removed from freesound.org)"
+    },
+    {
+     "title": "thunder_near.ogg",
+     "url": "https://github.com/Fris0uman/CDDA-Soundpacks/blob/master/sound/CC-Sounds/environment/weather/thunder_near.ogg",
+     "project": "Cataclysm: DDA CC-Sounds",
+     "author": "mrsorbias",
+     "licence": "CC BY 3.0",
+     "original": "https://freesound.org/people/mrsorbias/sounds/574687/"
+    },
+    {
+     "title": "thunder-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/thunder-02.ogg",
+     "project": "Stendhal",
+     "author": "Andy_Gardner",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/Andy_Gardner/sounds/238145/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/11-storm-breaks.mp3",
+   "offset": 72008887,
+   "length": 108773,
+   "size": 108773,
+   "deflated": false,
+   "duration": 9.0
   },
   {
    "id": "5fad91dded9f8ec8",
@@ -25596,6 +29583,168 @@
    "duration": 1.1
   },
   {
+   "id": "812a430d831ba612",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "The rain begins",
+   "names": [
+    {
+     "name": "The rain begins",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "rain_start.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/ambience/weather/rain/rain_start.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/08-the-rain-begins.mp3",
+   "offset": 71624063,
+   "length": 158929,
+   "size": 158929,
+   "deflated": false,
+   "duration": 13.2
+  },
+  {
+   "id": "b298333ca20f30c8",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Thief card",
+   "names": [
+    {
+     "name": "Thief card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "step_leather1.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_leather1.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "inventory_page.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_page.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "step_leather2.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/steps/step_leather2.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "inventory_coins.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_coins.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/18-thief-card.mp3",
+   "offset": 72544852,
+   "length": 52243,
+   "size": 52243,
+   "deflated": false,
+   "duration": 6.5
+  },
+  {
+   "id": "d62fbed273eaeb76",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Thunder strikes",
+   "names": [
+    {
+     "name": "Thunder strikes",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "rain_heavy.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/weather/rain_heavy.ogg",
+     "project": "Stendhal",
+     "author": "Marcus Dellicompagni - www.PoundSound.co.uk",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/dingo1/sounds/134721 (file & uploader removed from freesound.org)"
+    },
+    {
+     "title": "Thunder4.ogg",
+     "url": "https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Environment.ocg/Lightning.ocg/Thunder4.ogg",
+     "project": "OpenClonk",
+     "author": "OpenClonk team",
+     "licence": "CC BY 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/07-thunder-strikes.mp3",
+   "offset": 71539359,
+   "length": 84636,
+   "size": 84636,
+   "deflated": false,
+   "duration": 7.0
+  },
+  {
    "id": "1666a9711f21e2c1",
    "row": "soundbox",
    "rows": [
@@ -25635,6 +29784,190 @@
    "size": 8347,
    "deflated": false,
    "duration": 0.9
+  },
+  {
+   "id": "834b25eda4ceb928",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Villager card",
+   "names": [
+    {
+     "name": "Villager card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "amb_farm_10.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/building/amb_farm_10.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "fs_gravel2.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_gravel2.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "fs_gravel5.ogg",
+     "url": "https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_gravel5.ogg",
+     "project": "0 A.D.",
+     "author": "Wildfire Games",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "creaky-door-close-1.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/creaky-door-close-1.ogg",
+     "project": "Stendhal",
+     "author": "Storyteller",
+     "licence": "GNU GPL"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/22-villager-card.mp3",
+   "offset": 72836525,
+   "length": 48482,
+   "size": 48482,
+   "deflated": false,
+   "duration": 6.0
+  },
+  {
+   "id": "3364283440afc2e2",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Werewolf card",
+   "names": [
+    {
+     "name": "Werewolf card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "night.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/night.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "werewolf_growl-02.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_growl-02.ogg",
+     "project": "Stendhal",
+     "author": "ketamineface",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/ketamineface/sounds/242057/"
+    },
+    {
+     "title": "werewolf_howl-01.ogg",
+     "url": "https://github.com/arianne/stendhal/blob/master/data/sounds/werewolf_howl-01.ogg",
+     "project": "Stendhal",
+     "author": "NaturesTemper",
+     "licence": "CC0",
+     "original": "https://freesound.org/people/NaturesTemper/sounds/398430/"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/12-werewolf-card.mp3",
+   "offset": 72117726,
+   "length": 91846,
+   "size": 91846,
+   "deflated": false,
+   "duration": 7.6
+  },
+  {
+   "id": "dc4c657d34e74942",
+   "row": "soundbox",
+   "rows": [
+    "soundbox"
+   ],
+   "name": "Witch card",
+   "names": [
+    {
+     "name": "Witch card",
+     "tale": "Werewolves of Ravenmoor",
+     "bard": "Troubadour"
+    }
+   ],
+   "origin": [
+    {
+     "title": "campfire.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/campfire.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Iris Morelle(Iris)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "bubbles2.ogg",
+     "url": "https://github.com/tgstation/tgstation/blob/master/sound/effects/bubbles/bubbles2.ogg",
+     "project": "/tg/station 13",
+     "author": "/tg/station 13 contributors",
+     "licence": "CC BY-SA 3.0"
+    },
+    {
+     "title": "magic-dark-big.ogg",
+     "url": "https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/magic-dark-big.ogg",
+     "project": "Battle for Wesnoth",
+     "author": "Lari Nieminen(zookeeper)",
+     "licence": "GNU GPL v2+"
+    },
+    {
+     "title": "inventory_potion.ogg",
+     "url": "https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/inventory/inventory_potion.ogg",
+     "project": "Flare",
+     "author": "Brandon Morris, Justin Jacobs, rubberduck",
+     "licence": "CC BY-SA 3.0"
+    }
+   ],
+   "brought": {
+    "troubadour": "Troubadour",
+    "tale": "Werewolves of Ravenmoor",
+    "date": "2026-11-07"
+   },
+   "tale": "Werewolves of Ravenmoor",
+   "tales": [
+    "Werewolves of Ravenmoor"
+   ],
+   "bard": "Troubadour",
+   "edited": true,
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "path": "sounds/soundbox/14-witch-card.mp3",
+   "offset": 72265505,
+   "length": 56423,
+   "size": 56423,
+   "deflated": false,
+   "duration": 7.0
   }
  ]
 }

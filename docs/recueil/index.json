@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-07T08:01:40Z",
+ "updated": "2026-11-07T11:42:32Z",
  "tales": [
   {
    "file": "261015_ai_year_2100.troubadour",
@@ -191,6 +191,22 @@
    ],
    "sounds": 49,
    "size": 13351697
+  },
+  {
+   "file": "261107_werewolves_of_ravenmoor.troubadour",
+   "title": "Werewolves of Ravenmoor",
+   "id": "96d3d910-1cf4-5f33-8d4a-bb480154468c",
+   "bard": "Troubadour",
+   "revision": 1,
+   "description": "A tale for the Werewolf party game. In the mountain village of Ravenmoor, wolves hide among the villagers: deal the cards at dusk, debate and vote by day, hunt by night, until one side is left. Cards for the Werewolves, the Seer (the Watcher), the Witch, Cupid, the Little Girl, the Hunter, the Thief, the Guard, the Elder and the Mayor. Sounds from Battle for Wesnoth, Flare, 0 A.D., Stendhal, Cataclysm: DDA CC-Sounds, /tg/station 13, Shattered Pixel Dungeon, OpenClonk and Red Eclipse (see the Troubadour sound credits).",
+   "chapters": [
+    "Dusk: the cards are dealt",
+    "Day: accusation and vote",
+    "Night: the hunt",
+    "The end of the game"
+   ],
+   "sounds": 82,
+   "size": 72892187
   }
  ]
 }
