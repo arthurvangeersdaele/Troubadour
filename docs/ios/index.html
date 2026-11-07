@@ -140,6 +140,17 @@
       var gone = false;
       function sync() { if (gone) paint(themeBg()); }
       window.TroubadourPaintRoot = sync;
+      // How far iOS stops the app above the bottom of the screen (the strip by the home indicator), if it does:
+      // the library reaches down over it (--under, ios.css).
+      function under() {
+        var portrait = innerHeight >= innerWidth;
+        var full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+        var gap = Math.round(full - innerHeight);
+        root.style.setProperty('--under', (gap > 0 && gap <= 60 && root.classList.contains('mode-app') ? gap : 0) + 'px');
+      }
+      under();
+      addEventListener('resize', under);
+      addEventListener('orientationchange', function () { setTimeout(under, 300); });
       new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-mode', 'class'] });
       if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { setTimeout(sync, 0); }); } catch (e) {} }
       if (!root.classList.contains('mode-app')) { sp.remove(); gone = true; sync(); return; }

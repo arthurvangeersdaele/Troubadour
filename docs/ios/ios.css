@@ -513,8 +513,9 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library:has(.lib-b) .lib-wrap { flex: 1; min-height: 0; padding-bottom: 0; }
   .app #library .lib-grid:has(.lib-b) { height: 100%; }
   .app #library .lib-b { height: 100%; align-items: stretch; }
-  .app #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: max(14px, env(safe-area-inset-bottom)); }
-  .app #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .app #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: var(--lib-foot); }
+  /* The list's window ends exactly where the hero card ends. */
+  .app #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin-bottom: var(--lib-foot); padding-bottom: var(--lib-fade); }
 }
 
 /* Portrait (one column): the same, stacked. The page never scrolls: the hero card and the
@@ -525,7 +526,8 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library .lib-grid:has(.lib-b) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .app #library .lib-b { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
   .app #library .lib-b > .hero { position: relative; top: auto; flex: none; min-height: 0; margin-bottom: 14px; }
-  .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  /* The list runs to the very bottom of the screen, under the home indicator; its last story scrolls clear of it. */
+  .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--lib-fade) + max(10px, env(safe-area-inset-bottom)) + var(--under, 0px)); }
 }
 
 /* Soundbox toggle in the top bar: the star of a story's Soundbox button, lit on the soundbox screen. */
@@ -544,3 +546,13 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
 .sc .edpause[hidden] { display: none; }
 .sc .edpause .vl { font-size: 12px; color: var(--muted); }
 .sc .edpause select { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; -webkit-appearance: none; appearance: none; }
+
+/* The library uses the whole screen: iOS sometimes stops a Home Screen app above the home indicator
+   (--under, measured in index.html); the library screen reaches down over that strip. */
+.app #library { --lib-fade: 26px; --lib-foot: calc(max(14px, env(safe-area-inset-bottom)) + var(--under, 0px)); bottom: calc(-1 * var(--under, 0px)); }
+/* The stories fade out at the bottom of their window too, as under "All stories". */
+.app #library .lib-list {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lib-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--lib-fade)), transparent);
+}
+@media (max-width: 720px) { .app #library { --lib-fade: 40px; } }
