@@ -1,5 +1,5 @@
 """Rhythms out/<slug>.troubadour from the built sounds and writes credits.md sections."""
-import json, os, sys, uuid, zipfile, subprocess
+import hashlib, json, os, sys, uuid, zipfile, subprocess
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from plan import STORIES
@@ -30,32 +30,65 @@ def is_edited(recipe, opts):
 BUILD_SRC = {'train_on_rails': ['TG:machines/tram/tram_loop.ogg', 'OS:osfx_13.wav', 'S:sounds/clang-dull-1.ogg']}
 
 
+KNOWN = None
+def known_sounds():
+    global KNOWN
+    if KNOWN is None:
+        p = '/home/claude/troubadour/docs/recueil/sounds.json'
+        KNOWN = {x['id']: x for x in json.load(open(p))['sounds']} if os.path.exists(p) else {}
+    return KNOWN
+
+
 def forge(story, now):
     jobs, chapters = jobs_for(story)
     projects, rows = [], []
+    today = now[:10]
+
+    def entry(s):
+        if not os.path.exists(s['_dest']):
+            raise FileNotFoundError(s['_dest'])
+        data = open(s['_dest'], 'rb').read()
+        recipe = s['_recipe']
+        srcs = s['_src'] or BUILD_SRC.get(str(recipe)[6:], [])
+        creds = [credit(resolve(r)) for r in dict.fromkeys(srcs)]
+        for cr in creds:
+            if cr['project'] not in projects:
+                projects.append(cr['project'])
+        edited = is_edited(recipe, {})
+        rows.append((s['file'][len('sounds/'):], edited, creds))
+        sid = hashlib.sha256(data).hexdigest()[:16]
+        k = known_sounds().get(sid)
+        if k:   # already in the Recueil: its identity is locked
+            block = {'id': sid, 'origin': k['origin']}
+            for f in ('edited', 'parent'):
+                if k.get(f): block[f] = k[f]
+            block['brought'] = k['brought']
+        else:
+            origin = []
+            for cr in creds:
+                o = {'title': cr['file'], 'url': cr['url'], 'project': cr['project'], 'author': cr['author'], 'licence': cr['license']}
+                if cr['origin'].startswith('http'):
+                    o['original'] = cr['origin']
+                origin.append(o)
+            block = {'id': sid, 'origin': origin}
+            if edited: block['edited'] = True
+            block['brought'] = {'troubadour': 'Troubadour', 'tale': story['title'], 'date': today}
+        return {'name': s['name'], 'file': s['file'], 'loop': s['loop'], 'volume': s['volume'],
+                'duration': duration(s['_dest']), 'sound': block}
+
     out_ch = []
-    for ci, ch in enumerate(chapters, 1):
+    for ch in chapters:
         c = {'title': ch['title'], 'description': ch['description']}
         for zone in ('music', 'ambience', 'events'):
-            lst = []
-            for s in ch[zone]:
-                if not os.path.exists(s['_dest']):
-                    raise FileNotFoundError(s['_dest'])
-                lst.append({'name': s['name'], 'file': s['file'], 'loop': s['loop'], 'volume': s['volume'], 'duration': duration(s['_dest'])})
-                recipe = s['_recipe']
-                srcs = s['_src'] or BUILD_SRC.get(str(recipe)[6:], [])
-                creds = [credit(resolve(r)) for r in dict.fromkeys(srcs)]
-                for cr in creds:
-                    if cr['project'] not in projects:
-                        projects.append(cr['project'])
-                edited = is_edited(recipe, {})
-                rows.append((s['file'][len('sounds/'):], edited, creds))
-            c[zone] = lst
+            c[zone] = [entry(s) for s in ch[zone]]
         out_ch.append(c)
-    soundbox = []
-    for (ci, zone, i) in SOUNDBOX[story['slug']]:
-        src = out_ch[ci - 1][zone][i - 1]
-        soundbox.append({'name': src['name'], 'file': src['file'], 'loop': 'once', 'volume': 0.8, 'duration': src['duration']})
+    if story.get('_soundbox'):
+        soundbox = [entry(s) for s in story['_soundbox']]
+    else:
+        soundbox = []
+        for (ci, zone, i) in SOUNDBOX[story['slug']]:
+            src = out_ch[ci - 1][zone][i - 1]
+            soundbox.append({'name': src['name'], 'file': src['file'], 'loop': 'once', 'volume': 0.8, 'duration': src['duration'], 'sound': src['sound']})
     desc = story['description'] + ' Sounds from ' + ', '.join(projects[:-1]) + ' and ' + projects[-1] + ' (see the Troubadour sound credits).'
     js = {
         'format': 'troubadour', 'version': 2,
@@ -64,19 +97,19 @@ def forge(story, now):
         'created': now, 'forged': now, 'generator': 'Troubadour tale rhythm',
         'chapters': out_ch, 'soundbox': soundbox,
     }
+    if story.get('cover'):
+        js['extra'] = {'cover': story['cover']}
     path = os.path.join(OUT, story['slug'] + '.troubadour')
+    dt = tuple(int(x) for x in (now[0:4], now[5:7], now[8:10], now[11:13], now[14:16], now[17:19]))
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_STORED) as z:
-        z.writestr(zipfile.ZipInfo('story.json', date_time=(2026, 10, 15, 22, 0, 0)), json.dumps(js, ensure_ascii=False, indent=1).encode('utf-8'))
+        z.writestr(zipfile.ZipInfo('story.json', date_time=dt), json.dumps(js, ensure_ascii=False, indent=1).encode('utf-8'))
         seen = set()
-        for c in out_ch:
-            for zone in ('music', 'ambience', 'events'):
-                for s in c[zone]:
-                    if s['file'] in seen:
-                        continue
-                    seen.add(s['file'])
-                    zi = zipfile.ZipInfo(s['file'], date_time=(2026, 10, 15, 22, 0, 0)); zi.compress_type = zipfile.ZIP_STORED
-                    z.writestr(zi, open(os.path.join(OUT, story['slug'], s['file']), 'rb').read())
-    # credits section
+        for snd in [x for c in out_ch for zone in ('music', 'ambience', 'events') for x in c[zone]] + soundbox:
+            if snd['file'] in seen:
+                continue
+            seen.add(snd['file'])
+            zi = zipfile.ZipInfo(snd['file'], date_time=dt); zi.compress_type = zipfile.ZIP_STORED
+            z.writestr(zi, open(os.path.join(OUT, story['slug'], snd['file']), 'rb').read())
     md = [f"## {story['title']}", '',
           f"Tale `{story['slug']}.troubadour` in the Recueil, rhythmed by Troubadour.", '',
           '| File | From | Author | Licence |', '| --- | --- | --- | --- |']

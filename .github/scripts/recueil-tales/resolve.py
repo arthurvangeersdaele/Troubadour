@@ -39,5 +39,9 @@ if __name__ == '__main__':
                     for r in refs_of(snd[1]):
                         try: out.add(resolve(r))
                         except KeyError as e: print('MISS', s['slug'], ch['title'], snd[0], e); bad += 1
+        for snd in s.get('soundbox', []):
+            for r in refs_of(snd[1]):
+                try: out.add(resolve(r))
+                except KeyError as e: print('MISS', s['slug'], 'soundbox', snd[0], e); bad += 1
     open('needed.txt', 'w').write('\n'.join(sorted(out)))
     print(bad, 'missing,', len(out), 'files')

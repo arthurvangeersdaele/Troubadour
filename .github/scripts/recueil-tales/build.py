@@ -16,6 +16,7 @@ OUT = os.path.join(HERE, 'out'); WORK = os.path.join(HERE, 'work')
 os.makedirs(OUT, exist_ok=True); os.makedirs(WORK, exist_ok=True)
 SR = 44100
 MIN_AMB, MAX_AMB, MAX_MUSIC, MAX_EVENT = 45.0, 95.0, 330.0, 22.0
+MIN_EVENT = 5.2
 TARGET = {'music': -18, 'ambience': -23, 'events': -17}
 BITRATE = {'music': '112k', 'ambience': '96k', 'events': '96k'}
 
@@ -142,11 +143,15 @@ def render(recipe, opts, tag):
     if isinstance(recipe, str):
         a = load(src(recipe))
     elif recipe[0] == 'mix':
-        a = np.zeros((1, 2), np.float32)
-        for ref, at, gain in recipe[1]:
-            a = place(a, load(src(ref)) * gain, at)
-        if recipe[2]:
-            a = a[:int(recipe[2] * SR)]
+        layers = [(load(src(ref)) * gain, at) for ref, at, gain in recipe[1]]
+        total = recipe[2] or max(len(c) / SR + at for c, at in layers)
+        n = int(total * SR)
+        a = np.zeros((n, 2), np.float32)
+        for c, at in layers:
+            if at == 0 and len(c) < n:   # a bed: repeat it with crossfades so it runs the whole length
+                c = extend(c, total)[:n]
+            a = place(a, c, at)
+        a = a[:n]
     elif recipe[0] == 'seq':
         a = np.zeros((1, 2), np.float32); t = 0.0
         for ref in recipe[1]:
@@ -201,7 +206,16 @@ def _build_sound(zone, name, recipe, opts, dest):
         a = a[int(start * SR):]
         a = seamless(a, min(MAX_AMB, len(a) / SR - 2.5))
     else:
-        a = trim_silence(a)
+        a = trim_silence(a, 0.0015)
+        if opts.get('trim') and len(a) / SR > opts['trim']:
+            a = fade(a[:int(opts['trim'] * SR)], 0, 2.0)
+        if len(a) / SR < MIN_EVENT:
+            # never a short hit: give it a long natural tail, then pad to MIN_EVENT
+            a = filt(a, "aecho=0.8:0.75:300|650|1100|1700:0.45|0.32|0.2|0.12", tag + '_tail')
+            a = trim_silence(a, 0.0008)
+            if len(a) / SR < MIN_EVENT:
+                a = np.concatenate([a, np.zeros((int(MIN_EVENT * SR) - len(a) + 1, 2), np.float32)])
+            a = fade(a, 0, 1.5)
         if len(a) / SR > MAX_EVENT:
             a = fade(a[:int(MAX_EVENT * SR)], 0, 2.5)
         a = fade(a, 0.005, 0.03)
@@ -250,6 +264,16 @@ def jobs_for(story):
                             '_src': refs_of(recipe), '_recipe': recipe})
             ent[zone] = lst
         entries.append(ent)
+    sb = []
+    for i, snd in enumerate(story.get('soundbox', []), 1):
+        name, recipe = snd[0], snd[1]
+        opts = snd[2] if len(snd) > 2 else {}
+        rel = f'sounds/soundbox/{i:02d}-{slugify(name)}.mp3'
+        dest = os.path.join(OUT, story['slug'], rel)
+        jobs.append(('events', name, recipe, opts, dest))
+        sb.append({'name': name, 'file': rel, 'loop': 'once', 'volume': opts.get('vol', 0.8), '_dest': dest,
+                   '_src': refs_of(recipe), '_recipe': recipe})
+    story['_soundbox'] = sb
     return jobs, entries
 
 
