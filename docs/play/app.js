@@ -811,17 +811,18 @@
     if (zone === 'music') return l === 2 ? 4 : l === 4 ? 0 : (l + 1) % 3;
     return (l + 1) % 4;
   }
-  /** When a music ends on its own (its 1× or 2× played through, not stopped), the next music of its row set to
-   *  "play after" starts: the first one after it in the row, from the start again past the end. */
+  /** "Play after" makes a playlist of the row. When a music ends on its own (its 1× or 2× played through, not
+   *  stopped, paused or faded out), the next track set to play after starts:
+   *  after a track of the playlist, the next one of the playlist in the order of the row (the last one ends it);
+   *  after any other track, the first one of the playlist that follows it in the row (from the start again). */
   function playAfter(v) {
     if (!story || !v.chapter) return;
     const row = v.chapter.voices.music || [];
-    if (row.some((o) => o !== v && (o.active || o.state === 'ending'))) return; // another music already took over
+    if (row.some((o) => o !== v && o.active)) return; // another music already took over
     const at = row.indexOf(v);
-    for (let i = 1; i < row.length; i++) {
-      const o = row[(at + i) % row.length];
-      if (o.loop === 4 && o.usable) { if (o.state !== 'playing') toggleVoice(o); return; }
-    }
+    const order = v.loop === 4 ? row.slice(at + 1) : [...row.slice(at + 1), ...row.slice(0, at)];
+    const next = order.find((o) => o.loop === 4 && o.usable);
+    if (next && next.state !== 'playing') toggleVoice(next);
   }
   function toggleVoice(v) {
     audio();

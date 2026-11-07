@@ -257,8 +257,8 @@ class TableSession(
         }
     }
 
-    /** A music that ended on its own (its 1× or 2× played through, not stopped) starts the next music of its row
-     *  set to play after another: the first one after it in the row, from the start again past the end. */
+    /** "Play after" makes a playlist of the row: a music that ended on its own (its 1× or 2× played through,
+     *  not stopped) starts the next track set to play after. */
     private fun runAfter() {
         for (c in cards) {
             if (c.zone != Zone.MUSIC) continue
@@ -268,8 +268,11 @@ class TableSession(
             if (was != NativeEngine.PLAYING || st != NativeEngine.DONE || c.endAsked) continue
             val row = cards.filter { it.chapterIndex == c.chapterIndex && it.zone == Zone.MUSIC }
             if (row.any { it !== c && isActive(it) }) continue // another music already took over
+            // A playlist: after one of its tracks, the next one in the row (the last one ends it);
+            // after any other track, the first one that follows it in the row (from the start again).
             val at = row.indexOf(c)
-            val next = (1 until row.size).map { row[(at + it) % row.size] }.firstOrNull { it.sound.loop == LoopMode.AFTER } ?: continue
+            val order = if (c.sound.loop == LoopMode.AFTER) row.drop(at + 1) else row.drop(at + 1) + row.take(at)
+            val next = order.firstOrNull { it.sound.loop == LoopMode.AFTER } ?: continue
             next.startedAt = SystemClock.uptimeMillis()
             play(next, settings.fadeInMs.coerceAtLeast(30))
         }
