@@ -523,7 +523,7 @@ html.mode-app input[type="range"].living { background: radial-gradient(circle at
   .app #library:not([hidden]):has(.lib-b) { overflow: hidden; display: flex; flex-direction: column; }
   .app #library:has(.lib-b) .lib-wrap { flex: 1; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
   .app #library .lib-grid:has(.lib-b) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .app #library .lib-b { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0; }
+  .app #library .lib-b { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 0; }
   .app #library .lib-b > .hero { position: relative; top: auto; flex: none; min-height: 0; margin-bottom: 14px; }
   .app #library .lib-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 }
