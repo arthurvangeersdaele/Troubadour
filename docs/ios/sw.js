@@ -1,6 +1,6 @@
 /* Troubadour for iPhone: keeps the app itself on the phone so it opens without a connection.
  * Stories and sounds live in IndexedDB, not here. Bump VERSION to ship an update. */
-const VERSION = '261107.5';
+const VERSION = '261107.6';
 const SHELL = `troubadour-ios-${VERSION}`;
 const FONTS = 'troubadour-ios-fonts';
 const FILES = [
@@ -19,6 +19,7 @@ const FILES = [
   '../play/style.css',
   '../troupe/troupe.css',
   '../troupe/troubadour-format.js',
+  '../troupe/sound-credit.js',
   '../auth/account.js',
   '../themes.js',
   '../icons/261013_troubadour_icon.svg',

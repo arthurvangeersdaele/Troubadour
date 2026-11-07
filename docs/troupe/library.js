@@ -273,7 +273,7 @@
     setTimeout(() => t.remove(), 3200);
   }
 
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !$('#veil')) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !$('#veil') && !$('#credit-dlg')) close(); });
   $('#lib-btn')?.addEventListener('click', () => (panel ? close() : open()));
 
   window.TroubadourLibrary = { open, close, fileOf, stop };

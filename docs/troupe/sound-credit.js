@@ -68,20 +68,22 @@
   }
 
   /* ---------- the dialog ---------- */
+  // A modal <dialog>: it opens above anything, even another open dialog (the sound picker of the iPhone app).
   function veil(cls) {
-    document.getElementById('veil')?.remove();
-    const v = el('div', 'veil');
-    v.id = 'veil';
-    const box = el('div', `forge credit ${cls || ''}`);
-    box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-modal', 'true');
-    v.append(box);
-    const close = () => { v.remove(); document.removeEventListener('keydown', esc); };
-    const esc = (e) => { if (e.key === 'Escape') close(); };
-    v.addEventListener('click', (e) => { if (e.target === v) close(); });
-    document.addEventListener('keydown', esc);
-    document.body.append(v);
-    return { box, close };
+    document.getElementById('credit-dlg')?.remove();
+    const d = document.createElement('dialog');
+    d.id = 'credit-dlg';
+    d.className = `forge credit ${cls || ''}`;
+    const close = () => { if (d.open) d.close(); d.remove(); };
+    d.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+    d.addEventListener('click', (e) => {
+      if (e.target !== d) return;
+      const r = d.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+    });
+    document.body.append(d);
+    d.showModal();
+    return { box: d, close };
   }
   function head(box, title, close) {
     const h = el('div', 'cr-head');
@@ -136,7 +138,7 @@
   function show(item) {
     const { box, close } = veil();
     head(box, item.name || 'Sound', close);
-    if (!hasOrigin(item)) box.append(el('p', '', 'This sound does not say where it comes from.'));
+    if (!hasOrigin(item)) { box.append(el('p', '', 'This sound does not say where it comes from yet.')); if (item.hint) box.append(el('p', '', item.hint)); }
     else renderCredits(box, item);
     const acts = el('div', 'acts');
     const ok = el('button', 'btn primary', 'Done'); ok.type = 'button'; ok.onclick = close;

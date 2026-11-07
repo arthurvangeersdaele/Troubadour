@@ -1154,11 +1154,29 @@
   let recueilLoad = null;
   const recueilBytes = new Map(); // id -> Promise<Blob>
   const fold = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  /** The credits of a sound of the picker: the Recueil's, or the identity a sound on this device carries.
+   *  A sound without one is looked up by its bytes, in case the Recueil knows it. */
+  async function soundSource(r, getBlob) {
+    const C = window.TroubadourCredit;
+    if (!C) return;
+    if (r.rx) { C.show(r.rx); return; }
+    const s = r.x.s;
+    const block = s.extra && s.extra.sound;
+    let reg = null;
+    try { reg = await C.registry(); } catch (e) { /* offline: what the sound carries is enough */ }
+    let known = reg && block && block.id ? reg.get(block.id) : null;
+    if (!known && !C.hasOrigin(block) && reg) {
+      try { known = reg.get(await C.idOf(await getBlob())) || null; } catch (e) { /* unreadable: no source */ }
+    }
+    if (known) { C.show(Object.assign({}, known, { name: s.name })); return; }
+    C.show(Object.assign({ name: s.name, hint: 'Give it a source in the Story builder, on a computer: the Recueil only takes sounds that name theirs.' }, block || {}));
+  }
+
   function loadRecueil() {
     if (!recueilLoad) {
       recueilLoad = fetch(`${RECUEIL}sounds.json`, { cache: 'no-cache' })
         .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then((d) => { recueil = (d.sounds || []).map((x) => Object.assign(x, { key: fold(`${x.name} ${x.tale} ${x.bard} ${x.row}`) })); return recueil; })
+        .then((d) => { recueil = (d.sounds || []).map((x) => Object.assign(x, { key: fold([x.name, x.tale, x.bard, x.row, ...(x.tales || []), ...(x.names || []).map((n) => n.name), ...(x.origin || []).flatMap((o) => [o.author, o.project, o.title])].join(' ')) })); return recueil; })
         .catch((e) => { recueilLoad = null; throw e; });
     }
     return recueilLoad;
@@ -1260,14 +1278,20 @@
         for (const r of picked) {
           if (r.x) {
             const s = r.x.s;
-            list.push(newSound(s.blob, s.name, s.fileName, SIZES.get(s.blob) || s.size, LOOP_NAMES[zone.loop], s.duration));
+            const ns = newSound(s.blob, s.name, s.fileName, SIZES.get(s.blob) || s.size, LOOP_NAMES[zone.loop], s.duration);
+            // The same bytes are the same sound: its identity (source, author, licence) comes along.
+            if (s.extra && s.extra.sound) ns.extra.sound = JSON.parse(JSON.stringify(s.extra.sound));
+            list.push(ns);
           } else {
             busy('Adding sounds from the Recueil', `${r.name} (${n + 1} of ${picked.length})`, n / picked.length);
             const blob = await recueilBlob(r.rx);
             const key = await DB.putBlob(blob);
             SIZES.set(key, blob.size);
             const fileName = r.rx.path.split('/').pop();
-            list.push(newSound(key, r.rx.name, fileName, blob.size, LOOP_NAMES[zone.loop], r.rx.duration || null));
+            const ns = newSound(key, r.rx.name, fileName, blob.size, LOOP_NAMES[zone.loop], r.rx.duration || null);
+            // A sound of the Recueil brings its locked identity, so it keeps its credits in every .troubadour.
+            if (window.TroubadourCredit && r.rx.origin) ns.extra.sound = TroubadourCredit.blockOf(r.rx);
+            list.push(ns);
           }
           n += 1;
         }
@@ -1304,7 +1328,13 @@
       if (pickPlay.key === r.key) { pb.classList.add('on'); pickPlay.btn = pb; }
       pb.setAttribute('aria-label', `Listen to ${r.name}`);
       pb.onclick = (e) => { e.preventDefault(); e.stopPropagation(); togglePick(r.key, getBlob, pb); };
-      lab.append(cb, el('i'), t, pb);
+      // Its source, author and licence (sound-credit.js).
+      const info = el('button', 'pick-info');
+      info.type = 'button';
+      info.innerHTML = window.TroubadourCredit ? TroubadourCredit.INFO : 'i';
+      info.setAttribute('aria-label', `Source of ${r.name}`);
+      info.onclick = (e) => { e.preventDefault(); e.stopPropagation(); soundSource(r, getBlob); };
+      lab.append(cb, el('i'), t, info, pb);
       return lab;
     };
     const draw = () => {

@@ -395,6 +395,8 @@ html.enter .gold-veil{display:block;animation:troupe-light-out .55s cubic-bezier
 .src.need { color: var(--evt); border-color: color-mix(in srgb, var(--evt) 55%, var(--line)); }
 .lib-item .t small.aka, .snd .snd-t small.aka { white-space: nowrap; font-style: italic; }
 .lib-item.var { margin-left: 22px; border-left-style: dashed; }
+dialog.forge.credit { margin: auto; color: var(--text); max-width: calc(100vw - 32px); }
+dialog.forge.credit::backdrop { background: rgba(0,0,0,.55); }
 .forge.credit { width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overflow-x: hidden; box-sizing: border-box; }
 .forge.credit h3 { margin: 14px 0 6px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: inherit; font-weight: 600; }
 .forge.credit a { color: var(--accent); }
