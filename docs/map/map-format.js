@@ -97,11 +97,24 @@
     return out;
   }
 
+  const FILL_KEYS = ['water', 'leaf', 'stone', 'ground', 'fire', 'ambience', 'events', 'soundbox', 'music', 'hole'];
+  const unit = (v) => Math.round(Math.max(0, Math.min(1, Number(v) || 0)) * 1000) / 1000;
+  function cleanStamp(st) {
+    if (!st || typeof st.id !== 'string' || !st.id) return null;
+    return {
+      id: st.id.slice(0, 40), name: String(st.name || 'Place').slice(0, 40), v: Number(st.v) || 0,
+      strokes: (st.strokes || []).filter(Array.isArray).map((pts) => pts.filter(Array.isArray).map((q) => [unit(q[0]), unit(q[1])])).filter((pts) => pts.length).slice(0, 400),
+      fills: (st.fills || []).filter((f) => f && FILL_KEYS.includes(f.c)).map((f) => ({ x: unit(f.x), y: unit(f.y), c: f.c })).slice(0, 200),
+    };
+  }
+
   /** Brings a world in line with its story: ids unique, links to places that exist, cards on sounds the archive holds. */
   function normalize(world, files) {
     const out = Object.assign({}, world);
     out.wallLoss = r2(num(world.wallLoss, 0.7, 0, 1));
     out.soundbox = (world.soundbox || []).map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { play: 'once' }));
+    // Places drawn by the troubadour, laid like the drawings of the library (TROUBADOUR_MAP_FORMAT.md, "stamps").
+    if (Array.isArray(world.stamps)) out.stamps = world.stamps.map(cleanStamp).filter(Boolean);
     // The world's musics, behind the Music button at the table (absent from older worlds: made from the story then).
     if (Array.isArray(world.music)) out.music = world.music.map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { zone: 'music' }));
     const seen = new Set();

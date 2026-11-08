@@ -395,7 +395,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 }
 /* A phone on its side: the question sits at the top, above the keyboard, all on a few lines. */
 @media (max-height: 520px) and (orientation: landscape) {
-  dialog.ask { top: max(6px, env(safe-area-inset-top)) !important; bottom: auto !important; margin: 0 auto !important; padding: 10px 16px 10px !important; }
+  dialog.ask { padding: 10px 16px 10px !important; }
   .ask:has(.ask-size) { width: min(780px, calc(100vw - 24px)) !important; }
   .ask h2 { font-size: 21px; margin-bottom: 4px; }
   .ask:has(.ask-fields) p { display: none; }
@@ -584,3 +584,39 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
   .app .sbar .logo { display: none; }
   .app .sbar .btn.slim { padding: 0 9px; }
 }
+
+/* ---------- The library of places: a new place, and the places of this world ---------- */
+.mp-stamps .st-new { display: grid; justify-items: center; align-content: center; gap: 6px; padding: 6px 4px; border-radius: 10px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, var(--line)); background: color-mix(in srgb, var(--accent) 8%, var(--card)); color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; min-height: 84px; }
+.mp-stamps .st-plus { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid currentColor; }
+.mp-stamps button { position: relative; }
+.mp-stamps .st-edit { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: var(--muted); background: var(--bar); border: 1px solid var(--line); }
+.mp-stamps .st-edit svg { width: 13px; height: 13px; }
+
+/* ---------- The place editor ---------- */
+#sheet-body.pe { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
+.pe-main { flex: 1; min-height: 0; display: flex; gap: 14px; }
+.pe-stage { flex: none; height: 100%; aspect-ratio: 1; max-width: 62%; display: grid; place-items: start center; }
+.pe-canvas { width: 100%; aspect-ratio: 1; border-radius: 12px; border: 1px solid var(--line); touch-action: none; display: block; }
+.pe-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.pe-name { width: 100%; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; padding: 0 12px; }
+.pe-name:focus { outline: none; border-color: var(--accent); }
+.pe-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.pe-t { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.pe-t[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.pe-colours { display: grid; grid-template-columns: repeat(5, 36px); gap: 8px; }
+.pe-c { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); background: var(--fill); cursor: grab; padding: 0; touch-action: none; box-shadow: inset 0 0 0 2px var(--card); }
+.pe-c[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--card), 0 0 0 2px var(--accent); }
+.pe-ghost { position: fixed; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--fill); border: 2px solid var(--text); pointer-events: none; z-index: 60; box-shadow: 0 8px 20px var(--shadow); }
+.pe-hint { margin: 0; color: var(--muted); font-size: 13px; }
+.pe-foot { flex: none; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
+@media (orientation: portrait) {
+  .pe-main { flex-direction: column; }
+  .pe-stage { height: auto; width: 100%; max-width: none; }
+  .pe-colours { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+  .pe-c { width: 100%; height: auto; aspect-ratio: 1; }
+}
+@media (max-height: 520px) { .pe-t { width: 34px; height: 34px; } .pe-c { width: 30px; height: 30px; } .pe-colours { grid-template-columns: repeat(5, 30px); gap: 6px; } .pe-hint { font-size: 12px; } .pe-name { height: 34px; } }
+
+/* Simple volume, as on Troubadour's cards: − 75 + kept together (at the right of a wide card), never spread apart. */
+.c.vm-simple .ctrl .lvl { flex: 0 0 30px; min-width: 30px; }
+.c.vm-simple .ctrl .vdn { margin-left: auto; }

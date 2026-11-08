@@ -68,6 +68,7 @@
     left: svg('<path d="M15 18l-6-6 6-6"/>', 14),
     right: svg('<path d="M9 18l6-6-6-6"/>', 14),
     files: svg('<path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>', 18),
+    stopMusic: svg('<rect x="3.5" y="3.5" width="12" height="12" rx="2" fill="currentColor" stroke="none"/><path d="M20.5 13.2v6.1"/><circle cx="18.6" cy="19.5" r="1.9" fill="currentColor" stroke="none"/><path d="M20.5 13.2l1.6.8"/>', 18),
     queue: svg('<path d="M4 6h16M4 11h16M4 16h9"/><path d="M16.5 14v6l5-3z"/>', 17),
     queueAdd: svg('<path d="M4 6h12M4 11h12M4 16h7"/><path d="M18 13v7M14.5 16.5h7"/>', 17),
     music: svg('<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', 17),

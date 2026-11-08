@@ -193,7 +193,116 @@
     },
   };
 
+  /* ---------- Places made by the troubadour (world.stamps): strokes in ink, colours dropped inside them ----------
+   * A place is { id, name, strokes: [[[x, y], ...], ...], fills: [{ x, y, c }] }, points from 0 to 1 in its square.
+   * `c` names a colour of the map (water, leaf, stone...), so a place follows the theme. It is painted once on a
+   * canvas of its own (cached for the theme of the moment), then laid on the map like the other drawings. */
+  const FILLS = [['water', 'Water'], ['leaf', 'Grass'], ['stone', 'Stone'], ['ground', 'Ground'], ['fire', 'Fire'], ['ambience', 'Teal'], ['events', 'Red'], ['soundbox', 'Blue'], ['music', 'Gold'], ['hole', 'Dark']];
+  const RES = 512;
+  const custom = new Map();
+  const cache = new Map();
+  const isCustom = (id) => custom.has(id);
+  function register(list) { (list || []).forEach((st) => { if (st && st.id) { custom.set(st.id, st); } }); }
+  function forget(id) { custom.delete(id); }
+  function rgbOf(c) {
+    c = String(c || '').trim();
+    let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+    if (m) { let h = m[1]; if (h.length === 3) h = h.split('').map((x) => x + x).join(''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+    m = /color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(c);
+    if (m) return [m[1], m[2], m[3]].map((x) => Math.round(Number(x) * 255));
+    m = /rgba?\(([^)]+)\)/.exec(c);
+    if (m) return m[1].split(/[ ,]+/).slice(0, 3).map(Number);
+    return [128, 128, 128];
+  }
+  function inkLayer(st, ink) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = RES;
+    const c = cv.getContext('2d');
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = RES * 0.022;
+    (st.strokes || []).forEach((pts) => {
+      if (!pts.length) return;
+      if (pts.length === 1) { c.beginPath(); c.arc(pts[0][0] * RES, pts[0][1] * RES, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); return; }
+      c.beginPath();
+      pts.forEach((q, i) => (i ? c.lineTo(q[0] * RES, q[1] * RES) : c.moveTo(q[0] * RES, q[1] * RES)));
+      c.stroke();
+    });
+    return cv;
+  }
+  /** The region around a point, bounded by the ink: a mask of RES x RES, or null when it reaches the edge (not closed). */
+  function region(alpha, x, y) {
+    const sx = Math.max(0, Math.min(RES - 1, Math.round(x * RES))), sy = Math.max(0, Math.min(RES - 1, Math.round(y * RES)));
+    const open = (i) => alpha[i] < 110;
+    const start = sy * RES + sx;
+    if (!open(start)) return null;
+    const mask = new Uint8Array(RES * RES);
+    const stack = [start];
+    mask[start] = 1;
+    while (stack.length) {
+      const i = stack.pop();
+      const px = i % RES, py = (i - px) / RES;
+      if (px === 0 || py === 0 || px === RES - 1 || py === RES - 1) return null;
+      const n = [i - 1, i + 1, i - RES, i + RES];
+      for (const j of n) if (!mask[j] && open(j)) { mask[j] = 1; stack.push(j); }
+    }
+    return mask;
+  }
+  function alphaOf(st) {
+    const d = inkLayer(st, '#000').getContext('2d').getImageData(0, 0, RES, RES).data;
+    const a = new Uint8Array(RES * RES);
+    for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
+    return a;
+  }
+  /** Drops colour `c` at (x, y): the fills of the place after it, or null when the point is not inside a closed shape. */
+  function fillAt(st, x, y, c) {
+    const alpha = alphaOf(st);
+    const mask = region(alpha, x, y);
+    if (!mask) return null;
+    const at = (f) => mask[Math.max(0, Math.min(RES - 1, Math.round(f.y * RES))) * RES + Math.max(0, Math.min(RES - 1, Math.round(f.x * RES)))];
+    return (st.fills || []).filter((f) => !at(f)).concat([{ x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000, c }]);
+  }
+  /** The place painted with the colours of `pal`, as a canvas (cached). */
+  function picture(st, pal) {
+    const key = `${st.id}|${st.v || 0}|${pal.ink}|${FILLS.map(([k]) => pal[k]).join('|')}`;
+    if (cache.has(key)) return cache.get(key);
+    const ink = inkLayer(st, pal.ink);
+    const out = document.createElement('canvas');
+    out.width = out.height = RES;
+    const c = out.getContext('2d');
+    if ((st.fills || []).length) {
+      const alpha = alphaOf(st);
+      const img = c.createImageData(RES, RES);
+      const d = img.data;
+      st.fills.forEach((f) => {
+        const mask = region(alpha, f.x, f.y);
+        if (!mask) return;
+        const [r, g, b] = rgbOf(pal[f.c] || pal.stone);
+        // The colour runs under the ink a little, so no seam shows along the lines.
+        for (let i = 0; i < mask.length; i++) {
+          if (!mask[i]) continue;
+          for (const j of [i, i - 1, i + 1, i - RES, i + RES, i - 2, i + 2, i - 2 * RES, i + 2 * RES]) {
+            if (j < 0 || j >= mask.length) continue;
+            d[j * 4] = r; d[j * 4 + 1] = g; d[j * 4 + 2] = b; d[j * 4 + 3] = 255;
+          }
+        }
+      });
+      c.putImageData(img, 0, 0);
+    }
+    c.drawImage(ink, 0, 0);
+    if (cache.size > 80) cache.clear();
+    cache.set(key, out);
+    return out;
+  }
+
   function draw(ctx, id, size, pal) {
+    if (custom.has(id)) {
+      const full = Object.assign({ hole: '#17130F' }, pal);
+      ctx.save();
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(picture(custom.get(id), full), -size / 2, -size / 2, size, size);
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.strokeStyle = pal.ink;
@@ -205,5 +314,5 @@
     ctx.restore();
   }
 
-  global.MapStamps = { LIST, draw };
+  global.MapStamps = { LIST, draw, FILLS, register, forget, isCustom, custom: (id) => custom.get(id), fillAt, picture };
 })(window);

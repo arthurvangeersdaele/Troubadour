@@ -20,7 +20,7 @@
   const S = global.MapStamps;
 
   let cv = null, ctx = null, place = null, world = null;
-  let mode = 'edit', tool = 'pen', stamp = 'lake', selected = null;
+  let mode = 'edit', tool = 'select', stamp = 'lake', selected = null;
   let view = { x: 0, y: 0, k: 1 };
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;

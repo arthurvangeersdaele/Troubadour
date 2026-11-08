@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.15';
+  const VERSION = '261108.16';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -87,6 +87,7 @@
     const cv = el('canvas', 'cover');
     cv.setAttribute('aria-hidden', 'true');
     const tint = TINT_CSS[tintOf(r)];
+    window.MapStamps.register(r.world.stamps);
     cv.style.setProperty('--cv-c', tint);
     if (card) card.style.setProperty('--c', tint);
     requestAnimationFrame(() => V.storyThumb(cv, r.world.places[0], solid(tint)));
@@ -367,6 +368,8 @@
       A.close(0);
       buffers.clear();
       rec = r;
+      window.MapStamps.register(rec.world.stamps);
+      buildStamps();
     }
     mode = m;
     goPlace(Math.max(0, Math.min(rec.world.places.length - 1, n || 0)), true);
@@ -679,7 +682,7 @@
         paintLvl();
         save();
       };
-      const dn = el('button', 'vb'); dn.type = 'button'; dn.innerHTML = ICON.volDown; dn.setAttribute('aria-label', `Lower ${c.name}`);
+      const dn = el('button', 'vb vdn'); dn.type = 'button'; dn.innerHTML = ICON.volDown; dn.setAttribute('aria-label', `Lower ${c.name}`);
       dn.addEventListener('click', () => step(-1));
       const up = el('button', 'vb'); up.type = 'button'; up.innerHTML = ICON.volUp; up.setAttribute('aria-label', `Raise ${c.name}`);
       up.addEventListener('click', () => step(1));
@@ -784,7 +787,7 @@
       }
     });
   }
-  const stampLabel = (id) => (window.MapStamps.LIST.find((s) => s.id === id) || { label: id }).label;
+  const stampLabel = (id) => { const c = window.MapStamps.custom(id); return c ? c.name : (window.MapStamps.LIST.find((s) => s.id === id) || { label: id }).label; };
   const elName = (e) => e.title || (e.shape.type === 'stamp' ? stampLabel(e.shape.stamp) : e.shape.closed ? 'Drawn area' : 'Drawn line');
 
   /* The world's soundbox and music, in the editor: behind the Soundbox and Music buttons of its top bar. */
@@ -822,9 +825,23 @@
   }
   function editMusic(box) {
     const list = worldMusic();
-    box.append(el('p', 'pn-note', 'The musics of the world, in their order, behind the Music button at the table. They play on from one map to the next. A music laid on a map (whole map, or an element) starts when the party arrives there.'));
-    box.append(orderedBlock('Musics', list, 'No music yet. Add some: from the Recueil, this device or a .troubadour story.', 'the music'));
+    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next; a music laid on a map starts when the party arrives there.'));
+    const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)' }),
+      'Add musics: from this device, the Recueil or Files', () => {
+        fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
+          for (const r of picked) {
+            const key = r.blobKey || await DB.putBlob(await r.getBlob());
+            const path = freePath(`sounds/map/music/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
+            rec.files[path] = key;
+            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'once' }), { size: r.size || 0, duration: r.duration || 0 }));
+          }
+          flush();
+          renderPanel();
+        }, 'music');
+      }, 'var(--music)'));
   }
+
 
 
   function editPlace(box, p) {
@@ -1455,22 +1472,223 @@
     const box = $('#mw-stamps');
     box.textContent = '';
     const pal = V.palette();
-    window.MapStamps.LIST.forEach((s) => {
+    const S = window.MapStamps;
+    if (rec) S.register(rec.world.stamps);
+    const tile = (id, label, extra) => {
       const b = el('button');
       b.type = 'button';
-      b.dataset.stamp = s.id;
+      b.dataset.stamp = id;
       const cv = el('canvas');
       cv.width = 112; cv.height = 112;
       const c = cv.getContext('2d');
       c.translate(56, 56);
-      window.MapStamps.draw(c, s.id, 100, pal);
-      b.append(cv, el('span', '', s.label));
-      b.addEventListener('click', () => { V.setStamp(s.id); paintStamps(s.id); box.hidden = true; toast(`Tap the map to lay ${s.label.toLowerCase()}.`, 1800); });
+      S.draw(c, id, 100, pal);
+      b.append(cv, el('span', '', label));
+      if (extra) b.append(extra);
+      b.addEventListener('click', () => { V.setStamp(id); paintStamps(id); box.hidden = true; toast(`Tap the map to lay ${label.toLowerCase()}.`, 1800); });
       box.append(b);
+    };
+    // First, a new place of your own; then the places of this world; then the library.
+    const add = el('button', 'st-new');
+    add.type = 'button';
+    add.innerHTML = `<span class="st-plus">${ICON.plus}</span><span>New place</span>`;
+    add.addEventListener('click', () => { box.hidden = true; placeEditor(null); });
+    box.append(add);
+    ((rec && rec.world.stamps) || []).forEach((st) => {
+      const ed = el('span', 'st-edit');
+      ed.innerHTML = ICON.edit;
+      ed.setAttribute('role', 'button');
+      ed.setAttribute('aria-label', `Change ${st.name}`);
+      ed.title = 'Change this place';
+      ed.addEventListener('click', (e) => { e.stopPropagation(); box.hidden = true; placeEditor(st); });
+      tile(st.id, st.name, ed);
     });
+    S.LIST.forEach((s) => tile(s.id, s.label));
+    paintStamps(currentStamp);
   }
   let currentStamp = 'lake';
   function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); }
+
+  /* ================= A place of your own: drawn in the theme's ink, coloured by dropping colours into its shapes ================= */
+  function placeEditor(existing) {
+    const S = window.MapStamps;
+    const st = existing ? JSON.parse(JSON.stringify(existing)) : { id: `p-${Math.random().toString(36).slice(2, 10)}`, name: '', strokes: [], fills: [], v: 0 };
+    const history = [];
+    const remember = () => { history.push(JSON.stringify({ strokes: st.strokes, fills: st.fills })); if (history.length > 60) history.shift(); };
+    let tool = 'draw', paint = null; // paint: the colour picked for a tap (drag works too)
+
+    $('#sheet-title').textContent = existing ? 'Change the place' : 'New place';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'pe';
+    $('#sheet').classList.add('wide');
+
+    const name = el('input', 'pe-name');
+    name.type = 'text'; name.maxLength = 40; name.placeholder = 'Its name: Lighthouse, Old mill, Temple…'; name.value = st.name;
+    name.setAttribute('aria-label', 'Name of the place');
+    name.setAttribute('enterkeyhint', 'done');
+    name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
+
+    const stage = el('div', 'pe-stage');
+    const cv = el('canvas', 'pe-canvas');
+    cv.setAttribute('aria-label', 'Drawing of the place');
+    stage.append(cv);
+
+    const tools = el('div', 'pe-tools');
+    const tbtn = (id, icon, label) => {
+      const b = el('button', 'pe-t'); b.type = 'button'; b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); b.dataset.t = id;
+      b.addEventListener('click', () => { tool = id; paint = null; paintTools(); });
+      return b;
+    };
+    const undo = el('button', 'pe-t'); undo.type = 'button'; undo.innerHTML = ICON.undo; undo.title = 'Undo'; undo.setAttribute('aria-label', 'Undo');
+    undo.addEventListener('click', () => { const h = history.pop(); if (!h) return; Object.assign(st, JSON.parse(h)); draw(); });
+    const clear = el('button', 'pe-t'); clear.type = 'button'; clear.innerHTML = ICON.trash; clear.title = 'Start again'; clear.setAttribute('aria-label', 'Start again');
+    clear.addEventListener('click', () => { if (!st.strokes.length) return; remember(); st.strokes = []; st.fills = []; draw(); });
+    tools.append(tbtn('draw', ICON.pen, 'Draw'), tbtn('erase', ICON.eraser, 'Erase a line or a colour'), undo, clear);
+
+    const colours = el('div', 'pe-colours');
+    const pal = V.palette();
+    S.FILLS.forEach(([k, label]) => {
+      const chip = el('button', 'pe-c'); chip.type = 'button'; chip.dataset.c = k; chip.title = label; chip.setAttribute('aria-label', `${label}: drag it into a shape`);
+      chip.style.setProperty('--fill', k === 'hole' ? '#17130F' : pal[k]);
+      // A tap picks the colour (then tap inside a shape); a drag drops it where the finger lifts.
+      chip.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const id = e.pointerId, x0 = e.clientX, y0 = e.clientY;
+        let ghost = null;
+        try { chip.setPointerCapture(id); } catch (err) { /* old browsers */ }
+        const move = (ev) => {
+          if (ev.pointerId !== id) return;
+          if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) { ghost = el('div', 'pe-ghost'); ghost.style.setProperty('--fill', chip.style.getPropertyValue('--fill')); document.body.append(ghost); }
+          if (ghost) ghost.style.transform = `translate(${ev.clientX - 14}px, ${ev.clientY - 14}px)`;
+        };
+        const up = (ev) => {
+          if (ev.pointerId !== id) return;
+          chip.removeEventListener('pointermove', move); chip.removeEventListener('pointerup', up); chip.removeEventListener('pointercancel', up);
+          if (ghost) { ghost.remove(); if (ev.type === 'pointerup') dropAt(ev.clientX, ev.clientY, k); return; }
+          tool = 'fill'; paint = paint === k ? null : k; if (!paint) tool = 'draw'; paintTools();
+        };
+        chip.addEventListener('pointermove', move); chip.addEventListener('pointerup', up); chip.addEventListener('pointercancel', up);
+      });
+      colours.append(chip);
+    });
+    const hint = el('p', 'pe-hint', 'Draw the outline of your place with your finger. Then drag a colour into a closed shape.');
+
+    const foot = el('div', 'pe-foot');
+    if (existing) {
+      const del = el('button', 'btn slim danger', 'Delete'); del.type = 'button';
+      del.addEventListener('click', async () => {
+        const used = rec.world.places.reduce((n, p) => n + p.elements.filter((e) => e.shape.type === 'stamp' && e.shape.stamp === st.id).length, 0);
+        const ok = await ask(`Delete ${existing.name}?`, used ? `It is laid ${used} time${used > 1 ? 's' : ''} on the maps of this world: those become plain circles.` : 'It leaves the library of this world.', [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, cls: 'danger' }]);
+        if (!ok) return;
+        rec.world.stamps = (rec.world.stamps || []).filter((x) => x.id !== st.id);
+        S.forget(st.id);
+        save(); buildStamps(); V.redraw();
+        $('#sheet').close();
+      });
+      foot.append(del);
+    }
+    const cancel = el('button', 'btn slim', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', () => $('#sheet').close());
+    const ok = el('button', 'btn slim primary', existing ? 'Save' : 'Add to the library'); ok.type = 'button';
+    ok.addEventListener('click', () => {
+      if (!st.strokes.length) { toast('Draw your place first.', 1800); return; }
+      st.name = name.value.trim() || 'Place';
+      st.v = (existing ? (existing.v || 0) : 0) + 1;
+      const list = rec.world.stamps || (rec.world.stamps = []);
+      const at = list.findIndex((x) => x.id === st.id);
+      if (at >= 0) list[at] = st; else list.push(st);
+      S.register([st]);
+      save(); buildStamps(); V.redraw();
+      $('#sheet').close();
+      if (!existing) { V.setStamp(st.id); paintStamps(st.id); toast(`Tap the map to lay ${st.name.toLowerCase()}.`, 2000); }
+    });
+    foot.append(el('span', 'grow'), cancel, ok);
+
+    const side = el('div', 'pe-side');
+    side.append(name, tools, colours, hint);
+    const main = el('div', 'pe-main');
+    main.append(stage, side);
+    body.append(main, foot);
+
+    function paintTools() {
+      tools.querySelectorAll('[data-t]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === tool)));
+      colours.querySelectorAll('.pe-c').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === paint)));
+      cv.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+    }
+    let live = null; // the stroke being drawn
+    function draw() {
+      const r = cv.getBoundingClientRect();
+      const d = Math.min(2, window.devicePixelRatio || 1);
+      const w = Math.max(10, Math.round(r.width));
+      if (cv.width !== Math.round(w * d)) { cv.width = cv.height = Math.round(w * d); }
+      const c = cv.getContext('2d');
+      c.setTransform(d, 0, 0, d, 0, 0);
+      const p = V.palette();
+      c.fillStyle = p.paper; c.fillRect(0, 0, w, w);
+      // A light grid, to keep the shapes even.
+      c.strokeStyle = p.line; c.lineWidth = 1; c.globalAlpha = 0.5;
+      for (let i = 1; i < 8; i++) { const q = Math.round((i * w) / 8) + 0.5; c.beginPath(); c.moveTo(q, 0); c.lineTo(q, w); c.moveTo(0, q); c.lineTo(w, q); c.stroke(); }
+      c.globalAlpha = 1;
+      const shown = Object.assign({}, st, { v: `e${JSON.stringify(st.strokes).length}-${JSON.stringify(st.fills)}` });
+      c.drawImage(S.picture(shown, Object.assign({ hole: '#17130F' }, p)), 0, 0, w, w);
+      if (live) {
+        // The line being drawn, over the picture (it joins it when the finger lifts).
+        c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = p.ink; c.fillStyle = p.ink; c.lineWidth = w * 0.022;
+        c.beginPath(); live.forEach((q, i) => (i ? c.lineTo(q[0] * w, q[1] * w) : c.moveTo(q[0] * w, q[1] * w)));
+        if (live.length === 1) { c.arc(live[0][0] * w, live[0][1] * w, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); } else c.stroke();
+      }
+    }
+    const toUnit = (cx, cy) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (cx - r.left) / r.width)), Math.max(0, Math.min(1, (cy - r.top) / r.height))]; };
+    function dropAt(cx, cy, k) {
+      const r = cv.getBoundingClientRect();
+      if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return;
+      const [x, y] = toUnit(cx, cy);
+      const next = S.fillAt(st, x, y, k);
+      if (!next) { toast('Drop the colour inside a closed shape.', 1800); return; }
+      remember(); st.fills = next; draw();
+    }
+    function eraseAt(x, y) {
+      const near = 0.03;
+      const dist = (pts) => pts.reduce((m, q, i) => { if (!i) return Math.hypot(q[0] - x, q[1] - y); const a = pts[i - 1]; const dx = q[0] - a[0], dy = q[1] - a[1]; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.min(m, Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y)); }, Infinity);
+      const i = st.strokes.findIndex((pts) => dist(pts) < near);
+      if (i >= 0) { remember(); st.strokes.splice(i, 1); draw(); return; }
+      // Inside a coloured shape: its colour goes.
+      const mask = S.fillAt(st, x, y, 'stone');
+      if (mask) { const kept = mask.slice(0, -1); if (kept.length !== st.fills.length) { remember(); st.fills = kept; draw(); } }
+    }
+    cv.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const [x, y] = toUnit(e.clientX, e.clientY);
+      if (tool === 'fill' && paint) { dropAt(e.clientX, e.clientY, paint); return; }
+      if (tool === 'erase') { eraseAt(x, y); return; }
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
+      live = [[Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]];
+      draw();
+    });
+    cv.addEventListener('pointermove', (e) => {
+      if (!live) return;
+      const [x, y] = toUnit(e.clientX, e.clientY);
+      const last = live[live.length - 1];
+      if (Math.hypot(x - last[0], y - last[1]) < 0.006) return;
+      live.push([Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]);
+      draw();
+    });
+    const end = () => {
+      if (!live) return;
+      // A line that ends near where it began closes itself, so it can take a colour.
+      const a = live[0], b = live[live.length - 1];
+      if (live.length > 4 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05) live.push([a[0], a[1]]);
+      remember(); st.strokes.push(live); live = null; draw();
+    };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(stage);
+    $('#sheet').addEventListener('close', () => { ro.disconnect(); $('#sheet').classList.remove('wide'); body.className = ''; }, { once: true });
+    paintTools();
+    $('#sheet').showModal();
+    requestAnimationFrame(draw);
+  }
 
   /* ================= Settings ================= */
   function buildSettings() {
@@ -1828,7 +2046,7 @@
   /** An effect card, as Troubadour's: its name, remove, listen, length and size, move earlier or later, volume. */
   function fxCard(s, i, list, o) {
     const c = el('div', 'sc');
-    c.style.setProperty('--z', 'var(--accent)');
+    c.style.setProperty('--z', o.colour || 'var(--accent)');
     const top = el('div', 'row');
     const name = el('input');
     name.value = s.name;
@@ -1845,6 +2063,7 @@
       if (v !== 'rm') return;
       stopFx(o.key);
       list.splice(list.indexOf(s), 1);
+      if (o.onRemove) o.onRemove(s);
       o.save();
       o.rerender();
     };
@@ -1882,7 +2101,7 @@
     const vr = el('input');
     vr.type = 'range'; vr.min = 0; vr.max = 1; vr.step = 0.05; vr.value = typeof s.volume === 'number' ? s.volume : 0.75;
     vr.setAttribute('aria-label', `Default volume of ${s.name}`);
-    vr.style.setProperty('--z', 'var(--accent)');
+    vr.style.setProperty('--z', o.colour || 'var(--accent)');
     const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
     vr.addEventListener('input', () => {
       s.volume = Math.round(+vr.value * 100) / 100;
@@ -1897,9 +2116,9 @@
     return c;
   }
   /** The dashed zone of effects, with its Add button at the foot. */
-  function fxZone(list, opts, hint, onAdd) {
+  function fxZone(list, opts, hint, onAdd, colour) {
     const dz = el('div', 'dz');
-    dz.style.setProperty('--z', 'var(--accent)');
+    dz.style.setProperty('--z', colour || 'var(--accent)');
     list.forEach((s, i) => dz.append(fxCard(s, i, list, opts(s))));
     const h = el('button', 'hint');
     h.type = 'button';
@@ -1950,7 +2169,7 @@
   /** The sound picker of the Troubadour web app: Files, the sounds on this device or the Recueil, ticked and added at once.
    *  `have` holds the stored sounds already in the list; `onAdd(rows)` gets { name, blobKey | getBlob, size, duration, ext }. */
   let fxSource = 'device';
-  async function fxPicker(label, have, onAdd) {
+  async function fxPicker(label, have, onAdd, kind = 'soundbox') {
     stopPreview();
     // On this device: every sound of every world, and the shared soundbox. Reusing one takes no extra space.
     const seen = new Map();
@@ -2031,7 +2250,8 @@
     };
     const ROWNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
     const ROWCOLOR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
-    const rank = (k) => (k === 'soundbox' ? 0 : k === 'events' ? 1 : 2);
+    const near = { soundbox: 'events', events: 'soundbox', music: 'ambience', ambience: 'music' }[kind];
+    const rank = (k) => (k === kind ? 0 : k === near ? 1 : 2);
     const row = (r) => {
       const lab = el('label', 'pick-row');
       const cb = el('input');
@@ -2314,7 +2534,7 @@
     $('#mw-fill').innerHTML = ICON.fit;
     $('#mw-fill').addEventListener('click', () => V.fit());
 
-    $('#mw-fade').innerHTML = ICON.stop;
+    $('#mw-fade').innerHTML = ICON.stopMusic;
     // The master buttons, as in Troubadour: pause (or resume) everything and stop everything, over 3 s.
     $('#mw-fade').addEventListener('click', () => { A.stopMusic(); refreshLive(); paintMaster(); });
     $('#mw-pause').innerHTML = ICON.pause;
@@ -2340,7 +2560,7 @@
       if (mode !== 'edit') return;
       if (!e.title) {
         const sh = e.shape;
-        const kind = sh.type === 'stamp' ? ((window.MapStamps.LIST.find((x) => x.id === sh.stamp) || {}).label || 'Drawing') : sh.closed ? 'Area' : 'Line';
+        const kind = sh.type === 'stamp' ? stampLabel(sh.stamp) || 'Drawing' : sh.closed ? 'Area' : 'Line';
         const same = place().elements.filter((x) => x !== e && x.title && x.title.startsWith(kind)).length;
         e.title = same ? `${kind} ${same + 1}` : kind;
         save(); V.redraw();
@@ -2398,7 +2618,7 @@
     ['pointerdown', 'touchend', 'keydown'].forEach((t) => document.addEventListener(t, unlock, { capture: true, passive: true }));
     buildStamps();
     paintStamps('lake');
-    V.setTool(pc() ? 'pen' : 'select');
+    V.setTool('select');
 
     // Keys, while drawing.
     document.addEventListener('keydown', (e) => {
@@ -2406,7 +2626,7 @@
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (mode === 'edit') V.undo(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (mode === 'edit') {
-        const map = { v: 'select', h: 'hand', w: 'wall', p: 'pen', e: 'eraser' };
+        const map = { v: 'select', h: 'hand', w: 'wall', e: 'eraser' };
         const k = e.key.toLowerCase();
         if (map[k]) { V.setTool(map[k]); return; }
         if (k === 'l') { V.setStamp(currentStamp); $('#mw-stamps').hidden = false; return; }
