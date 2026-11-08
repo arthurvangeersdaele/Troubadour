@@ -53,7 +53,8 @@
     link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>', 16),
     fit: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 18),
     undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', 18),
-    sound: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>', 16),
+    // The Sounds button: a folded map with a speaker on it (the sounds of the map).
+    sound: svg('<g stroke-width="1.7"><path d="M2.5 6 8.5 3.6l7 2.4 6-2.4v14.4l-6 2.4-7-2.4-6 2.4z"/><path d="M8.5 3.6v1.6M15.5 6v1.5M8.5 18v-.9M15.5 20.4v-2"/><path d="M5.8 10.4h1.8l2.7-2.2v7.6l-2.7-2.2H5.8z"/><path d="M12.6 10.35a2.3 2.3 0 0 1 0 3.3M14.01 8.66a4.5 4.5 0 0 1 0 6.68"/></g>', 19),
     globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/>', 16),
     radius: svg('<circle cx="12" cy="12" r="8.5" stroke-dasharray="2.6 2.6"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><path d="M12 12h8.5"/>', 16),
     volDown: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5"/>', 15),
