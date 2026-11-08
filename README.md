@@ -127,6 +127,7 @@ The `.troubadour-map` format (a `.troubadour` plus `map.json`) is specified in [
 - **At the table the screen never leaves the map**: it opens on the whole map, cannot zoom out past it, and cannot pan beyond its edges (`keepOnMap` in `map-view.js`).
 - **Editor**: the drawing tools move by their grip and stay inside the map's frame; sounds are added with + Add (the world's sounds and the Recueil's). Each world has a soundbox (one-shot pads behind the Soundbox button at the table). Every card starts with its map; several musics play one after another.
 - **Sound menu** (at the table): open by default on the whole map, also behind the Sounds button (left of the Soundbox); a double tap on an element shows its sounds, on the map's ground the whole map again; it lists the sounds heard everywhere, then each element's under its name. A long press on an element's sign (in its middle) takes the party to the map it leads to.
+- **The party's trail** (at the table): dragging the golden point draws a dotted trail, treasure-map style, and lifting the finger marks its end with a red cross; one second later the point walks the trail at a steady pace (about a fifth of the map per second, easing in and out), the sounds following it. A new drag stops the walk where it is and starts a new trail. In the editor, a drag still places the point directly.
 
 ## Icons
 

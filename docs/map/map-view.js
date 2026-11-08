@@ -9,7 +9,8 @@
  *
  * Tools (edit): select (move elements and the player point), wall, pen (a shape: closed when it ends near
  * its start, else a line), stamp (a drawing of the library), eraser, hand (move the map).
- * At the table (play): drag the player point to move the party (a tap moves nothing); double tap an element to open it.
+ * At the table (play): drag the player point to draw the party's trail; a second after the finger lifts, the point
+ * walks it (a tap moves nothing). Double tap an element to open it.
  * Everywhere: wheel or pinch to zoom, two fingers, the middle button or Space to move the map.
  */
 (function (global) {
@@ -149,6 +150,84 @@
   }
   function edited() { dirty = true; if (api.onEdit) api.onEdit(); }
 
+  /* ---------- The party's trail (at the table) ---------- */
+  // Dragging the golden dot draws a dashed trail, treasure-map style; lifting the finger marks its end with a
+  // cross. A second later the dot walks the trail at a steady pace (easing in and out), and the sounds follow it.
+  const WALK_DELAY = 1000;
+  let trail = null; // { pts, phase: 'draw' | 'wait' | 'walk', cum, len, t0, dur, timer, at }
+
+  /** Stops any trail: the dot stays where it is now. */
+  function dropTrail() {
+    if (!trail) return;
+    clearTimeout(trail.timer);
+    trail = null;
+    dirty = true;
+  }
+  function startTrail() {
+    dropTrail();
+    trail = { pts: [place.player.slice()], phase: 'draw' };
+  }
+  function addToTrail(w) {
+    const q = clampPoint(w);
+    const last = trail.pts[trail.pts.length - 1];
+    if (Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) trail.pts.push(q);
+    dirty = true;
+  }
+  function endTrail() {
+    const pts = trail.pts.length > 2 ? M.simplify(trail.pts, 2 / view.k) : trail.pts;
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const len = cum[cum.length - 1];
+    if (pts.length < 2 || len * view.k < 8) { dropTrail(); return; }
+    // A steady pace: about a fifth of the map's longer side per second (between 0.6 and 12 seconds).
+    const speed = Math.max(place.width, place.height) * 0.2;
+    trail = Object.assign(trail, { pts, cum, len, phase: 'wait', at: 0, dur: Math.max(600, Math.min(12000, (len / speed) * 1000)) });
+    trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = performance.now(); dirty = true; } }, WALK_DELAY);
+    dirty = true;
+  }
+  /** The point at distance d along the trail. */
+  function along(d) {
+    const { pts, cum } = trail;
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < d) i++;
+    const seg = cum[i] - cum[i - 1] || 1, u = Math.max(0, Math.min(1, (d - cum[i - 1]) / seg));
+    return { p: [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u], i };
+  }
+  function stepTrail() {
+    if (!trail || trail.phase !== 'walk' || !place) return;
+    const u = Math.min(1, (performance.now() - trail.t0) / trail.dur);
+    const e = 0.5 - Math.cos(Math.PI * u) / 2; // eases in and out
+    trail.at = e * trail.len;
+    const { p } = along(trail.at);
+    place.player = [Math.round(p[0]), Math.round(p[1])];
+    if (api.onPlayer) api.onPlayer(place.player);
+    dirty = true;
+    if (u >= 1) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
+  }
+  function drawTrail() {
+    if (!trail || trail.pts.length < 2) return;
+    // What is left of the trail: from the dot (once it walks) to the end.
+    let pts = trail.pts;
+    if (trail.phase === 'walk') { const { p, i } = along(trail.at); pts = [p].concat(trail.pts.slice(i)); }
+    const sp = pts.map(toScreen);
+    ctx.save();
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.setLineDash([2, 9]);
+    ctx.lineDashOffset = trail.phase === 'walk' ? -trail.at * view.k : 0;
+    ctx.beginPath(); sp.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+    ctx.strokeStyle = alpha(pal.paper, 0.85); ctx.lineWidth = 7; ctx.stroke();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3.5; ctx.stroke();
+    ctx.setLineDash([]);
+    if (trail.phase !== 'draw') {
+      // The cross that marks the spot.
+      const [x, y] = sp[sp.length - 1], r = 9;
+      ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r);
+      ctx.strokeStyle = alpha(pal.paper, 0.9); ctx.lineWidth = 8; ctx.stroke();
+      ctx.strokeStyle = pal.events; ctx.lineWidth = 4; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   /* ---------- Pointer input ---------- */
   const pointers = new Map();
   let last = { t: 0, s: [0, 0], el: null }; // the last tap, to tell a double tap
@@ -176,6 +255,7 @@
     if (pointers.size === 2) {
       // Two fingers: whatever was being drawn is dropped, the map moves and zooms.
       if (gesture && gesture.kind === 'stroke') gesture = null;
+      if (gesture && gesture.kind === 'player' && trail && trail.phase === 'draw') dropTrail();
       const [a, b] = [...pointers.values()];
       gesture = { kind: 'pinch', d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
       dirty = true;
@@ -246,8 +326,10 @@
         gesture.last = s; break;
       case 'player':
         if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
+        if (!gesture.dragged && mode === 'play') startTrail();
         gesture.dragged = true;
         cv.classList.add('grabbing');
+        if (mode === 'play') { addToTrail(w); break; }
         place.player = clampPoint(w);
         dirty = true;
         if (api.onPlayer) api.onPlayer(place.player);
@@ -288,7 +370,7 @@
       last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
       if (twice && api.onTap) api.onTap(g.el || null);
     } else if (g.kind === 'player') {
-      edited();
+      if (mode === 'play') { if (trail && trail.phase === 'draw') endTrail(); } else edited();
     } else if (g.kind === 'move') {
       if (!g.moved) {
         const t = performance.now();
@@ -518,6 +600,7 @@
       ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5;
       ctx.strokeRect(p[0] - 8, p[1] - 8, q[0] - p[0] + 16, q[1] - p[1] + 16); ctx.restore();
     }
+    drawTrail();
     const [px, py] = toScreen(place.player);
     ctx.beginPath(); ctx.arc(px, py, 22, 0, Math.PI * 2); ctx.fillStyle = alpha(pal.accent, 0.18); ctx.fill();
     ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
@@ -526,6 +609,7 @@
   }
 
   function loop() {
+    stepTrail();
     if (dirty) draw();
     requestAnimationFrame(loop);
   }
@@ -601,11 +685,12 @@
     loop();
   }
   function show(p, w) {
+    dropTrail();
     place = p; world = w; selected = null; undoStack.length = 0;
     fit();
     dirty = true;
   }
-  function setMode(m) { mode = m; if (m === 'play') select(null); dirty = true; }
+  function setMode(m) { if (m !== mode) dropTrail(); mode = m; if (m === 'play') select(null); dirty = true; }
   function setTool(t) { tool = t; if (api.onTool) api.onTool(t); dirty = true; }
   function setStamp(id) { stamp = id; setTool('stamp'); }
   function select(el) {
@@ -636,7 +721,7 @@
 
   Object.assign(api, {
     mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
-    __toScreen: (p) => toScreen(p), redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
+    __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,
   });
   global.MapView = api;
