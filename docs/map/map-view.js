@@ -178,16 +178,37 @@
     if (Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) trail.pts.push(q);
     dirty = true;
   }
-  function endTrail() {
-    const pts = trail.pts.length > 2 ? M.simplify(trail.pts, 2 / view.k) : trail.pts;
+  function measure(pts) {
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    return cum;
+  }
+  function endTrail() {
+    const pts = trail.pts.length > 2 ? M.simplify(trail.pts, 2 / view.k) : trail.pts;
+    const cum = measure(pts);
     const len = cum[cum.length - 1];
     if (pts.length < 2 || len * view.k < 8) { dropTrail(); return; }
-    // A steady pace, set in Settings: a share of the map's longer side per second (a walk lasts 0.6 to 12 seconds).
-    const speed = Math.max(place.width, place.height) * (Number(global.MapUI.settings.trailSpeed) || 0.2);
-    trail = Object.assign(trail, { pts, cum, len, phase: 'wait', at: 0, dur: Math.max(600, Math.min(12000, (len / speed) * 1000)) });
-    trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = performance.now(); dirty = true; } }, WALK_DELAY);
+    trail = Object.assign(trail, { pts, cum, len, phase: 'wait', at: 0 });
+    trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = trail.tl = performance.now(); dirty = true; } }, WALK_DELAY);
+    dirty = true;
+  }
+  /** The cross at the end of a trail, on screen (null while the trail is drawn). */
+  function crossAt() { return trail && trail.phase !== 'draw' && trail.len ? toScreen(trail.pts[trail.pts.length - 1]) : null; }
+  /** The cross dragged to a new spot, even while the party walks: the trail follows the finger from its end. Brought
+   *  back over the trail still ahead, it shortens it there. */
+  function dragCross(w) {
+    const q = clampPoint(w);
+    const pts = trail.pts;
+    const from = trail.phase === 'walk' ? along(trail.at).i : 1; // the trail behind the party stays as it is
+    const near = 14 / view.k;
+    for (let j = Math.max(1, from); j < pts.length - 1; j++) {
+      if (Math.hypot(pts[j][0] - q[0], pts[j][1] - q[1]) < near) { pts.length = j + 1; break; }
+    }
+    const last = pts[pts.length - 1];
+    if (!blocked(last, q) && Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) pts.push(q);
+    trail.cum = measure(pts);
+    trail.len = trail.cum[trail.cum.length - 1];
+    if (trail.at > trail.len) trail.at = trail.len;
     dirty = true;
   }
   /** The point at distance d along the trail. */
@@ -200,14 +221,20 @@
   }
   function stepTrail() {
     if (!trail || trail.phase !== 'walk' || !place) return;
-    const u = Math.min(1, (performance.now() - trail.t0) / trail.dur);
-    const e = 0.5 - Math.cos(Math.PI * u) / 2; // eases in and out
-    trail.at = e * trail.len;
+    // A steady pace, set in Settings (a share of the map's longer side per second), easing in over the first
+    // half second and out over the last stretch. The trail may change on the way (its cross dragged elsewhere).
+    const t = performance.now(), dt = Math.min(0.1, (t - trail.tl) / 1000);
+    trail.tl = t;
+    const speed = Math.max(place.width, place.height) * (Number(global.MapUI.settings.trailSpeed) || 0.1);
+    const left = trail.len - trail.at;
+    const k = Math.min(1, 0.15 + (t - trail.t0) / 600) * Math.min(1, 0.12 + left / (speed * 0.6));
+    trail.at = Math.min(trail.len, trail.at + speed * k * dt);
     const { p } = along(trail.at);
     place.player = [Math.round(p[0]), Math.round(p[1])];
     if (api.onPlayer) api.onPlayer(place.player);
     dirty = true;
-    if (u >= 1) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
+    const holding = gesture && gesture.kind === 'cross';
+    if (trail.at >= trail.len - 0.01 && !holding) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
   }
   function drawTrail() {
     if (!trail || trail.pts.length < 2) return;
@@ -279,6 +306,14 @@
         press = { el: lk, t0: performance.now(), s, timer: setTimeout(() => { const e2 = press && press.el; endPress(); gesture = null; if (e2 && api.onLink) api.onLink(e2); }, PRESS_MS) };
         dirty = true;
       }
+      // The cross of a trail: dragged elsewhere, even while the party walks.
+      const cx = crossAt();
+      if (cx && Math.hypot(s[0] - cx[0], s[1] - cx[1]) <= 26 && !(onPlayer(s[0], s[1]) && trail.phase === 'wait')) {
+        endPress();
+        if (trail.phase === 'wait') { clearTimeout(trail.timer); trail.pts = trail.pts.slice(); }
+        gesture = { kind: 'cross' }; cv.classList.add('grabbing'); dirty = true;
+        return;
+      }
       // On the point: a drag moves it, a tap (or a double tap) counts as a tap on the map below it.
       if (onPlayer(s[0], s[1])) { gesture = { kind: 'player', start: s, el: elementAt(w), dragged: false }; return; }
       gesture = { kind: 'tap', start: s, last: s, el: elementAt(w) };
@@ -330,6 +365,7 @@
         if (Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) > 6) gesture.panning = true;
         if (gesture.panning) { fillOnResize = false; view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); dirty = true; }
         gesture.last = s; break;
+      case 'cross': if (trail) dragCross(w); break;
       case 'player':
         if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
         // At the table, with the trail on (Settings): a trail to walk. Otherwise the point follows the finger.
@@ -379,6 +415,11 @@
       const twice = last.t && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
       last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
       if (twice && api.onTap) api.onTap(g.el || null);
+    } else if (g.kind === 'cross') {
+      if (trail) {
+        if (trail.phase === 'wait') { trail.phase = 'draw'; endTrail(); }
+        else if (trail.at >= trail.len - 0.01) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
+      }
     } else if (g.kind === 'player') {
       if (trail && trail.phase === 'draw') endTrail(); else edited();
     } else if (g.kind === 'move') {
@@ -442,6 +483,7 @@
     let cur = '';
     if (spaceDown || (mode === 'edit' && tool === 'hand')) cur = 'grab';
     else if (onPlayer(s[0], s[1]) && (mode === 'play' || tool === 'select')) cur = 'grab';
+    else if (mode === 'play' && crossAt() && Math.hypot(s[0] - crossAt()[0], s[1] - crossAt()[1]) <= 26) cur = 'grab';
     else if (mode === 'play') cur = elementAt(w) ? 'pointer' : 'crosshair';
     else if (tool === 'select') cur = elementAt(w) ? 'move' : 'default';
     else if (tool === 'eraser') cur = elementAt(w) || wallAt(w) ? 'pointer' : 'default';

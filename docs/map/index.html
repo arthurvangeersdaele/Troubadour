@@ -32,6 +32,7 @@
       root.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
       root.dataset.mode = mode;
     } catch (e) {}
+    try { root.classList.toggle('portrait-ok', !!(JSON.parse(localStorage.getItem('troubadour.map.settings') || '{}') || {}).portrait); } catch (e) {}
     try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
     var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     root.classList.toggle('ios', ios);
@@ -40,10 +41,11 @@
 </script>
 </head>
 <body>
-<div class="rotate" aria-hidden="true">
-  <div class="phone-turn"><i></i></div>
+<div class="rotate">
+  <div class="phone-turn" aria-hidden="true"><i></i></div>
   <b>Turn your phone sideways</b>
-  <span>Troubadour Map plays in landscape.</span>
+  <span>Troubadour Map plays best in landscape.</span>
+  <button class="btn" type="button" id="rotate-ok">Use it upright</button>
 </div>
 
 <div class="app" id="app">
@@ -55,11 +57,29 @@
     <span class="logo">Troubadour <em>Map</em></span>
     <span class="grow"></span>
     <button class="ico" type="button" data-action="add-world" aria-label="Add a world" title="Add a world"></button>
+    <button class="ico sbx-toggle" type="button" data-action="shared" aria-pressed="false" aria-label="Shared soundbox" title="Shared soundbox"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
   <div class="lib-wrap">
     <p class="mp-hint ios-hint" id="ios-hint" hidden>On iPhone and iPad, add this page to your Home Screen (Share, then Add to Home Screen): your worlds stay on the device and the map opens full screen. <button type="button" class="btn-link" id="ios-hint-close">Got it</button></p>
     <div id="world-list" class="lib-grid"></div>
+  </div>
+</main>
+
+<!-- ============ The shared soundbox ============ -->
+<main id="sbx" class="mp-screen" hidden>
+  <header class="sbar mp-sbar">
+    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="logo">Troubadour <em>Map</em></span>
+    <span class="grow"></span>
+    <button class="btn slim primary" type="button" data-action="add-shared"></button>
+    <button class="ico sbx-toggle" type="button" data-action="shared" aria-pressed="true" aria-label="Back to the worlds" title="Back to the worlds"></button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="lib-wrap">
+    <h1 class="sh-h">Shared soundbox</h1>
+    <p class="lead small sh-lead">Quick effects ready on every world, behind the Soundbox button at the table, after the world's own effects.</p>
+    <div id="shared-list" class="sh-list"></div>
   </div>
 </main>
 
@@ -79,6 +99,7 @@
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
     <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
     <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
+    <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
@@ -113,6 +134,12 @@
       <div class="sb-vol"><label for="mw-sbvol">Volume</label><input type="range" id="mw-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
       <div class="pads" id="mw-pads"></div>
     </aside>
+    <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
+      <div class="sb-head"><h2>Music</h2><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
+      <div class="mus-now" id="mw-mus-now"></div>
+      <div class="mus-q"><input type="search" class="snd-search" id="mw-mus-q" placeholder="Search a music" aria-label="Search a music"></div>
+      <div class="mus-list" id="mw-mus-list"></div>
+    </aside>
   </div>
 </main>
 
@@ -135,6 +162,7 @@
       <button type="button" role="radio" data-v="light">Light</button>
       <button type="button" role="radio" data-v="system">System</button>
     </div>
+    <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
   </section>
   <section>
     <h3>Troubadour name</h3>
@@ -175,10 +203,10 @@
     <div class="row-set" id="trail-speed-row">
       <span>Walking speed<small>How fast the point walks its trail</small></span>
       <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
-        <button type="button" role="radio" data-v="0.1">Slow</button>
-        <button type="button" role="radio" data-v="0.2">Normal</button>
-        <button type="button" role="radio" data-v="0.4">Fast</button>
-        <button type="button" role="radio" data-v="0.8">Very fast</button>
+        <button type="button" role="radio" data-v="0.05">Slow</button>
+        <button type="button" role="radio" data-v="0.1">Normal</button>
+        <button type="button" role="radio" data-v="0.2">Fast</button>
+        <button type="button" role="radio" data-v="0.4">Very fast</button>
       </div>
     </div>
     <label class="row-set toggle"><span>Walls stop the party<small>The point and its trail never go through a wall: draw the way through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>

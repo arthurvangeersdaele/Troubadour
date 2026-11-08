@@ -102,6 +102,8 @@
     const out = Object.assign({}, world);
     out.wallLoss = r2(num(world.wallLoss, 0.7, 0, 1));
     out.soundbox = (world.soundbox || []).map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { play: 'once' }));
+    // The world's musics, behind the Music button at the table (absent from older worlds: made from the story then).
+    if (Array.isArray(world.music)) out.music = world.music.map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { zone: 'music' }));
     const seen = new Set();
     out.places = (world.places || []).map(cleanPlace).map((p) => {
       while (seen.has(p.id)) p.id = `${p.id}-${shortId()}`;
@@ -320,7 +322,7 @@
       if (world.format !== 'troubadour-map') throw new Error('map.json is not a Troubadour Map.');
       if (world.version !== MAP_VERSION) throw new Error(`This world uses version ${world.version}, which this Troubadour Map does not know yet. Update the app.`);
     }
-    const fromMap = world ? (world.places || []).flatMap((p) => (p.general || []).concat(...(p.elements || []).map((e) => e.cards || [])).map((c) => c.file)).concat((world.soundbox || []).map((c) => c.file)) : [];
+    const fromMap = world ? (world.places || []).flatMap((p) => (p.general || []).concat(...(p.elements || []).map((e) => e.cards || [])).map((c) => c.file)).concat((world.soundbox || []).map((c) => c.file), (world.music || []).map((c) => c.file)) : [];
     const paths = [...new Set(soundsOf(story).map((s) => s.file).concat(fromMap))].filter((p) => p && zip.has(p));
     const files = new Map();
     let n = 0;

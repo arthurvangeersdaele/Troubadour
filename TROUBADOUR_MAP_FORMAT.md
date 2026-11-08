@@ -81,6 +81,8 @@ sounds/1/music/01-tavern-hearth.mp3
 | `created`, `forged`, `generator` | string | As in `story.json`. |
 | `wallLoss` | number | 0 to 1, default 0.7: the share of a sound that each wall between it and the player point takes away (0.7: a wall leaves 30 % of the sound, two walls 9 %). |
 | `places` | array | At least one place, in the order of the world. |
+| `soundbox` | array | Optional. Cards (zone `soundbox`, played once) at hand on every map, behind the Soundbox button. |
+| `music` | array | Optional. Cards (zone `music`) of the world's musics, behind the Music button at the table: heard everywhere, they play on from one map to the next. Absent, a reader builds it from every music of the story. A music card laid on a place does not sound from the map: it names the music that starts (crossfading the one playing) when the party arrives on that place. |
 
 A **place** (one map):
 

@@ -68,11 +68,38 @@
     };
   }
 
-  /** The cards of the map: those of the whole map, then those of every element. */
+  /** The cards of the map: those of the whole map, then those of every element. Musics belong to the world
+   *  (its Music button), not to a map: a music laid on a map only tells which one starts when the party arrives. */
+  const isMusic = (c) => c.zone === 'music';
   function cardsOf(p) {
-    const out = p.general.map((c) => ({ card: c, el: null }));
-    p.elements.forEach((e) => e.cards.forEach((c) => out.push({ card: c, el: e })));
+    const out = p.general.filter((c) => !isMusic(c)).map((c) => ({ card: c, el: null }));
+    p.elements.forEach((e) => e.cards.forEach((c) => { if (!isMusic(c)) out.push({ card: c, el: e }); }));
     return out;
+  }
+  /** The music of the map: the first music laid on it (the whole map first), or null. */
+  function themeOf(p) {
+    return p.general.find(isMusic) || p.elements.reduce((f, e) => f || e.cards.find(isMusic), null) || null;
+  }
+
+  /* ---------- The world's musics: one voice each, heard everywhere, kept from one map to the next ---------- */
+  let jukebox = [];
+  function setMusic(cards) {
+    jukebox = (cards || []).slice();
+    const live = new Set(jukebox);
+    jukebox.forEach((c) => {
+      let v = voices.get(c);
+      if (!v) { v = makeVoice(c, null); v.world = true; voices.set(c, v); }
+      if (!v.volMs) v.vg.gain.setTargetAtTime(curve(c.volume), now(), 0.03);
+      if (v.src) v.src.loop = c.play === 'loop' && !blendOf(v);
+    });
+    voices.forEach((v, c) => { if (v.world && !live.has(c)) { drop(v); voices.delete(c); } });
+    changed();
+  }
+  /** The music heard now: the one playing, else the one paused, else the one fading out (null: none). */
+  function currentMusic() {
+    const ws = jukebox.map((c) => voices.get(c)).filter(Boolean);
+    const v = ws.find((o) => o.state === 'playing') || ws.find((o) => o.state === 'paused') || ws.find((o) => o.state === 'ending');
+    return v ? v.card : null;
   }
 
   const duration = (v) => { const b = buffers.get(v.card.file); return b ? b.duration : 0; };
@@ -221,7 +248,7 @@
   }
 
   /** The musics of a group (the whole map, or one element), in their order. */
-  const musicsOf = (v) => [...voices.values()].filter((o) => o.el === v.el && o.card.zone === 'music');
+  const musicsOf = (v) => (v.world ? jukebox.map((c) => voices.get(c)).filter(Boolean) : [...voices.values()].filter((o) => !o.world && o.el === v.el && o.card.zone === 'music'));
   /** "Play after", as in Troubadour: musics set to it make a playlist of their group. When a music ends on its
    *  own (its 1× or 2× played through, not stopped, paused or faded out), the next one set to play after starts:
    *  after a track of the playlist, the next one of the playlist in order (the last one ends it); after any other
@@ -375,32 +402,31 @@
       if (card.play !== 'random' && v.rnd) { v.rnd = false; v.next = 0; }
       if (card.play === 'random' && v.active) v.rnd = true;
     });
-    voices.forEach((v, card) => { if (!live.has(card)) { drop(v); voices.delete(card); } });
-    pausedByAll = pausedByAll.filter((v) => live.has(v.card));
-    heldRandom = heldRandom.filter((v) => live.has(v.card));
+    voices.forEach((v, card) => { if (!v.world && !live.has(card)) { drop(v); voices.delete(card); } });
+    pausedByAll = pausedByAll.filter((v) => v.world || live.has(v.card));
+    heldRandom = heldRandom.filter((v) => v.world || live.has(v.card));
     hear();
     changed();
   }
 
   function open(p, w, bufs) {
-    close(settings.fade);
+    // The sounds of the map left fade out; the world's music plays on.
+    voices.forEach((v, c) => { if (!v.world) { drop(v, settings.fade); voices.delete(c); } });
+    pausedByAll = pausedByAll.filter((v) => v.world); heldRandom = heldRandom.filter((v) => v.world);
     place = p; world = w; buffers = bufs; point = p.player.slice();
     sync();
     audio(true);
     // Every card starts with its map (with the fade-in of Play; events strike at once): the map decides how much of
-    // an element is heard. Of several musics in a group, only the first starts; the others follow it, one after another.
-    const groups = new Set();
-    voices.forEach((v) => {
-      if (v.card.zone !== 'music') { play(v, v.card.zone === 'ambience' ? startFade() : 0.03); return; }
-      const g = v.el || 'map';
-      if (groups.has(g)) return;
-      groups.add(g);
-      const row = musicsOf(v);
-      play(row.find((o) => o.card.play !== 'after') || row[0], startFade());
-    });
+    // an element is heard.
+    voices.forEach((v) => { if (!v.world) play(v, v.card.zone === 'ambience' ? startFade() : 0.03); });
+    // A music laid on the map starts as the party arrives (crossfading the one playing), unless it already plays.
+    const theme = themeOf(p);
+    const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
+    if (tv && tv.state !== 'playing') toggleVoice(tv);
     changed();
   }
 
+  /** Everything stops: the world is left, or drawn. */
   function close(ms = settings.fade) {
     voices.forEach((v) => drop(v, ms));
     voices.clear();
@@ -478,7 +504,7 @@
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
-    open, close, sync, hear, toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
+    open, close, sync, hear, setMusic, currentMusic, themeOf, toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, resumePending, fadeAll, list, voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point,
   });

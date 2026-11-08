@@ -6,8 +6,9 @@ html.ios:not(.pc) body { -webkit-user-select: none; user-select: none; }
 html:not(.ios) .ios-only { display: none !important; }
 
 .btn.slim { height: 38px; padding: 0 12px; font-size: 15px; gap: 6px; flex: none; }
-.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
-.ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+.btn.danger, .ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
+.btn.danger:disabled { opacity: .45; }
 .ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
 .ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
 .ask p { margin: 0 0 14px; color: var(--muted); }
@@ -25,7 +26,8 @@ html:not(.ios) .ios-only { display: none !important; }
 .mp-menu-item:hover { border-color: var(--muted); }
 .mp-menu-item b { display: block; font-weight: 600; }
 .mp-menu-item small { display: block; color: var(--muted); font-size: 13px; }
-.mp-menu-item.danger { color: var(--danger); }
+.mp-menu-item.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: color-mix(in srgb, var(--danger) 12%, var(--card)); }
+.mp-menu-item.danger b, .mp-menu-item.danger small { color: var(--danger); }
 
 /* ---------- A world ---------- */
 .mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
@@ -123,11 +125,12 @@ html:not(.ios) .ios-only { display: none !important; }
 /* ---------- Landscape only, like Troubadour (a computer turns nothing) ---------- */
 .rotate { display: none; }
 @media (orientation: portrait) {
-  html:not(.pc) .rotate {
+  html:not(.pc):not(.portrait-ok) .rotate {
     position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 24px;
   }
-  html:not(.pc) .app { visibility: hidden; }
+  html:not(.pc):not(.portrait-ok) .app { visibility: hidden; }
+  .rotate .btn { margin-top: 14px; }
   .rotate b { font-family: 'Cormorant SC', serif; font-size: 30px; line-height: 1.1; }
   .rotate span { color: var(--muted); font-size: 17px; }
 }
@@ -177,7 +180,8 @@ html:not(.ios) .ios-only { display: none !important; }
   #library .hero { min-height: 0; height: clamp(230px, calc(100dvh - 56px - env(safe-area-inset-top) - 14px - max(24px, env(safe-area-inset-bottom))), 420px); }
   #library:not([hidden]):has(.lib-b) { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
   #library:has(.lib-b) .lib-wrap { flex: 1; min-height: 0; padding-bottom: 0; width: 100%; }
-  #library .lib-grid:has(.lib-b) { height: 100%; }
+  #library:has(.lib-b) .lib-wrap { display: flex; flex-direction: column; }
+  #library .lib-grid:has(.lib-b) { flex: 1; min-height: 0; }
   #library .lib-b { height: 100%; align-items: stretch; }
   #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: max(14px, env(safe-area-inset-bottom)); }
   #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
@@ -342,7 +346,10 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c.paused { border-color: color-mix(in srgb, var(--z) 55%, var(--line)); }
 .c .loop { cursor: pointer; color: var(--text); flex: none; }
 .c .loop.x { min-width: 24px; padding: 0; display: grid; place-items: center; color: var(--muted); }
-.c .loop.x:hover { color: var(--danger); border-color: var(--danger); }
+.c .loop.x { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.c .loop.x:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: var(--danger); }
+/* Stop everything: red, like every action that cannot be taken back. */
+#mw-fade { color: var(--danger); }
 .c .ctrl input[type="range"] { flex: 1; min-width: 0; }
 .c .ctrl .heard { width: 34px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
 .c .ctrl .heard i { display: block; height: 100%; background: var(--z); width: 0; transition: width .2s; }
@@ -395,13 +402,66 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
   .mp-hint { font-size: 12px; padding: 6px 10px; margin-bottom: 8px; line-height: 1.35; }
 }
 @media (max-height: 520px) and (orientation: landscape) {
-  /* The library scrolls as a page, and the world card is only as tall as what it shows. */
-  #library:not([hidden]):has(.lib-b) { height: auto; overflow: visible; display: block; }
-  #library .lib-b > .hero, #library .hero { height: auto !important; min-height: 0 !important; }
-  #library .hero-in > .grow { display: none; }
-  #library .hero .hero-acts { margin-top: 6px; }
+  /* The world card takes the whole height left, its Play button at its foot; the other worlds scroll beside it. */
+  #library .hero { min-height: 0; }
   /* One line a sound: its name, then where it comes from. */
   .snd-t { flex-direction: row; align-items: baseline; gap: 8px; }
   .snd-t b { flex: 0 1 auto; }
   .snd-t small { flex: 1 1 0; min-width: 0; }
+}
+
+/* ---------- The world's music: the Music button, right of the Soundbox, and its panel ---------- */
+.mp-world[data-mode="edit"] #mw-mus-btn { display: none; }
+.mp-mus-btn .ic { display: grid; place-items: center; color: var(--music); }
+.mp-mus-btn[aria-pressed="true"] .ic { color: inherit; }
+.mp-mus[hidden] { display: none; }
+.mp-mus .sb-head h2 { color: var(--music); }
+.mus-now { padding: 4px 12px 0; display: grid; }
+.mus-now .c { --z: var(--music); }
+.mus-none { margin: 0; color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; }
+.mus-q { padding: 8px 12px 4px; display: flex; }
+.mus-q .snd-search { flex: 1; }
+.mus-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 6px; padding: 4px 12px calc(12px + env(safe-area-inset-bottom)); }
+.mus-row .snd-play { pointer-events: none; }
+.mus-row.in .snd-play { background: var(--music); color: var(--on-z); border-color: var(--music); }
+.mus-row.in .snd-t small { color: var(--music); font-weight: 600; }
+@media (max-height: 520px) { .mus-now { padding-top: 0; } .mus-q { padding-top: 6px; } .mus-q .snd-search { height: 32px; } .mus-row { padding-top: 2px; padding-bottom: 2px; } .mus-row .snd-play { width: 30px; height: 30px; } }
+.mp-side-body .pn h3 .btn.slim { height: 30px; padding: 0 10px; font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--text); }
+.mp-side-body .pn h3 .btn.slim svg { color: var(--music); }
+
+/* ---------- The shared soundbox (the star of the worlds screen) ---------- */
+.mp-sbx .sb-sub { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.sbar .sbx-toggle[aria-pressed="true"] { background: var(--accent); color: var(--on-z); border-color: var(--accent); }
+.sh-h { font-family: 'Cormorant SC', serif; font-size: 30px; margin: 2px 2px 0; line-height: 1.1; }
+.sh-lead { margin: 4px 2px 14px; color: var(--muted); max-width: 640px; }
+.sh-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.shared-c { gap: 8px; }
+.shared-c .ch { display: flex; align-items: center; gap: 8px; }
+.shared-c .sh-k { color: var(--muted); font-size: 12px; min-width: 14px; }
+.shared-c .sh-name { flex: 1; min-width: 0; height: 34px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text); font: inherit; font-weight: 600; padding: 0 6px; }
+.shared-c .sh-name:hover, .shared-c .sh-name:focus { border-color: var(--line); background: var(--bar); outline: none; }
+.shared-c .loop.x { width: 34px; height: 34px; border-radius: 8px; border: 1px solid; background: none; }
+.shared-c .ctrl input[type="range"] { flex: 1; min-width: 0; }
+@media (max-width: 560px) { [data-action="add-shared"] .long { display: none; } }
+
+/* ---------- An upright phone (Settings: Upright phone too) ---------- */
+@media (orientation: portrait) and (max-width: 700px) {
+  html.portrait-ok .mp-world[data-mode="play"] .mp-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) 0; grid-template-areas: "rail" "stage" "side"; }
+  html.portrait-ok .mp-world[data-mode="play"].panel .mp-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(0, 48%); }
+  html.portrait-ok .mp-world[data-mode="play"] .mp-side { border-left: 0; border-top: 1px solid var(--line); }
+  html.portrait-ok .mp-sbx { position: absolute; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: 52%; justify-self: stretch; border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -20px 50px var(--shadow); }
+  html.portrait-ok .mp-top { gap: 4px; }
+  html.portrait-ok .mp-top .chip.sb-toggle { padding: 0 9px; }
+  html.portrait-ok .mp-top .master .mlabel, html.portrait-ok .mp-top .master b { display: none; }
+  html.portrait-ok .mp-play-tip { max-width: calc(100% - 24px); }
+}
+
+/* A phone on its side, whatever its width: the world card fills the height, the other worlds scroll beside it. */
+@media (max-height: 520px) and (orientation: landscape) {
+  #library:not([hidden]):has(.lib-b) { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  #library:has(.lib-b) .lib-wrap { flex: 1; min-height: 0; width: 100%; padding-bottom: 0; display: flex; flex-direction: column; }
+  #library .lib-grid:has(.lib-b) { flex: 1; min-height: 0; height: auto; }
+  #library .lib-b { height: 100%; align-items: stretch; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  #library .lib-b > .hero { position: relative; top: auto; height: auto !important; margin-bottom: max(10px, env(safe-area-inset-bottom)); }
+  #library .lib-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 }

@@ -63,12 +63,13 @@
     check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 16),
     chevron: svg('<path d="M9 6l6 6-6 6"/>', 14),
     pin: svg('<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>', 13),
+    music: svg('<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', 17),
     follow: svg('<path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20.5h14"/>', 15),
   };
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, trailWalls: true, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -81,6 +82,9 @@
     out.vol = Object.assign({}, DEFAULTS.vol, (s && s.vol) || {});
     // Fades as in Troubadour: Off, 0.5, 1, 2 or 4 s (older Map settings had 1.5 and 3 s).
     if (![0, 500, 1000, 2000, 4000].includes(+out.fade)) out.fade = +out.fade > 2500 ? 4000 : 2000;
+    // Walking speeds were halved (Nov 2026): a speed kept from before walks at half its old pace.
+    if (s && s.trailSpeed != null && s.speeds !== 2) out.trailSpeed = (+s.trailSpeed || 0.2) / 2;
+    out.speeds = 2;
     return out;
   }
   const settings = loadSettings();

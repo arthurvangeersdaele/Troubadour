@@ -97,6 +97,8 @@
   async function collect() {
     const used = new Set();
     (await list()).forEach((r) => Object.values(r.files || {}).forEach((k) => used.add(k)));
+    // The shared soundbox keeps its effects too.
+    ((await getKV('soundbox', [])) || []).forEach((c) => c && c.blob && used.add(c.blob));
     const { os } = await store('blobs', 'readonly');
     const keys = await result(os.getAllKeys());
     const dead = keys.filter((k) => !used.has(k));
