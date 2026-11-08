@@ -659,3 +659,9 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .pe-picker input[type="range"]::-moz-range-track { background: transparent; height: 26px; }
 .pe-picker input[type="range"]::-moz-range-progress { background: transparent; }
 .pe-picker input[type="range"]::-webkit-slider-thumb { margin-top: 2px; }
+
+/* The library of places: it scrolls (a finger too), in groups. */
+.mp-stamps { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; align-content: start; grid-auto-rows: max-content; }
+.mp-stamps button, .mp-stamps .st-new { touch-action: pan-y; }
+.mp-stamps .st-g { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.mp-stamps canvas { width: 60px; height: 60px; }

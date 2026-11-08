@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.21';
+  const VERSION = '261108.22';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1485,6 +1485,7 @@
     add.innerHTML = `<span class="st-plus">${ICON.plus}</span><span>New place</span>`;
     add.addEventListener('click', () => { box.hidden = true; placeEditor(null); });
     box.append(add);
+    if (((rec && rec.world.stamps) || []).length) box.append(el('h4', 'st-g', 'Your places'));
     ((rec && rec.world.stamps) || []).forEach((st) => {
       const ed = el('span', 'st-edit');
       ed.innerHTML = ICON.edit;
@@ -1494,10 +1495,14 @@
       ed.addEventListener('click', (e) => { e.stopPropagation(); box.hidden = true; placeEditor(st); });
       tile(st.id, st.name, ed);
     });
-    S.LIST.forEach((s) => tile(s.id, s.label));
-    paintStamps(currentStamp);
+    let group = null;
+    S.LIST.forEach((s) => {
+      if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
+      tile(s.id, s.label);
+    });
+    paintStamps(null);
   }
-  let currentStamp = 'lake';
+  let currentStamp = null;
   function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); }
 
   /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
@@ -2666,10 +2671,13 @@
       const b = e.target.closest('button');
       if (!b) return;
       if (b.dataset.tool === 'stamp') {
+        // The library opens with nothing picked: a place is armed only once chosen in it.
         const box = $('#mw-stamps');
-        if (V.tool() === 'stamp' && !box.hidden) { box.hidden = true; return; }
-        V.setStamp(currentStamp);
+        if (!box.hidden) { box.hidden = true; paintTools(V.tool()); return; }
+        paintStamps(null);
         box.hidden = false;
+        box.scrollTop = 0;
+        b.setAttribute('aria-pressed', 'true');
         return;
       }
       $('#mw-stamps').hidden = true;
@@ -2787,7 +2795,7 @@
         const map = { v: 'select', h: 'hand', w: 'wall', e: 'eraser' };
         const k = e.key.toLowerCase();
         if (map[k]) { V.setTool(map[k]); return; }
-        if (k === 'l') { V.setStamp(currentStamp); $('#mw-stamps').hidden = false; return; }
+        if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
       }

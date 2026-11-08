@@ -746,7 +746,7 @@
     const big = Math.min(w, h) > 120;
     c.setTransform(d * k, 0, 0, d * k, d * ox, d * oy);
     c.lineJoin = 'round'; c.lineCap = 'round';
-    const wire = { ...pal, paper: card, ground: card, ink: gold, line: gold, muted: gold, stone: mix(tint, card, 0.55), water: mix(tint, card, 0.6), leaf: mix(tint, card, 0.7), fire: tint, accent: tint, music: tint, ambience: tint, events: tint, soundbox: tint };
+    const wire = { ...pal, paper: card, ground: card, ink: gold, line: gold, muted: gold, stone: mix(tint, card, 0.55), water: mix(tint, card, 0.6), leaf: mix(tint, card, 0.7), fire: tint, accent: tint, music: tint, ambience: tint, events: tint, soundbox: tint, mono: true, monoFill: alpha(tint, 0.3) };
     p.elements.forEach((el) => {
       const sh = el.shape;
       if (sh.type === 'stamp') { c.save(); c.translate(sh.x, sh.y); c.rotate((sh.rotation * Math.PI) / 180); c.globalAlpha = 0.95; S.draw(c, sh.stamp, sh.size, wire); c.restore(); return; }
