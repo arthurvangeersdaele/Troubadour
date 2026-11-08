@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.7';
+  const VERSION = '261108.8';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -144,13 +144,15 @@
   }
 
   async function newWorld() {
-    const a = await ask('New world', 'Give your world a name. You add its sounds while you draw it.', [
+    const a = await ask('New world', 'Give your world a name, and its first map. You add its sounds while you draw it.', [
       { label: 'Cancel', value: null }, { label: 'Create', value: 'ok', cls: 'primary' },
-    ], { placeholder: 'The Drowned Abbey', max: 120 });
+    ], { label: 'World', placeholder: 'The Drowned Abbey', max: 120, second: { label: 'First map', placeholder: 'The village', max: 80 } });
     if (!a || !a.value) return;
     const bard = window.Troubadour.bardName();
     const story = M.blankStory(a.text || 'New world', bard);
-    const r = await DB.put({ uid: DB.uid(), story, world: M.blankWorld(story, bard), files: {} });
+    const world = M.blankWorld(story, bard);
+    world.places[0].title = a.text2 || 'Map 1';
+    const r = await DB.put({ uid: DB.uid(), story, world, files: {} });
     location.hash = `#/edit/${r.uid}/0`;
   }
 
@@ -319,6 +321,25 @@
     goPlace(Math.max(0, Math.min(rec.world.places.length - 1, n || 0)), true);
   }
 
+  /** Takes the party to another map by a way (a door, stairs): it arrives beside the way that leads back,
+   *  on the side of the middle of the map, never on its sign. */
+  function travel(to) {
+    const from = place(), dest = rec.world.places[to];
+    const back = dest.elements.find((e) => e.link === from.id);
+    if (back) {
+      const b = M.bounds(back.shape), c = M.centre(back.shape);
+      const mid = [dest.width / 2, dest.height / 2];
+      let dx = mid[0] - c[0], dy = mid[1] - c[1];
+      const d = Math.hypot(dx, dy) || 1;
+      dx /= d; dy /= d;
+      const half = Math.hypot(b[2] - b[0], b[3] - b[1]) / 2;
+      const gap = half + Math.max(80, Math.min(dest.width, dest.height) * 0.08);
+      dest.player = [Math.round(Math.max(20, Math.min(dest.width - 20, c[0] + dx * gap))), Math.round(Math.max(20, Math.min(dest.height - 20, c[1] + dy * gap)))];
+      save();
+    }
+    goPlace(to);
+  }
+
   async function goPlace(n, first) {
     stopPreview();
     pi = n;
@@ -327,6 +348,7 @@
     if (mode === 'play') setPanel(true);
     $('#mw-title').textContent = rec.story.title || 'World';
     $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
     V.setMode(mode);
     V.show(place(), rec.world);
     renderPlaces();
@@ -353,9 +375,15 @@
       A.open(place(), rec.world, buffers);
       acquireWake();
       $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
-      $('#mw-play-tip').classList.remove('gone');
+      // The tip shows the first three times a world is played, and goes at the first touch of the map.
+      let seen = 0;
+      try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }
       clearTimeout(setMode.tip);
-      setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 6000);
+      if (seen < 3 && !keepAudio) {
+        try { localStorage.setItem('troubadour.map.tips', String(seen + 1)); } catch (e) { /* private mode */ }
+        $('#mw-play-tip').classList.remove('gone');
+        setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 8000);
+      } else $('#mw-play-tip').classList.add('gone');
     } else {
       if (!keepAudio || A.isOpen()) A.close();
       releaseWake();
@@ -375,9 +403,14 @@
       b.type = 'button';
       if (i === pi) b.setAttribute('aria-current', 'true');
       b.append(el('span', 'n', String(i + 1)), el('span', 't', p.title));
-      if (links.has(p.id)) { b.append(el('i', 'way')); b.title = `Map ${i + 1}: ${p.title}. An element of this map leads there`; }
+      if (links.has(p.id)) { const pin = el('i', 'way'); pin.innerHTML = ICON.pin; b.append(pin); b.title = `Map ${i + 1}: ${p.title}. An element of this map leads there`; }
       else b.title = `Map ${i + 1}: ${p.title}`;
-      b.addEventListener('click', () => { if (i !== pi) goPlace(i); });
+      if (mode === 'edit' && i === pi) {
+        // The map on screen: a tap renames it.
+        const pen = el('i', 'ren'); pen.innerHTML = ICON.edit; b.append(pen);
+        b.title += '. Tap to rename it';
+      }
+      b.addEventListener('click', () => { if (i !== pi) goPlace(i); else if (mode === 'edit') renamePlace(p); });
       rail.append(b);
       if (i === pi) requestAnimationFrame(() => b.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     });
@@ -391,7 +424,18 @@
     $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
   }
 
-  function addPlace(title) {
+  async function renamePlace(p) {
+    const a = await ask('Rename the map', '', [{ label: 'Cancel', value: null }, { label: 'Rename', value: 'ok', cls: 'primary' }], { placeholder: `Map ${pi + 1}`, value: p.title, max: 80 });
+    if (!a || !a.value || !a.text) return;
+    p.title = a.text;
+    save(); renderPlaces(); if (!V.selected()) renderPanel();
+  }
+  async function addPlace(title) {
+    if (!title) {
+      const a = await ask('New map', 'A new map in this world: a cellar, the next town, the road between them.', [{ label: 'Cancel', value: null }, { label: 'Create', value: 'ok', cls: 'primary' }], { placeholder: `Map ${rec.world.places.length + 1}`, max: 80 });
+      if (!a || !a.value) return null;
+      title = a.text;
+    }
     const p = M.newPlace(title || `Map ${rec.world.places.length + 1}`);
     rec.world.places.push(p);
     save();
@@ -578,13 +622,6 @@
       rem = el('small');
       ctrl.append(rem);
     }
-    if (mode === 'play' && owner) {
-      const meter = el('span', 'heard');
-      bar = el('i');
-      meter.append(bar);
-      meter.title = 'How much of it reaches the party';
-      ctrl.append(meter);
-    }
     row.append(ctrl);
 
     if (mode === 'play') {
@@ -620,7 +657,6 @@
         }
         if (rem && rem.textContent !== txt) rem.textContent = txt;
         if (rem) rem.classList.toggle('warn', warn);
-        if (bar) bar.style.width = `${Math.round((v ? v.heard : 0) * 100)}%`;
       });
     }
     return row;
@@ -635,7 +671,8 @@
   }
 
   function cardsBlock(title, list, owner, empty, targetName) {
-    const target = owner ? elName(owner) : targetName || null;
+    // The element's name is read when the picker opens: renamed meanwhile, it shows its new name.
+    const target = () => (owner ? elName(owner) : targetName || null);
     const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add', target) : null);
     if (!list.length) s.append(el('div', 'pn-empty', empty));
     list.forEach((c) => s.append(cardRow(c, list, owner)));
@@ -802,27 +839,72 @@
     box.append(acts);
   }
 
-  /** How much of an element reaches the party, for its heading in the sound menu. */
-  function heardLine(e, p, sub) {
+  /** How much of an element reaches the party (worked out again only when the party moves). */
+  const heardMemo = new Map();
+  function heardOf(e, p) {
+    const pt = A.point(), m = heardMemo.get(e);
+    if (m && m.x === pt[0] && m.y === pt[1] && m.walls === p.walls.length) return m.h;
+    const h = M.hearing(pt, e, p.walls, rec.world.wallLoss);
+    heardMemo.set(e, { x: pt[0], y: pt[1], walls: p.walls.length, h });
+    return h;
+  }
+  /** The heading of an element's sounds: a gauge and how much of it reaches the party. The section is dimmed out of reach. */
+  function heardLine(e, p, sub, sec) {
+    const bar = el('i');
+    const txt = el('span');
+    const gauge = el('b'); gauge.append(bar);
+    sub.append(gauge, txt);
     liveRows.push(() => {
-      const h = M.hearing(A.point(), e, p.walls, rec.world.wallLoss);
+      const h = heardOf(e, p);
       const pct = Math.round(h.gain * 100);
-      sub.textContent = !e.cards.length ? '' : h.d === 0 ? 'here' : pct > 0 ? `${pct} %${h.walls ? `, ${h.walls} wall${h.walls > 1 ? 's' : ''}` : ''}` : 'out of reach';
+      const t = h.d === 0 ? 'Here, 100 %' : pct > 0 ? `${pct} %${h.walls ? `, ${h.walls} wall${h.walls > 1 ? 's' : ''}` : ''}` : 'Out of reach';
+      if (txt.textContent !== t) txt.textContent = t;
+      bar.style.width = `${pct}%`;
+      sub.classList.toggle('far', pct === 0);
+      if (sec) sec.classList.toggle('far', pct === 0);
     });
   }
 
-  /** The sound menu of the whole map: its own sounds, then the sounds of every element, under its name. */
+  /** The sound menu of the whole map: its own sounds, then the sounds of every element, under its name: the
+   *  elements the party hears most come first; those out of reach go last, folded (a tap on their name unfolds them). */
+  const unfolded = new Set();
   function playPlace(box, p) {
     box.append(cardsBlock('Heard everywhere', p.general, null, 'No sound for the whole map. Add some in the editor.'));
     const els = p.elements.filter((e) => e.cards.length);
+    const secs = new Map();
     els.forEach((e) => {
       const sub = el('span', 'heard-pct');
       const s = section(elName(e), sub);
-      e.cards.forEach((c) => s.append(cardRow(c, e.cards, e)));
-      heardLine(e, p, sub);
+      s.classList.add('el-sounds');
+      const head = s.querySelector('h3');
+      const fold = el('span', 'fold');
+      fold.innerHTML = ICON.chevron;
+      head.prepend(fold);
+      head.setAttribute('role', 'button');
+      head.tabIndex = 0;
+      head.title = 'Show or hide its sounds';
+      const flip = () => { if (unfolded.has(e)) unfolded.delete(e); else unfolded.add(e); refreshLive(); };
+      head.addEventListener('click', flip);
+      head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
+      const body = el('div', 'el-cards');
+      e.cards.forEach((c) => body.append(cardRow(c, e.cards, e)));
+      s.append(body);
+      heardLine(e, p, sub, s);
+      secs.set(e, s);
       box.append(s);
     });
-    if (!els.length) box.append(el('div', 'pn-empty', 'No element of this map has sounds yet.'));
+    if (!els.length) { box.append(el('div', 'pn-empty', 'No element of this map has sounds yet.')); return; }
+    let order = '';
+    liveRows.push(() => {
+      // Folded: out of reach and not opened by hand. Ordered by what the party hears, not while a finger is on the menu.
+      secs.forEach((s, e) => s.classList.toggle('folded', heardOf(e, p).gain === 0 && !unfolded.has(e)));
+      if (box.matches(':active') || box.contains(document.activeElement) && document.activeElement.matches('input')) return;
+      const sorted = els.map((e, i) => ({ e, i, g: heardOf(e, p).gain })).sort((a, b) => (b.g > 0) - (a.g > 0) || b.g - a.g || a.i - b.i);
+      const key = sorted.map((x) => x.i).join(',');
+      if (key === order) return;
+      order = key;
+      sorted.forEach((x) => box.append(secs.get(x.e)));
+    });
   }
 
   /** The sound menu of one element (a double tap on the map's ground brings the whole map back). */
@@ -833,7 +915,7 @@
         const go = el('button', 'btn primary go-place');
         go.type = 'button';
         go.innerHTML = `${ICON.link}<span>Go to ${rec.world.places[to].title}</span>`;
-        go.addEventListener('click', () => goPlace(to));
+        go.addEventListener('click', () => travel(to));
         box.append(go);
       }
     }
@@ -842,7 +924,7 @@
       const s = section('Sounds', sub);
       if (!e.cards.length) s.append(el('div', 'pn-empty', 'No sound on this element.'));
       e.cards.forEach((c) => s.append(cardRow(c, e.cards, e)));
-      heardLine(e, place(), sub);
+      if (e.cards.length) heardLine(e, place(), sub, s);
       box.append(s);
     }
     if (e.cards.length) {
@@ -1183,10 +1265,9 @@
       const w = words();
       const hits = recueil.filter((x) => typeOk(x.row) && w.every((k) => x.key.includes(k)));
       const shown = hits.slice(0, 150);
-      let group = null;
+      // No heading per tale: each sound already names its tale under its own name.
       shown.forEach((x) => {
         const zone = x.row === 'soundbox' ? 'events' : x.row;
-        if (x.tale !== group) { group = x.tale; box.append(el('h4', '', x.tale)); }
         const kept = () => { const ch = (rec.story.chapters || []).find((c) => c.map === true && c.title === 'Recueil'); const s2 = ch && (ch[zone] || []).find((y) => y.recueil === x.id); return s2 ? s2.file : null; };
         box.append(row(x.name, `${x.tale}${x.duration ? `, ${clockOf(x.duration)}` : ''}`, x.row, kept, () => keepRecueil(x),
           (btn) => listen(`recueil:${x.id}`, btn, () => recueilBlob(x))));
@@ -1208,6 +1289,7 @@
 
   /** The Add sheet: sounds for one list of cards (an element's, the whole map's, or the soundbox). */
   function pickSounds(list, target) {
+    if (typeof target === 'function') target = target();
     stopPreview();
     $('#sheet-title').textContent = target ? `Sounds of ${target}` : 'Sounds of the whole map';
     const body = $('#sheet-body');
@@ -1287,6 +1369,7 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
     });
+    $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = e.target.checked; saveSettings(); });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
@@ -1321,6 +1404,7 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-rings').checked = settings.rings;
+    $('#opt-trail-walls').checked = settings.trailWalls !== false;
     $('#opt-trail').checked = settings.trail;
     $('#trail-speed-row').hidden = !settings.trail;
     document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.trailSpeed)));
@@ -1432,7 +1516,7 @@
   async function firePad(c, b) {
     const { ctx, master } = audio(true);
     if (ctx.state !== 'running') ctx.resume().catch(() => {});
-    if (sbPlaying.has(c)) { try { sbPlaying.get(c).stop(); } catch (e) { /* done */ } sbPlaying.delete(c); return; }
+    if (sbPlaying.has(c)) { try { sbPlaying.get(c).stop(); } catch (e) { /* done */ } sbPlaying.delete(c); b.classList.remove('on'); return; }
     await ensure([c.file], false);
     const buf = buffers.get(c.file);
     if (!buf) { toast('This sound cannot be read here.'); return; }
@@ -1445,7 +1529,10 @@
     src.start();
     sbPlaying.set(c, src);
     b.classList.remove('fire'); void b.offsetWidth; b.classList.add('fire');
-    src.onended = () => { if (sbPlaying.get(c) === src) sbPlaying.delete(c); };
+    // While it sounds, the pad is lit and a bar runs along its foot for the length of the sound.
+    b.style.setProperty('--dur', `${buf.duration.toFixed(2)}s`);
+    b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+    src.onended = () => { if (sbPlaying.get(c) === src) { sbPlaying.delete(c); b.classList.remove('on'); } };
   }
 
   /** The master stop also lets the soundbox go, over the same 3 s. */
@@ -1456,6 +1543,7 @@
     const pads = [...sbPlaying.values()];
     sbPlaying.clear();
     pads.forEach((src) => { try { src.stop(t + secs + 0.05); } catch (e) { /* done */ } });
+    document.querySelectorAll('#mw-pads .pad.on').forEach((b) => b.classList.remove('on'));
     sbGain.gain.cancelScheduledValues(t); sbGain.gain.setValueAtTime(sbGain.gain.value, t);
     sbGain.gain.linearRampToValueAtTime(0, t + secs);
     sbGain.gain.setValueAtTime(A.curve(settings.sbVolume), t + secs + 0.1);
@@ -1557,7 +1645,6 @@
     $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
     document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => { b.innerHTML = TOOL_ICON[b.dataset.tool]; });
     $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
-    $('#mw-tools [data-act="fit"]').innerHTML = ICON.fit;
     $('#mw-tools').addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -1594,8 +1681,31 @@
 
     // The map.
     V.mount($('#mw-canvas'));
+    $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
     V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; };
     V.onSelect = () => { if (mode === 'edit') renderPanel(); };
+    // A new element: a name of its own, and its panel opens to name it and give it sounds.
+    V.onCreate = (e) => {
+      if (mode !== 'edit') return;
+      if (!e.title) {
+        const sh = e.shape;
+        const kind = sh.type === 'stamp' ? ((window.MapStamps.LIST.find((x) => x.id === sh.stamp) || {}).label || 'Drawing') : sh.closed ? 'Area' : 'Line';
+        const same = place().elements.filter((x) => x !== e && x.title && x.title.startsWith(kind)).length;
+        e.title = same ? `${kind} ${same + 1}` : kind;
+        save(); V.redraw();
+      }
+      renderPanel();
+      setPanel(true);
+    };
+    // The tools stand beside the map, never over it: the whole map fits next to them.
+    V.insets = () => {
+      const t = $('#mw-tools'), cv = $('#mw-canvas');
+      if (mode !== 'edit' || !t.offsetWidth) return {};
+      const a = t.getBoundingClientRect(), c = cv.getBoundingClientRect();
+      const wide = a.width > a.height;
+      if (wide) return a.top - c.top < c.height / 2 ? { top: a.bottom - c.top + 8 } : { bottom: c.bottom - a.top + 8 };
+      return a.left - c.left < c.width / 2 ? { left: a.right - c.left + 8 } : { right: c.right - a.left + 8 };
+    };
     // A double tap on an element opens its panel (over the map on a narrow screen), and its name to type.
     V.onOpen = () => {
       if (mode !== 'edit') return;
@@ -1617,7 +1727,7 @@
       const to = rec.world.places.findIndex((q) => q.id === e.link);
       if (to < 0 || to === pi) return;
       toast(`To ${rec.world.places[to].title}`, 1600);
-      goPlace(to);
+      travel(to);
     };
     A.onChange = () => { V.redraw(); };
 

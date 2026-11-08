@@ -107,9 +107,11 @@ html:not(.ios) .ios-only { display: none !important; }
   .mp-stamps { left: 58px; top: 8px; }
 }
 @media (max-height: 520px) and (orientation: landscape) {
-  .mp-tools { flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 80px); }
-  .mp-tools i { width: 1px; height: auto; margin: 4px 2px; }
-  .mp-stamps { left: 8px; top: 64px; max-height: calc(100% - 76px); }
+  /* A short screen: the tools stand in a slim column on the left, beside the map. */
+  .mp-tools { gap: 2px; padding: 3px; left: 6px; top: 6px; }
+  .mp-tools button { width: 32px; height: 32px; }
+  .mp-tools i { margin: 1px 3px; }
+  .mp-stamps { left: 52px; top: 6px; max-height: calc(100% - 12px); }
   .mp-play-tip { display: none; }
   .mp-side-head { padding-top: 8px; }
   .mp-side-head b { font-size: 20px; }
@@ -234,10 +236,22 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .snd-more { color: var(--muted); font-size: 13px; text-align: center; margin: 6px 0; }
 .snd-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
 @media (max-height: 520px) {
-  .settings.wide { height: calc(100dvh - 16px); max-height: none; padding-bottom: 10px; }
-  .settings.wide .set-head h2 { font-size: 22px; }
-  .snd { padding-top: 4px; padding-bottom: 4px; }
-  .snd-play { width: 34px; height: 34px; }
+  /* A phone on its side: a slim head and foot, so the list shows as many sounds as it can. */
+  .settings.wide { width: calc(100vw - 16px); height: calc(100dvh - 12px); max-height: none; padding-bottom: 8px; }
+  .settings.wide .set-head { padding-top: 8px; margin-bottom: 6px; }
+  .settings.wide .set-head h2 { font-size: 19px; }
+  .settings.wide .set-head .ico { width: 34px; height: 34px; }
+  .snd-pick { gap: 6px; }
+  .snd-bar .seg button { padding-top: 4px; padding-bottom: 4px; }
+  .snd-search { height: 32px; }
+  .snd { padding-top: 2px; padding-bottom: 2px; gap: 8px; }
+  .snd-t small { font-size: 11px; }
+  .snd-play { width: 30px; height: 30px; }
+  .snd-mark { width: 26px; height: 26px; }
+  .snd-list { gap: 4px; }
+  .snd-list h4 { margin-top: 4px; }
+  .snd-foot { padding-top: 6px; gap: 6px; }
+  .snd-foot .btn { min-height: 32px; height: 32px; padding-top: 0; padding-bottom: 0; }
 }
 @media (max-width: 700px) { .snd-tag { display: none; } .snd-foot .btn span { font-size: 14px; } }
 
@@ -268,7 +282,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-grip:hover { color: var(--text); background: var(--card); }
 .mp-tools.moving { box-shadow: 0 16px 40px var(--shadow); opacity: .95; }
 .mp-tools.moving .mp-grip { cursor: grabbing; }
-@media (max-height: 520px) and (orientation: landscape) { .mp-grip { height: auto; width: 22px; } }
+@media (max-height: 520px) and (orientation: landscape) { .mp-grip { height: 16px; } }
 
 /* ---------- The library drawer of the editor ---------- */
 .snd-holder { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
@@ -288,7 +302,9 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-rail { grid-area: rail; min-height: 0; }
 .mp-stage { grid-area: stage; }
 .mp-side { grid-area: side; }
-.mp-rail .chap .way { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; align-self: center; }
+.mp-rail .chap .way, .mp-rail .chap .ren { display: grid; place-items: center; flex: none; align-self: center; color: var(--accent); }
+.mp-rail .chap .ren { color: var(--muted); opacity: .8; }
+.mp-rail .chap .ren svg { width: 13px; height: 13px; }
 .mp-rail .chap.add .n { color: var(--accent); }
 .mp-rail .chap.add { color: var(--accent); }
 @media (max-width: 1100px) { .mp-body { grid-template-columns: 190px minmax(0, 1fr) 300px; } }
@@ -343,3 +359,49 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c .opts .stepper b { min-width: 40px; font-size: 13px; color: var(--text); }
 #library .tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 #library .srow.tappable:active { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
+
+/* The sound menu: what the party hears first, the rest dimmed and folded. */
+.heard-pct { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text); }
+.heard-pct b { display: block; width: 44px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.heard-pct b i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+.heard-pct.far { color: var(--muted); font-weight: 500; }
+.heard-pct.far b { display: none; }
+.pn.far .c { opacity: .5; }
+.pn.far .c:focus-within, .pn.far .c:hover { opacity: .85; }
+.el-sounds h3 { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.el-sounds .fold { display: inline-grid; place-items: center; width: 16px; margin-right: 2px; color: var(--muted); transition: transform .2s; transform: rotate(90deg); }
+.el-sounds.folded .fold { transform: none; }
+.el-sounds.folded .el-cards { display: none; }
+.el-sounds.folded h3 { margin-bottom: 0; }
+.el-cards { display: grid; gap: inherit; }
+
+/* The play tip sits at the foot of the map, out of the way. */
+.mp-play-tip { top: auto; bottom: 12px; max-width: calc(100% - 140px); }
+/* A soundbox pad lit while it sounds, its bar running for the length of the sound. */
+.mp-sbx .pad { position: relative; overflow: hidden; }
+.mp-sbx .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
+.mp-sbx .pad.on::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--accent); transform-origin: left; animation: pad-run var(--dur, 1s) linear forwards; }
+@keyframes pad-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 10px 0 -4px; }
+
+/* A phone on its side: the world card keeps its Play button in view, the hint stays small. */
+@media (max-height: 520px) and (orientation: landscape) {
+  #library .hero-in { gap: 4px; padding: 10px 14px; }
+  #library .hero h2 { font-size: 22px; line-height: 1.05; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  #library .hero .hero-sub { display: none; }
+  #library .hero .hero-meta { font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  #library .hero .hero-acts { margin-top: auto; }
+  .mp-hint { font-size: 12px; padding: 6px 10px; margin-bottom: 8px; line-height: 1.35; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  /* The library scrolls as a page, and the world card is only as tall as what it shows. */
+  #library:not([hidden]):has(.lib-b) { height: auto; overflow: visible; display: block; }
+  #library .lib-b > .hero, #library .hero { height: auto !important; min-height: 0 !important; }
+  #library .hero-in > .grow { display: none; }
+  #library .hero .hero-acts { margin-top: 6px; }
+  /* One line a sound: its name, then where it comes from. */
+  .snd-t { flex-direction: row; align-items: baseline; gap: 8px; }
+  .snd-t b { flex: 0 1 auto; }
+  .snd-t small { flex: 1 1 0; min-width: 0; }
+}

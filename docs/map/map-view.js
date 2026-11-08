@@ -25,7 +25,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [];
-  const api = { onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
+  const api = { onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -72,10 +72,12 @@
       dirty = true;
       return;
     }
-    // Room for the tools on the left while drawing.
-    const m = 24, left = mode === 'edit' && W > 600 ? 70 : m;
-    const k = Math.min((W - m - left) / place.width, (H - m * 2) / place.height);
-    view = { k, x: left + (W - m - left - place.width * k) / 2, y: (H - place.height * k) / 2 };
+    // While drawing: as large as the screen allows, beside the tools (never under them).
+    const m = 12;
+    const ins = Object.assign({ left: 0, top: 0, right: 0, bottom: 0 }, api.insets ? api.insets() : {});
+    const L = Math.max(m, ins.left), R = Math.max(m, ins.right), T = Math.max(m, ins.top), B = Math.max(m, ins.bottom);
+    const k = Math.min((W - L - R) / place.width, (H - T - B) / place.height);
+    view = { k, x: L + (W - L - R - place.width * k) / 2, y: T + (H - T - B - place.height * k) / 2 };
     dirty = true;
   }
   function fill() {
@@ -167,9 +169,12 @@
     dropTrail();
     trail = { pts: [place.player.slice()], phase: 'draw' };
   }
+  /** Walls stop the party (Settings): no step of the trail, or of the point, goes through a wall. */
+  const blocked = (a, b) => global.MapUI.settings.trailWalls !== false && M.wallsBetween(a, b, place.walls) > 0;
   function addToTrail(w) {
     const q = clampPoint(w);
     const last = trail.pts[trail.pts.length - 1];
+    if (blocked(last, q)) return; // the trail waits at the wall until the finger comes back round it
     if (Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) trail.pts.push(q);
     dirty = true;
   }
@@ -267,6 +272,7 @@
     if (panning) { gesture = { kind: 'pan', last: s }; cv.classList.add('grabbing'); return; }
 
     if (mode === 'play') {
+      // A long press on a sign takes its way; on the party's point, moving the finger cancels it and drags the point.
       const lk = linkAt(s[0], s[1]);
       if (lk) {
         endPress();
@@ -294,7 +300,7 @@
       place.elements.push(el);
       select(el);
       edited();
-      gesture = { kind: 'move', el, last: w, moved: false };
+      gesture = { kind: 'move', el, last: w, moved: false, created: true };
       return;
     }
     if (tool === 'eraser') { gesture = { kind: 'erase', took: false }; erase(w, gesture); return; }
@@ -333,6 +339,7 @@
         gesture.dragged = true;
         cv.classList.add('grabbing');
         if (walks) { addToTrail(w); break; }
+        if (mode === 'play' && blocked(place.player, clampPoint(w))) break;
         place.player = clampPoint(w);
         dirty = true;
         if (api.onPlayer) api.onPlayer(place.player);
@@ -383,6 +390,7 @@
       const sh = g.el.shape;
       if (sh.type === 'stamp') { sh.x = Math.round(sh.x); sh.y = Math.round(sh.y); } else sh.points.forEach((p) => { p[0] = Math.round(p[0]); p[1] = Math.round(p[1]); });
       if (g.moved || tool === 'stamp') edited(); else undoStack.pop();
+      if (g.created && api.onCreate) api.onCreate(g.el);
     } else if (g.kind === 'stroke') finishStroke(g);
     dirty = true;
   }
@@ -411,6 +419,7 @@
     place.elements.push(el);
     select(el);
     edited();
+    if (api.onCreate) api.onCreate(el);
   }
 
   function erase(w, g) {
@@ -566,15 +575,8 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = '600 14px "Barlow Semi Condensed", system-ui, sans-serif';
     ctx.textAlign = 'center';
+    drawLabels();
     place.elements.forEach((el) => {
-      const b = M.bounds(el.shape);
-      const [cx] = toScreen([(b[0] + b[2]) / 2, 0]);
-      const [, by] = toScreen([0, b[3]]);
-      const label = el.title || (el.cards.length ? el.cards.map((c) => c.name).slice(0, 2).join(', ') + (el.cards.length > 2 ? '…' : '') : '');
-      if (label) {
-        ctx.lineWidth = 4; ctx.strokeStyle = alpha(pal.paper, 0.9); ctx.fillStyle = pal.ink;
-        ctx.strokeText(label, cx, by + 18); ctx.fillText(label, cx, by + 18);
-      }
       if (el.link) {
         // The way to another map, in the middle of the element: a long press on it goes there.
         const [lx, ly] = toScreen(M.centre(el.shape));
@@ -609,6 +611,53 @@
     ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.stroke();
     ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill();
+  }
+
+  /** The names of the elements, laid so that none covers another, the party's point or a sign: under the element,
+   *  else above it, else inside it; a name with no free place left is drawn faint, under the element. */
+  function drawLabels() {
+    const taken = [];
+    const box = (x, y, w, h) => ({ x0: x, y0: y, x1: x + w, y1: y + h });
+    const hits = (r, own) => taken.some((t) => t.el !== own && r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0);
+    // The drawings of the library (a forest, a lake) are not written over either, except by their own name.
+    place.elements.forEach((el) => {
+      if (el.shape.type !== 'stamp') return;
+      const b = M.bounds(el.shape), [x0, y0] = toScreen([b[0], b[1]]), [x1, y1] = toScreen([b[2], b[3]]), d = (x1 - x0) * 0.15;
+      taken.push(Object.assign(box(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d), { el }));
+    });
+    const [px, py] = toScreen(place.player);
+    taken.push(box(px - 24, py - 24, 48, 48));
+    place.elements.forEach((el) => { if (el.link) { const [lx, ly] = toScreen(M.centre(el.shape)); taken.push(box(lx - 18, ly - 18, 36, 36)); } });
+    const order = place.elements.map((el, i) => ({ el, i })).sort((a, b) => (b.el.cards.length > 0) - (a.el.cards.length > 0) || a.i - b.i);
+    ctx.textBaseline = 'middle';
+    order.forEach(({ el }) => {
+      const label = el.title || (el.cards.length ? el.cards.map((c) => c.name).slice(0, 2).join(', ') + (el.cards.length > 2 ? '…' : '') : '');
+      if (!label) return;
+      const b = M.bounds(el.shape);
+      const [x0, y0] = toScreen([b[0], b[1]]), [x1, y1] = toScreen([b[2], b[3]]);
+      const cx = (x0 + x1) / 2, w = ctx.measureText(label).width + 8, h = 18;
+      const tries = [[cx, y1 + 12], [cx, y0 - 12], [cx, (y0 + y1) / 2 + ((y1 - y0) > 60 ? (y1 - y0) / 4 : 0)], [cx, y1 + 30], [cx, y0 - 30]];
+      if (el.shape.type === 'path' && !el.shape.closed) {
+        // A line (a river, a road): its name rides along it, just above or below.
+        const pts = el.shape.points;
+        const along = [];
+        [0.5, 0.3, 0.7, 0.15, 0.85].forEach((f) => { const q = toScreen(pts[Math.min(pts.length - 1, Math.round(f * (pts.length - 1)))]); along.push([q[0], q[1] - 14], [q[0], q[1] + 14]); });
+        tries.unshift(...along);
+      }
+      let at = null;
+      for (const t of tries) {
+        const r = box(t[0] - w / 2, t[1] - h / 2, w, h);
+        if (r.y0 < 2 || r.y1 > H - 2 || r.x0 < 2 || r.x1 > W - 2 || hits(r, el)) continue;
+        at = t; taken.push(r); break;
+      }
+      const faint = at == null;
+      const [lx, y] = faint ? tries[0] : at;
+      ctx.globalAlpha = faint ? 0.35 : 1;
+      ctx.lineWidth = 4; ctx.strokeStyle = alpha(pal.paper, 0.9); ctx.fillStyle = pal.ink;
+      ctx.strokeText(label, lx, y); ctx.fillText(label, lx, y);
+      ctx.globalAlpha = 1;
+    });
+    ctx.textBaseline = 'alphabetic';
   }
 
   function loop() {

@@ -97,7 +97,6 @@
         <button type="button" data-tool="eraser" title="Eraser (E)"></button>
         <i></i>
         <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
-        <button type="button" data-act="fit" title="See the whole map (F)"></button>
       </div>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
       <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to draw the party's trail: it walks it a second later. Double tap an element, or the map, for its sounds. Long press a sign to take its way.</div>
@@ -182,6 +181,7 @@
         <button type="button" role="radio" data-v="0.8">Very fast</button>
       </div>
     </div>
+    <label class="row-set toggle"><span>Walls stop the party<small>The point and its trail never go through a wall: draw the way through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
     <label class="row-set toggle"><span>Keep screen awake<small>While a world plays</small></span><input type="checkbox" id="opt-awake"><i></i></label>
   </section>
   <section>

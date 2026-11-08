@@ -61,12 +61,14 @@
     book: svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/>', 19),
     after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
     check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 16),
+    chevron: svg('<path d="M9 6l6 6-6 6"/>', 14),
+    pin: svg('<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>', 13),
     follow: svg('<path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20.5h14"/>', 15),
   };
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, trailWalls: true, vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -121,23 +123,27 @@
     $('#ask-text').hidden = !text;
     const acts = $('#ask-acts');
     acts.textContent = '';
-    const old = dlg.querySelector('.ask-field');
-    if (old) old.remove();
-    let input = null;
-    if (field) {
-      input = el('input', 'ask-field');
-      input.type = 'text';
-      input.placeholder = field.placeholder || '';
-      input.maxLength = field.max || 120;
-      input.value = field.value || '';
-      acts.before(input);
-    }
+    dlg.querySelectorAll('.ask-field, .ask-label').forEach((o) => o.remove());
+    let input = null, input2 = null;
+    const make = (f) => {
+      if (f.label) acts.before(el('label', 'ask-label', f.label));
+      const i = el('input', 'ask-field');
+      i.type = 'text';
+      i.placeholder = f.placeholder || '';
+      i.maxLength = f.max || 120;
+      i.value = f.value || '';
+      acts.before(i);
+      return i;
+    };
+    if (field) input = make(field);
+    // A second field (a new world: its name, then the name of its first map).
+    if (field && field.second) input2 = make(field.second);
     return new Promise((resolve) => {
       let answered = false;
       const finish = (v) => {
         if (answered) return; answered = true;
         if (dlg.open) dlg.close();
-        resolve(field ? (v == null ? null : { value: v, text: input.value.trim() }) : v);
+        resolve(field ? (v == null ? null : { value: v, text: input.value.trim(), text2: input2 ? input2.value.trim() : '' }) : v);
       };
       buttons.forEach((b) => {
         const x = el('button', `btn ${b.cls || ''}`, b.label);
