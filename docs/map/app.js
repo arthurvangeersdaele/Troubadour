@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.2';
+  const VERSION = '261108.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -337,7 +337,7 @@
     // At the table, the sound menu opens on the whole map; while drawing, the panel follows the screen's width.
     tapped = undefined;
     setPanel(m === 'play');
-    if (m === 'play') { closeLibrary(); } else closeSoundbox();
+    if (m !== 'play') closeSoundbox();
     const was = V.mode();
     V.setMode(m);
     if (was !== m) { V.fit(); renderPlaces(); }
@@ -1192,26 +1192,7 @@
     $('#sheet').showModal();
   }
 
-  /* ================= The library drawer of the editor ================= */
-  let libView = null;
-  const libTarget = () => { const e = V.selected(); return e ? { list: e.cards, name: elName(e) } : { list: place().general, name: null }; };
-  function paintLibHint() {
-    const t = libTarget();
-    $('#mw-lib-hint').textContent = `Tap a sound to add it to ${t.name || 'the whole map'}, or drag it onto an element of the map.`;
-  }
-  function openLibrary() {
-    const d = $('#mw-libdrawer');
-    d.hidden = false;
-    $('#mw-lib').setAttribute('aria-pressed', 'true');
-    libView = soundBrowser($('#mw-lib-body'), libTarget, true);
-    paintLibHint();
-  }
-  function closeLibrary() {
-    $('#mw-libdrawer').hidden = true;
-    $('#mw-lib').setAttribute('aria-pressed', 'false');
-    libView = null;
-    stopPreview();
-  }
+
 
   /* ================= Tools ================= */
   const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, stamp: ICON.stamp, eraser: ICON.eraser };
@@ -1443,10 +1424,6 @@
     $('#mw-back').addEventListener('click', () => { location.hash = '#/'; });
     $('#mw-more').innerHTML = ICON.share;
     $('#mw-switch').innerHTML = ICON.go;
-    $('#mw-lib').innerHTML = ICON.book;
-    $('#mw-lib').addEventListener('click', () => { if ($('#mw-libdrawer').hidden) openLibrary(); else closeLibrary(); });
-    $('#mw-lib-close').innerHTML = ICON.close;
-    $('#mw-lib-close').addEventListener('click', closeLibrary);
     $('#mw-sb .star').innerHTML = ICON.star;
     $('#mw-sb').addEventListener('click', () => { if ($('#mw-sbx').hidden) openSoundbox(); else closeSoundbox(); });
     $('#mw-sbx-close').innerHTML = ICON.close;
@@ -1515,7 +1492,7 @@
     // The map.
     V.mount($('#mw-canvas'));
     V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; };
-    V.onSelect = () => { if (mode === 'edit') { renderPanel(); if (libView) { paintLibHint(); libView.paintMarks(); } } };
+    V.onSelect = () => { if (mode === 'edit') renderPanel(); };
     // A double tap on an element opens its panel (over the map on a narrow screen), and its name to type.
     V.onOpen = () => {
       if (mode !== 'edit') return;

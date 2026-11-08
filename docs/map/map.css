@@ -242,11 +242,10 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 @media (max-width: 700px) { .snd-tag { display: none; } .snd-foot .btn span { font-size: 14px; } }
 
 /* ---------- Top bar: what each screen offers ---------- */
-.mp-world[data-mode="play"] #mw-panel, .mp-world[data-mode="play"] #mw-more, .mp-world[data-mode="play"] #mw-lib { display: none !important; }
+.mp-world[data-mode="play"] #mw-panel, .mp-world[data-mode="play"] #mw-more { display: none !important; }
 .mp-world[data-mode="edit"] #mw-sb { display: none; }
 .mp-switch { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
 .mp-switch svg { margin-left: 2px; }
-#mw-lib[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
 .mp-top .sb-toggle { cursor: pointer; }
 @media (max-width: 900px) { .mp-top .sb-label { display: none; } }
 
@@ -272,43 +271,13 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 @media (max-height: 520px) and (orientation: landscape) { .mp-grip { height: auto; width: 22px; } }
 
 /* ---------- The library drawer of the editor ---------- */
-.mp-libdrawer { position: absolute; right: 10px; top: 10px; bottom: 10px; width: min(380px, calc(100% - 90px)); z-index: 4; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 10px; border-radius: 14px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 16px 40px var(--shadow); }
-.mp-libdrawer[hidden] { display: none; }
-.mp-lib-head { display: flex; align-items: center; gap: 8px; }
-.mp-lib-head b { font-family: 'Cormorant SC', serif; font-size: 22px; }
-.mp-lib-hint { margin: 0; font-size: 12px; color: var(--muted); }
-.mp-lib-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-.mp-lib-body .snd-bar { gap: 6px; }
-.mp-lib-body .snd-search { flex-basis: 100%; }
-.mp-lib-body .seg button { padding: 0 8px; }
-.mp-lib-body .snd { touch-action: pan-y; }
-.mp-lib-body .snd-foot .btn { flex: 1; justify-content: center; }
 .snd-holder { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
 .snd.dragging { opacity: .5; }
 .snd-ghost { --z: var(--accent); position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; padding: 8px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--z); border-left: 4px solid var(--z); color: var(--text); font-weight: 600; box-shadow: 0 12px 30px var(--shadow); white-space: nowrap; }
 .snd-ghost.z-music { --z: var(--music); } .snd-ghost.z-ambience { --z: var(--amb); } .snd-ghost.z-events { --z: var(--evt); } .snd-ghost.z-soundbox { --z: var(--blue); }
 .snd-ghost.on::after { content: "→ " attr(data-to); display: block; font-size: 12px; font-weight: 500; color: var(--z); }
 .mp-top .mp-switch { min-width: 0; width: 40px; padding: 0; display: grid; place-items: center; }
-.mp-lib-body .snd-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; }
-.mp-lib-body .snd-type { grid-column: 1 / -1; justify-self: start; }
-.mp-lib-body .snd-search { min-width: 0; height: 32px; }
-.mp-lib-body .seg.small button { height: 26px; font-size: 13px; }
-@media (max-height: 520px) {
-  .mp-libdrawer { top: 6px; bottom: 6px; right: 6px; padding: 6px 8px; gap: 4px; }
-  .mp-lib-head b { font-size: 18px; }
-  .mp-lib-head .ico { width: 30px; height: 30px; }
-  .mp-lib-hint { display: none; }
-  .mp-lib-body { gap: 5px; }
-  .mp-lib-body .snd-foot { padding-top: 5px; }
-  .mp-lib-body .snd-foot .btn { height: 30px; font-size: 13px; }
-  .mp-lib-body .snd { padding: 3px 8px 3px 4px; gap: 8px; }
-  .mp-lib-body .snd-play { width: 30px; height: 30px; }
-  .mp-lib-body .snd-mark { width: 26px; height: 26px; }
-  .mp-lib-body .snd-t small { display: none; }
-  .mp-lib-body .snd-list h4 { margin-top: 4px; }
-}
-.snd-bar, .snd-foot, .mp-lib-head, .mp-lib-hint { flex: none; }
-.mp-lib-body .snd-list { min-height: 70px; }
+.snd-bar, .snd-foot { flex: none; }
 
 
 /* ================= As in Troubadour (Nov 2026): cards, the map rail, the layout ================= */
@@ -368,3 +337,4 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 /* The Sounds button: the sound menu of the whole map, left of the Soundbox (at the table only). */
 .mp-world[data-mode="edit"] #mw-menu { display: none; }
 .mp-menu-btn .ic { display: grid; place-items: center; }
+.mp-side-body .c, .mp-sbx .c { width: auto; flex: none; align-self: stretch; }
