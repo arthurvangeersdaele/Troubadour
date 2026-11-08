@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.18';
+  const VERSION = '261108.19';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -581,10 +581,10 @@
     const worldMus = !!(rec && rec.world.music && list === rec.world.music);
     const loop = el('button');
     loop.type = 'button';
-    if (worldMus) loop.hidden = true;
     paintLoop(loop, c);
     loop.addEventListener('click', () => {
-      const ways = c.zone === 'music' ? ['once', 'twice', 'loop', 'after'] : ['once', 'twice', 'loop', 'random'];
+      // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
+      const ways = worldMus ? ['once', 'twice', 'loop'] : c.zone === 'music' ? ['once', 'twice', 'loop', 'after'] : ['once', 'twice', 'loop', 'random'];
       const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
@@ -827,14 +827,14 @@
     const list = worldMusic();
     box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next; a music laid on a map starts when the party arrives there.'));
     const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
-    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)' }),
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: ['once', 'twice', 'loop'] }),
       'Add musics: from this device, the Recueil or Files', () => {
         fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
           for (const r of picked) {
             const key = r.blobKey || await DB.putBlob(await r.getBlob());
             const path = freePath(`sounds/map/music/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
             rec.files[path] = key;
-            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'once' }), { size: r.size || 0, duration: r.duration || 0 }));
+            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
           }
           flush();
           renderPanel();
@@ -1960,7 +1960,9 @@
       M.soundsOf(rec.story).forEach((x) => { if (x.zone === 'music') add(x); });
     }
     w.music = w.music.filter((c) => rec.files[c.file]);
-    w.music.forEach((c) => { c.zone = 'music'; c.play = 'once'; });
+    // Their loop: 1×, 2× or ∞. Musics that had none of them (play after, or the days without a loop button) loop.
+    if (w.musicLoops !== 1) { w.music.forEach((c) => { c.play = 'loop'; }); w.musicLoops = 1; }
+    w.music.forEach((c) => { c.zone = 'music'; if (!['once', 'twice', 'loop'].includes(c.play)) c.play = 'loop'; });
     w.music.forEach((c) => seen.add(c.file));
     w.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') add(c); }));
     return w.music;
@@ -2196,6 +2198,19 @@
     };
     mv.append(mvb(ICON.left, 'Move earlier', -1), mvb(ICON.right, 'Move later', 1));
     bottom.append(play, meta, mv);
+    // A music's loop, as on Troubadour's cards: 1×, 2×, ∞ (soundbox effects fire once, they have none).
+    if (o.loops) {
+      const loop = el('button');
+      loop.type = 'button';
+      paintLoop(loop, s);
+      loop.addEventListener('click', () => {
+        const next = o.loops[(o.loops.indexOf(s.play) + 1) % o.loops.length];
+        Object.assign(s, M.cleanCard(Object.assign({}, s, { play: next })));
+        paintLoop(loop, s);
+        o.save();
+      });
+      bottom.append(loop);
+    }
     // Its volume: the level it fires at.
     const volRow = el('label', 'row edvol');
     volRow.append(el('span', 'vl', 'Volume'));

@@ -91,7 +91,7 @@
       let v = voices.get(c);
       if (!v) { v = makeVoice(c, null); v.world = true; voices.set(c, v); }
       if (!v.volMs) v.vg.gain.setTargetAtTime(curve(c.volume), now(), 0.03);
-      if (v.src) v.src.loop = false;
+      if (v.src) v.src.loop = c.play === 'loop' && !queue.length && !blendOf(v);
     });
     voices.forEach((v, c) => { if (v.world && !live.has(c)) { drop(v); voices.delete(c); } });
     queue = queue.filter((c) => live.has(c));
@@ -108,7 +108,7 @@
   /** Blend (a forever loop's crossfade between two rounds, in seconds): at most a third of the sound. */
   function blendOf(v) {
     const b = Number(v.card.blend || 0), d = duration(v);
-    return !v.world && v.card.play === 'loop' && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
+    return v.card.play === 'loop' && !(v.world && queue.length) && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
   }
   /** Where the round heard now is, in seconds into the sound. */
   function position(v) {
@@ -125,7 +125,7 @@
     const { ctx } = audio();
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.loop = !v.world && v.card.play === 'loop' && !blendOf(v);
+    src.loop = v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v);
     const xf = ctx.createGain(); xf.gain.value = 1;
     src.connect(xf).connect(v.vg);
     const t = now();
@@ -242,13 +242,15 @@
   /** The sound came to its end on its own. */
   function ended(v) {
     v.plays += 1;
-    if (!v.world && v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
+    if (v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
     const natural = v.state === 'playing';
     reset(v);
-    // The world's music: at its end, the next one of the queue; with nothing queued, the same music again.
+    // The world's music, at its end (1× or 2× played through, or the round of a loop when musics wait): the next one
+    // of the queue; with nothing queued, a loop plays on and the others stop there.
     if (natural && v.world) {
       const next = queue.length ? voices.get(queue.shift()) : null;
-      if (next && next !== v) toggleVoice(next); else play(v, 0.03);
+      if (next && next !== v) toggleVoice(next);
+      else if (next === v || v.card.play === 'loop') play(v, 0.03);
       changed();
       return;
     }
@@ -469,8 +471,10 @@
     changed();
   }
   /* The queue of the world's music. */
-  function queueAdd(card) { queue.push(card); changed(); }
-  function queueRemove(i) { queue.splice(i, 1); changed(); }
+  /** A loop playing ends its round when a music waits in the queue, and loops again when the queue empties. */
+  function loopsNow() { voices.forEach((v) => { if (v.world && v.src) v.src.loop = v.card.play === 'loop' && !queue.length && !blendOf(v); }); }
+  function queueAdd(card) { queue.push(card); loopsNow(); changed(); }
+  function queueRemove(i) { queue.splice(i, 1); loopsNow(); changed(); }
   function queueMove(i, d) { const j = i + d; if (j < 0 || j >= queue.length) return; [queue[i], queue[j]] = [queue[j], queue[i]]; changed(); }
   /** Plays a music now (crossfading the one playing), taking it out of the queue. */
   function playMusic(card, i) { if (i != null) queue.splice(i, 1); const v = voices.get(card); if (v && v.state !== 'playing') toggleVoice(v); changed(); }

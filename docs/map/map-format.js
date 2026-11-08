@@ -121,6 +121,7 @@
     // Places drawn by the troubadour, laid like the drawings of the library (TROUBADOUR_MAP_FORMAT.md, "stamps").
     if (Array.isArray(world.stamps)) out.stamps = world.stamps.map(cleanStamp).filter(Boolean);
     // The world's musics, behind the Music button at the table (absent from older worlds: made from the story then).
+    if (world.musicLoops === 1) out.musicLoops = 1;
     if (Array.isArray(world.music)) out.music = world.music.map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { zone: 'music' }));
     const seen = new Set();
     out.places = (world.places || []).map(cleanPlace).map((p) => {
