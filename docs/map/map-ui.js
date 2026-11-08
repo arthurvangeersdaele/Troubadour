@@ -66,7 +66,7 @@
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 1500, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -77,6 +77,8 @@
     const out = Object.assign({}, DEFAULTS);
     Object.keys(DEFAULTS).forEach((k) => { if (s && s[k] != null) out[k] = s[k]; });
     out.vol = Object.assign({}, DEFAULTS.vol, (s && s.vol) || {});
+    // Fades as in Troubadour: Off, 0.5, 1, 2 or 4 s (older Map settings had 1.5 and 3 s).
+    if (![0, 500, 1000, 2000, 4000].includes(+out.fade)) out.fade = +out.fade > 2500 ? 4000 : 2000;
     return out;
   }
   const settings = loadSettings();
@@ -178,7 +180,7 @@
       const AC = global.AudioContext || global.webkitAudioContext;
       ctx = new AC({ latencyHint: 'playback' });
       master = ctx.createGain();
-      master.gain.value = settings.master;
+      master.gain.value = settings.master * settings.master; // heard on Troubadour's curve
       master.connect(ctx.destination);
     }
     if (wake && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume().catch(() => {});

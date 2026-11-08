@@ -338,3 +338,6 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-world[data-mode="edit"] #mw-menu { display: none; }
 .mp-menu-btn .ic { display: grid; place-items: center; }
 .mp-side-body .c, .mp-sbx .c { width: auto; flex: none; align-self: stretch; }
+.c .opts .stepper { padding: 2px; }
+.c .opts .stepper button { width: 28px; height: 26px; font-size: 18px; }
+.c .opts .stepper b { min-width: 40px; font-size: 13px; color: var(--text); }

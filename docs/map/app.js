@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.5';
+  const VERSION = '261108.6';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -488,17 +488,25 @@
     }
     row.append(head);
 
-    // The editor: the pauses of a random card.
+    // The editor: the longest pause of a random card, as in Troubadour (0.5 s to it; Auto: the one of the settings).
     if (mode === 'edit' && c.play === 'random') {
       const opts = el('div', 'opts');
-      const gap = (key, label) => {
-        const l = el('label');
-        const i = el('input'); i.type = 'number'; i.min = 0; i.max = 600; i.step = 1; i.value = c[key];
-        i.addEventListener('change', () => { Object.assign(c, M.cleanCard(Object.assign({}, c, { [key]: Number(i.value) }))); save(); renderPanel(); });
-        l.append(document.createTextNode(label), i);
-        return l;
+      const val = el('b');
+      const paintGap = () => { val.textContent = c.randomMax ? `${c.randomMax} s` : `Auto`; less.disabled = !c.randomMax; more.disabled = c.randomMax >= A.RANDOM_TOP; };
+      const stepGap = (d) => {
+        const n = (c.randomMax || 0) + d;
+        Object.assign(c, M.cleanCard(Object.assign({}, c, { randomMax: n >= 1 ? n : 0 })));
+        if (!(n >= 1)) delete c.randomMax;
+        save(); paintGap();
       };
-      opts.append(gap('gapMin', 'Pause from'), gap('gapMax', 'to'), document.createTextNode('s'));
+      const box = el('div', 'stepper');
+      box.setAttribute('role', 'group'); box.setAttribute('aria-label', `Longest pause of ${c.name}`);
+      const less = el('button', '', '‹'); less.type = 'button'; less.setAttribute('aria-label', 'Shorter'); less.addEventListener('click', () => stepGap(-1));
+      const more = el('button', '', '›'); more.type = 'button'; more.setAttribute('aria-label', 'Longer'); more.addEventListener('click', () => stepGap(1));
+      box.append(less, val, more);
+      opts.append(el('span', '', 'Longest pause'), box);
+      opts.title = `Plays again after a pause of 0.5 s to this. Auto: ${A.randomMax()} s, from the settings`;
+      paintGap();
       row.append(opts);
     }
 
@@ -531,28 +539,27 @@
       end.addEventListener('click', () => { A.stop(c); refreshLive(); });
       ctrl.append(end);
     }
-    let lvl = null, moveEnd = 0;
+    let lvl = null, vol = null, paintLvl = () => {};
     if (vm === 'full') {
-      const vol = el('input');
+      vol = el('input');
       vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
       vol.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
       vol.setAttribute('aria-label', `${c.name} volume`);
-      vol.addEventListener('input', () => A.setVolume(c, Number(vol.value)));
+      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); paintRange(vol); });
       vol.addEventListener('change', save);
       ctrl.append(vol);
     } else if (vm === 'simple') {
-      // Two buttons: 25 % steps, gliding 2 s per step.
+      // Two buttons, as in Troubadour: 25 % steps, glided smoothly over 2 s a step (from the volume heard now).
       lvl = el('span', 'lvl');
-      const paintLvl = () => { lvl.textContent = `${Math.round(c.volume * 100)}`; lvl.classList.toggle('moving', performance.now() < moveEnd); };
+      paintLvl = () => {
+        const v = A.voice(c);
+        const pct = `${Math.round(A.shownVolume(c) * 100)}`;
+        if (lvl.textContent !== pct) lvl.textContent = pct;
+        lvl.classList.toggle('moving', !!(v && v.volMs));
+      };
       const step = (dir) => {
-        const q = c.volume * 4;
-        const t = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4);
-        if (t === c.volume) return;
-        const secs = Math.max(0.3, (Math.abs(t - c.volume) / 0.25) * 2);
-        A.setVolume(c, t, secs);
-        moveEnd = performance.now() + secs * 1000;
+        if (!A.stepVolume(c, dir)) return;
         paintLvl();
-        setTimeout(paintLvl, secs * 1000 + 20);
         save();
       };
       const dn = el('button', 'vb'); dn.type = 'button'; dn.innerHTML = ICON.volDown; dn.setAttribute('aria-label', `Lower ${c.name}`);
@@ -580,18 +587,27 @@
         const v = A.voice(c);
         const st = v ? v.state : 'idle';
         const waiting = !!(v && v.waiting);
-        const on = st === 'playing';
+        const on = !!(v && (v.active || waiting));
+        // Living ambiances: a discreet mark shows the volume heard right now; the slider and the number keep the card's own.
+        if (c.zone === 'ambience') {
+          const heard = A.living(c), alive = heard != null;
+          if (vol) { vol.classList.toggle('living', alive); if (alive) vol.style.setProperty('--lp', Math.min(1, heard).toFixed(3)); }
+          if (lvl) { lvl.classList.toggle('living', alive); if (alive) lvl.style.setProperty('--lo', `${((heard - c.volume) * 90).toFixed(1)}px`); }
+        }
         row.classList.toggle('on', on);
         row.classList.toggle('paused', st === 'paused');
-        const icon = on ? 'pause' : 'play';
+        const icon = st === 'playing' || waiting ? 'pause' : 'play';
         if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
-        pb.setAttribute('aria-label', `${on && !waiting ? 'Pause' : waiting ? 'Stop' : 'Play'} ${c.name}`);
+        pb.setAttribute('aria-label', `${st === 'playing' ? 'Pause' : waiting ? 'Stop' : 'Play'} ${c.name}`);
+        pb.disabled = !buffers.get(c.file);
         end.disabled = !(on || st === 'paused');
+        paintLvl();
         const pr = A.progress(c);
         if (pr.p < 0) { fill.style.width = on || st === 'paused' ? '100%' : '0'; fill.style.background = 'var(--blue)'; }
         else { fill.style.width = `${pr.p * 100}%`; fill.style.background = `hsl(${Math.round(130 * (1 - pr.p))},72%,50%)`; }
         let txt = '', warn = false;
         if (waiting) txt = `next ${fmtLeft(pr.next)}`;
+        else if (v && v.held) txt = 'held';
         else if (on || st === 'paused') {
           if (c.play === 'loop') txt = '∞ loop';
           else if (pr.left != null) { txt = fmtLeft(pr.left); warn = pr.left <= 10; }
@@ -839,7 +855,7 @@
   function refreshLive() { liveRows.forEach((f) => f()); }
   function liveLoop() {
     clearInterval(liveTimer);
-    liveTimer = setInterval(() => { if (screen === 'world' && mode === 'play') refreshLive(); }, 200);
+    liveTimer = setInterval(() => { if (screen === 'world' && mode === 'play' && !document.hidden) { refreshLive(); paintMaster(); } }, 66);
   }
 
   function syncAudio() {
@@ -1242,6 +1258,19 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.fade = Number(b.dataset.v); saveSettings(); paintSettings();
     });
+    // Playback, as in Troubadour.
+    $('#fadein-pick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.fadeIn = Number(b.dataset.v); saveSettings(); paintSettings();
+    });
+    const stepRandom = (d) => { settings.randomMax = Math.min(A.RANDOM_TOP, Math.max(1, A.randomMax() + d)); saveSettings(); paintSettings(); };
+    $('#random-less').addEventListener('click', () => stepRandom(-1));
+    $('#random-more').addEventListener('click', () => stepRandom(1));
+    $('#opt-life').addEventListener('change', (e) => { settings.life = e.target.checked; saveSettings(); paintSettings(); });
+    const stepLife = (d) => { settings.lifeEvery = Math.min(30, Math.max(2, A.lifeEvery() + d)); saveSettings(); paintSettings(); };
+    $('#life-less').addEventListener('click', () => stepLife(A.lifeEvery() > 10 ? -2 : -1));
+    $('#life-more').addEventListener('click', () => stepLife(A.lifeEvery() >= 10 ? 2 : 1));
+    $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; saveSettings(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.addEventListener('click', (e) => {
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.vol[g.dataset.zone] = b.dataset.v; saveSettings(); paintSettings();
@@ -1273,6 +1302,18 @@
     document.querySelectorAll('#mode-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.mode)));
     document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.vol[g.dataset.zone]))));
+    document.querySelectorAll('#fadein-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === (settings.fadeIn ?? 1000))));
+    $('#random-val').textContent = `${A.randomMax()} s`;
+    $('#random-note').textContent = `Plays again after a pause of 0.5\u00a0s to ${A.randomMax()}\u00a0s`;
+    $('#random-less').disabled = A.randomMax() <= 1;
+    $('#random-more').disabled = A.randomMax() >= A.RANDOM_TOP;
+    $('#opt-life').checked = !!settings.life;
+    $('#life-val').textContent = `${A.lifeEvery()} s`;
+    $('#life-note').textContent = `A new volume about every ${A.lifeEvery()}\u00a0s`;
+    $('#life-less').disabled = !settings.life || A.lifeEvery() <= 2;
+    $('#life-more').disabled = !settings.life || A.lifeEvery() >= 30;
+    $('#life-row').classList.toggle('off', !settings.life);
+    $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-rings').checked = settings.rings;
     $('#opt-trail').checked = settings.trail;
     $('#trail-speed-row').hidden = !settings.trail;
@@ -1309,7 +1350,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       acquireWake();
-      if (A.isOpen() && !$('#mw-pause').classList.contains('on')) { const { ctx } = audio(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); }
+      if (A.isOpen()) { const { ctx } = audio(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); }
     } else flush();
   });
 
@@ -1370,9 +1411,9 @@
     await ensure([c.file], false);
     const buf = buffers.get(c.file);
     if (!buf) { toast('This sound cannot be read here.'); return; }
-    if (!sbGain) { sbGain = ctx.createGain(); sbGain.gain.value = settings.sbVolume; sbGain.connect(master); }
+    if (!sbGain) { sbGain = ctx.createGain(); sbGain.gain.value = A.curve(settings.sbVolume); sbGain.connect(master); }
     const own = ctx.createGain();
-    own.gain.value = c.volume;
+    own.gain.value = A.curve(c.volume);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(own); own.connect(sbGain);
@@ -1380,6 +1421,28 @@
     sbPlaying.set(c, src);
     b.classList.remove('fire'); void b.offsetWidth; b.classList.add('fire');
     src.onended = () => { if (sbPlaying.get(c) === src) sbPlaying.delete(c); };
+  }
+
+  /** The master stop also lets the soundbox go, over the same 3 s. */
+  function stopPads() {
+    if (!sbGain) return;
+    const { ctx } = audio();
+    const t = ctx.currentTime, secs = A.MASTER_FADE / 1000;
+    const pads = [...sbPlaying.values()];
+    sbPlaying.clear();
+    pads.forEach((src) => { try { src.stop(t + secs + 0.05); } catch (e) { /* done */ } });
+    sbGain.gain.cancelScheduledValues(t); sbGain.gain.setValueAtTime(sbGain.gain.value, t);
+    sbGain.gain.linearRampToValueAtTime(0, t + secs);
+    sbGain.gain.setValueAtTime(A.curve(settings.sbVolume), t + secs + 0.1);
+  }
+  function paintMaster() {
+    const b = $('#mw-pause');
+    const resume = A.resumePending();
+    if (b.dataset.i === (resume ? 'play' : 'pause')) return;
+    b.dataset.i = resume ? 'play' : 'pause';
+    b.innerHTML = resume ? ICON.play : ICON.pause;
+    b.classList.toggle('on', resume);
+    b.setAttribute('aria-label', resume ? 'Resume all' : 'Pause all');
   }
 
   /* ================= The drawing tools: moved by their grip, always inside the map ================= */
@@ -1449,7 +1512,7 @@
     $('#mw-sbx-close').addEventListener('click', closeSoundbox);
     $('#mw-sbvol').value = settings.sbVolume;
     paintRange($('#mw-sbvol'));
-    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) sbGain.gain.setTargetAtTime(settings.sbVolume, audio().ctx.currentTime, 0.03); });
+    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) sbGain.gain.setTargetAtTime(A.curve(settings.sbVolume), audio().ctx.currentTime, 0.03); });
     $('#mw-sbvol').addEventListener('change', saveSettings);
     wireToolsGrip();
     $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
@@ -1489,14 +1552,10 @@
     $('#mw-fill').addEventListener('click', () => V.fit());
 
     $('#mw-fade').innerHTML = ICON.stop;
-    $('#mw-fade').addEventListener('click', () => { A.fadeAll(); refreshLive(); });
+    // The master buttons, as in Troubadour: pause (or resume) everything and stop everything, over 3 s.
+    $('#mw-fade').addEventListener('click', () => { A.stopAll(); stopPads(); refreshLive(); paintMaster(); });
     $('#mw-pause').innerHTML = ICON.pause;
-    $('#mw-pause').addEventListener('click', () => {
-      const { ctx } = audio();
-      const b = $('#mw-pause');
-      if (ctx.state === 'running') { ctx.suspend(); b.classList.add('on'); b.innerHTML = ICON.play; }
-      else { ctx.resume(); b.classList.remove('on'); b.innerHTML = ICON.pause; }
-    });
+    $('#mw-pause').addEventListener('click', () => { A.pauseAll(); refreshLive(); paintMaster(); });
     $('#mw-master').value = settings.master;
     paintRange($('#mw-master'));
     $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
@@ -1504,7 +1563,7 @@
       settings.master = Number(e.target.value);
       $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
       const { ctx, master } = audio();
-      master.gain.setTargetAtTime(settings.master, ctx.currentTime, 0.03);
+      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
     });
     $('#mw-master').addEventListener('change', saveSettings);
 
@@ -1540,7 +1599,6 @@
     // Browsers keep sound off until a touch or a click: every gesture wakes the audio, unless paused by hand.
     // iPhone also wants a sound started inside that gesture: a silent one, once.
     const unlock = () => {
-      if ($('#mw-pause').classList.contains('on')) return;
       const { ctx } = audio();
       if (ctx.state !== 'running') ctx.resume().catch(() => {});
       if (!unlock.done) {

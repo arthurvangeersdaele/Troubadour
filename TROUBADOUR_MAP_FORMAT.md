@@ -52,7 +52,7 @@ sounds/1/music/01-tavern-hearth.mp3
           "radius": 260,
           "cards": [
             { "name": "Dripping water", "file": "sounds/1/ambience/02-drips.mp3", "zone": "ambience", "play": "loop", "autoplay": true, "volume": 0.8 },
-            { "name": "Whispers", "file": "sounds/1/events/03-whispers.mp3", "zone": "events", "play": "random", "autoplay": true, "gapMin": 4, "gapMax": 20, "volume": 0.5 }
+            { "name": "Whispers", "file": "sounds/1/events/03-whispers.mp3", "zone": "events", "play": "random", "autoplay": true, "randomMax": 20, "volume": 0.5 }
           ],
           "link": null
         },
@@ -114,9 +114,10 @@ A **card**:
 | `name` | string | Card title. |
 | `file` | string | Path of the audio entry in the archive (any sound of the story, from any chapter or the soundbox). |
 | `zone` | string | `music`, `ambience`, `events` or `soundbox`: the colour of the card. |
-| `play` | string | As the loop button of Troubadour: `once` (1×) one time, `twice` (2×) two times in a row, `loop` (∞) again and again without a break, `random`: it plays, waits a random pause of `gapMin` to `gapMax` seconds, and plays again. |
+| `play` | string | As the loop button of Troubadour: `once` (1×) one time, `twice` (2×) two times in a row, `loop` (∞) again and again without a break, `random` (not for music): it plays, waits a random pause of 0.5 s to its longest pause, and plays again; `after` (music only): a playlist, it starts when the music before it ends on its own. |
 | `autoplay` | boolean | Cards of the whole place only: `true`, the card starts when its place opens; `false`, it waits for the troubadour's Play. The cards of an element always start with their place: the map alone decides how much of them is heard. |
-| `gapMin`, `gapMax` | number | `random` only, in seconds (default 5 and 30). |
+| `randomMax` | number | Optional, 1 to 30 s: the longest pause of a `random` card, as a Troubadour sound's `randomMax`. Absent: the one of the settings (5 s by default). Older files gave `gapMin` and `gapMax`; `gapMax` is read as `randomMax`. |
+| `blend` | number | Optional, in seconds: a `loop` card crosses over between two rounds over this time (at most a third of the sound), as a Troubadour sound's `blend`. |
 | `volume` | number | 0 to 1, default 0.75. |
 
 Unknown fields must be kept when a tool re-saves a file.
@@ -129,7 +130,7 @@ Every card of an element starts with its place and plays wherever the player poi
 2. **Walls.** Draw a straight line from the player point to the nearest point of the element (no line when the point is inside). Each wall segment it crosses multiplies the sound by `1 − wallLoss`.
 3. **General cards** ignore both: they are heard at their own `volume` everywhere on their place.
 
-Moving the player point changes every gain smoothly (a short glide, no clicks). Leaving a place for another fades out every sound of the first place and starts the cards of the second that `autoplay`.
+Every card behaves as a card of the Troubadour player: volumes are heard on Troubadour's curve (the square of the setting), the simple volume buttons glide 25 % in 2 s, Play rises over the fade-in of the settings (events strike at once), Pause and Stop fade out over the fade-out of the settings, starting a music crossfades the music playing in its group, ambiances can live (drift up to 10 points around their volume), and the master pause and stop fade over 3 s. Moving the player point changes every gain smoothly (a short glide, no clicks). Leaving a place for another fades out every sound of the first place and starts the cards of the second that `autoplay`.
 
 ## A first world from a `.troubadour`
 

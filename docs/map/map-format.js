@@ -22,11 +22,14 @@
   const r2 = (v) => Math.round(v * 100) / 100;
   const shortId = () => Math.random().toString(36).slice(2, 9);
 
-  /** Every sound of a story: { name, file, zone, chapter (index, or -1 for the soundbox), loop, volume } */
+  /** A sound's own longest random pause and loop blend, wherever Troubadour keeps them. */
+  const own = (s, k) => (s[k] ?? (s.extra && s.extra[k]));
+  /** Every sound of a story: { name, file, zone, chapter (index, or -1 for the soundbox), loop, volume, randomMax, blend } */
   function soundsOf(story) {
     const out = [];
-    (story.chapters || []).forEach((c, i) => ZONES.forEach((z) => (c[z] || []).forEach((s) => out.push({ name: s.name, file: s.file, zone: z, chapter: i, loop: s.loop, volume: s.volume }))));
-    (story.soundbox || []).forEach((s) => out.push({ name: s.name, file: s.file, zone: 'soundbox', chapter: -1, loop: s.loop, volume: s.volume }));
+    const one = (s, zone, chapter) => ({ name: s.name, file: s.file, zone, chapter, loop: s.loop, volume: s.volume, randomMax: own(s, 'randomMax'), blend: own(s, 'blend') });
+    (story.chapters || []).forEach((c, i) => ZONES.forEach((z) => (c[z] || []).forEach((s) => out.push(one(s, z, i)))));
+    (story.soundbox || []).forEach((s) => out.push(one(s, 'soundbox', -1)));
     return out;
   }
 
@@ -39,10 +42,14 @@
     out.zone = ['music', 'ambience', 'events', 'soundbox'].includes(c.zone) ? c.zone : 'events';
     out.play = PLAYS.includes(c.play) ? c.play : 'loop';
     out.autoplay = true; // every card starts with its map (kept in the file for older readers)
-    if (out.play === 'random') {
-      out.gapMin = r1(num(c.gapMin, 5, 0, 600));
-      out.gapMax = r1(num(c.gapMax, Math.max(out.gapMin, 30), out.gapMin, 600));
-    } else { delete out.gapMin; delete out.gapMax; }
+    // Random cards, as in Troubadour: they play again after a pause of 0.5 s to their own longest pause
+    // (randomMax, 1 to 30 s), or to the one of the settings. Older files gave a gapMax: it becomes that longest pause.
+    const rm = Number(c.randomMax ?? c.gapMax);
+    if (rm >= 1) out.randomMax = Math.round(Math.min(30, rm)); else delete out.randomMax;
+    delete out.gapMin; delete out.gapMax;
+    // Blend: a forever loop crosses over between two rounds over this many seconds (from the .troubadour sound).
+    const bl = Number(c.blend);
+    if (bl > 0) out.blend = r1(Math.min(30, bl)); else delete out.blend;
     out.volume = r2(num(c.volume, 0.75, 0, 1));
     return out;
   }
@@ -126,7 +133,7 @@
   function card(sound, opts = {}) {
     // Musics play after one another (Troubadour's "play after": a playlist); ambiances loop; events come back at random.
     const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : sound.zone === 'music' ? 'after' : 'loop';
-    return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: true, volume: typeof sound.volume === 'number' ? sound.volume : 0.75 }, opts));
+    return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: true, volume: typeof sound.volume === 'number' ? sound.volume : 0.75, randomMax: sound.randomMax, blend: sound.blend }, opts));
   }
 
   function worldOf(story, places, bard) {
