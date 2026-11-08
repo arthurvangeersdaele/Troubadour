@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.23';
+  const VERSION = '261108.24';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -906,7 +906,8 @@
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
     if (sh.type === 'stamp') {
-      id.append(slider('Size', sh.size, 40, 1200, 10, (v) => String(v), (v) => { sh.size = v; V.redraw(); }));
+      const w = place().width;
+      id.append(slider('Size', Math.round((sh.size / w) * 200) / 2, 1, 60, 0.5, (v) => `${v} % of the map`, (v) => { sh.size = Math.max(10, Math.round((v / 100) * w)); V.redraw(); }));
       id.append(slider('Turn', sh.rotation, -180, 180, 5, (v) => `${v}°`, (v) => { sh.rotation = v; V.redraw(); }));
     } else if (sh.points.length > 2) {
       const l = el('label', 'row-set toggle');
@@ -1496,11 +1497,38 @@
       tile(st.id, st.name, ed);
     });
     let group = null;
+    box.prepend(placeSizeRow());
     S.LIST.forEach((s) => {
       if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
       tile(s.id, s.label);
     });
     paintStamps(null);
+  }
+  /* The size a place is laid at: Auto gives each its natural size (a bush small, a kingdom huge); the others
+   * give every place the same share of the map's width. Changed afterwards on the place itself, in % of the map. */
+  const PLACE_SIZES = [['auto', 'Auto', 'Each place at its natural size'], ['s', 'S', '6 % of the map'], ['m', 'M', '10 % of the map'], ['l', 'L', '16 % of the map'], ['xl', 'XL', '25 % of the map']];
+  const PLACE_SHARE = { s: 0.06, m: 0.1, l: 0.16, xl: 0.25 };
+  const placeShare = (id) => PLACE_SHARE[settings.placeSize] || (window.MapStamps.natural ? window.MapStamps.natural(id) : 0.07);
+  V.setStampSizer && V.setStampSizer((id, p) => Math.max(20, Math.round((p.width * placeShare(id)) / 5) * 5));
+  function placeSizeRow() {
+    const row = el('div', 'st-size');
+    row.append(el('span', '', 'Size'));
+    const seg = el('div', 'seg small');
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Size of the places you lay');
+    PLACE_SIZES.forEach(([v, label, tip]) => {
+      const b = el('button', '', label);
+      b.type = 'button'; b.setAttribute('role', 'radio'); b.title = tip; b.dataset.v = v;
+      b.setAttribute('aria-checked', String((settings.placeSize || 'auto') === v));
+      b.addEventListener('click', () => {
+        settings.placeSize = v; saveSettings();
+        seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.v === v)));
+        hint.textContent = tip;
+      });
+      seg.append(b);
+    });
+    const hint = el('small', '', (PLACE_SIZES.find((x) => x[0] === (settings.placeSize || 'auto')) || PLACE_SIZES[0])[2]);
+    row.append(seg, hint);
+    return row;
   }
   let currentStamp = null;
   function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); }

@@ -665,3 +665,16 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .mp-stamps button, .mp-stamps .st-new { touch-action: pan-y; }
 .mp-stamps .st-g { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .mp-stamps canvas { width: 60px; height: 60px; }
+
+/* The size of the places being laid, at the top of the library. */
+.mp-stamps .st-size { grid-column: 1 / -1; position: sticky; top: -8px; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: -8px -8px 2px; padding: 8px 10px 6px; background: var(--bar); border-bottom: 1px solid var(--line); }
+.mp-stamps .st-size > span { font-size: 13px; font-weight: 600; }
+.mp-stamps .st-size small { flex-basis: 100%; color: var(--muted); font-size: 12px; line-height: 1.2; }
+.mp-stamps .st-size .seg button { min-width: 34px; padding: 3px 8px; font-size: 13px; }
+@media (max-height: 520px) { .mp-stamps .st-size small { display: none; } }
+
+/* A closed panel in the editor hides for good: in landscape it no longer peeks out in the notch's margin. */
+.mp-world[data-mode="edit"]:not(.panel) .mp-side { visibility: hidden; transition: transform .2s, visibility 0s .2s; }
+.mp-world[data-mode="edit"].panel .mp-side { visibility: visible; transition: transform .2s; }
+@media (min-width: 901px) { .mp-world[data-mode="edit"]:not(.panel) .mp-side { visibility: visible; } }
+.mp-body { overflow: clip; }

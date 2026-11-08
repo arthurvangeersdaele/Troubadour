@@ -333,7 +333,7 @@
     if (tool === 'wall' || tool === 'pen') { gesture = { kind: 'stroke', tool, pts: [w], shift: e.shiftKey }; dirty = true; return; }
     if (tool === 'stamp') {
       snapshot();
-      const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'stamp', stamp, x: w[0], y: w[1], size: Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
+      const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'stamp', stamp, x: w[0], y: w[1], size: stampSizer ? stampSizer(stamp, place) : Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
       place.elements.push(el);
       select(el);
       edited();
@@ -832,6 +832,9 @@
   function setMode(m) { if (m !== mode) dropTrail(); mode = m; if (m === 'play') select(null); dirty = true; }
   function setTool(t) { tool = t; if (api.onTool) api.onTool(t); dirty = true; }
   function setStamp(id) { stamp = id; setTool('stamp'); }
+  let stampSizer = null;
+  /** fn(stampId, place) gives the size of a place being laid, in units of the map. */
+  function setStampSizer(fn) { stampSizer = fn; }
   function select(el) {
     if (selected === el) { dirty = true; return; }
     selected = el;
@@ -859,7 +862,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, setStampSizer, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,

@@ -33,6 +33,20 @@
     ['quarry', 'Quarry', 3], ['boat', 'Boat', 3], ['ship', 'Ship', 3], ['shipwreck', 'Shipwreck', 3], ['harbor', 'Harbour', 3], ['lighthouse', 'Lighthouse', 3],
   ].map(([id, label, g]) => ({ id, label, group: GROUPS[g] }));
 
+  /* How big each place is by nature, from 1 (a bush, a chest) to 5 (a city, a kingdom): laid with the size Auto,
+   * a place takes that share of the width of its map. */
+  const SHARE = [0, 0.055, 0.08, 0.12, 0.17, 0.25];
+  const CLASS = {};
+  [
+    [1, 'bush tree deadtree pine cactus mushrooms rocks crystals statue grave altar signpost crates chest logs cart tent fire bones gallows well stairs boat'],
+    [2, 'grove pond hotspring cave waterfall hut house bakery shop tavern forge library guildhall stable barn windmill watermill fountain market church tomb stones portal ruins watchtower tower wizard caravan door mine quarry ship shipwreck lighthouse battlefield dragon'],
+    [3, 'forest jungle haunted worldtree meadow lake swamp oasis beach island hill dunes peak volcano glacier canyon fields farm hamlet wall keep fort castle temple monastery cathedral observatory pyramid arena bridge ropebridge harbor camp'],
+    [4, 'mountains village town citadel palace'],
+    [5, 'range city kingdom'],
+  ].forEach(([k, ids]) => ids.split(' ').forEach((id) => { CLASS[id] = k; }));
+  /** The share of the map's width a place takes at its natural size. */
+  const natural = (id) => SHARE[CLASS[id] || 2];
+
   // The colours of the stickers: bright, a little soft.
   const K = {
     red: '#EE6B5E', coral: '#F48A6A', blue: '#5B92EE', sky: '#9AD8F5', water: '#5CC4EA', deep: '#3A9AD0', cream: '#FBEFD6', wall: '#F4E1BE',
@@ -1167,5 +1181,5 @@
     ctx.restore();
   }
 
-  global.MapStamps = { LIST, GROUPS, draw, FILLS, register, forget, isCustom, custom: (id) => custom.get(id), fillAt, picture };
+  global.MapStamps = { LIST, GROUPS, natural, draw, FILLS, register, forget, isCustom, custom: (id) => custom.get(id), fillAt, picture };
 })(window);
