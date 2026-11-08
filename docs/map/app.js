@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.10';
+  const VERSION = '261108.11';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -787,11 +787,7 @@
     box.append(el('p', 'pn-note', 'The musics of the world, in their order, behind the Music button at the table. They play on from one map to the next. A music laid on a map (whole map, or an element) starts when the party arrives there.'));
     box.append(orderedBlock('Musics', list, 'No music yet. Add some: from the Recueil, this device or a .troubadour story.', 'the music'));
   }
-  function editSoundbox(box) {
-    const list = rec.world.soundbox || (rec.world.soundbox = []);
-    box.append(el('p', 'pn-note', 'One-shot effects at hand on every map of this world, behind the Soundbox button at the table. Your shared soundbox (the star of the worlds screen) follows them on every world.'));
-    box.append(orderedBlock('Effects', list, 'No effect yet. Add critical hits, doors, thunder.', 'the soundbox'));
-  }
+
 
   function editPlace(box, p) {
     const name = section('Map');
@@ -1555,7 +1551,8 @@
     ['library', 'world', 'sbx'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
     screen = id;
     document.documentElement.dataset.screen = id;
-    if (id !== 'world') { A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); }
+    if (id !== 'world') { A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
+    if (id !== 'sbx') stopFxWhere((k) => k.startsWith('shared:'));
   }
 
   /** Leaving a world asks first, whatever the way out (the back button of the top bar, of the browser or of the phone). */
@@ -1699,215 +1696,408 @@
     refreshLive();
   }
 
-  /* ================= The shared soundbox (the star of the worlds screen, as in Troubadour) ================= */
-  let SHARED = []; // { id, name, blob, volume }
+  /* ================= Effects, as in the Troubadour web app: the shared soundbox, the world's soundbox ================= */
+  let SHARED = []; // { id, name, blob, size, duration, volume }
   const saveShared = () => DB.setKV('soundbox', SHARED).catch((e) => toast(`Could not save: ${e.message || e}`, 4000));
+  const fmtSize = (b) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
+  const DEV = /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'iPad' : /iPhone|iPod/.test(navigator.userAgent) ? 'iPhone' : 'device';
+
+  /** Listening to effects: as many at once as the troubadour likes, each through the table's volume curve. */
+  const fxPreviews = new Map(); // key -> { src, gain, card, btn }
+  function stopFx(key) {
+    const p = fxPreviews.get(key);
+    if (!p) return;
+    fxPreviews.delete(key);
+    try { p.src.stop(); } catch (e) { /* done */ }
+    if (p.card) p.card.classList.remove('playing');
+    if (p.btn) { p.btn.innerHTML = ICON.play; p.btn.classList.remove('on'); }
+  }
+  const stopFxWhere = (f) => [...fxPreviews.keys()].filter(f).forEach(stopFx);
+  async function toggleFx(key, getBlob, vol, card, b) {
+    if (fxPreviews.has(key)) { stopFx(key); return; }
+    const { ctx, master } = audio(true);
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    let buf = buffers.get(key);
+    if (!buf) {
+      if (b) b.classList.add('wait');
+      try { buf = await decode(await getBlob()); buffers.set(key, buf); } catch (e) { buf = null; }
+      if (b) b.classList.remove('wait');
+      if (!buf) { toast('This sound is missing.'); return; }
+    }
+    if (fxPreviews.has(key)) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.value = A.curve(vol());
+    src.connect(gain).connect(master);
+    src.start();
+    fxPreviews.set(key, { src, gain, card, btn: b });
+    if (card) card.classList.add('playing');
+    if (b) { b.innerHTML = ICON.pause; if (b.classList.contains('pick-play')) b.classList.add('on'); }
+    src.onended = () => { const p = fxPreviews.get(key); if (p && p.src === src) stopFx(key); };
+  }
+
+  /** An effect card, as Troubadour's: its name, remove, listen, length and size, move earlier or later, volume. */
+  function fxCard(s, i, list, o) {
+    const c = el('div', 'sc');
+    c.style.setProperty('--z', 'var(--accent)');
+    const top = el('div', 'row');
+    const name = el('input');
+    name.value = s.name;
+    name.maxLength = 80;
+    name.setAttribute('aria-label', 'Sound name');
+    name.setAttribute('enterkeyhint', 'done');
+    name.oninput = () => { s.name = name.value; o.save(); };
+    name.onblur = () => { if (!s.name.trim()) { s.name = 'Effect'; name.value = s.name; o.save(); } };
+    name.onkeydown = (e) => { if (e.key === 'Enter') name.blur(); };
+    const x = el('button', 'x');
+    x.type = 'button'; x.innerHTML = ICON.x; x.setAttribute('aria-label', `Remove ${s.name}`);
+    x.onclick = async () => {
+      const v = await ask(`Remove “${s.name}”?`, o.removeText, [{ label: 'Cancel', value: null }, { label: 'Remove', value: 'rm', cls: 'danger' }]);
+      if (v !== 'rm') return;
+      stopFx(o.key);
+      list.splice(list.indexOf(s), 1);
+      o.save();
+      o.rerender();
+    };
+    top.append(name, x);
+    const bottom = el('div', 'row');
+    const play = el('button', 'pb play');
+    play.type = 'button'; play.innerHTML = ICON.play; play.setAttribute('aria-label', `Listen to ${s.name}`);
+    play.onclick = () => toggleFx(o.key, o.getBlob, () => s.volume, c, play);
+    if (fxPreviews.has(o.key)) { c.classList.add('playing'); play.innerHTML = ICON.pause; const p = fxPreviews.get(o.key); p.card = c; p.btn = play; }
+    const meta = el('span', 'meta');
+    const paintMeta = () => { meta.textContent = ''; [s.duration ? clockOf(s.duration) : null, s.size ? fmtSize(s.size) : null].filter(Boolean).forEach((t) => meta.append(el('span', '', t))); };
+    paintMeta();
+    // Older effects learn their size (and length) the first time they show.
+    if (!s.size || !s.duration) {
+      o.getBlob().then(async (blob) => {
+        if (!blob) return;
+        let changed = false;
+        if (!s.size) { s.size = blob.size; changed = true; }
+        if (!s.duration) { try { const b = buffers.get(o.key) || await decode(blob); buffers.set(o.key, b); s.duration = Math.round(b.duration * 10) / 10; changed = true; } catch (e) { /* unreadable */ } }
+        if (changed) { paintMeta(); o.save(); }
+      }).catch(() => {});
+    }
+    const mv = el('span', 'mvh');
+    const mvb = (icon, label, d) => {
+      const b = el('button'); b.type = 'button'; b.innerHTML = icon; b.setAttribute('aria-label', label); b.title = label;
+      b.disabled = d < 0 ? i === 0 : i === list.length - 1;
+      b.onclick = () => { const j = i + d; if (j < 0 || j >= list.length) return; [list[j], list[i]] = [list[i], list[j]]; o.save(); o.rerender(); };
+      return b;
+    };
+    mv.append(mvb(ICON.left, 'Move earlier', -1), mvb(ICON.right, 'Move later', 1));
+    bottom.append(play, meta, mv);
+    // Its volume: the level it fires at.
+    const volRow = el('label', 'row edvol');
+    volRow.append(el('span', 'vl', 'Volume'));
+    const vr = el('input');
+    vr.type = 'range'; vr.min = 0; vr.max = 1; vr.step = 0.05; vr.value = typeof s.volume === 'number' ? s.volume : 0.75;
+    vr.setAttribute('aria-label', `Default volume of ${s.name}`);
+    vr.style.setProperty('--z', 'var(--accent)');
+    const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
+    vr.addEventListener('input', () => {
+      s.volume = Math.round(+vr.value * 100) / 100;
+      const p = fxPreviews.get(o.key);
+      if (p) p.gain.gain.setTargetAtTime(A.curve(s.volume), audio().ctx.currentTime, 0.03);
+      vp.textContent = `${Math.round(s.volume * 100)}`;
+      o.save();
+    });
+    volRow.append(vr, vp);
+    c.append(top, bottom, volRow);
+    requestAnimationFrame(() => paintRange(vr));
+    return c;
+  }
+  /** The dashed zone of effects, with its Add button at the foot. */
+  function fxZone(list, opts, hint, onAdd) {
+    const dz = el('div', 'dz');
+    dz.style.setProperty('--z', 'var(--accent)');
+    list.forEach((s, i) => dz.append(fxCard(s, i, list, opts(s))));
+    const h = el('button', 'hint');
+    h.type = 'button';
+    h.innerHTML = `${ICON.plus}<span>${list.length ? 'Add more' : hint}</span>`;
+    h.onclick = onAdd;
+    dz.append(h);
+    return dz;
+  }
+
+  /* The shared soundbox screen (the star of the worlds screen). */
   function renderShared() {
     const box = $('#shared-list');
     box.textContent = '';
-    if (!SHARED.length) box.append(el('div', 'pn-empty', 'No effects yet. Add critical hits, level ups, explosions: they wait behind the Soundbox button of every world.'));
-    SHARED.forEach((c, i) => {
-      const row = el('div', 'c shared-c');
-      row.style.setProperty('--z', 'var(--blue)');
-      const head = el('div', 'ch');
-      const nm = el('input', 'sh-name');
-      nm.type = 'text'; nm.value = c.name; nm.maxLength = 120; nm.setAttribute('aria-label', 'Name of the effect');
-      nm.addEventListener('input', () => { c.name = nm.value.trim() || 'Effect'; });
-      nm.addEventListener('change', saveShared);
-      const x = el('button', 'loop x');
-      x.type = 'button'; x.innerHTML = ICON.trash; x.title = 'Remove this effect'; x.setAttribute('aria-label', `Remove ${c.name}`);
-      x.addEventListener('click', async () => {
-        const ok = await ask(`Remove ${c.name}?`, 'It leaves your shared soundbox.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
-        if (!ok) return;
-        SHARED.splice(SHARED.indexOf(c), 1); await saveShared(); renderShared();
-      });
-      head.append(el('span', 'sh-k', String(i + 1)), nm, x);
-      const ctrl = el('div', 'ctrl');
-      const pb = el('button', 'pb play');
-      pb.type = 'button'; pb.innerHTML = ICON.play; pb.setAttribute('aria-label', `Listen to ${c.name}`);
-      pb.addEventListener('click', () => listen(`shared:${c.blob}`, pb, () => DB.getBlob(c.blob)));
-      const vol = el('input');
-      vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
-      vol.style.setProperty('--z', 'var(--blue)');
-      vol.setAttribute('aria-label', `${c.name} volume`);
-      vol.addEventListener('input', () => { c.volume = Number(vol.value); });
-      vol.addEventListener('change', saveShared);
-      ctrl.append(pb, vol);
-      row.append(head, ctrl);
-      box.append(row);
-    });
-    paintRanges(box);
+    box.append(fxZone(SHARED, (s) => ({ key: `shared:${s.blob}`, getBlob: () => DB.getBlob(s.blob), save: saveShared, rerender: renderShared, removeText: 'It leaves your shared soundbox.' }),
+      'Add your first effects: critical hits, level ups, explosions', addShared));
   }
-  async function keepShared(blob, name) {
-    const key = await DB.putBlob(blob);
-    SHARED.push({ id: DB.uid(), name: String(name || 'Effect').slice(0, 120), blob: key, volume: 0.8 });
-    await saveShared();
-  }
-  /** Adds effects to the shared soundbox: from the Recueil (searched), your worlds, or audio files of this device. */
   function addShared() {
+    fxPicker('the shared soundbox', new Set(SHARED.map((s) => s.blob)), async (picked) => {
+      for (const r of picked) {
+        const blob = r.blobKey ? null : await r.getBlob();
+        const key = r.blobKey || await DB.putBlob(blob);
+        SHARED.push({ id: DB.uid(), name: String(r.name || 'Effect').slice(0, 80), blob: key, size: r.size || (blob && blob.size) || 0, duration: r.duration || 0, volume: 0.75 });
+      }
+      await saveShared();
+      renderShared();
+    });
+  }
+
+  /* The world's soundbox, in the editor. */
+  function editSoundbox(box) {
+    const list = rec.world.soundbox || (rec.world.soundbox = []);
+    box.append(el('p', 'pn-note', 'Quick effects for this world only. They sit next to your shared soundbox on the table.'));
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save, rerender: renderPanel, removeText: 'It leaves the soundbox of this world.' }),
+      'Add effects: critical hits, doors, thunder', () => {
+        fxPicker('the soundbox', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
+          for (const r of picked) {
+            const key = r.blobKey || await DB.putBlob(await r.getBlob());
+            const path = freePath(`sounds/map/soundbox/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
+            rec.files[path] = key;
+            list.push(Object.assign(M.card({ name: String(r.name || 'Effect').slice(0, 80), file: path, zone: 'soundbox', volume: 0.75 }, { play: 'once' }), { size: r.size || 0, duration: r.duration || 0 }));
+          }
+          flush();
+          renderPanel();
+        });
+      }));
+  }
+
+  /** The sound picker of the Troubadour web app: Files, the sounds on this device or the Recueil, ticked and added at once.
+   *  `have` holds the stored sounds already in the list; `onAdd(rows)` gets { name, blobKey | getBlob, size, duration, ext }. */
+  let fxSource = 'device';
+  async function fxPicker(label, have, onAdd) {
     stopPreview();
-    $('#sheet-title').textContent = 'Add effects';
+    // On this device: every sound of every world, and the shared soundbox. Reusing one takes no extra space.
+    const seen = new Map();
+    const extOf = (p) => ((String(p).split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3');
+    (await DB.list()).forEach((r) => {
+      (r.world.soundbox || []).forEach((c) => { const k = r.files[c.file]; if (k && !seen.has(k)) seen.set(k, { name: c.name, from: r.story.title || 'World', kind: 'soundbox', key: k, ext: extOf(c.file), size: c.size, duration: c.duration }); });
+      M.soundsOf(r.story).forEach((x) => { const k = r.files[x.file]; if (k && !seen.has(k)) seen.set(k, { name: x.name, from: r.story.title || 'World', kind: x.zone, key: k, ext: extOf(x.file) }); });
+    });
+    SHARED.forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { name: s.name, from: 'Shared soundbox', kind: 'soundbox', key: s.blob, size: s.size, duration: s.duration }); });
+    const local = [...seen.values()].filter((x) => !have.has(x.key)).sort((a, b) => a.name.localeCompare(b.name))
+      .map((x) => ({ key: `d:${x.key}`, name: x.name, kind: x.kind, sub: [x.from, x.duration ? clockOf(x.duration) : null].filter(Boolean).join(', '), blobKey: x.key, ext: x.ext || 'mp3', size: x.size, duration: x.duration, fold: fold(`${x.name} ${x.from} ${x.kind}`), getBlob: () => DB.getBlob(x.key) }));
+
+    $('#sheet-title').textContent = `Add to ${label}`;
     const body = $('#sheet-body');
     body.textContent = '';
-    body.className = 'snd-pick';
-    $('#sheet').classList.add('wide');
-    const st = { src: 'recueil', q: '' };
-    const bar = el('div', 'snd-bar');
-    const seg = el('div', 'seg small');
-    [['recueil', 'Recueil'], ['worlds', 'Your worlds']].forEach(([v, label]) => {
-      const b = el('button', '', label); b.type = 'button'; b.dataset.v = v; b.setAttribute('role', 'radio');
-      b.addEventListener('click', () => { st.src = v; paint(); });
-      seg.append(b);
-    });
-    const search = el('input', 'snd-search');
-    search.type = 'search'; search.placeholder = 'Search an effect';
-    search.addEventListener('input', () => { st.q = search.value; paint(); });
-    bar.append(seg, search);
-    const box = el('div', 'snd-list');
-    const foot = el('div', 'snd-foot');
-    const dev = el('button', 'btn slim');
-    dev.type = 'button'; dev.innerHTML = `${ICON.import}<span>This device</span>`;
-    dev.addEventListener('click', async () => {
+    body.className = 'picker';
+    const stopPick = () => stopFxWhere((k) => k.startsWith('pick:'));
+    const fromFiles = el('button', 'btn big-pick');
+    fromFiles.type = 'button';
+    fromFiles.innerHTML = `${ICON.files}<span>Choose from Files</span>`;
+    fromFiles.onclick = async () => {
       const files = (await chooseFiles('audio/*,.mp3,.ogg,.m4a,.wav', true)).filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
-      for (const f of files) await keepShared(f, f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim());
-      if (files.length) { toast(`${plural(files.length, 'effect')} added.`); renderShared(); }
-    });
-    const done = el('button', 'btn primary slim', 'Done');
-    done.type = 'button'; done.addEventListener('click', () => $('#sheet').close());
-    foot.append(dev, el('span', 'grow'), done);
-    body.append(bar, box, foot);
-    const added = new Set(); // what this sheet added: a second tap takes it out again
-    const row = (name, sub, id, getBlob) => {
-      const r = el('div', 'snd z-soundbox');
-      r.setAttribute('role', 'button'); r.tabIndex = 0;
-      const lis = el('button', 'snd-play');
-      lis.type = 'button'; lis.innerHTML = ICON.play; lis.setAttribute('aria-label', `Listen to ${name}`);
-      lis.addEventListener('click', (ev) => { ev.stopPropagation(); listen(`pick:${id}`, lis, getBlob); });
-      const t = el('span', 'snd-t');
-      t.append(el('b', '', name), el('small', '', sub));
-      const mark = el('span', 'snd-mark');
-      const paintMark = (b) => { const on = added.has(id); r.classList.toggle('in', on); mark.innerHTML = b ? '<i class="spin"></i>' : on ? ICON.check : ICON.plus; };
-      paintMark();
-      r.addEventListener('click', async () => {
-        if (r.classList.contains('busy')) return;
-        r.classList.add('busy'); paintMark(true);
-        try {
-          if (added.has(id)) { const c = SHARED.find((x) => x.from === id); if (c) SHARED.splice(SHARED.indexOf(c), 1); added.delete(id); await saveShared(); }
-          else { await keepShared(await getBlob(), name); SHARED[SHARED.length - 1].from = id; added.add(id); await saveShared(); }
-          renderShared();
-        } catch (e) { toast(`Could not add it: ${e.message || e}`, 3600); }
-        r.classList.remove('busy'); paintMark();
-      });
-      r.append(lis, t, mark);
-      return r;
-    };
-    let worlds = null;
-    async function paint() {
-      seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === st.src)));
-      box.textContent = '';
-      const w = fold(st.q).split(/\s+/).filter(Boolean);
-      if (st.src === 'recueil') {
-        if (!recueil) {
-          box.append(el('div', 'pn-empty', 'Opening the Recueil…'));
-          loadRecueil().then(() => { if (st.src === 'recueil' && box.isConnected) paint(); }, () => { box.textContent = ''; box.append(el('div', 'pn-empty', 'The Recueil cannot be reached right now. Check your connection.')); });
-          return;
+      if (!files.length) return;
+      stopPick();
+      $('#sheet').close();
+      busy('Adding sounds', '', 0);
+      try {
+        const rows = [];
+        for (const f of files) {
+          let duration = 0;
+          try { duration = Math.round((await decode(f)).duration * 10) / 10; } catch (e) { /* unreadable */ }
+          rows.push({ name: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Effect', getBlob: async () => f, size: f.size, duration, ext: extOf(f.name) });
         }
-        const hits = recueil.filter((x) => (x.row === 'soundbox' || x.row === 'events') && w.every((k) => x.key.includes(k)));
-        hits.slice(0, 150).forEach((x) => box.append(row(x.name, `${x.tale}${x.duration ? `, ${clockOf(x.duration)}` : ''}`, `r:${x.id}`, () => recueilBlob(x))));
-        if (!hits.length) box.append(el('div', 'pn-empty', 'No effect of the Recueil with this name.'));
-        else if (hits.length > 150) box.append(el('p', 'snd-more', `${hits.length - 150} more: search to narrow them down.`));
+        await onAdd(rows);
+        toast(`${plural(rows.length, 'sound')} added.`);
+      } catch (e) { toast(e.message || String(e), 4000); }
+      idle();
+    };
+    body.append(fromFiles);
+
+    const tabs = el('div', 'seg pick-tabs');
+    const tab = (id, text) => { const b = el('button', '', text); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.src = id; b.onclick = () => { fxSource = id; paintTabs(); draw(); }; return b; };
+    tabs.append(tab('device', `On this ${DEV}`), tab('recueil', 'From the Recueil'));
+    const paintTabs = () => tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.src === fxSource)));
+    const q = el('input', 'pick-q');
+    q.type = 'search';
+    q.setAttribute('enterkeyhint', 'search');
+    q.setAttribute('autocomplete', 'off');
+    const head = el('div', 'pick-head');
+    head.append(tabs, q);
+    body.append(head);
+
+    const ul = el('div', 'pick-list');
+    const chosen = new Map();
+    const addBtn = el('button', 'btn primary', 'Add');
+    addBtn.type = 'button';
+    addBtn.disabled = true;
+    const paintAdd = () => { addBtn.disabled = !chosen.size; addBtn.textContent = chosen.size ? `Add ${plural(chosen.size, 'sound')}` : 'Add'; };
+    addBtn.onclick = async () => {
+      const picked = [...chosen.values()];
+      stopPick();
+      $('#sheet').close();
+      let n = 0;
+      try {
+        const rows = [];
+        for (const r of picked) {
+          if (r.rx) {
+            busy('Adding sounds from the Recueil', `${r.name} (${n + 1} of ${picked.length})`, n / picked.length);
+            const blob = await recueilBlob(r.rx);
+            rows.push({ name: r.name, getBlob: async () => blob, size: blob.size, duration: r.rx.duration || 0, ext: extOf(r.rx.path) });
+          } else rows.push(r);
+          n += 1;
+        }
+        await onAdd(rows);
+        if (rows.length) toast(`${plural(rows.length, 'sound')} added.`);
+      } catch (e) { toast(e.message || String(e), 4000); }
+      idle();
+    };
+    const ROWNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+    const ROWCOLOR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
+    const rank = (k) => (k === 'soundbox' ? 0 : k === 'events' ? 1 : 2);
+    const row = (r) => {
+      const lab = el('label', 'pick-row');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = chosen.has(r.key);
+      cb.onchange = () => { if (cb.checked) chosen.set(r.key, r); else chosen.delete(r.key); paintAdd(); };
+      const t = el('span', 'pt');
+      const line = el('small', '');
+      if (r.kind) { const tag = el('span', 'pick-tag', ROWNAME[r.kind] || r.kind); tag.style.setProperty('--z', ROWCOLOR[r.kind] || 'var(--accent)'); line.append(tag); }
+      line.append(document.createTextNode(r.sub));
+      t.append(el('b', '', r.name), line);
+      const pb = el('button', 'pick-play');
+      pb.type = 'button';
+      const pk = `pick:${r.key}`;
+      pb.innerHTML = fxPreviews.has(pk) ? ICON.pause : ICON.play;
+      pb.setAttribute('aria-label', `Listen to ${r.name}`);
+      pb.onclick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!fxPreviews.has(pk)) stopPick(); // one at a time in the picker
+        toggleFx(pk, r.rx ? () => recueilBlob(r.rx) : r.getBlob, () => 0.75, null, pb);
+      };
+      lab.append(cb, el('i'), t);
+      if (window.TroubadourCredit) {
+        const info = el('button', 'pick-info');
+        info.type = 'button';
+        info.innerHTML = window.TroubadourCredit.INFO;
+        info.setAttribute('aria-label', `Source of ${r.name}`);
+        info.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (r.rx) window.TroubadourCredit.show(r.rx); else window.TroubadourCredit.show({ name: r.name, hint: 'Give it a source in the Story builder, on a computer: the Recueil only takes sounds that name theirs.' }); };
+        lab.append(info);
+      }
+      lab.append(pb);
+      return lab;
+    };
+    const draw = () => {
+      ul.textContent = '';
+      const term = fold(q.value.trim());
+      if (fxSource === 'device') {
+        q.placeholder = `Search ${plural(local.length, 'sound')} on this ${DEV}`;
+        const hits = local.filter((r) => !term || r.fold.includes(term));
+        if (!hits.length) ul.append(el('p', 'muted small pick-empty', local.length ? 'No sound matches.' : `No other sound on this ${DEV} yet. Try the Recueil.`));
+        hits.slice().sort((a, b) => rank(a.kind) - rank(b.kind) || a.name.localeCompare(b.name)).slice(0, 300).forEach((r) => ul.append(row(r)));
         return;
       }
-      if (!worlds) {
-        worlds = [];
-        const seen = new Set();
-        (await DB.list()).forEach((r) => {
-          const fromWorld = (r.world.soundbox || []).map((c) => ({ name: c.name, file: c.file }));
-          const evs = M.soundsOf(r.story).filter((x) => x.zone === 'soundbox' || x.zone === 'events');
-          fromWorld.concat(evs).forEach((x) => { const k = r.files[x.file]; if (k && !seen.has(k)) { seen.add(k); worlds.push({ name: x.name, from: r.story.title || 'World', key: k }); } });
-        });
+      q.placeholder = 'Search a sound, a tale or a troubadour';
+      if (!recueil) {
+        ul.append(el('p', 'muted small pick-empty', 'Fetching the sounds of the Recueil…'));
+        loadRecueil().then(() => { if (fxSource === 'recueil' && $('#sheet').open) draw(); })
+          .catch(() => { ul.textContent = ''; ul.append(el('p', 'muted small pick-empty', 'The Recueil could not be reached. Check your connection.')); });
+        return;
       }
-      const hits = worlds.filter((x) => w.every((k) => fold(x.name).includes(k)));
-      hits.slice(0, 200).forEach((x) => box.append(row(x.name, x.from, `k:${x.key}`, () => DB.getBlob(x.key))));
-      if (!hits.length) box.append(el('div', 'pn-empty', worlds.length ? 'No effect of your worlds with this name.' : 'Your worlds have no effects yet.'));
-    }
-    paint();
-    $('#sheet').addEventListener('close', () => { stopPreview(); $('#sheet').classList.remove('wide'); }, { once: true });
+      const hits = recueil.filter((x) => !term || x.key.includes(term)).sort((a, b) => rank(a.row) - rank(b.row) || a.name.localeCompare(b.name));
+      if (!hits.length) ul.append(el('p', 'muted small pick-empty', 'No sound of the Recueil matches.'));
+      hits.slice(0, 300).forEach((x) => ul.append(row({ key: `r:${x.id}`, name: x.name, kind: x.row, sub: [x.tale, x.duration ? clockOf(x.duration) : null].filter(Boolean).join(', '), rx: x })));
+    };
+    q.oninput = draw;
+    if (!local.length) fxSource = 'recueil';
+    paintTabs();
+    draw();
+    const bar = el('div', 'pick-bar');
+    bar.append(addBtn);
+    body.append(ul, bar);
+    $('#sheet').addEventListener('close', stopPick, { once: true });
     $('#sheet').showModal();
   }
 
-  /* ================= The soundbox (at the table, over the sound menu) ================= */
+  /* ================= The soundbox (at the table), as Troubadour's drawer: the world's effects, then the shared ones ================= */
   let sbGain = null;
-  const sbPlaying = new Map(); // card -> source
+  let pads = []; // { s, own, id, key, getBlob, buffer, state }
+  const sbSources = new Set();
   function openSoundbox() {
     closeMusic();
     $('#mw-sbx').hidden = false;
     $('#world').classList.add('over');
     $('#mw-sb').setAttribute('aria-pressed', 'true');
-    renderPads();
+    loadPads();
   }
   function closeSoundbox() {
     $('#mw-sbx').hidden = true;
     if ($('#mw-mus').hidden) $('#world').classList.remove('over');
     $('#mw-sb').setAttribute('aria-pressed', 'false');
   }
-  function renderPads() {
-    const box = $('#mw-pads');
-    box.textContent = '';
-    const list = rec.world.soundbox || [];
-    if (!list.length && !SHARED.length) { box.append(el('p', 'sb-empty', 'No effects yet. Fill the soundbox of this world in the editor (whole map, Soundbox), or your shared soundbox from the worlds screen.')); return; }
-    const pad = (c, i) => {
-      const b = el('button', 'pad');
-      b.type = 'button';
-      b.append(el('span', 'k', String(i + 1)), el('span', '', c.name));
-      b.addEventListener('click', () => firePad(c, b));
-      if (sbPlaying.has(c)) b.classList.add('on');
-      box.append(b);
-    };
-    list.forEach(pad);
-    // The shared soundbox: the same effects on every world, after the world's own.
-    if (SHARED.length) {
-      if (list.length) box.append(el('h4', 'sb-sub', 'Shared'));
-      SHARED.forEach((c, i) => pad(c, list.length + i));
+  async function loadPads() {
+    const r = rec;
+    pads = [
+      ...(rec.world.soundbox || []).map((c) => ({ s: c, own: true, id: `${rec.uid}:${c.file}`, key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]) })),
+      ...SHARED.map((c) => ({ s: c, own: false, id: c.id, key: `shared:${c.blob}`, getBlob: () => DB.getBlob(c.blob) })),
+    ].map((p) => Object.assign(p, { buffer: buffers.get(p.key) || null, state: buffers.get(p.key) ? 'ready' : 'loading' }));
+    renderPads();
+    for (const p of pads) {
+      if (p.buffer) continue;
+      try {
+        const blob = await p.getBlob();
+        if (!blob) throw new Error('missing');
+        p.buffer = await decode(blob);
+        buffers.set(p.key, p.buffer);
+        p.state = 'ready';
+      } catch (e) { p.state = 'error'; }
+      if (rec !== r) return;
+      renderPads();
     }
   }
-  /** A pad plays its sound once, at once; a second tap stops it. */
-  async function firePad(c, b) {
+  const pins = () => (Array.isArray(settings.pins) ? settings.pins : (settings.pins = []));
+  function orderedPads() {
+    const pinned = pins().map((u) => pads.find((p) => p.id === u)).filter(Boolean);
+    return pinned.concat(pads.filter((p) => !pins().includes(p.id)));
+  }
+  function renderPads() {
+    const box = $('#mw-pads');
+    if ($('#mw-sbx').hidden) return;
+    box.textContent = '';
+    if (!pads.length) { box.append(el('div', 'sb-empty', 'No effects yet. Add some to this world in the editor, or to your shared soundbox.')); return; }
+    let lastGroup = null;
+    orderedPads().forEach((p) => {
+      const pinned = pins().includes(p.id);
+      const group = pinned ? 'Pinned' : p.own ? 'This world' : 'Shared';
+      if (group !== lastGroup) { box.append(el('h4', 'pad-g', group)); lastGroup = group; }
+      const b = el('button', `pad${pinned ? ' pinned' : ''}${p.own ? '' : ' shared'}`);
+      b.type = 'button';
+      b.disabled = p.state !== 'ready';
+      b.append(el('span', '', p.state === 'error' ? `${p.s.name} (unavailable)` : p.s.name));
+      const pin = el('span', 'pin');
+      pin.innerHTML = pinned ? ICON.starFill : ICON.star;
+      pin.setAttribute('role', 'button'); pin.setAttribute('aria-label', `Pin ${p.s.name}`); pin.tabIndex = 0;
+      pin.addEventListener('click', (e) => { e.stopPropagation(); togglePin(p.id); });
+      b.append(pin);
+      b.addEventListener('click', () => firePad(p, b));
+      box.append(b);
+    });
+  }
+  function togglePin(id) {
+    const list = pins();
+    const i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1); else list.push(id);
+    saveSettings(); renderPads();
+  }
+  /** A pad fires its effect once, at once (a tap again fires it again). */
+  function firePad(p, b) {
+    if (!p.buffer) return;
     const { ctx, master } = audio(true);
     if (ctx.state !== 'running') ctx.resume().catch(() => {});
-    if (sbPlaying.has(c)) { try { sbPlaying.get(c).stop(); } catch (e) { /* done */ } sbPlaying.delete(c); b.classList.remove('on'); return; }
-    const key = c.blob ? `shared:${c.blob}` : c.file;
-    if (c.blob) { try { if (!buffers.has(key)) buffers.set(key, await decode(await DB.getBlob(c.blob))); } catch (e) { /* unreadable */ } }
-    else await ensure([c.file], false);
-    const buf = buffers.get(key);
-    if (!buf) { toast('This sound cannot be read here.'); return; }
     if (!sbGain) { sbGain = ctx.createGain(); sbGain.gain.value = A.curve(settings.sbVolume); sbGain.connect(master); }
-    const own = ctx.createGain();
-    own.gain.value = A.curve(c.volume);
     const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(own); own.connect(sbGain);
+    src.buffer = p.buffer;
+    const g = ctx.createGain();
+    g.gain.value = A.curve(typeof p.s.volume === 'number' ? Math.min(1, p.s.volume / 0.75) : 1);
+    src.connect(g).connect(sbGain);
     src.start();
-    sbPlaying.set(c, src);
-    b.classList.remove('fire'); void b.offsetWidth; b.classList.add('fire');
-    // While it sounds, the pad is lit and a bar runs along its foot for the length of the sound.
-    b.style.setProperty('--dur', `${buf.duration.toFixed(2)}s`);
-    b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
-    src.onended = () => { if (sbPlaying.get(c) === src) { sbPlaying.delete(c); b.classList.remove('on'); } };
+    sbSources.add(src);
+    src.onended = () => sbSources.delete(src);
+    if (b) { b.classList.remove('fire'); void b.offsetWidth; b.classList.add('fire'); b.addEventListener('animationend', () => b.classList.remove('fire'), { once: true }); }
   }
-
-  /** The master stop also lets the soundbox go, over the same 3 s. */
   function stopPads() {
-    if (!sbGain) return;
-    const { ctx } = audio();
-    const t = ctx.currentTime, secs = A.MASTER_FADE / 1000;
-    const pads = [...sbPlaying.values()];
-    sbPlaying.clear();
-    pads.forEach((src) => { try { src.stop(t + secs + 0.05); } catch (e) { /* done */ } });
-    document.querySelectorAll('#mw-pads .pad.on').forEach((b) => b.classList.remove('on'));
-    sbGain.gain.cancelScheduledValues(t); sbGain.gain.setValueAtTime(sbGain.gain.value, t);
-    sbGain.gain.linearRampToValueAtTime(0, t + secs);
-    sbGain.gain.setValueAtTime(A.curve(settings.sbVolume), t + secs + 0.1);
+    sbSources.forEach((s) => { try { s.stop(); } catch (e) { /* already stopped */ } });
+    sbSources.clear();
   }
   function paintMaster() {
     const b = $('#mw-pause');

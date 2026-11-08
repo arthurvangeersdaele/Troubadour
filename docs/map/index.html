@@ -77,9 +77,8 @@
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
   <div class="lib-wrap">
-    <h1 class="sh-h">Shared soundbox</h1>
-    <p class="lead small sh-lead">Quick effects ready on every world, behind the Soundbox button at the table, after the world's own effects.</p>
-    <div id="shared-list" class="sh-list"></div>
+    <p class="lead small">Your shared soundbox: quick effects ready on every table, next to each world's own effects.</p>
+    <div id="shared-list"></div>
   </div>
 </main>
 
@@ -133,6 +132,7 @@
       <div class="sb-head"><h2>Soundbox</h2><button class="ico small" type="button" id="mw-sbx-close" aria-label="Close the soundbox"></button></div>
       <div class="sb-vol"><label for="mw-sbvol">Volume</label><input type="range" id="mw-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
       <div class="pads" id="mw-pads"></div>
+      <p class="sb-hint">Tap to fire. ☆ pins an effect to the top.</p>
     </aside>
     <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
       <div class="sb-head"><h2>Music</h2><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
@@ -293,6 +293,7 @@
 
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../auth/account.js"></script>
+<script src="../troupe/sound-credit.js"></script>
 <script src="map-format.js"></script>
 <script src="map-db.js"></script>
 <script src="map-ui.js"></script>

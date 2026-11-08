@@ -63,13 +63,17 @@
     check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 16),
     chevron: svg('<path d="M9 6l6 6-6 6"/>', 14),
     pin: svg('<path d="M12 21s-6.5-6.2-6.5-11A6.5 6.5 0 0 1 18.5 10c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>', 13),
+    starFill: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16, true),
+    left: svg('<path d="M15 18l-6-6 6-6"/>', 14),
+    right: svg('<path d="M9 18l6-6-6-6"/>', 14),
+    files: svg('<path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>', 18),
     music: svg('<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', 17),
     follow: svg('<path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20.5h14"/>', 15),
   };
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }

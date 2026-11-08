@@ -383,11 +383,6 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 
 /* The play tip sits at the foot of the map, out of the way. */
 .mp-play-tip { top: auto; bottom: 12px; max-width: calc(100% - 140px); }
-/* A soundbox pad lit while it sounds, its bar running for the length of the sound. */
-.mp-sbx .pad { position: relative; overflow: hidden; }
-.mp-sbx .pad.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
-.mp-sbx .pad.on::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--accent); transform-origin: left; animation: pad-run var(--dur, 1s) linear forwards; }
-@keyframes pad-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* The fields of a question: side by side when there is room (a name, a first map, a size). */
 .ask-fields { display: grid; gap: 10px 12px; margin: 0 0 14px; grid-template-columns: minmax(0, 1fr); }
@@ -453,18 +448,8 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-side-body .pn h3 .btn.slim svg { color: var(--music); }
 
 /* ---------- The shared soundbox (the star of the worlds screen) ---------- */
-.mp-sbx .sb-sub { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
 .sbar .sbx-toggle[aria-pressed="true"] { background: var(--accent); color: var(--on-z); border-color: var(--accent); }
-.sh-h { font-family: 'Cormorant SC', serif; font-size: 30px; margin: 2px 2px 0; line-height: 1.1; }
-.sh-lead { margin: 4px 2px 14px; color: var(--muted); max-width: 640px; }
-.sh-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.shared-c { gap: 8px; }
-.shared-c .ch { display: flex; align-items: center; gap: 8px; }
-.shared-c .sh-k { color: var(--muted); font-size: 12px; min-width: 14px; }
-.shared-c .sh-name { flex: 1; min-width: 0; height: 34px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text); font: inherit; font-weight: 600; padding: 0 6px; }
-.shared-c .sh-name:hover, .shared-c .sh-name:focus { border-color: var(--line); background: var(--bar); outline: none; }
-.shared-c .loop.x { width: 34px; height: 34px; border-radius: 8px; border: 1px solid; background: none; }
-.shared-c .ctrl input[type="range"] { flex: 1; min-width: 0; }
 @media (max-width: 560px) { [data-action="add-shared"] .long { display: none; } }
 
 /* ---------- An upright phone (Settings: Upright phone too) ---------- */
@@ -520,3 +505,56 @@ dialog.ask { height: fit-content; }
   html.portrait-ok:not(.pc) .mp-tools button { width: 36px; height: 36px; }
   html.portrait-ok:not(.pc) .mp-stamps { left: 8px; top: 58px; width: calc(100% - 16px); max-height: calc(100% - 70px); }
 }
+
+/* ---------- Effects as in the Troubadour web app (ios.css): cards, their zone, the picker, the soundbox drawer ---------- */
+.lib-wrap .lead.small { font-size: 15px; margin: 0 0 12px; max-width: none; color: var(--muted); }
+#shared-list .dz { --z: var(--accent); grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.mp-side-body .dz { grid-template-columns: minmax(0, 1fr); padding: 6px; gap: 6px; }
+.dz .hint { min-height: 44px; }
+.sc { cursor: default; }
+.sc input { font-size: 16px; padding: 3px 4px; }
+.sc .pb { width: 34px; height: 34px; }
+.sc .x { width: 32px; height: 32px; }
+.sc .pb.wait { animation: pick-wait 1s ease-in-out infinite; }
+.mvh { display: flex; gap: 0; }
+.mvh button { width: 28px; height: 30px; border: 0; background: transparent; color: var(--muted); padding: 0; display: grid; place-items: center; border-radius: 6px; }
+.mvh button:disabled { opacity: .3; }
+.sc .edvol { display: flex; align-items: center; gap: 8px; }
+.sc .edvol .vl { font-size: 12px; color: var(--muted); }
+.sc .edvol input[type="range"] { flex: 1; height: 28px; }
+.sc .edvol .vp { width: 28px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .mp-sbar .logo { display: none; } }
+.pad-g { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.pad-g:first-child { margin-top: 0; }
+.mp-sbx .pad .pin { cursor: pointer; }
+.pick-q { width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; -webkit-appearance: none; }
+.pick-q:focus { outline: none; border-color: var(--accent); }
+.pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.pick-row { position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); cursor: pointer; }
+.pick-row input { position: absolute; opacity: 0; pointer-events: none; }
+.pick-row > i { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); flex: none; display: grid; place-items: center; }
+.pick-row input:checked + i { background: var(--accent); border-color: var(--accent); }
+.pick-row input:checked + i::after { content: ""; width: 10px; height: 6px; border: 2px solid var(--on-z); border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.pt { flex: 1; min-width: 0; display: grid; }
+.pt b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+dialog.sheet:has(#sheet-body.picker)[open] { display: flex; flex-direction: column; overflow: hidden;
+  height: min(780px, calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px))); }
+dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
+#sheet-body.picker { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; }
+.picker .big-pick { flex: none; justify-content: center; height: 44px; }
+.pick-head { flex: none; display: grid; gap: 8px; }
+.pick-tabs { width: 100%; display: flex; }
+.pick-tabs button { flex: 1; }
+.picker .pick-q { margin: 0; }
+.picker .pick-list { flex: 1 1 auto; height: 0; min-height: 140px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; align-content: start; padding-bottom: 4px; }
+.pick-empty { grid-column: 1 / -1; text-align: center; padding: 18px 0; margin: 0; }
+.pick-info { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; }
+.pick-info svg { width: 17px; height: 17px; }
+.pick-play { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--bar); color: var(--text); display: grid; place-items: center; padding: 0; }
+.pick-play.on { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
+.pick-play.wait { animation: pick-wait 1s ease-in-out infinite; }
+@keyframes pick-wait { 50% { opacity: .45; } }
+.picker .pick-bar { position: static; flex: none; display: flex; justify-content: flex-end; padding: 10px 0 0; margin: 0; background: var(--bar); border-top: 1px solid var(--line); }
+.pick-tag { --z: var(--accent); display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .3px; line-height: 17px; vertical-align: 1px;
+  color: var(--z); background: color-mix(in srgb, var(--z) 16%, transparent); border: 1px solid color-mix(in srgb, var(--z) 45%, transparent); }
