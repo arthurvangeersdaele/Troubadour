@@ -80,6 +80,7 @@
   function waitAgain(v) {
     const gap = v.card.gapMin + Math.random() * Math.max(0, v.card.gapMax - v.card.gapMin);
     v.waiting = true;
+    v.nextAt = Date.now() + gap * 1000;
     clearTimeout(v.timer);
     v.timer = setTimeout(() => { v.waiting = false; if (v.state === 'playing') startSource(v, 0); changed(); }, gap * 1000);
     changed();
@@ -87,13 +88,17 @@
 
   /** The musics of a group (the whole map, or one element), in their order. */
   const musicsOf = (v) => [...voices.values()].filter((o) => o.el === v.el && o.card.zone === 'music');
-  /** Several musics in a group play one after another: when one ends by itself, the next one starts
-   *  (after the last, the first again). */
+  /** "Play after", as in Troubadour: musics set to it make a playlist of their group. When a music ends on its
+   *  own (its 1× or 2× played through, not stopped or paused), the next one set to play after starts: after a
+   *  track of the playlist, the next one of the playlist in order (the last one ends it); after any other music,
+   *  the first one of the playlist that follows it (from the start again). */
   function nextMusic(v) {
-    const list = musicsOf(v);
-    if (list.length < 2 || list.some((o) => o.state === 'playing')) return;
-    const n = list[(list.indexOf(v) + 1) % list.length];
-    play(n);
+    const row = musicsOf(v);
+    if (row.some((o) => o !== v && o.state === 'playing')) return; // another music already took over
+    const at = row.indexOf(v);
+    const order = v.card.play === 'after' ? row.slice(at + 1) : [...row.slice(at + 1), ...row.slice(0, at)];
+    const n = order.find((o) => o.card.play === 'after');
+    if (n) play(n);
   }
 
   /** Plays a card: from where it was paused, else from its start. A music started by hand takes over from
@@ -182,8 +187,12 @@
     // a group, only the first starts; the others follow it, one after another.
     const groups = new Set();
     voices.forEach((v) => {
-      if (v.card.zone === 'music') { if (groups.has(v.el || 'map')) return; groups.add(v.el || 'map'); }
-      play(v, true);
+      if (v.card.zone !== 'music') { play(v, true); return; }
+      const g = v.el || 'map';
+      if (groups.has(g)) return;
+      groups.add(g);
+      const row = musicsOf(v);
+      play(row.find((o) => o.card.play !== 'after') || row[0], true);
     });
     changed();
   }
@@ -216,12 +225,18 @@
     halt(v, settings.fade);
     changed();
   }
-  /** How far into its sound a card is: { at, length } in seconds. */
+  /** How far a card is, as Troubadour shows it: { p } from 0 to 1 (-1 for an endless loop), { left } in seconds
+   *  (null for an endless loop; a 2× counts both plays), and { next } in seconds while a random card waits. */
   function progress(card) {
     const v = voices.get(card);
     const buf = buffers.get(card.file);
-    if (!v || !buf) return { at: 0, length: buf ? buf.duration : 0 };
-    return { at: v.waiting ? 0 : position(v), length: buf.duration };
+    const d = buf ? buf.duration : 0;
+    if (!v || !d) return { p: 0, left: null, next: null };
+    if (v.waiting) return { p: 0, left: null, next: Math.max(0, ((v.nextAt || 0) - Date.now()) / 1000) };
+    if (card.play === 'loop') return { p: -1, left: null, next: null };
+    const total = card.play === 'twice' ? 2 * d : d;
+    const done = (card.play === 'twice' && v.state !== 'idle' ? (1 - v.left) * d : 0) + (v.state === 'idle' ? 0 : position(v));
+    return { p: Math.min(1, done / total), left: Math.max(0, total - done), next: null };
   }
   /** A card's own volume. `secs`: glide there over that time (the simple volume buttons), else at once. */
   function setVolume(card, vol, secs) {

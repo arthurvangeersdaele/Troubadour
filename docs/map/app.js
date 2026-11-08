@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.4';
+  const VERSION = '261108.5';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -346,6 +346,7 @@
       await ensure(placeFiles(place()));
       A.open(place(), rec.world, buffers);
       acquireWake();
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
       $('#mw-play-tip').classList.remove('gone');
       clearTimeout(setMode.tip);
       setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 6000);
@@ -434,16 +435,16 @@
   }
   const ZONE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
 
-  /** The loop button, as in Troubadour: 1×, 2×, ∞, and random (not for music). */
-  const LOOPS = ['once', 'twice', 'loop', 'random'];
+  /** The loop button, as in Troubadour: 1×, 2×, ∞, then random (ambiances, events) or play after (music). */
   const LOOP_LABEL = { once: '1×', twice: '2×', loop: '∞' };
-  const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause' };
+  const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause', after: 'Play after: starts when another music ends on its own' };
   function paintLoop(btn, c) {
-    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : ''}`;
-    if (c.play === 'random') btn.innerHTML = ICON.random; else btn.textContent = LOOP_LABEL[c.play];
+    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : c.play === 'after' ? ' aft' : ''}`;
+    if (c.play === 'random') btn.innerHTML = ICON.random; else if (c.play === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[c.play];
     btn.title = `${LOOP_TITLE[c.play]} (tap to change)`;
     btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[c.play]}`);
   }
+  const fmtLeft = (sec) => { sec = Math.ceil(sec || 0); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
   const clockOf = (sec) => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
   const ZONE_COLOUR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--blue)' };
 
@@ -468,7 +469,7 @@
     loop.type = 'button';
     paintLoop(loop, c);
     loop.addEventListener('click', () => {
-      const ways = c.zone === 'music' ? LOOPS.slice(0, 3) : LOOPS;
+      const ways = c.zone === 'music' ? ['once', 'twice', 'loop', 'after'] : ['once', 'twice', 'loop', 'random'];
       const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
@@ -575,18 +576,28 @@
 
     if (mode === 'play') {
       liveRows.push(() => {
+        // Painted as Troubadour paints its cards.
         const v = A.voice(c);
         const st = v ? v.state : 'idle';
+        const waiting = !!(v && v.waiting);
         const on = st === 'playing';
         row.classList.toggle('on', on);
         row.classList.toggle('paused', st === 'paused');
         const icon = on ? 'pause' : 'play';
         if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
-        pb.setAttribute('aria-label', `${on ? 'Pause' : 'Play'} ${c.name}`);
-        end.disabled = st === 'idle';
+        pb.setAttribute('aria-label', `${on && !waiting ? 'Pause' : waiting ? 'Stop' : 'Play'} ${c.name}`);
+        end.disabled = !(on || st === 'paused');
         const pr = A.progress(c);
-        fill.style.width = `${pr.length ? Math.min(100, (pr.at / pr.length) * 100) : 0}%`;
-        if (rem) rem.textContent = v && v.waiting ? 'waiting' : pr.length ? (vm === 'hidden' ? `${clockOf(pr.at)} / ${clockOf(pr.length)}` : `-${clockOf(pr.length - pr.at)}`) : '';
+        if (pr.p < 0) { fill.style.width = on || st === 'paused' ? '100%' : '0'; fill.style.background = 'var(--blue)'; }
+        else { fill.style.width = `${pr.p * 100}%`; fill.style.background = `hsl(${Math.round(130 * (1 - pr.p))},72%,50%)`; }
+        let txt = '', warn = false;
+        if (waiting) txt = `next ${fmtLeft(pr.next)}`;
+        else if (on || st === 'paused') {
+          if (c.play === 'loop') txt = '∞ loop';
+          else if (pr.left != null) { txt = fmtLeft(pr.left); warn = pr.left <= 10; }
+        }
+        if (rem && rem.textContent !== txt) rem.textContent = txt;
+        if (rem) rem.classList.toggle('warn', warn);
         if (bar) bar.style.width = `${Math.round((v ? v.heard : 0) * 100)}%`;
       });
     }
@@ -1236,6 +1247,11 @@
       settings.vol[g.dataset.zone] = b.dataset.v; saveSettings(); paintSettings();
       if (rec && mode === 'play') renderPanel();
     }));
+    $('#opt-trail').addEventListener('change', (e) => { settings.trail = e.target.checked; saveSettings(); paintSettings(); });
+    $('#trail-speed').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
+    });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
@@ -1258,6 +1274,9 @@
     document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.vol[g.dataset.zone]))));
     $('#opt-rings').checked = settings.rings;
+    $('#opt-trail').checked = settings.trail;
+    $('#trail-speed-row').hidden = !settings.trail;
+    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.trailSpeed)));
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
   }

@@ -12,7 +12,7 @@
   const B = global.Troubadour;
   const MAP_VERSION = 1;
   const ZONES = ['music', 'ambience', 'events'];
-  const PLAYS = ['once', 'twice', 'loop', 'random'];
+  const PLAYS = ['once', 'twice', 'loop', 'random', 'after'];
   const STAMPS = ['lake', 'mountains', 'hill', 'forest', 'tree', 'swamp', 'rocks', 'fire', 'tower', 'ruins', 'cave', 'stairs', 'door', 'bridge', 'tent', 'well', 'altar', 'grave'];
   const W = 2000, H = 1250;
 
@@ -124,8 +124,8 @@
   /** A card made from a sound of the story, ready to be heard on the map: music and ambiances loop,
    *  events and soundbox effects come back at random; all start with the place. */
   function card(sound, opts = {}) {
-    // Musics play once, one after another (the next starts when one ends); ambiances loop; events come back at random.
-    const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : sound.zone === 'music' ? 'once' : 'loop';
+    // Musics play after one another (Troubadour's "play after": a playlist); ambiances loop; events come back at random.
+    const play = sound.zone === 'events' || sound.zone === 'soundbox' ? 'random' : sound.zone === 'music' ? 'after' : 'loop';
     return cleanCard(Object.assign({ name: sound.name, file: sound.file, zone: sound.zone, play, autoplay: true, volume: typeof sound.volume === 'number' ? sound.volume : 0.75 }, opts));
   }
 

@@ -59,13 +59,14 @@
     volDown: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5"/>', 15),
     volUp: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5M18.5 9.5v5"/>', 15),
     book: svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/>', 19),
+    after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
     check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 16),
     follow: svg('<path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20.5h14"/>', 15),
   };
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 1500, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 1500, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.2, vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }

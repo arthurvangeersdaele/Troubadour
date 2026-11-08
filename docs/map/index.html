@@ -173,6 +173,16 @@
   <section>
     <h3>At the table</h3>
     <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
+    <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
+    <div class="row-set" id="trail-speed-row">
+      <span>Walking speed<small>How fast the point walks its trail</small></span>
+      <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
+        <button type="button" role="radio" data-v="0.1">Slow</button>
+        <button type="button" role="radio" data-v="0.2">Normal</button>
+        <button type="button" role="radio" data-v="0.4">Fast</button>
+        <button type="button" role="radio" data-v="0.8">Very fast</button>
+      </div>
+    </div>
     <label class="row-set toggle"><span>Keep screen awake<small>While a world plays</small></span><input type="checkbox" id="opt-awake"><i></i></label>
     <div class="row-set">
       <span>Fade-out<small>When a sound stops, or you leave a map</small></span>

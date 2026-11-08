@@ -179,8 +179,8 @@
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     const len = cum[cum.length - 1];
     if (pts.length < 2 || len * view.k < 8) { dropTrail(); return; }
-    // A steady pace: about a fifth of the map's longer side per second (between 0.6 and 12 seconds).
-    const speed = Math.max(place.width, place.height) * 0.2;
+    // A steady pace, set in Settings: a share of the map's longer side per second (a walk lasts 0.6 to 12 seconds).
+    const speed = Math.max(place.width, place.height) * (Number(global.MapUI.settings.trailSpeed) || 0.2);
     trail = Object.assign(trail, { pts, cum, len, phase: 'wait', at: 0, dur: Math.max(600, Math.min(12000, (len / speed) * 1000)) });
     trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = performance.now(); dirty = true; } }, WALK_DELAY);
     dirty = true;
@@ -326,10 +326,13 @@
         gesture.last = s; break;
       case 'player':
         if (!gesture.dragged && Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) < 5) break;
-        if (!gesture.dragged && mode === 'play') startTrail();
+        // At the table, with the trail on (Settings): a trail to walk. Otherwise the point follows the finger.
+        const walks = mode === 'play' && global.MapUI.settings.trail !== false;
+        if (!gesture.dragged && walks) startTrail();
+        if (!gesture.dragged && !walks) dropTrail();
         gesture.dragged = true;
         cv.classList.add('grabbing');
-        if (mode === 'play') { addToTrail(w); break; }
+        if (walks) { addToTrail(w); break; }
         place.player = clampPoint(w);
         dirty = true;
         if (api.onPlayer) api.onPlayer(place.player);
@@ -370,7 +373,7 @@
       last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
       if (twice && api.onTap) api.onTap(g.el || null);
     } else if (g.kind === 'player') {
-      if (mode === 'play') { if (trail && trail.phase === 'draw') endTrail(); } else edited();
+      if (trail && trail.phase === 'draw') endTrail(); else edited();
     } else if (g.kind === 'move') {
       if (!g.moved) {
         const t = performance.now();
