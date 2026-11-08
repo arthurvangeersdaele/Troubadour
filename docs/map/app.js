@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.16';
+  const VERSION = '261108.17';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2554,7 +2554,17 @@
     V.mount($('#mw-canvas'));
     $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
     V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; };
-    V.onSelect = (e) => { if (mode === 'edit') { if (e) edView = null; renderPanel(); } };
+    // An element deleted (its button, the Delete key, the eraser): its panel closes, never falling back on the map's
+    // panel (where the map itself can be deleted).
+    let shownEl = null;
+    V.onSelect = (e) => {
+      if (mode !== 'edit') return;
+      const gone = !e && shownEl && !place().elements.includes(shownEl);
+      shownEl = e || null;
+      if (e) edView = null;
+      if (gone) setPanel(false);
+      renderPanel();
+    };
     // A new element: a name of its own, and its panel opens to name it and give it sounds.
     V.onCreate = (e) => {
       if (mode !== 'edit') return;
@@ -2565,8 +2575,10 @@
         e.title = same ? `${kind} ${same + 1}` : kind;
         save(); V.redraw();
       }
+      // A place laid: back to the select tool, to move it or open it. The panel stays as it was: open, it shows the new place.
+      if (e.shape.type === 'stamp') V.setTool('select');
+      edView = null;
       renderPanel();
-      setPanel(true);
     };
     // The tools stand beside the map, never over it: the whole map fits next to them.
     V.insets = () => {
