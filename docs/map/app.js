@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.25';
+  const VERSION = '261108.26';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -448,6 +448,8 @@
     tapped = undefined;
     setPanel(m === 'play');
     if (m !== 'play') { closeSoundbox(); closeMusic(); }
+    // The cards heard while editing fall silent when the table opens, and the other way round.
+    stopFxWhere(() => true);
     const was = V.mode();
     V.setMode(m);
     if (was !== m) { V.fit(); renderPlaces(); }
@@ -593,7 +595,12 @@
     return stepper('Size', () => fmtPct(pctOf(e)), (d) => {
       const v = pctOf(e);
       const next = d > 0 ? SIZE_STEPS.find((x) => x > v + 0.05) : [...SIZE_STEPS].reverse().find((x) => x < v - 0.05);
-      if (next) e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
+      if (!next) return;
+      // Its reach grows and shrinks with it: the same times its size.
+      const k = e.radius / Math.max(1, e.shape.size);
+      e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
+      e.radius = Math.round(k * e.shape.size);
+      if (A.isOpen()) A.hear();
     });
   }
   function turnStepper(e) {
@@ -650,11 +657,16 @@
   function outside(ev) { if (!$('#mw-ctx').contains(ev.target)) closeMenu(); }
   function closeMenu() { $('#mw-ctx').hidden = true; document.removeEventListener('pointerdown', outside, true); if (mode === 'edit' && V.selected()) renderPanel(); }
 
-  /** How far an element's sounds carry beyond its edge, in % of the width of its place. */
+  /** How far an element's sounds carry beyond its edge, in times its own size, on a logarithmic slider:
+   *  its edge only, then from a tenth of its size to fifty times it. */
+  const elSize = (e) => { const b = M.bounds(e.shape); return Math.max(20, b[2] - b[0], b[3] - b[1]); };
+  const REACH_MIN = 0.1, REACH_MAX = 50;
+  const reachOf = (t) => (t <= 0 ? 0 : REACH_MIN * Math.pow(REACH_MAX / REACH_MIN, (t - 1) / 99));
+  const posOf = (m) => (m < REACH_MIN * 0.75 ? 0 : Math.max(1, Math.min(100, Math.round(1 + (99 * Math.log(m / REACH_MIN)) / Math.log(REACH_MAX / REACH_MIN)))));
+  const fmtReach = (m) => (m <= 0 ? 'its edge' : `${m < 1 ? m.toFixed(1) : m < 3 ? (Math.round(m * 4) / 4).toString() : Math.round(m)}× its size`);
   function reachSlider(e) {
-    const w = place().width;
-    return slider('Heard up to', Math.round((e.radius / w) * 100), 0, 100, 1, (v) => `${v} %`, (v) => {
-      e.radius = Math.round((v / 100) * w);
+    return slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
+      e.radius = Math.round(reachOf(v) * elSize(e));
       if (A.isOpen()) A.hear();
       V.redraw();
     });
@@ -706,7 +718,7 @@
     paintLoop(loop, c);
     loop.addEventListener('click', () => {
       // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
-      const ways = worldMus ? ['once', 'twice', 'loop'] : c.zone === 'music' ? ['once', 'twice', 'loop', 'after'] : ['once', 'twice', 'loop', 'random'];
+      const ways = c.zone === 'music' ? ['once', 'twice', 'loop'] : ['once', 'twice', 'loop', 'random'];
       const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
@@ -867,8 +879,57 @@
     const target = () => (owner ? elName(owner) : targetName || null);
     const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add', target) : null);
     if (!list.length) s.append(el('div', 'pn-empty', empty));
+    if (mode === 'edit') { editCards(s, list, target); return s; }
     list.forEach((c) => s.append(cardRow(c, list, owner)));
     return s;
+  }
+
+  /** The cards of the editor, as Troubadour's: music apart from the ambiances and the events, each kind in its dashed
+   *  zone of its colour. Every card plays on its own, so several can be heard together while the troubadour builds. */
+  const EDIT_ZONES = [['music', 'Music', 'var(--music)', ['once', 'twice', 'loop']], ['ambience', 'Ambiances', 'var(--amb)', ['once', 'twice', 'loop', 'random']], ['events', 'Events', 'var(--evt)', ['once', 'twice', 'loop', 'random']]];
+  const zoneOf = (c) => (c.zone === 'soundbox' ? 'events' : c.zone);
+  function editCards(s, list, target) {
+    const subs = EDIT_ZONES.map(([z]) => list.filter((c) => zoneOf(c) === z));
+    const others = list.filter((c) => !EDIT_ZONES.some(([z]) => z === zoneOf(c)));
+    // A card moved, removed or renamed in its zone: the list of the element follows, kind after kind.
+    const back = () => { list.splice(0, list.length, ...subs.flat(), ...others); };
+    EDIT_ZONES.forEach(([z, label, colour, loops], k) => {
+      const sub = subs[k];
+      if (!sub.length) return;
+      const h = el('h4', 'zh', label);
+      h.style.setProperty('--z', colour);
+      s.append(h);
+      s.append(fxZone(sub, (c) => ({
+        key: c.file, getBlob: () => DB.getBlob(rec.files[c.file]), colour, loops,
+        save: () => { back(); save(); syncAudio(); },
+        rerender: () => { back(); renderPanel(); V.redraw(); },
+        onLoop: () => { back(); renderPanel(); },
+        extra: c.play === 'random' ? () => gapRow(c) : null,
+        removeText: 'It leaves this card list. The sound stays in the world.',
+      }), 'Add', () => { pickState.type = z; pickSounds(list, target); }, colour));
+    });
+  }
+  /** The longest pause of a random card, as in Troubadour (0.5 s to it; Auto: the one of the settings). */
+  function gapRow(c) {
+    const opts = el('div', 'row opts');
+    const val = el('b');
+    const box = el('div', 'stepper');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', `Longest pause of ${c.name}`);
+    const less = el('button', '', '−'); less.type = 'button'; less.setAttribute('aria-label', 'Shorter');
+    const more = el('button', '', '+'); more.type = 'button'; more.setAttribute('aria-label', 'Longer');
+    const paint = () => { val.textContent = c.randomMax ? `${c.randomMax} s` : 'Auto'; less.disabled = !c.randomMax; more.disabled = c.randomMax >= A.RANDOM_TOP; };
+    const step = (d) => {
+      const n = (c.randomMax || 0) + d;
+      Object.assign(c, M.cleanCard(Object.assign({}, c, { randomMax: n >= 1 ? n : 0 })));
+      if (!(n >= 1)) delete c.randomMax;
+      save(); paint();
+    };
+    less.addEventListener('click', () => step(-1)); more.addEventListener('click', () => step(1));
+    box.append(less, val, more);
+    opts.append(el('span', 'vl', 'Longest pause'), box);
+    opts.title = `Plays again after a pause of 0.5 s to this. Auto: ${A.randomMax()} s, from the settings`;
+    paint();
+    return opts;
   }
 
   function renderPanel() {
@@ -1053,7 +1114,7 @@
 
     const reach = section('Reach');
     reach.append(reachSlider(e));
-    reach.append(el('p', '', 'How far beyond its edge its sounds carry, in % of the width of the map, the same for all of them: full inside, fading to silence at this distance. The tinted ground shows it.'));
+    reach.append(el('p', '', 'How far beyond its edge its sounds carry, counted in times its own size: full inside, fading to silence at this distance. The tinted ground shows it.'));
     box.append(reach);
 
     const way = section('Leads to');
@@ -2017,7 +2078,10 @@
       const b = e.target.closest('[data-v]'); if (!b) return;
       settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
     });
-    $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = e.target.checked; saveSettings(); });
+    // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
+    $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
+    $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
+    document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.addEventListener('click', () => { settings.ground = b.dataset.v; saveSettings(); paintSettings(); V.redraw(); }));
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
@@ -2054,7 +2118,9 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-rings').checked = settings.rings;
-    $('#opt-trail-walls').checked = settings.trailWalls !== false;
+    $('#opt-trail-walls').checked = settings.trailWalls === false;
+    $('#opt-names').checked = settings.names !== false;
+    document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.ground || 'grid'))));
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
     $('#trail-speed-row').hidden = !settings.trail;
@@ -2327,6 +2393,8 @@
     }
     if (fxPreviews.has(key)) return;
     const src = ctx.createBufferSource();
+    // In the editor, a music or an ambiance laid to loop is heard looping, as at the table.
+    if (card && card.dataset.loop === '1') src.loop = true;
     src.buffer = buf;
     const gain = ctx.createGain();
     gain.gain.value = A.curve(vol());
@@ -2342,6 +2410,7 @@
   function fxCard(s, i, list, o) {
     const c = el('div', 'sc');
     c.style.setProperty('--z', o.colour || 'var(--accent)');
+    if (o.loops && s.play === 'loop') c.dataset.loop = '1';
     const top = el('div', 'row');
     const name = el('input');
     name.value = s.name;
@@ -2399,7 +2468,11 @@
         const next = o.loops[(o.loops.indexOf(s.play) + 1) % o.loops.length];
         Object.assign(s, M.cleanCard(Object.assign({}, s, { play: next })));
         paintLoop(loop, s);
+        c.dataset.loop = s.play === 'loop' ? '1' : '';
+        const pv = fxPreviews.get(o.key);
+        if (pv) pv.src.loop = s.play === 'loop';
         o.save();
+        if (o.onLoop) o.onLoop();
       });
       bottom.append(loop);
     }
@@ -2420,6 +2493,7 @@
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow);
+    if (o.extra) c.append(o.extra());
     requestAnimationFrame(() => paintRange(vr));
     return c;
   }

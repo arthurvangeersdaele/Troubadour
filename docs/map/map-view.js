@@ -599,12 +599,18 @@
     ctx.restore();
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, place.width, place.height); ctx.clip();
-    ctx.strokeStyle = alpha(pal.ink, 0.05);
-    ctx.lineWidth = 1 / view.k;
-    ctx.beginPath();
-    for (let x = 100; x < place.width; x += 100) { ctx.moveTo(x, 0); ctx.lineTo(x, place.height); }
-    for (let y = 100; y < place.height; y += 100) { ctx.moveTo(0, y); ctx.lineTo(place.width, y); }
-    ctx.stroke();
+    const ground = (global.MapUI && global.MapUI.settings.ground) || 'grid';
+    if (ground === 'grid') {
+      ctx.strokeStyle = alpha(pal.ink, 0.05);
+      ctx.lineWidth = 1 / view.k;
+      ctx.beginPath();
+      for (let x = 100; x < place.width; x += 100) { ctx.moveTo(x, 0); ctx.lineTo(x, place.height); }
+      for (let y = 100; y < place.height; y += 100) { ctx.moveTo(0, y); ctx.lineTo(place.width, y); }
+      ctx.stroke();
+    } else if (ground !== 'empty') {
+      const pat = groundPattern(ground);
+      if (pat) { ctx.fillStyle = pat; ctx.fillRect(0, 0, place.width, place.height); }
+    }
 
     // How far every sound reaches, then the elements, then the walls on top.
     const heard = new Map();
@@ -633,7 +639,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = '600 14px "Barlow Semi Condensed", system-ui, sans-serif';
     ctx.textAlign = 'center';
-    drawLabels();
+    if (!global.MapUI || global.MapUI.settings.names !== false) drawLabels();
     place.elements.forEach((el) => {
       if (el.link) {
         // The way to another map, in the middle of the element: a long press on it goes there.
@@ -669,6 +675,36 @@
     ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
     ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.stroke();
     ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill();
+  }
+
+  /** The ground under the map (Settings): grass or dirt, a soft tile of the theme's paper, painted once per theme. */
+  const grounds = new Map();
+  function groundPattern(kind) {
+    const key = `${kind}|${pal.paper}`;
+    if (grounds.has(key)) return grounds.get(key);
+    const T = 400, c = document.createElement('canvas');
+    c.width = c.height = T;
+    const g = c.getContext('2d');
+    const base = kind === 'grass' ? mix('#7FAE5A', pal.paper, 0.72) : mix('#A07A52', pal.paper, 0.7);
+    g.fillStyle = base; g.fillRect(0, 0, T, T);
+    let s = kind === 'grass' ? 7 : 13;
+    const R = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    // Soft patches, then the small marks: tufts of grass, or pebbles and specks of earth.
+    for (let i = 0; i < 26; i++) {
+      const x = R() * T, y = R() * T, r = 30 + R() * 60;
+      g.fillStyle = alpha(kind === 'grass' ? mix('#5E8F3E', pal.paper, 0.6) : mix('#7C5A38', pal.paper, 0.6), 0.25);
+      [[0, 0], [T, 0], [-T, 0], [0, T], [0, -T]].forEach(([dx, dy]) => { g.beginPath(); g.ellipse(x + dx, y + dy, r, r * 0.6, R() * 3, 0, Math.PI * 2); g.fill(); });
+    }
+    const markC = alpha(kind === 'grass' ? mix('#3F6F2A', pal.paper, 0.45) : mix('#5A3E24', pal.paper, 0.45), 0.55);
+    g.strokeStyle = markC; g.fillStyle = markC; g.lineCap = 'round'; g.lineWidth = 2.2;
+    for (let i = 0; i < 70; i++) {
+      const x = 8 + R() * (T - 16), y = 8 + R() * (T - 16);
+      if (kind === 'grass') { g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x - 6, y - 7); g.moveTo(x, y); g.lineTo(x, y - 9); g.moveTo(x + 4, y); g.lineTo(x + 6, y - 7); g.stroke(); }
+      else { g.beginPath(); g.ellipse(x, y, 2 + R() * 4, 1.5 + R() * 2.5, R() * 3, 0, Math.PI * 2); g.fill(); }
+    }
+    const pat = ctx.createPattern(c, 'repeat');
+    grounds.set(key, pat);
+    return pat;
   }
 
   /** The names of the elements, laid so that none covers another, the party's point or a sign: under the element,

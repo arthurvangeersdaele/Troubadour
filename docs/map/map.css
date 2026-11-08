@@ -714,3 +714,11 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .mp-ctx .ctx-item.danger { color: var(--evt, #EE6B5E); }
 @media (max-width: 560px) { .mp-world[data-mode="edit"] .mp-top .ttl .mp-title-in { font-size: 17px; margin-top: 0; } }
 #mw-canvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* The cards of the editor, by kind: music apart from the ambiances and the events (Troubadour's zones). */
+.pn .zh { --z: var(--accent); margin: 6px 0 -4px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--z); }
+.pn .zh::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--z); }
+.sc .opts { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sc .opts .vl { color: var(--muted); font-size: 13px; }
+.sc .opts .stepper button { width: 30px; height: 26px; font-size: 18px; }
+.sc .opts .stepper b { min-width: 44px; font-size: 13px; }

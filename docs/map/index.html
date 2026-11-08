@@ -164,6 +164,16 @@
       <button type="button" role="radio" data-v="system">System</button>
     </div>
     <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
+    <label class="row-set toggle"><span>Names of the places<small>Shown on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
+    <div class="row-set">
+      <span>Ground of the maps<small>Under every drawing</small></span>
+      <div class="seg small" id="ground-pick" role="radiogroup" aria-label="Ground of the maps">
+        <button type="button" role="radio" data-v="grid">Grid</button>
+        <button type="button" role="radio" data-v="grass">Grass</button>
+        <button type="button" role="radio" data-v="dirt">Dirt</button>
+        <button type="button" role="radio" data-v="empty">Empty</button>
+      </div>
+    </div>
   </section>
   <section>
     <h3>Troubadour name</h3>
@@ -210,7 +220,7 @@
         <button type="button" role="radio" data-v="0.4">Very fast</button>
       </div>
     </div>
-    <label class="row-set toggle"><span>Walls stop the party<small>The point and its trail never go through a wall: draw the way through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
+    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
     <label class="row-set toggle"><span>Keep screen awake<small>While a world plays</small></span><input type="checkbox" id="opt-awake"><i></i></label>
   </section>
   <section>
