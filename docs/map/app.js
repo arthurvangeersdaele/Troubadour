@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.19';
+  const VERSION = '261108.20';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1595,26 +1595,65 @@
       });
       return c;
     };
+    /* The colour picker: hue, colour and light, on sliders (the phone's own picker closes on its own in a dialog). */
+    const hexOf = (h, sa, l) => {
+      sa /= 100; l /= 100;
+      const k = (n) => (n + h / 30) % 12, a2 = sa * Math.min(l, 1 - l);
+      const f = (n) => Math.round(255 * (l - a2 * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+      return `#${[f(0), f(8), f(4)].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+    };
+    const hslOf = (hex) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+      let h = 0;
+      if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return [Math.round(((h * 60) + 360) % 360), Math.round(d ? (d / (1 - Math.abs(2 * l - 1))) * 100 : 0), Math.round(l * 100)];
+    };
+    const picker = el('div', 'pe-picker');
+    picker.hidden = true;
+    function openPicker() {
+      const [h0, s0, l0] = /^#[0-9a-f]{6}$/i.test(colour) ? hslOf(colour) : [30, 45, 45];
+      picker.textContent = '';
+      const sw = el('span', 'sw'), hx = el('span', 'hx');
+      const top = el('div', 'row'); top.append(sw, hx);
+      const slider = (label, min, max, v) => { const l = el('label'); const i = el('input'); i.type = 'range'; i.min = min; i.max = max; i.step = 1; i.value = v; l.append(el('span', '', label), i); return { l, i }; };
+      const H = slider('Hue', 0, 359, h0), C = slider('Colour', 0, 100, s0), L = slider('Light', 8, 92, l0);
+      const paint = () => {
+        const h = +H.i.value, sa = +C.i.value, l = +L.i.value, hex = hexOf(h, sa, l);
+        sw.style.setProperty('--fill', hex); hx.textContent = hex.toUpperCase();
+        H.i.style.setProperty('--track', `linear-gradient(90deg, ${[0, 60, 120, 180, 240, 300, 360].map((d) => hexOf(d, 85, 55)).join(',')})`);
+        C.i.style.setProperty('--track', `linear-gradient(90deg, ${hexOf(h, 0, l)}, ${hexOf(h, 100, l)})`);
+        L.i.style.setProperty('--track', `linear-gradient(90deg, ${hexOf(h, sa, 8)}, ${hexOf(h, sa, 50)}, ${hexOf(h, sa, 92)})`);
+        return hex;
+      };
+      [H, C, L].forEach((x) => x.i.addEventListener('input', paint));
+      const acts = el('div', 'acts');
+      const no = el('button', 'btn slim', 'Cancel'); no.type = 'button'; no.addEventListener('click', () => { picker.hidden = true; });
+      const yes = el('button', 'btn slim primary', 'Use it'); yes.type = 'button';
+      yes.addEventListener('click', () => {
+        const hex = paint();
+        recent = [hex].concat(recent.filter((x) => x !== hex)).slice(0, 6);
+        try { localStorage.setItem('troubadour.map.colours', JSON.stringify(recent)); } catch (e) { /* private mode */ }
+        colour = hex;
+        if (tool === 'line' || tool === 'erase') tool = 'brush';
+        picker.hidden = true;
+        paintColours();
+      });
+      acts.append(no, yes);
+      picker.append(top, H.l, C.l, L.l, acts);
+      paint();
+      picker.hidden = false;
+    }
     const paintColours = () => {
       colours.textContent = '';
       S.FILLS.forEach(([k, label]) => colours.append(chip(k, label)));
       recent.forEach((h) => colours.append(chip(h, h.toUpperCase())));
-      const more = el('label', 'pe-c pe-more');
+      const more = el('button', 'pe-c pe-more');
+      more.type = 'button';
       more.title = 'Another colour';
       more.setAttribute('aria-label', 'Another colour');
       more.innerHTML = ICON.plus;
-      const pick = el('input');
-      pick.type = 'color';
-      pick.value = /^#/.test(colour) ? colour : '#8a6d3b';
-      pick.addEventListener('change', () => {
-        const h = pick.value.toLowerCase();
-        recent = [h].concat(recent.filter((x) => x !== h)).slice(0, 6);
-        try { localStorage.setItem('troubadour.map.colours', JSON.stringify(recent)); } catch (e) { /* private mode */ }
-        colour = h;
-        if (tool === 'line' || tool === 'erase') tool = 'brush';
-        paintColours(); paintTools();
-      });
-      more.append(pick);
+      more.addEventListener('click', () => openPicker());
       colours.append(more);
       paintTools();
     };
@@ -1654,7 +1693,7 @@
     side.append(name, tools, tools2, colours, hint);
     const main = el('div', 'pe-main');
     main.append(stage, side);
-    body.append(main, foot);
+    body.append(main, foot, picker);
 
     const HINTS = {
       line: 'Draw the lines of your place with your finger. A line that ends near its start closes the shape.',
