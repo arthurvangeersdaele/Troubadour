@@ -19,7 +19,6 @@ html:not(.ios) .ios-only { display: none !important; }
 
 /* ---------- Library ---------- */
 .mp-screen { min-height: 100dvh; }
-.mp-sbar { padding-top: env(safe-area-inset-top); height: auto; min-height: 56px; }
 .mp-hint { font-size: 14px; color: var(--muted); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0 0 14px; background: var(--card); }
 .mp-menu { display: grid; gap: 6px; padding: 4px 0 6px; }
 .mp-menu-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); }
@@ -32,7 +31,6 @@ html:not(.ios) .ios-only { display: none !important; }
 /* ---------- A world ---------- */
 .mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 .mp-world[hidden] { display: none; }
-.mp-top { padding-top: max(7px, env(safe-area-inset-top)); }
 .mp-mode button { min-width: 64px; }
 
 .mp-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
@@ -143,7 +141,7 @@ html:not(.ios) .ios-only { display: none !important; }
 /* ---------- Player and editor ---------- */
 
 /* ---------- Library, as in Troubadour (hero card, rows, doors) ---------- */
-.lib-wrap { padding: 14px max(14px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); max-width: 1180px; margin: 0 auto; }
+.lib-wrap { padding: 14px 14px max(24px, env(safe-area-inset-bottom)); max-width: 1180px; margin: 0 auto; }
 .lib-grid { display: block; }
 .lib-h { font-family: inherit; font-weight: 600; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 4px 2px 8px; }
 .lib-h ~ .lib-h { margin-top: 18px; }
@@ -523,7 +521,6 @@ dialog.ask { height: fit-content; }
 .sc .edvol .vl { font-size: 12px; color: var(--muted); }
 .sc .edvol input[type="range"] { flex: 1; height: 28px; }
 .sc .edvol .vp { width: 28px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-@media (max-width: 520px) { .mp-sbar .logo { display: none; } }
 .pad-g { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .pad-g:first-child { margin-top: 0; }
 .mp-sbx .pad .pin { cursor: pointer; }
@@ -576,3 +573,14 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .mus-row { gap: 8px; }
 .mus-row .mus-i { width: 30px; height: 30px; border-radius: 8px; }
 .mus-row .mus-i + .mus-i { margin-left: -4px; }
+
+/* ---------- Screens and bars exactly as in the Troubadour web app (ios.css) ---------- */
+.app .mp-screen { padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); background: var(--bg); box-sizing: border-box; }
+.app .tbar, .app .sbar { padding-left: 12px; padding-right: 12px; }
+.app .sbar { padding-top: env(safe-area-inset-top); height: calc(52px + env(safe-area-inset-top)); min-height: 0; }
+.app .tbar { padding-top: max(4px, env(safe-area-inset-top)); min-height: calc(56px + env(safe-area-inset-top)); }
+@media (max-width: 520px) {
+  .app .sbar { gap: 6px; }
+  .app .sbar .logo { display: none; }
+  .app .sbar .btn.slim { padding: 0 9px; }
+}
