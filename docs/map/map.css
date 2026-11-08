@@ -364,3 +364,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c .opts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 .c .opts label { display: inline-flex; align-items: center; gap: 6px; }
 .c .opts input[type="number"] { width: 56px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); font: inherit; padding: 0 6px; }
+
+/* The Sounds button: the sound menu of the whole map, left of the Soundbox (at the table only). */
+.mp-world[data-mode="edit"] #mw-menu { display: none; }
+.mp-menu-btn .ic { display: grid; place-items: center; }

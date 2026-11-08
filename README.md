@@ -126,7 +126,7 @@ The `.troubadour-map` format (a `.troubadour` plus `map.json`) is specified in [
 - **Design as in Troubadour** (Nov 2026): the top bar shows the world and its map as Troubadour shows the story and its chapter; the maps sit on Troubadour's numbered chapter rail (a column while drawing on a wide screen, a strip under the top bar on a narrow one and always at the table); sound cards are Troubadour's own (`.c`: name and loop badge, progress, play, fade out, volume as set in Settings), with a thin meter for how much of an element reaches the party.
 - **At the table the screen never leaves the map**: it opens on the whole map, cannot zoom out past it, and cannot pan beyond its edges (`keepOnMap` in `map-view.js`).
 - **Editor**: the drawing tools move by their grip and stay inside the map's frame; the sound library (book button) lists the world's sounds and the Recueil's, a tap adds one to the selected element (or the whole map), a drag drops it on any element. Each world has a soundbox (one-shot pads behind the Soundbox button at the table). Every card starts with its map; several musics play one after another.
-- **Sound menu** (at the table): opens on a double tap, on an element or on the map's ground; it lists the sounds heard everywhere, then each element's under its name. A long press on an element's sign (in its middle) takes the party to the map it leads to.
+- **Sound menu** (at the table): open by default on the whole map, also behind the Sounds button (left of the Soundbox); a double tap on an element shows its sounds, on the map's ground the whole map again; it lists the sounds heard everywhere, then each element's under its name. A long press on an element's sign (in its middle) takes the party to the map it leads to.
 
 ## Icons
 

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.1';
+  const VERSION = '261108.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -316,8 +316,9 @@
   async function goPlace(n, first) {
     stopPreview();
     pi = n;
+    // At the table, the sound menu stays open on the whole map of the new place.
     tapped = undefined;
-    if (mode === 'play') $('#world').classList.remove('panel');
+    if (mode === 'play') setPanel(true);
     $('#mw-title').textContent = rec.story.title || 'World';
     $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
     V.setMode(mode);
@@ -333,8 +334,9 @@
     // The player leads nowhere but the table: the editor opens from the library.
     $('#mw-switch').hidden = m === 'play';
     // At the table, the sound menu opens on a double tap only (an element, or the map itself).
-    $('#world').classList.remove('panel');
+    // At the table, the sound menu opens on the whole map; while drawing, the panel follows the screen's width.
     tapped = undefined;
+    setPanel(m === 'play');
     if (m === 'play') { closeLibrary(); } else closeSoundbox();
     const was = V.mode();
     V.setMode(m);
@@ -391,6 +393,15 @@
   }
 
   /* ================= The panel ================= */
+  /** Opens or closes the panel (at the table: the sound menu), and paints the Sounds button. */
+  function setPanel(open) {
+    $('#world').classList.toggle('panel', !!open);
+    paintMenuBtn();
+  }
+  function paintMenuBtn() {
+    const b = $('#mw-menu');
+    if (b) b.setAttribute('aria-pressed', String($('#world').classList.contains('panel') && !tapped));
+  }
   const liveRows = [];
 
   function slider(label, value, min, max, step, fmt, oninput) {
@@ -599,6 +610,7 @@
   }
 
   function renderPanel() {
+    paintMenuBtn();
     liveRows.length = 0;
     const box = $('#mw-inspector');
     box.textContent = '';
@@ -1448,7 +1460,16 @@
     $('#mw-panel').innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/>', 19);
     $('#mw-panel').addEventListener('click', () => $('#world').classList.toggle('panel'));
     $('#mw-side-close').innerHTML = ICON.close;
-    $('#mw-side-close').addEventListener('click', () => $('#world').classList.remove('panel'));
+    $('#mw-side-close').addEventListener('click', () => setPanel(false));
+    // The sound menu of the whole map, left of the Soundbox: opens it, or closes it when it already shows the whole map.
+    $('#mw-menu .ic').innerHTML = ICON.sound;
+    $('#mw-menu').addEventListener('click', () => {
+      const open = $('#world').classList.contains('panel');
+      if (open && !tapped) { setPanel(false); return; }
+      tapped = null;
+      setPanel(true);
+      renderPanel();
+    });
     $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
     document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => { b.innerHTML = TOOL_ICON[b.dataset.tool]; });
     $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
@@ -1509,7 +1530,7 @@
     V.onTap = (e) => {
       tapped = e || null;
       renderPanel();
-      $('#world').classList.add('panel');
+      setPanel(true);
     };
     // A long press on the way of an element: off to the map it leads to.
     V.onLink = (e) => {
