@@ -83,6 +83,7 @@
 
   /* ---------- The world's musics: one voice each, heard everywhere, kept from one map to the next ---------- */
   let jukebox = [];
+  let queue = []; // the musics to play next, in order
   function setMusic(cards) {
     jukebox = (cards || []).slice();
     const live = new Set(jukebox);
@@ -90,9 +91,10 @@
       let v = voices.get(c);
       if (!v) { v = makeVoice(c, null); v.world = true; voices.set(c, v); }
       if (!v.volMs) v.vg.gain.setTargetAtTime(curve(c.volume), now(), 0.03);
-      if (v.src) v.src.loop = c.play === 'loop' && !blendOf(v);
+      if (v.src) v.src.loop = false;
     });
     voices.forEach((v, c) => { if (v.world && !live.has(c)) { drop(v); voices.delete(c); } });
+    queue = queue.filter((c) => live.has(c));
     changed();
   }
   /** The music heard now: the one playing, else the one paused, else the one fading out (null: none). */
@@ -106,7 +108,7 @@
   /** Blend (a forever loop's crossfade between two rounds, in seconds): at most a third of the sound. */
   function blendOf(v) {
     const b = Number(v.card.blend || 0), d = duration(v);
-    return v.card.play === 'loop' && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
+    return !v.world && v.card.play === 'loop' && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
   }
   /** Where the round heard now is, in seconds into the sound. */
   function position(v) {
@@ -123,7 +125,7 @@
     const { ctx } = audio();
     const src = ctx.createBufferSource();
     src.buffer = buf;
-    src.loop = v.card.play === 'loop' && !blendOf(v);
+    src.loop = !v.world && v.card.play === 'loop' && !blendOf(v);
     const xf = ctx.createGain(); xf.gain.value = 1;
     src.connect(xf).connect(v.vg);
     const t = now();
@@ -240,9 +242,16 @@
   /** The sound came to its end on its own. */
   function ended(v) {
     v.plays += 1;
-    if (v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
+    if (!v.world && v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
     const natural = v.state === 'playing';
     reset(v);
+    // The world's music: at its end, the next one of the queue; with nothing queued, the same music again.
+    if (natural && v.world) {
+      const next = queue.length ? voices.get(queue.shift()) : null;
+      if (next && next !== v) toggleVoice(next); else play(v, 0.03);
+      changed();
+      return;
+    }
     // A music that played through on its own hands over to the next one set to play after it.
     if (natural && v.card.zone === 'music') nextMusic(v);
   }
@@ -430,7 +439,7 @@
   function close(ms = settings.fade) {
     voices.forEach((v) => drop(v, ms));
     voices.clear();
-    pausedByAll = []; heldRandom = [];
+    pausedByAll = []; heldRandom = []; queue = [];
     place = null;
     changed();
   }
@@ -459,6 +468,13 @@
     pausedByAll = []; heldRandom = [];
     changed();
   }
+  /* The queue of the world's music. */
+  function queueAdd(card) { queue.push(card); changed(); }
+  function queueRemove(i) { queue.splice(i, 1); changed(); }
+  function queueMove(i, d) { const j = i + d; if (j < 0 || j >= queue.length) return; [queue[i], queue[j]] = [queue[j], queue[i]]; changed(); }
+  /** Plays a music now (crossfading the one playing), taking it out of the queue. */
+  function playMusic(card, i) { if (i != null) queue.splice(i, 1); const v = voices.get(card); if (v && v.state !== 'playing') toggleVoice(v); changed(); }
+
   /** The master stop: the world's music fades out over 3 s (the sounds of the map play on). */
   function stopMusic() {
     voices.forEach((v) => { if (v.world) end(v, MASTER_FADE); });
@@ -510,7 +526,7 @@
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
-    open, close, sync, hear, setMusic, currentMusic, themeOf, toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
+    open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point,
   });

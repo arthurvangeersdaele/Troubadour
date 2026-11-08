@@ -357,7 +357,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c .opts input[type="number"] { width: 56px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bar); color: var(--text); font: inherit; padding: 0 6px; }
 
 /* The Sounds button: the sound menu of the whole map, left of the Soundbox (at the table only). */
-.mp-world[data-mode="edit"] #mw-menu { display: none; }
+#mw-panel { display: none !important; }
 .mp-menu-btn .ic { display: grid; place-items: center; }
 .mp-side-body .c, .mp-sbx .c { width: auto; flex: none; align-self: stretch; }
 .c .opts .stepper { padding: 2px; }
@@ -558,3 +558,21 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .picker .pick-bar { position: static; flex: none; display: flex; justify-content: flex-end; padding: 10px 0 0; margin: 0; background: var(--bar); border-top: 1px solid var(--line); }
 .pick-tag { --z: var(--accent); display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .3px; line-height: 17px; vertical-align: 1px;
   color: var(--z); background: color-mix(in srgb, var(--z) 16%, transparent); border: 1px solid color-mix(in srgb, var(--z) 45%, transparent); }
+
+/* ---------- The music queue: icon buttons only ---------- */
+.mp-mus .sb-head { gap: 6px; }
+.mp-mus .sb-head .grow { flex: 1; }
+.mus-qbtn { position: relative; }
+.mus-qbtn[aria-pressed="true"] { background: var(--music); border-color: var(--music); color: var(--on-z); }
+.mus-qbtn .qn { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--music); color: var(--on-z); font-size: 11px; font-style: normal; font-weight: 700; display: grid; place-items: center; line-height: 1; }
+.mus-qbtn[aria-pressed="true"] .qn { background: var(--text); color: var(--bg); }
+.mus-row { padding-right: 6px; }
+.mus-i { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.mus-i:hover { color: var(--text); border-color: var(--muted); }
+.mus-i:disabled { opacity: .3; }
+.mus-i.done { animation: mus-done .6s ease-out; }
+@keyframes mus-done { 0% { background: var(--music); color: var(--on-z); } 100% { background: transparent; } }
+.mus-q[hidden] { display: none; }
+.mus-row { gap: 8px; }
+.mus-row .mus-i { width: 30px; height: 30px; border-radius: 8px; }
+.mus-row .mus-i + .mus-i { margin-left: -4px; }

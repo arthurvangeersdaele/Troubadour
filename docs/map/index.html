@@ -97,8 +97,8 @@
     <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
     <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
-    <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
     <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
+    <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
@@ -135,7 +135,7 @@
       <p class="sb-hint">Tap to fire. ☆ pins an effect to the top.</p>
     </aside>
     <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
-      <div class="sb-head"><h2>Music</h2><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
+      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
       <div class="mus-now" id="mw-mus-now"></div>
       <div class="mus-q"><input type="search" class="snd-search" id="mw-mus-q" placeholder="Search a music" aria-label="Search a music"></div>
       <div class="mus-list" id="mw-mus-list"></div>

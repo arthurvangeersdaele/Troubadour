@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.11';
+  const VERSION = '261108.12';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -478,7 +478,7 @@
   }
   function paintMenuBtn() {
     const b = $('#mw-menu');
-    if (b) b.setAttribute('aria-pressed', String($('#world').classList.contains('panel') && !tapped));
+    if (b) b.setAttribute('aria-pressed', String($('#world').classList.contains('panel') && (mode === 'edit' ? !edView : !tapped)));
   }
   let liveRows = [];
   /** Builds cards whose live painting goes to `rows` instead of the sound menu's. */
@@ -544,8 +544,11 @@
     head.append(nm);
     let rem = null;
     if (mode === 'play' && vm !== 'hidden') { rem = el('small'); head.append(rem); }
+    // The world's musics have no loop of their own: the queue says what comes next.
+    const worldMus = !!(rec && rec.world.music && list === rec.world.music);
     const loop = el('button');
     loop.type = 'button';
+    if (worldMus) loop.hidden = true;
     paintLoop(loop, c);
     loop.addEventListener('click', () => {
       const ways = c.zone === 'music' ? ['once', 'twice', 'loop', 'after'] : ['once', 'twice', 'loop', 'random'];
@@ -562,7 +565,12 @@
       x.innerHTML = ICON.x;
       x.title = 'Remove this card';
       x.setAttribute('aria-label', `Remove ${c.name}`);
-      x.addEventListener('click', () => { list.splice(list.indexOf(c), 1); save(); syncAudio(); renderPanel(); V.redraw(); renderPlaces(); });
+      x.addEventListener('click', () => {
+        list.splice(list.indexOf(c), 1);
+        // A music taken out of the world leaves the maps it was laid on too (else it would come back with them).
+        if (worldMus) rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
+        save(); syncAudio(); renderPanel(); V.redraw(); renderPlaces();
+      });
       head.append(x);
     }
     row.append(head);
@@ -1603,7 +1611,7 @@
       M.soundsOf(rec.story).forEach((x) => { if (x.zone === 'music') add(x); });
     }
     w.music = w.music.filter((c) => rec.files[c.file]);
-    w.music.forEach((c) => { c.zone = 'music'; });
+    w.music.forEach((c) => { c.zone = 'music'; c.play = 'once'; });
     w.music.forEach((c) => seen.add(c.file));
     w.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') add(c); }));
     return w.music;
@@ -1626,13 +1634,15 @@
     musRows.length = 0;
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
+  let musQueueView = false;
   function renderMusic() {
     musRows.length = 0;
     const now = $('#mw-mus-now'), list = $('#mw-mus-list');
     now.textContent = ''; list.textContent = '';
     const all = rec.world.music || [];
-    if (!all.length) { list.append(el('p', 'sb-empty', 'No music in this world yet. Add some in the editor: whole map, Music.')); return; }
-    // The music heard now: its whole card (loop, progress, volume).
+    $('#mw-mus-queue').setAttribute('aria-pressed', String(musQueueView));
+    $('.mus-q').hidden = musQueueView;
+    // The music heard now: its card (progress, play and pause, stop, volume).
     let shown, nowRows = [];
     musRows.push(() => {
       const c = A.currentMusic();
@@ -1644,10 +1654,34 @@
       }
       nowRows.forEach((f) => f());
     });
-    const words = fold(musQ).split(/\s+/).filter(Boolean);
-    const rows = new Map();
-    all.forEach((c) => {
-      if (words.length && !words.every((k) => fold(c.name).includes(k))) return;
+    // The queue button: how many musics wait.
+    const paintQ = (n) => { $('#mw-mus-queue').innerHTML = ICON.queue + (n ? `<i class="qn">${n}</i>` : ''); };
+    let qn = A.queue().length;
+    paintQ(qn);
+    musRows.push(() => {
+      const n = A.queue().length;
+      if (n === qn) return;
+      qn = n;
+      paintQ(n);
+      // The queue moved on by itself (a music ended): its view is drawn again, outside this paint.
+      if (musQueueView) setTimeout(renderMusic, 0);
+    });
+    if (!all.length) { list.append(el('p', 'sb-empty', 'No music in this world yet. Add some in the editor, behind its Music button.')); refreshLive(); return; }
+    const iconBtn = (cls, icon, label, fn) => {
+      const b = el('button', `mus-i ${cls}`); b.type = 'button'; b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label);
+      b.addEventListener('click', (ev) => { ev.stopPropagation(); fn(b); });
+      return b;
+    };
+    const ensureMusic = async (c, r, pb) => {
+      audio(true);
+      if (buffers.get(c.file)) return true;
+      r.classList.add('busy'); pb.classList.add('wait');
+      await ensure([c.file], false);
+      pb.classList.remove('wait'); r.classList.remove('busy');
+      if (!buffers.get(c.file)) { toast('This music cannot be read here.'); return false; }
+      return true;
+    };
+    const musicRow = (c, opts) => {
       const r = el('div', 'snd z-music mus-row');
       r.setAttribute('role', 'button');
       r.tabIndex = 0;
@@ -1656,19 +1690,10 @@
       const t = el('span', 'snd-t');
       const sub = el('small', '', '');
       t.append(el('b', '', c.name), sub);
-      r.append(pb, t);
-      const go = async () => {
-        if (r.classList.contains('busy')) return;
-        audio(true);
-        if (!buffers.get(c.file)) { r.classList.add('busy'); pb.classList.add('wait'); await ensure([c.file], false); pb.classList.remove('wait'); r.classList.remove('busy'); }
-        if (!buffers.get(c.file)) { toast('This music cannot be read here.'); return; }
-        A.setMusic(all);
-        A.toggle(c);
-        refreshLive();
-      };
+      r.append(pb, t, ...opts.buttons(r, pb));
+      const go = async () => { if (r.classList.contains('busy')) return; if (!(await ensureMusic(c, r, pb))) return; A.setMusic(all); opts.play(); refreshLive(); };
       r.addEventListener('click', go);
-      r.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
-      rows.set(c, r);
+      r.addEventListener('keydown', (ev) => { if (ev.target === r && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); go(); } });
       musRows.push(() => {
         const v = A.voice(c), st = v ? v.state : 'idle';
         const icon = st === 'playing' ? 'pause' : 'play';
@@ -1677,8 +1702,42 @@
         const b = buffers.get(c.file);
         const txt = st === 'playing' ? 'Playing' : st === 'paused' ? 'Paused' : st === 'ending' ? 'Fading out' : b ? clockOf(b.duration) : '';
         if (sub.textContent !== txt) sub.textContent = txt;
-        r.setAttribute('aria-label', `${st === 'playing' ? 'Pause' : 'Play'} ${c.name}`);
       });
+      return r;
+    };
+
+    if (musQueueView) {
+      // The queue: what plays next, in order. A tap plays one now.
+      const q = A.queue();
+      if (!q.length) list.append(el('p', 'sb-empty', 'The queue is empty. Add musics to it with their queue button.'));
+      q.forEach((c, i) => list.append(musicRow(c, {
+        play: () => A.playMusic(c, i),
+        buttons: () => [
+          iconBtn('', ICON.up, 'Play earlier', () => { A.queueMove(i, -1); renderMusic(); }),
+          iconBtn('', ICON.down, 'Play later', () => { A.queueMove(i, 1); renderMusic(); }),
+          iconBtn('', ICON.x, 'Take out of the queue', () => { A.queueRemove(i); renderMusic(); }),
+        ],
+      })));
+      list.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
+      refreshLive();
+      return;
+    }
+
+    const words = fold(musQ).split(/\s+/).filter(Boolean);
+    const rows = new Map();
+    all.forEach((c) => {
+      if (words.length && !words.every((k) => fold(c.name).includes(k))) return;
+      const r = musicRow(c, {
+        play: () => A.toggle(c),
+        buttons: (row, pb) => [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
+          if (!(await ensureMusic(c, row, pb))) return;
+          A.setMusic(all);
+          A.queueAdd(c);
+          b.classList.remove('done'); void b.offsetWidth; b.classList.add('done');
+          toast(`${c.name}: in the queue.`, 1400);
+        })],
+      });
+      rows.set(c, r);
       list.append(r);
     });
     if (!rows.size) list.append(el('p', 'sb-empty', 'No music with this name.'));
@@ -1690,8 +1749,7 @@
       order = c;
       const first = c && rows.get(c);
       [...rows.values()].forEach((r) => list.append(r));
-      if (first) list.prepend(first);
-      if (first) list.scrollTop = 0;
+      if (first) { list.prepend(first); list.scrollTop = 0; }
     });
     refreshLive();
   }
@@ -2175,6 +2233,7 @@
     $('#mw-mus-btn .ic').innerHTML = ICON.music;
     $('#mw-mus-btn').addEventListener('click', () => { if (mode === 'edit') { showEdView('music'); return; } if ($('#mw-mus').hidden) openMusic(); else closeMusic(); });
     $('#mw-mus-close').innerHTML = ICON.close;
+    $('#mw-mus-queue').addEventListener('click', () => { musQueueView = !musQueueView; renderMusic(); });
     $('#mw-mus-close').addEventListener('click', closeMusic);
     $('#mw-mus-q').addEventListener('input', (e) => { musQ = e.target.value; renderMusic(); });
     // The shared soundbox, from the worlds screen (as in Troubadour).
@@ -2197,6 +2256,8 @@
     $('#mw-menu .ic').innerHTML = ICON.sound;
     $('#mw-menu').addEventListener('click', () => {
       const open = $('#world').classList.contains('panel');
+      // In the editor: the panel of the map, or of the element selected.
+      if (mode === 'edit') { if (open && !edView) setPanel(false); else { edView = null; setPanel(true); renderPanel(); } return; }
       if (open && !tapped) { setPanel(false); return; }
       tapped = null;
       setPanel(true);
