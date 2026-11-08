@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.24';
+  const VERSION = '261108.25';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -229,6 +229,14 @@
   function worldMenu(r, fromTable) {
     menu(r.story.title || 'World', [
       ...(fromTable ? [] : [[ICON.edit, 'Edit the world', 'Draw its maps, lay its sounds', () => editAt(r)]]),
+      [ICON.pen || ICON.edit, 'Rename the world', 'Its name, on its cover and at the table', async () => {
+        const a = await ask('Rename the world', '', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: 'World name', value: r.story.title, max: 120 });
+        if (!a || !a.value || !a.text) return;
+        r.story.title = a.text;
+        await DB.put(r);
+        if (rec && rec.uid === r.uid) { $('#mw-title').textContent = r.story.title; $('#mw-title-in').value = r.story.title; }
+        renderLibrary();
+      }],
       [ICON.share, 'Export .troubadour-map', 'Forges the next revision, signed with your troubadour name', () => exportWorld(r)],
       [ICON.trash, 'Remove from this device', 'Keep a .troubadour-map if you want it back', async () => {
         const ok = await ask(`Remove ${r.story.title}?`, 'Its maps, its drawings and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
@@ -304,14 +312,39 @@
   }
 
   /* ================= Saving ================= */
+  let saveBad = false;
   function save() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 500);
+    paintSave();
   }
   function flush() {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (rec) DB.put(rec).catch((e) => toast(`Could not save: ${e.message || e}`, 4000));
+    if (!rec) return;
+    const r = rec;
+    DB.put(r).then(() => { saveBad = false; paintSave(); }).catch((e) => { saveBad = true; paintSave(); toast(`Could not save: ${e.message || e}`, 4000); });
+  }
+  /** The save state of the editor, as Troubadour's: a green phone with a check while every change is kept on this
+   *  device (dimmed for the half second a change waits), a red disk when saving failed, which offers to export. */
+  function paintSave() {
+    const b = $('#mw-saved');
+    if (!b) return;
+    const bad = saveBad, waiting = !!saveTimer;
+    b.classList.toggle('bad', bad);
+    b.classList.toggle('wait', waiting && !bad);
+    b.innerHTML = bad ? ICON.saveDisk : ICON.savedOk;
+    const what = bad ? 'Not saved: export the world to keep it' : waiting ? 'Saving' : 'Saved on this device';
+    b.setAttribute('aria-label', what); b.title = what;
+  }
+  async function saveState() {
+    if (!rec) return;
+    if (!saveBad) { toast(saveTimer ? 'Saving…' : 'Saved on this device: every change is kept as you make it.', 2400); return; }
+    const v = await ask('Saving stopped working', 'Your last changes could not be kept on this device (its storage is full or blocked). Export the world as a .troubadour-map now so you do not lose your work: you can import it again later.', [
+      { label: 'Try again', value: 'retry' }, { label: 'Export now', value: 'export', cls: 'primary' },
+    ]);
+    if (v === 'export') exportWorld(rec);
+    else if (v === 'retry') flush();
   }
 
   /* ================= Sounds of the world ================= */
@@ -392,6 +425,7 @@
     tapped = undefined;
     if (mode === 'play') setPanel(true);
     $('#mw-title').textContent = rec.story.title || 'World';
+    if (document.activeElement !== $('#mw-title-in')) $('#mw-title-in').value = rec.story.title || '';
     $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
     V.setMode(mode);
@@ -406,6 +440,9 @@
     $('#world').dataset.mode = m;
     // The player leads nowhere but the table: the editor opens from the library.
     $('#mw-switch').hidden = m === 'play';
+    $('#mw-sb .star').innerHTML = m === 'edit' ? ICON.bookStar : ICON.star;
+    $('#mw-sb').title = m === 'edit' ? "This world's soundbox" : 'Soundbox';
+    paintSave();
     // At the table, the sound menu opens on a double tap only (an element, or the map itself).
     // At the table, the sound menu opens on the whole map; while drawing, the panel follows the screen's width.
     tapped = undefined;
@@ -471,13 +508,26 @@
   }
 
   async function renamePlace(p) {
-    const a = await ask('This map', 'Its name, and its size: what is drawn on it grows or shrinks with it.', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: `Map ${pi + 1}`, value: p.title, max: 80, sizes: sizeField(p) });
+    const a = await ask('This map', 'Its name, and its size: what is drawn on it grows or shrinks with it.', [{ label: 'Duplicate', value: 'dup' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: `Map ${pi + 1}`, value: p.title, max: 80, sizes: sizeField(p) });
     if (!a || !a.value) return;
+    if (a.value === 'dup') { duplicatePlace(p); return; }
     if (a.text) p.title = a.text;
     const grown = resizePlace(p, a.size);
     save(); renderPlaces();
     if (grown) { V.show(p, rec.world); V.fit(); }
     if (!V.selected()) renderPanel();
+  }
+  /** A copy of a map, just after it: same drawing, same sounds, its elements with ids of their own. */
+  function duplicatePlace(p) {
+    const q = JSON.parse(JSON.stringify(p));
+    q.id = `place-${M.shortId()}`;
+    q.title = `${p.title} (copy)`.slice(0, 80);
+    q.elements.forEach((e) => { e.id = M.shortId(); });
+    const at = rec.world.places.indexOf(p) + 1;
+    rec.world.places.splice(at, 0, q);
+    save();
+    goPlace(at);
+    toast(`${q.title}: a copy of the map.`, 1800);
   }
   async function addPlace(title) {
     if (!title) {
@@ -519,6 +569,87 @@
     row.append(s, input, b);
     return row;
   }
+  /** A row with − and + around a value: the size and the turn of a place. */
+  function stepper(label, read, step, cls) {
+    const row = el('div', `row-step ${cls || ''}`);
+    const box = el('div', 'stepper');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', label);
+    const less = el('button', '', '−'), more = el('button', '', '+'), val = el('b', '');
+    less.type = more.type = 'button';
+    less.setAttribute('aria-label', `${label}: less`); more.setAttribute('aria-label', `${label}: more`);
+    const paint = () => { val.textContent = read(); };
+    less.addEventListener('click', () => { step(-1); paint(); V.redraw(); save(); });
+    more.addEventListener('click', () => { step(1); paint(); V.redraw(); save(); });
+    box.append(less, val, more);
+    row.append(el('span', '', label), box);
+    paint();
+    return row;
+  }
+  // The sizes a place steps through, in % of the width of its map.
+  const SIZE_STEPS = [1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 23, 26, 30, 35, 40, 50, 60];
+  const pctOf = (e) => (e.shape.size / place().width) * 100;
+  const fmtPct = (v) => `${v < 10 ? Math.round(v * 2) / 2 : Math.round(v)} %`;
+  function sizeStepper(e) {
+    return stepper('Size', () => fmtPct(pctOf(e)), (d) => {
+      const v = pctOf(e);
+      const next = d > 0 ? SIZE_STEPS.find((x) => x > v + 0.05) : [...SIZE_STEPS].reverse().find((x) => x < v - 0.05);
+      if (next) e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
+    });
+  }
+  function turnStepper(e) {
+    return stepper('Turn', () => `${e.shape.rotation}°`, (d) => {
+      let r = Math.round((e.shape.rotation + d * 15) / 15) * 15;
+      if (r > 180) r -= 360; if (r <= -180) r += 360;
+      e.shape.rotation = r;
+    });
+  }
+  /** A copy of an element, a little aside, with the same sounds. */
+  function duplicateElement(e) {
+    V.snapshot();
+    const c = JSON.parse(JSON.stringify(e));
+    c.id = M.shortId();
+    const sh = c.shape, off = Math.round(Math.max(40, (sh.size || place().width * 0.05) * 0.35));
+    if (sh.type === 'stamp') { sh.x = Math.min(place().width, sh.x + off); sh.y = Math.min(place().height, sh.y + off); }
+    else sh.points.forEach((q) => { q[0] += off; q[1] += off; });
+    const kind = c.title.replace(/\s+\d+$/, '') || elName(e);
+    const same = place().elements.filter((x) => x.title && x.title.startsWith(kind)).length;
+    c.title = `${kind} ${same + 1}`.slice(0, 80);
+    place().elements.push(c);
+    V.select(c);
+    save(); V.redraw(); renderPlaces();
+    return c;
+  }
+  /** The menu of an element, at a long press (or a right click) while drawing. */
+  function elementMenu(e, cx, cy) {
+    const m = $('#mw-ctx');
+    m.textContent = '';
+    const head = el('div', 'ctx-head');
+    head.append(el('b', '', elName(e)));
+    m.append(head);
+    if (e.shape.type === 'stamp') m.append(sizeStepper(e), turnStepper(e));
+    const item = (icon, label, fn, cls) => {
+      const b = el('button', `ctx-item ${cls || ''}`);
+      b.type = 'button'; b.setAttribute('role', 'menuitem');
+      b.innerHTML = `${icon}<span>${label}</span>`;
+      b.addEventListener('click', () => { closeMenu(); fn(); });
+      m.append(b);
+    };
+    item(ICON.edit, 'Edit', () => { V.select(e); edView = null; renderPanel(); setPanel(true); });
+    const own = e.shape.type === 'stamp' && window.MapStamps.isCustom(e.shape.stamp) && ((rec.world.stamps || []).find((s) => s.id === e.shape.stamp));
+    if (own) item(ICON.pen || ICON.edit, 'Redraw the place', () => placeEditor(own));
+    item(ICON.copy, 'Duplicate', () => duplicateElement(e));
+    item(ICON.trash, 'Delete', () => { V.select(e); V.deleteSelected(); }, 'danger');
+    $('#toast').hidden = true;
+    m.hidden = false;
+    // Beside the finger, inside the screen.
+    const r = m.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    m.style.left = `${Math.max(8, Math.min(W - r.width - 8, cx + 12))}px`;
+    m.style.top = `${Math.max(8, Math.min(H - r.height - 8, cy - r.height / 2))}px`;
+    setTimeout(() => document.addEventListener('pointerdown', outside, true), 0);
+  }
+  function outside(ev) { if (!$('#mw-ctx').contains(ev.target)) closeMenu(); }
+  function closeMenu() { $('#mw-ctx').hidden = true; document.removeEventListener('pointerdown', outside, true); if (mode === 'edit' && V.selected()) renderPanel(); }
+
   /** How far an element's sounds carry beyond its edge, in % of the width of its place. */
   function reachSlider(e) {
     const w = place().width;
@@ -906,9 +1037,7 @@
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
     if (sh.type === 'stamp') {
-      const w = place().width;
-      id.append(slider('Size', Math.round((sh.size / w) * 200) / 2, 1, 60, 0.5, (v) => `${v} % of the map`, (v) => { sh.size = Math.max(10, Math.round((v / 100) * w)); V.redraw(); }));
-      id.append(slider('Turn', sh.rotation, -180, 180, 5, (v) => `${v}°`, (v) => { sh.rotation = v; V.redraw(); }));
+      id.append(sizeStepper(e), turnStepper(e));
     } else if (sh.points.length > 2) {
       const l = el('label', 'row-set toggle');
       const span = el('span', '', 'Closed shape');
@@ -2779,6 +2908,11 @@
       const t = $('#mw-inspector input[type="text"]');
       if (t && pc()) t.focus();
     };
+    V.onHold = (e, cx, cy) => { if (mode === 'edit') elementMenu(e, cx, cy); };
+    $('#mw-saved').addEventListener('click', saveState);
+    $('#mw-title-in').addEventListener('input', (ev) => { if (!rec) return; rec.story.title = ev.target.value.slice(0, 120); $('#mw-title').textContent = rec.story.title || 'World'; document.title = `${rec.story.title || 'World'} | Troubadour Map`; save(); });
+    $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
+    $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); } if (A.isOpen()) { A.sync(); } };
     V.onPlayer = (p) => { if (A.isOpen()) A.hear(p); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.

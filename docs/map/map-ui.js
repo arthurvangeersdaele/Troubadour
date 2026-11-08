@@ -27,6 +27,14 @@
     stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
     star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 18),
     plus: svg('<path d="M12 5v14M5 12h14"/>', 16),
+    // The save state of the editor, as in Troubadour: a phone with a check, or a disk when saving failed.
+    savedOk: svg('<path d="M16.5 13.5V5A2.5 2.5 0 0 0 14 2.5H8A2.5 2.5 0 0 0 5.5 5v14A2.5 2.5 0 0 0 8 21.5h3.2"/><path d="M13.6 18l2.7 2.7 5.4-6.2" stroke-width="2.1"/>', 21),
+    saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
+    // The soundbox of a world, in the editor: Troubadour's book with a star.
+    bookStar: '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-2-1.4-5.5-1.9-9-1.2v12.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2V5.2c-3.5-.7-7-.2-9 1.2z"/><path d="M12.00 9.40L12.79 11.51L15.04 11.61L13.28 13.02L13.88 15.19L12.00 13.95L10.12 15.19L10.72 13.02L8.96 11.61L11.21 11.51Z" fill="var(--music)" stroke="var(--music)" stroke-width="0.6"/></svg>',
+    copy: svg('<rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>', 16),
+    turn: svg('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/>', 16),
+    grow: svg('<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>', 16),
     import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 16),
     edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),

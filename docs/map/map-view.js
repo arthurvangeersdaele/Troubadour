@@ -25,7 +25,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [];
-  const api = { onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
+  const api = { onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -325,7 +325,17 @@
     if (tool === 'select') {
       if (onPlayer(s[0], s[1])) { snapshot(); gesture = { kind: 'player', start: s, dragged: false }; cv.classList.add('grabbing'); return; }
       const el = elementAt(w);
-      if (el) { select(el); snapshot(); gesture = { kind: 'move', el, last: w, moved: false }; cv.classList.add('grabbing'); return; }
+      if (el) {
+        select(el); snapshot();
+        const g = { kind: 'move', el, last: w, moved: false, s0: s };
+        // A long press without moving: the menu of the element (duplicate, delete, size, turn).
+        g.hold = setTimeout(() => {
+          if (gesture !== g || g.moved) return;
+          gesture = null; undoStack.pop(); cv.classList.remove('grabbing');
+          if (api.onHold) api.onHold(el, e.clientX, e.clientY);
+        }, PRESS_MS);
+        gesture = g; cv.classList.add('grabbing'); return;
+      }
       select(null);
       gesture = { kind: 'pan', last: s };
       return;
@@ -383,6 +393,9 @@
         if (api.onPlayer) api.onPlayer(place.player);
         break;
       case 'move': {
+        // A finger that only trembles does not move the element (nor spoil a long press).
+        if (!gesture.moved && gesture.s0 && Math.hypot(s[0] - gesture.s0[0], s[1] - gesture.s0[1]) < 8) break;
+        clearTimeout(gesture.hold);
         const dx = w[0] - gesture.last[0], dy = w[1] - gesture.last[1];
         gesture.last = w; gesture.moved = true;
         const sh = gesture.el.shape;
@@ -425,6 +438,7 @@
     } else if (g.kind === 'player') {
       if (trail && trail.phase === 'draw') endTrail(); else edited();
     } else if (g.kind === 'move') {
+      clearTimeout(g.hold);
       if (!g.moved) {
         const t = performance.now();
         if (last.el === g.el && t - last.t < 350) { last = { t: 0, s: [0, 0], el: null }; if (api.onOpen) api.onOpen(g.el); }
@@ -812,7 +826,14 @@
     cv.addEventListener('pointercancel', up);
     cv.addEventListener('pointerleave', () => { if (!pointers.size) cv.style.cursor = ''; });
     cv.addEventListener('wheel', wheel, { passive: false });
-    cv.addEventListener('contextmenu', (e) => e.preventDefault());
+    cv.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      // A right click on an element, while drawing: its menu, as a long press.
+      if (mode !== 'edit' || !place || e.pointerType === 'touch') return;
+      const r = cv.getBoundingClientRect();
+      const el = elementAt(toWorld(e.clientX - r.left, e.clientY - r.top));
+      if (el && api.onHold) { gesture = null; select(el); api.onHold(el, e.clientX, e.clientY); }
+    });
     new ResizeObserver(resize).observe(cv.parentNode);
     document.addEventListener('keydown', (e) => {
       if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('dialog[open]')) return;

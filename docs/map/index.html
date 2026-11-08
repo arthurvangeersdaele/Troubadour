@@ -86,7 +86,7 @@
 <main id="world" class="mp-screen mp-world" hidden>
   <header class="tbar mp-top">
     <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
-    <div class="ttl"><b id="mw-title"></b><span id="mw-sub"></span></div>
+    <div class="ttl"><b id="mw-title"></b><input class="mp-title-in" id="mw-title-in" maxlength="120" placeholder="World name" aria-label="Name of the world" autocomplete="off" enterkeyhint="done"><span id="mw-sub"></span></div>
     <div class="chip master" id="mw-master-chip">
       <button class="mini" type="button" id="mw-pause" aria-label="Pause all" title="Pause all"></button>
       <button class="mini" type="button" id="mw-fade" aria-label="Fade out the music" title="Fade out the music"></button>
@@ -94,14 +94,16 @@
       <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
       <b id="mw-master-val">80</b>
     </div>
-    <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
+    <button class="ico ed-save" type="button" id="mw-saved" aria-live="polite"></button>
     <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
     <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
     <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
     <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
+    <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
-    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+    <button class="ico mp-settings" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
+  <div class="mp-ctx" id="mw-ctx" role="menu" hidden></div>
   <div class="mp-body">
     <nav class="rail mp-rail" id="mw-places" aria-label="Maps"></nav>
     <section class="mp-stage" id="mw-stage">
