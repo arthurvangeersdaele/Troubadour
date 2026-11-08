@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.20';
+  const VERSION = '261108.21';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -230,7 +230,6 @@
     menu(r.story.title || 'World', [
       ...(fromTable ? [] : [[ICON.edit, 'Edit the world', 'Draw its maps, lay its sounds', () => editAt(r)]]),
       [ICON.share, 'Export .troubadour-map', 'Forges the next revision, signed with your troubadour name', () => exportWorld(r)],
-      [ICON.share, 'Export .troubadour', 'The story alone, for Troubadour and Ballade', () => exportTroubadour(r)],
       [ICON.trash, 'Remove from this device', 'Keep a .troubadour-map if you want it back', async () => {
         const ok = await ask(`Remove ${r.story.title}?`, 'Its maps, its drawings and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
         if (!ok) return;
@@ -253,15 +252,7 @@
       await deliver(out.blob, out.fileName);
     } catch (e) { idle(); toast(`Could not forge: ${e.message || e}`, 4200); }
   }
-  async function exportTroubadour(r) {
-    try {
-      busy('Writing the .troubadour', '', 0);
-      const files = await DB.filesOf(r);
-      const out = await M.packTroubadour(r.story, files, (f) => busy('Writing the .troubadour', '', f));
-      idle();
-      await deliver(out.blob, out.fileName);
-    } catch (e) { idle(); toast(`Could not write the .troubadour: ${e.message || e}`, 4200); }
-  }
+
 
   /* ================= Import ================= */
   function pickFile() {
@@ -825,7 +816,7 @@
   }
   function editMusic(box) {
     const list = worldMusic();
-    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next; a music laid on a map starts when the party arrives there.'));
+    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on the whole map starts when the party arrives there; laid on a place, when the party walks into it (and the map\'s comes back when it walks out).'));
     const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
     box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: ['once', 'twice', 'loop'] }),
       'Add musics: from this device, the Recueil or Files', () => {

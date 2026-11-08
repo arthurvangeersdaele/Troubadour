@@ -379,6 +379,7 @@
   function hear(p) {
     if (p) point = p;
     if (!place) return;
+    followZone();
     const t = now();
     const memo = new Map();
     voices.forEach((v) => {
@@ -430,11 +431,38 @@
     // Every card starts with its map (with the fade-in of Play; events strike at once): the map decides how much of
     // an element is heard.
     voices.forEach((v) => { if (!v.world) play(v, v.card.zone === 'ambience' ? startFade() : 0.03); });
-    // A music laid on the map starts as the party arrives (crossfading the one playing), unless it already plays.
-    const theme = themeOf(p);
+    // A music laid on the map starts as the party arrives (crossfading the one playing), unless it already plays:
+    // the one of the place the party stands in, else the one of the whole map.
+    zoneKey = undefined;
+    const theme = zoneMusic() || p.general.find(isMusic) || null;
+    zoneKey = theme ? theme.file : 'map';
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
     changed();
+  }
+
+  /* ---------- Music zones: a music laid on a place starts when the party walks into it ---------- */
+  let zoneKey;
+  function zoneMusic() {
+    for (let i = place.elements.length - 1; i >= 0; i--) {
+      const e = place.elements[i];
+      const m = e.cards.find(isMusic);
+      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) return m;
+    }
+    return null;
+  }
+  /** Called as the party moves: walking into a place with a music crossfades to it; walking out of it brings back the
+   *  music of the whole map. Only a change of zone switches the music, so a music chosen by hand plays on. */
+  function followZone() {
+    if (!place || zoneKey === undefined) return;
+    const z = zoneMusic();
+    const key = z ? z.file : 'map';
+    if (key === zoneKey) return;
+    zoneKey = key;
+    const target = z || place.general.find(isMusic);
+    if (!target) return;
+    const tv = [...voices.values()].find((o) => o.world && o.card.file === target.file);
+    if (tv && tv.state !== 'playing') toggleVoice(tv);
   }
 
   /** Everything stops: the world is left, or drawn. */
