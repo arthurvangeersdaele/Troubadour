@@ -13,16 +13,24 @@
 
   const GROUPS = ['Nature', 'Village', 'Castles and wonders', 'Roads and adventure'];
   const LIST = [
-    ['lake', 'Lake', 0], ['mountains', 'Mountains', 0], ['hill', 'Hills', 0], ['forest', 'Forest', 0], ['tree', 'Tree', 0], ['pine', 'Pine', 0],
-    ['swamp', 'Swamp', 0], ['rocks', 'Rocks', 0], ['cave', 'Cave', 0], ['volcano', 'Volcano', 0], ['waterfall', 'Waterfall', 0], ['island', 'Island', 0],
-    ['dunes', 'Dunes', 0], ['oasis', 'Oasis', 0], ['meadow', 'Meadow', 0], ['mushrooms', 'Mushrooms', 0], ['crystals', 'Crystals', 0], ['fields', 'Fields', 0],
-    ['house', 'House', 1], ['tavern', 'Tavern', 1], ['market', 'Market', 1], ['forge', 'Forge', 1], ['barn', 'Barn', 1], ['windmill', 'Windmill', 1],
-    ['well', 'Well', 1], ['fountain', 'Fountain', 1], ['church', 'Church', 1],
-    ['castle', 'Castle', 2], ['tower', 'Tower', 2], ['wizard', "Wizard's tower", 2], ['temple', 'Temple', 2], ['ruins', 'Ruins', 2], ['altar', 'Altar', 2],
-    ['statue', 'Statue', 2], ['stones', 'Standing stones', 2], ['portal', 'Portal', 2], ['grave', 'Grave', 2],
-    ['bridge', 'Bridge', 3], ['door', 'Gate', 3], ['stairs', 'Stairs', 3], ['tent', 'Tent', 3], ['fire', 'Campfire', 3], ['mine', 'Mine', 3],
-    ['ship', 'Ship', 3], ['harbor', 'Harbour', 3], ['lighthouse', 'Lighthouse', 3], ['signpost', 'Signpost', 3], ['cart', 'Cart', 3],
-    ['chest', 'Treasure', 3], ['bones', 'Bones', 3],
+    ['bush', 'Bush', 0], ['tree', 'Tree', 0], ['deadtree', 'Dead tree', 0], ['pine', 'Pine', 0], ['cactus', 'Cactus', 0], ['grove', 'Grove', 0],
+    ['forest', 'Forest', 0], ['jungle', 'Jungle', 0], ['haunted', 'Haunted woods', 0], ['worldtree', 'World tree', 0], ['mushrooms', 'Mushrooms', 0], ['meadow', 'Meadow', 0],
+    ['pond', 'Pond', 0], ['lake', 'Lake', 0], ['swamp', 'Swamp', 0], ['hotspring', 'Hot spring', 0], ['oasis', 'Oasis', 0], ['beach', 'Beach', 0],
+    ['island', 'Island', 0], ['rocks', 'Rocks', 0], ['hill', 'Hills', 0], ['dunes', 'Dunes', 0], ['peak', 'Peak', 0], ['mountains', 'Mountains', 0],
+    ['range', 'Mountain range', 0], ['volcano', 'Volcano', 0], ['glacier', 'Glacier', 0], ['canyon', 'Canyon', 0], ['cave', 'Cave', 0], ['waterfall', 'Waterfall', 0],
+    ['crystals', 'Crystals', 0], ['fields', 'Fields', 0],
+    ['hut', 'Hut', 1], ['house', 'House', 1], ['bakery', 'Bakery', 1], ['shop', 'Shop', 1], ['tavern', 'Tavern', 1], ['forge', 'Forge', 1],
+    ['library', 'Library', 1], ['guildhall', 'Guildhall', 1], ['stable', 'Stable', 1], ['barn', 'Barn', 1], ['farm', 'Farm', 1], ['windmill', 'Windmill', 1],
+    ['watermill', 'Watermill', 1], ['well', 'Well', 1], ['fountain', 'Fountain', 1], ['market', 'Market', 1], ['church', 'Church', 1], ['hamlet', 'Hamlet', 1],
+    ['village', 'Village', 1], ['town', 'Town', 1], ['city', 'City', 1],
+    ['statue', 'Statue', 2], ['grave', 'Grave', 2], ['tomb', 'Tomb', 2], ['altar', 'Altar', 2], ['stones', 'Standing stones', 2], ['portal', 'Portal', 2],
+    ['ruins', 'Ruins', 2], ['watchtower', 'Watchtower', 2], ['wall', 'City wall', 2], ['tower', 'Tower', 2], ['wizard', "Wizard's tower", 2], ['keep', 'Keep', 2],
+    ['fort', 'Fort', 2], ['castle', 'Castle', 2], ['citadel', 'Citadel', 2], ['palace', 'Palace', 2], ['kingdom', 'Kingdom', 2], ['temple', 'Temple', 2],
+    ['monastery', 'Monastery', 2], ['cathedral', 'Cathedral', 2], ['observatory', 'Observatory', 2], ['pyramid', 'Pyramid', 2], ['arena', 'Arena', 2],
+    ['signpost', 'Signpost', 3], ['crates', 'Crates', 3], ['chest', 'Treasure', 3], ['logs', 'Logs', 3], ['cart', 'Cart', 3], ['caravan', 'Caravan', 3],
+    ['tent', 'Tent', 3], ['camp', 'Camp', 3], ['fire', 'Campfire', 3], ['bones', 'Bones', 3], ['gallows', 'Gallows', 3], ['battlefield', 'Battlefield', 3],
+    ['dragon', "Dragon's lair", 3], ['stairs', 'Stairs', 3], ['door', 'Gate', 3], ['bridge', 'Bridge', 3], ['ropebridge', 'Rope bridge', 3], ['mine', 'Mine', 3],
+    ['quarry', 'Quarry', 3], ['boat', 'Boat', 3], ['ship', 'Ship', 3], ['shipwreck', 'Shipwreck', 3], ['harbor', 'Harbour', 3], ['lighthouse', 'Lighthouse', 3],
   ].map(([id, label, g]) => ({ id, label, group: GROUPS[g] }));
 
   // The colours of the stickers: bright, a little soft.
@@ -31,7 +39,7 @@
     wood: '#C98D57', darkwood: '#8E5B36', stone: '#C9C6D6', stone2: '#A29EB6', leaf: '#76CB6C', leaf2: '#4FAA5D', pine: '#3FA37C', grass: '#A2DD78',
     sand: '#F5D88F', sand2: '#E5BA68', lava: '#FF7B3A', flame: '#FFC93C', pink: '#F59CC6', purple: '#A783EA', violet: '#7B5BD1', gold: '#F7C64B',
     snow: '#FFFFFF', mush: '#EF5A50', crystal: '#7EE6F2', teal: '#3FC1B0', dark: '#3B3046', glass: '#FFE68A', moss: '#93C15F', mud: '#A0805A',
-    bone: '#F5EEDF', white: '#FFFFFF', straw: '#F2CF6B', smoke: '#E6E3EE',
+    bone: '#F5EEDF', white: '#FFFFFF', straw: '#F2CF6B', smoke: '#E6E3EE', ice: '#D6F1FB',
   };
 
   /* ---------- Drawing in unit coordinates: x and y from -0.5 to 0.5 across the place ---------- */
@@ -89,6 +97,51 @@
     path([[x - w / 2 - 0.05, y - h + 0.02], [x, y - h - w * 0.55], [x + w / 2 + 0.05, y - h + 0.02]]); paint(roof);
     shine(x - w * 0.18, y - h - w * 0.22, w * 0.12, w * 0.05);
   }
+  /** A thick limb (branch, cactus arm, root): an outline of ink, then the colour inside. */
+  function limb(pts, w, c) {
+    const o = CT.lineWidth;
+    path(pts, false); CT.save(); CT.lineWidth = X(w) + o * 2; CT.stroke(); CT.strokeStyle = col(c); CT.lineWidth = X(w); CT.stroke(); CT.restore();
+  }
+  function pineAt(x, b, h, c = K.pine) {
+    const w = h * 0.4;
+    rr(x - w * 0.16, b - h * 0.2, w * 0.32, h * 0.2, w * 0.06); paint(K.wood);
+    [[0, 1], [0.3, 0.78], [0.56, 0.58]].forEach(([o, k]) => { const bb = b - h * 0.16 - o * h * 0.62; path([[x - w * k, bb], [x, bb - h * 0.46 * k], [x + w * k, bb]]); paint(c); });
+  }
+  function cottage(x, b, w, roof, wall = K.wall) {
+    const h = w * 0.62;
+    house(x, b, w, h, roof, wall);
+    door(x - w * 0.13, b - h * 0.6, w * 0.26, h * 0.6, K.darkwood);
+    if (w > 0.16) window_(x + w * 0.2, b - h * 0.78, w * 0.2, w * 0.18);
+  }
+  function crenel(x, y, w, n, c = K.stone) { const u = w / n; for (let k = 0; k < n; k++) { rr(x + k * u + u * 0.14, y - u * 0.62, u * 0.72, u * 0.7, 0.008); paint(c); } }
+  function towerAt(x, b, w, h, roof = K.blue, c = K.stone2) {
+    rr(x - w / 2, b - h, w, h, 0.015); paint(c);
+    if (roof) { path([[x - w / 2 - w * 0.16, b - h + 0.005], [x, b - h - w * 1.25], [x + w / 2 + w * 0.16, b - h + 0.005]]); paint(roof); }
+    else crenel(x - w / 2, b - h, w, 3, c);
+    window_(x - w * 0.18, b - h + h * 0.2, w * 0.36, Math.min(h * 0.18, w * 0.5));
+  }
+  function star(x, y, r, c = K.gold, stroke = false) { CT.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5, q = k % 2 ? r * 0.45 : r; CT.lineTo(X(x + Math.cos(a) * q), X(y + Math.sin(a) * q)); } CT.closePath(); paint(c, stroke); }
+  function tentAt(x, b, w, c, stripe = K.cream) {
+    path([[x - w / 2, b], [x, b - w * 0.85], [x + w / 2, b]]); paint(c);
+    CT.save(); path([[x - w / 2, b], [x, b - w * 0.85], [x + w / 2, b]]); CT.clip(); path([[x - w * 0.14, b + 0.02], [x, b - w * 0.86], [x + w * 0.14, b + 0.02]]); paint(stripe, false); CT.restore();
+    path([[x - w / 2, b], [x, b - w * 0.85], [x + w / 2, b]]); CT.stroke();
+    path([[x - w * 0.1, b], [x, b - w * 0.36], [x + w * 0.1, b]]); paint(K.dark);
+  }
+  function leafAt(x, y, rx, ry, a, c) { CT.save(); CT.translate(X(x), X(y)); CT.rotate(a); ell(0, 0, rx, ry); paint(c); line([[-rx * 0.8, 0], [rx * 0.8, 0]], 0.008); CT.restore(); }
+  /** A peak with its snow, as in the mountains. */
+  function peakAt(x, b, hw, h, cc, snow = true) {
+    CT.beginPath(); CT.moveTo(X(x - hw), X(b)); CT.lineTo(X(x - 0.05), X(b - h + 0.04)); CT.quadraticCurveTo(X(x), X(b - h - 0.02), X(x + 0.05), X(b - h + 0.04)); CT.lineTo(X(x + hw), X(b)); CT.closePath(); paint(cc);
+    if (!snow) return;
+    CT.beginPath(); CT.moveTo(X(x - hw * 0.36), X(b - h * 0.64)); CT.lineTo(X(x - 0.05), X(b - h + 0.04)); CT.quadraticCurveTo(X(x), X(b - h - 0.02), X(x + 0.05), X(b - h + 0.04));
+    CT.lineTo(X(x + hw * 0.36), X(b - h * 0.64)); CT.quadraticCurveTo(X(x + hw * 0.18), X(b - h * 0.56), X(x + hw * 0.05), X(b - h * 0.66)); CT.quadraticCurveTo(X(x - hw * 0.12), X(b - h * 0.55), X(x - hw * 0.36), X(b - h * 0.64)); CT.closePath(); paint(K.snow);
+  }
+  /** Another place of the library, drawn smaller inside this one (villages, kingdoms...). */
+  function mini(id, x, y, k, R) {
+    CT.save(); CT.translate(X(x), X(y)); CT.scale(k, k); CT.lineWidth *= 0.8 / k;
+    D[id](CT, S, null, R || rng(id)); CT.restore();
+  }
+  function wheel(x, y, r) { ell(x, y, r); paint(K.darkwood); ell(x, y, r * 0.25); paint(K.gold); for (let k = 0; k < 4; k++) { const a = (k * Math.PI) / 4; line([[x + Math.cos(a) * r * 0.85, y + Math.sin(a) * r * 0.85], [x - Math.cos(a) * r * 0.85, y - Math.sin(a) * r * 0.85]], 0.008); } }
+  function ground(y, rx, ry, c = K.grass) { ell(0, y, rx, ry); paint(c); }
 
   const D = {
     /* ----- Nature ----- */
@@ -499,6 +552,484 @@
       ell(0, -0.06, 0.2, 0.18); paint(K.bone); rr(-0.11, 0.06, 0.22, 0.12, 0.04); paint(K.bone);
       ell(-0.08, -0.06, 0.05); paint(K.dark); ell(0.08, -0.06, 0.05); paint(K.dark); path([[0, 0.02], [-0.02, 0.06], [0.02, 0.06]]); paint(K.dark);
       [-0.05, 0, 0.05].forEach((x) => line([[x, 0.1], [x, 0.17]], 0.008));
+    },
+
+    /* ----- Nature, the second fifty ----- */
+    bush(c, s, p, R) {
+      shadow(0.34, 0.36);
+      puff(-0.15, 0.14, 0.17, 7, R); paint(K.leaf2); puff(0.15, 0.14, 0.16, 7, R); paint(K.leaf2);
+      puff(0, 0.04, 0.21, 8, R); paint(K.leaf); shine(-0.08, -0.08, 0.07, 0.035);
+      [[-0.14, 0.06], [0.08, -0.04], [0.18, 0.14], [-0.02, 0.16], [-0.24, 0.18]].forEach(([x, y]) => { ell(x, y, 0.03); paint(K.red); });
+    },
+    deadtree(c, s, p, R) {
+      shadow(0.42, 0.28);
+      limb([[-0.2, -0.14], [-0.3, -0.3]], 0.035, K.mud); limb([[0.16, -0.2], [0.26, -0.34]], 0.03, K.mud);
+      limb([[0, 0.02], [-0.2, -0.14], [-0.14, -0.32]], 0.05, K.mud); limb([[0.01, -0.06], [0.16, -0.2], [0.12, -0.38]], 0.045, K.mud);
+      limb([[0, 0.38], [0, 0.04], [-0.02, -0.18], [0.02, -0.4]], 0.1, K.mud);
+      limb([[-0.04, 0.38], [-0.16, 0.42]], 0.05, K.mud); limb([[0.04, 0.38], [0.17, 0.42]], 0.05, K.mud);
+      ell(-0.01, 0.14, 0.03, 0.045); paint(K.dark);
+      ell(0.0, 0.42, 0.2, 0.03); paint(K.grass, false);
+    },
+    cactus(c, s, p) {
+      shadow(0.4, 0.3);
+      ell(0, 0.38, 0.3, 0.06); paint(K.sand);
+      limb([[-0.06, 0.1], [-0.2, 0.1], [-0.2, -0.12]], 0.09, K.leaf2); limb([[0.06, 0.02], [0.19, 0.02], [0.19, -0.2]], 0.08, K.leaf2);
+      limb([[0, 0.36], [0, -0.28]], 0.15, K.leaf2);
+      CT.save(); CT.globalAlpha = 0.4; [-0.035, 0.035].forEach((x) => line([[x, 0.3], [x, -0.26]], 0.008)); CT.restore();
+      flower(0, -0.37, 0.022, K.pink); flower(0.19, -0.27, 0.016, K.gold);
+    },
+    grove(c, s, p, R) {
+      shadow(0.4, 0.4);
+      roundTree(0.0, -0.12, 0.16, R, K.leaf2);
+      roundTree(-0.2, 0.06, 0.15, R, K.leaf); roundTree(0.2, 0.08, 0.14, R, K.moss);
+      flower(-0.3, 0.36, 0.018, K.pink); flower(0.3, 0.34, 0.016, K.gold); flower(0.22, 0.4, 0.014, K.white);
+    },
+    jungle(c, s, p, R) {
+      shadow(0.4, 0.44);
+      puff(-0.2, -0.14, 0.18, 7, R); paint(K.pine); puff(0.22, -0.16, 0.17, 7, R); paint(K.leaf2);
+      palm(-0.02, 0.22, 0.52, R);
+      line([[-0.28, -0.02], [-0.3, 0.12], [-0.26, 0.2]], 0.012); line([[0.3, -0.04], [0.28, 0.1]], 0.012);
+      leafAt(-0.28, 0.26, 0.17, 0.06, -0.5, K.leaf); leafAt(0.28, 0.26, 0.17, 0.06, 0.5, K.leaf);
+      leafAt(-0.12, 0.32, 0.15, 0.05, -0.15, K.leaf2); leafAt(0.13, 0.32, 0.15, 0.05, 0.2, K.leaf2);
+      flower(-0.22, 0.1, 0.024, K.red); flower(0.24, 0.12, 0.02, K.pink); flower(0.06, 0.38, 0.018, K.gold);
+    },
+    haunted(c, s, p, R) {
+      ell(0, 0.34, 0.44, 0.09); paint(K.purple);
+      const dead = (x, k) => {
+        limb([[x, -0.04 * k], [x - 0.14 * k, -0.18 * k], [x - 0.2 * k, -0.3 * k]], 0.04, K.dark);
+        limb([[x, -0.1 * k], [x + 0.12 * k, -0.26 * k], [x + 0.1 * k, -0.36 * k]], 0.035, K.dark);
+        limb([[x, 0.34], [x, -0.1 * k], [x + 0.02, -0.4 * k]], 0.09, K.dark);
+      };
+      dead(-0.2, 1); dead(0.22, 0.8);
+      ell(-0.23, 0.08, 0.016); paint(K.glass, false); ell(-0.17, 0.08, 0.016); paint(K.glass, false);
+      const gx = 0.1, gy = 0.06, r = 0.09;
+      CT.beginPath(); CT.moveTo(X(gx - r), X(gy + r)); CT.lineTo(X(gx - r), X(gy)); CT.arc(X(gx), X(gy), X(r), Math.PI, 0);
+      CT.lineTo(X(gx + r), X(gy + r)); CT.quadraticCurveTo(X(gx + r * 0.66), X(gy + r * 0.6), X(gx + r * 0.33), X(gy + r));
+      CT.quadraticCurveTo(X(gx), X(gy + r * 0.6), X(gx - r * 0.33), X(gy + r)); CT.quadraticCurveTo(X(gx - r * 0.66), X(gy + r * 0.6), X(gx - r), X(gy + r)); CT.closePath(); paint(K.white);
+      ell(gx - 0.03, gy, 0.014, 0.02); paint(K.dark, false); ell(gx + 0.03, gy, 0.014, 0.02); paint(K.dark, false);
+      CT.beginPath(); CT.arc(X(0.38), X(-0.4), X(0.06), 0, Math.PI * 2); paint(K.glass); ell(0.405, -0.42, 0.045); paint(K.purple, false);
+    },
+    worldtree(c, s, p, R) {
+      shadow(0.42, 0.42);
+      limb([[-0.06, 0.34], [-0.22, 0.38], [-0.34, 0.42]], 0.05, K.wood); limb([[0.06, 0.34], [0.22, 0.38], [0.34, 0.42]], 0.05, K.wood);
+      path([[-0.14, 0.42], [-0.08, 0.06], [-0.07, -0.1], [0.07, -0.1], [0.08, 0.06], [0.14, 0.42]]); paint(K.wood);
+      puff(0, -0.12, 0.3, 11, R, 0.12); paint(K.leaf2);
+      puff(-0.03, -0.16, 0.19, 8, R); paint(K.leaf); shine(-0.12, -0.28, 0.07, 0.04);
+      door(-0.04, 0.26, 0.08, 0.16, K.darkwood); window_(0.03, 0.18, 0.04, 0.04);
+      [[-0.2, -0.04], [0.18, -0.24], [0.06, 0.02], [-0.08, -0.34], [0.24, 0.0], [-0.24, -0.24]].forEach(([x, y]) => star(x, y, 0.025, K.glass));
+    },
+    pond(c, s, p, R) {
+      ell(0, 0.12, 0.38, 0.24); paint(K.grass);
+      ell(0, 0.12, 0.28, 0.16); paint(K.water); ell(0.02, 0.14, 0.18, 0.09); CT.fillStyle = col(K.sky); CT.fill();
+      ell(-0.12, 0.16, 0.06, 0.035); paint(K.leaf2); flower(-0.11, 0.15, 0.014, K.pink);
+      ell(0.1, 0.1, 0.06, 0.035); paint(K.white); ell(0.15, 0.05, 0.028); paint(K.white); path([[0.175, 0.045], [0.21, 0.055], [0.175, 0.065]]); paint(K.flame);
+      ell(0.155, 0.045, 0.006); paint(K.dark, false);
+      [[-0.3, 0.1], [-0.26, 0.06]].forEach(([x, y]) => { line([[x, y + 0.08], [x, y - 0.08]], 0.014); ell(x, y - 0.1, 0.016, 0.04); paint(K.darkwood); });
+    },
+    peak(c, s, p) {
+      shadow(0.38, 0.4);
+      peakAt(0, 0.38, 0.38, 0.78, K.stone);
+      flag(0, -0.38, 0.1, K.red);
+      ell(-0.3, 0.36, 0.06, 0.03); paint(K.leaf); ell(0.3, 0.37, 0.05, 0.025); paint(K.leaf);
+    },
+    range(c, s, p) {
+      shadow(0.38, 0.46);
+      peakAt(-0.3, 0.18, 0.18, 0.42, K.stone2); peakAt(0.02, 0.18, 0.2, 0.52, K.stone2); peakAt(0.32, 0.18, 0.17, 0.4, K.stone2);
+      peakAt(-0.16, 0.38, 0.22, 0.44, K.stone); peakAt(0.2, 0.38, 0.24, 0.48, K.stone);
+    },
+    canyon(c, s, p) {
+      shadow(0.38, 0.46);
+      path([[-0.1, -0.26], [0.08, -0.26], [0.2, 0.38], [-0.18, 0.38]]); paint(K.water); waves(0.24, -0.1, 0.1, 2);
+      path([[-0.46, 0.36], [-0.46, -0.18], [-0.32, -0.26], [-0.12, -0.24], [-0.06, -0.06], [-0.14, 0.12], [-0.12, 0.36]]); paint(K.coral);
+      path([[0.46, 0.36], [0.46, -0.2], [0.3, -0.28], [0.1, -0.24], [0.08, -0.04], [0.16, 0.16], [0.14, 0.36]]); paint(K.sand2);
+      CT.save(); CT.globalAlpha = 0.45; [[-0.44, -0.08, -0.1], [-0.44, 0.06, -0.12], [-0.44, 0.22, -0.13]].forEach(([a, y, b]) => line([[a, y], [b, y]], 0.008));
+      [[0.44, -0.08, 0.1], [0.44, 0.08, 0.15], [0.44, 0.24, 0.15]].forEach(([a, y, b]) => line([[a, y], [b, y]], 0.008)); CT.restore();
+      ell(-0.36, -0.26, 0.07, 0.03); paint(K.leaf); ell(0.36, -0.28, 0.06, 0.025); paint(K.leaf);
+    },
+    glacier(c, s, p) {
+      ell(0, 0.32, 0.46, 0.1); paint(K.water);
+      path([[-0.42, 0.3], [-0.42, -0.06], [-0.26, -0.2], [-0.1, -0.1], [0.06, -0.3], [0.24, -0.14], [0.42, -0.2], [0.42, 0.3]]); paint(K.ice);
+      path([[-0.42, -0.06], [-0.26, -0.2], [-0.1, -0.1], [0.06, -0.3], [0.24, -0.14], [0.42, -0.2], [0.42, -0.1], [0.24, -0.04], [0.06, -0.18], [-0.1, 0.0], [-0.26, -0.1], [-0.42, 0.04]]); paint(K.snow);
+      CT.save(); CT.strokeStyle = MONO ? CT.strokeStyle : K.deep; [[-0.2, 0.0, 0.26], [0.04, -0.1, 0.24], [0.26, -0.02, 0.24]].forEach(([x, y, b]) => line([[x, y], [x + 0.02, (y + b) / 2], [x - 0.01, b]], 0.01)); CT.restore();
+      ell(0.3, 0.37, 0.08, 0.025); paint(K.white); ell(-0.3, 0.38, 0.05, 0.02); paint(K.white);
+    },
+    hotspring(c, s, p, R) {
+      for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2; ell(Math.cos(a) * 0.33, 0.16 + Math.sin(a) * 0.17, 0.08, 0.055); paint(k % 2 ? K.stone : K.stone2); }
+      ell(0, 0.16, 0.3, 0.15); paint(K.teal); ell(0.02, 0.17, 0.2, 0.09); CT.fillStyle = col(K.crystal); CT.fill();
+      CT.save(); CT.globalAlpha = MONO ? 0.5 : 0.85; CT.strokeStyle = MONO ? CT.strokeStyle : K.white; CT.lineWidth = X(0.03);
+      [-0.12, 0.02, 0.16].forEach((x) => { CT.beginPath(); CT.moveTo(X(x), X(0.06)); CT.bezierCurveTo(X(x - 0.06), X(-0.04), X(x + 0.06), X(-0.12), X(x), X(-0.24)); CT.stroke(); }); CT.restore();
+      flower(-0.34, -0.02, 0.018, K.pink); flower(0.36, 0.0, 0.016, K.white);
+    },
+    beach(c, s, p, R) {
+      rr(-0.46, -0.4, 0.92, 0.5, 0.12); paint(K.water); waves(-0.24, -0.36, 0.3, 3);
+      CT.beginPath(); CT.moveTo(X(-0.46), X(0.06)); CT.bezierCurveTo(X(-0.2), X(-0.06), X(0.2), X(0.14), X(0.46), X(-0.02)); CT.lineTo(X(0.46), X(0.32)); CT.quadraticCurveTo(X(0.46), X(0.4), X(0.36), X(0.4)); CT.lineTo(X(-0.36), X(0.4)); CT.quadraticCurveTo(X(-0.46), X(0.4), X(-0.46), X(0.32)); CT.closePath(); paint(K.sand);
+      palm(0.24, 0.32, 0.4, R);
+      star(-0.18, 0.24, 0.05, K.coral, true);
+      CT.beginPath(); CT.moveTo(X(-0.02), X(0.32)); CT.arc(X(0.02), X(0.32), X(0.045), Math.PI, 0); CT.closePath(); paint(K.pink);
+      CT.save(); CT.beginPath(); CT.moveTo(X(-0.34), X(0.04)); CT.bezierCurveTo(X(-0.2), X(-0.04), X(0.2), X(0.14), X(0.44), X(0.0)); CT.strokeStyle = MONO ? CT.strokeStyle : K.white; CT.lineWidth = X(0.02); CT.stroke(); CT.restore();
+    },
+
+    /* ----- Village, the second fifty ----- */
+    hut(c, s, p) {
+      shadow(0.4, 0.34);
+      rr(-0.22, 0.02, 0.44, 0.36, 0.06); paint(K.mud);
+      path([[-0.32, 0.08], [0, -0.36], [0.32, 0.08]]); paint(K.straw);
+      CT.save(); CT.globalAlpha = 0.4; [-0.16, -0.06, 0.06, 0.16].forEach((x) => line([[0, -0.32], [x * 1.6, 0.06]], 0.008)); CT.restore();
+      line([[-0.06, -0.38], [-0.02, -0.3]], 0.016); line([[0.06, -0.38], [0.02, -0.3]], 0.016);
+      door(-0.07, 0.14, 0.14, 0.24, K.darkwood);
+      ell(-0.3, 0.36, 0.05, 0.03); paint(K.leaf); flower(0.28, 0.36, 0.018, K.gold);
+    },
+    bakery(c, s, p) {
+      shadow(0.4, 0.42);
+      rr(-0.2, -0.36, 0.08, 0.16, 0.02); paint(K.stone2); puff(-0.16, -0.42, 0.045, 5, rng('bread')); paint(K.smoke);
+      house(0, 0.38, 0.6, 0.34, K.sand2);
+      for (let k = 0; k < 5; k++) { const x = -0.3 + k * 0.12; CT.beginPath(); CT.moveTo(X(x), X(0.06)); CT.lineTo(X(x + 0.12), X(0.06)); CT.lineTo(X(x + 0.12), X(0.12)); CT.quadraticCurveTo(X(x + 0.06), X(0.17), X(x), X(0.12)); CT.closePath(); paint(k % 2 ? K.cream : K.coral); }
+      rr(-0.24, 0.18, 0.2, 0.12, 0.03); paint(K.glass); ell(-0.14, 0.26, 0.06, 0.025); paint(K.sand2);
+      door(0.06, 0.18, 0.13, 0.2, K.darkwood);
+      line([[0.3, -0.04], [0.42, -0.04]], 0.016);
+      ell(0.38, 0.04, 0.07, 0.045); paint(K.sand2); [-0.03, 0.0, 0.03].forEach((d) => line([[0.38 + d - 0.012, 0.02], [0.38 + d + 0.012, 0.06]], 0.008));
+    },
+    shop(c, s, p) {
+      shadow(0.4, 0.4);
+      house(0, 0.38, 0.54, 0.36, K.teal);
+      for (let k = 0; k < 4; k++) { const x = -0.3 + k * 0.15; CT.beginPath(); CT.moveTo(X(x), X(0.02)); CT.lineTo(X(x + 0.15), X(0.02)); CT.lineTo(X(x + 0.15), X(0.1)); CT.quadraticCurveTo(X(x + 0.075), X(0.16), X(x), X(0.1)); CT.closePath(); paint(k % 2 ? K.white : K.teal); }
+      rr(-0.22, 0.16, 0.2, 0.14, 0.03); paint(K.glass);
+      [[-0.18, 0.26, K.red], [-0.12, 0.25, K.purple], [-0.06, 0.26, K.leaf]].forEach(([x, y, cc]) => { rr(x - 0.02, y - 0.04, 0.04, 0.05, 0.015); paint(cc); });
+      door(0.06, 0.16, 0.13, 0.22, K.darkwood);
+      line([[0.27, -0.06], [0.4, -0.06]], 0.016); line([[0.37, -0.06], [0.37, -0.03]], 0.01);
+      ell(0.37, 0.03, 0.055); paint(K.gold); ell(0.37, 0.03, 0.03); CT.stroke();
+    },
+    library(c, s, p) {
+      shadow(0.42, 0.44);
+      rr(-0.38, -0.08, 0.76, 0.46, 0.03); paint(K.cream);
+      path([[-0.42, -0.06], [0, -0.32], [0.42, -0.06]]); paint(K.blue);
+      [-0.27, 0.27].forEach((x) => { rr(x - 0.05, 0.02, 0.1, 0.18, 0.03); paint(K.glass); });
+      door(-0.08, 0.14, 0.16, 0.24, K.darkwood);
+      // The open book over the door.
+      CT.beginPath(); CT.moveTo(X(0), X(-0.12)); CT.quadraticCurveTo(X(-0.07), X(-0.17), X(-0.14), X(-0.13)); CT.lineTo(X(-0.14), X(-0.03)); CT.quadraticCurveTo(X(-0.07), X(-0.07), X(0), X(-0.02)); CT.closePath(); paint(K.white);
+      CT.beginPath(); CT.moveTo(X(0), X(-0.12)); CT.quadraticCurveTo(X(0.07), X(-0.17), X(0.14), X(-0.13)); CT.lineTo(X(0.14), X(-0.03)); CT.quadraticCurveTo(X(0.07), X(-0.07), X(0), X(-0.02)); CT.closePath(); paint(K.white);
+      [[-0.32, K.red], [-0.28, K.leaf2], [-0.24, K.purple]].forEach(([x, cc], i) => { rr(x, 0.26 - i * 0.01, 0.04, 0.12 + i * 0.01, 0.008); paint(cc); });
+      [[0.22, K.gold], [0.26, K.blue], [0.3, K.coral]].forEach(([x, cc], i) => { rr(x, 0.27 - (i % 2) * 0.02, 0.04, 0.11 + (i % 2) * 0.02, 0.008); paint(cc); });
+    },
+    guildhall(c, s, p) {
+      shadow(0.42, 0.46);
+      rr(-0.4, -0.12, 0.8, 0.5, 0.03); paint(K.cream);
+      path([[-0.46, -0.1], [-0.3, -0.38], [0.3, -0.38], [0.46, -0.1]]); paint(K.red);
+      CT.save(); CT.strokeStyle = MONO ? CT.strokeStyle : K.darkwood; CT.lineWidth = X(0.022);
+      line([[-0.4, 0.12], [0.4, 0.12]]); [-0.24, -0.08, 0.08, 0.24].forEach((x) => line([[x, -0.12], [x, 0.38]]));
+      line([[-0.4, -0.12], [-0.24, 0.12]]); line([[0.4, -0.12], [0.24, 0.12]]); CT.restore();
+      window_(-0.2, -0.06, 0.08, 0.1); window_(0.12, -0.06, 0.08, 0.1); window_(-0.04, -0.06, 0.08, 0.1);
+      door(-0.08, 0.16, 0.16, 0.22, K.darkwood); line([[0, 0.2], [0, 0.38]], 0.01);
+      [-0.33, 0.33].forEach((x, i) => { path([[x - 0.05, 0.14], [x + 0.05, 0.14], [x + 0.05, 0.32], [x, 0.28], [x - 0.05, 0.32]]); paint(i ? K.blue : K.purple); star(x, 0.2, 0.02, K.gold); });
+      ell(0, -0.22, 0.05); paint(K.gold);
+    },
+    stable(c, s, p, R) {
+      shadow(0.4, 0.46);
+      rr(-0.4, -0.04, 0.8, 0.42, 0.03); paint(K.wood);
+      path([[-0.46, -0.02], [-0.32, -0.26], [0.32, -0.26], [0.46, -0.02]]); paint(K.red);
+      [-0.22, 0.04].forEach((x) => { rr(x, 0.08, 0.18, 0.3, 0.02); paint(K.darkwood); rr(x, 0.08, 0.18, 0.12, 0.02); paint(K.dark); line([[x, 0.2], [x + 0.18, 0.38]], 0.012); line([[x + 0.18, 0.2], [x, 0.38]], 0.012); });
+      CT.save(); CT.lineWidth = X(0.028); CT.beginPath(); CT.arc(X(0), X(-0.14), X(0.05), Math.PI * 0.1, Math.PI * 0.9, true); CT.strokeStyle = col(K.gold); CT.stroke(); CT.restore();
+      puff(0.32, 0.28, 0.08, 6, R); CT.save(); CT.translate(X(0.32), X(0.28)); CT.scale(1.1, 0.8); CT.translate(-X(0.32), -X(0.28)); paint(K.straw); CT.restore();
+      puff(-0.13, 0.13, 0.04, 5, R); paint(K.straw);
+    },
+    farm(c, s, p, R) {
+      CT.save(); CT.translate(0, X(0.24)); CT.transform(1, 0, -0.3, 0.42, 0, 0);
+      [[-0.46, -0.3, K.straw], [0.02, -0.3, K.leaf], [-0.46, 0.06, K.leaf2], [0.02, 0.06, K.sand2]].forEach(([x, y, cc]) => {
+        rr(x, y, 0.44, 0.32, 0.05); paint(cc);
+        CT.save(); CT.globalAlpha = 0.35; for (let k = 1; k < 4; k++) line([[x + 0.03, y + k * 0.08], [x + 0.41, y + k * 0.08]]); CT.restore();
+      });
+      CT.restore();
+      mini('barn', 0.2, -0.16, 0.5); mini('house', -0.2, -0.14, 0.44);
+      puff(0.42, 0.0, 0.05, 6, R); paint(K.straw);
+    },
+    watermill(c, s, p) {
+      shadow(0.4, 0.46);
+      ell(0.14, 0.34, 0.34, 0.08); paint(K.water);
+      house(-0.14, 0.36, 0.46, 0.34, K.blue, K.stone);
+      window_(-0.26, 0.08, 0.1, 0.1); door(-0.06, 0.18, 0.12, 0.18, K.darkwood);
+      const x = 0.26, y = 0.16, r = 0.18;
+      ell(x, y, r); paint(K.wood); ell(x, y, r * 0.72); CT.stroke();
+      for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4; CT.save(); CT.translate(X(x + Math.cos(a) * r), X(y + Math.sin(a) * r)); CT.rotate(a); rr(-0.025, -0.04, 0.05, 0.08, 0.01); paint(K.darkwood); CT.restore(); line([[x, y], [x + Math.cos(a) * r * 0.72, y + Math.sin(a) * r * 0.72]], 0.01); }
+      ell(x, y, 0.035); paint(K.stone2);
+      CT.save(); CT.globalAlpha = 0.7; CT.strokeStyle = MONO ? CT.strokeStyle : K.white; [0.12, 0.4].forEach((wx) => { CT.beginPath(); CT.moveTo(X(wx), X(0.32)); CT.quadraticCurveTo(X(wx + 0.03), X(0.3), X(wx + 0.06), X(0.33)); CT.stroke(); }); CT.restore();
+    },
+    hamlet(c, s, p, R) {
+      ground(0.24, 0.44, 0.18);
+      cottage(-0.2, 0.04, 0.26, K.red); cottage(0.2, 0.06, 0.24, K.blue);
+      roundTree(0.34, -0.2, 0.09, R, K.leaf2);
+      cottage(0.0, 0.34, 0.28, K.coral);
+      flower(-0.3, 0.3, 0.016, K.pink); flower(0.32, 0.3, 0.016, K.gold);
+    },
+    village(c, s, p, R) {
+      ground(0.16, 0.48, 0.28);
+      roundTree(-0.38, -0.2, 0.08, R, K.leaf2); roundTree(0.4, -0.18, 0.08, R, K.leaf);
+      cottage(-0.24, -0.08, 0.2, K.red);
+      // The little chapel at the back.
+      rr(0.02, -0.38, 0.08, 0.24, 0.01); paint(K.wall); path([[0.0, -0.37], [0.06, -0.48], [0.12, -0.37]]); paint(K.blue);
+      cottage(0.04, -0.06, 0.22, K.blue); cottage(0.28, -0.04, 0.18, K.purple);
+      cottage(-0.18, 0.2, 0.22, K.coral); cottage(0.18, 0.22, 0.22, K.red);
+      cottage(0.0, 0.42, 0.2, K.teal);
+      flower(-0.36, 0.34, 0.016, K.pink); flower(0.36, 0.32, 0.016, K.gold);
+    },
+    town(c, s, p, R) {
+      shadow(0.42, 0.48);
+      const tall = (x, b, w, h, roof, wall = K.wall) => {
+        house(x, b, w, h, roof, wall);
+        for (let y = b - h + 0.04; y < b - 0.12; y += 0.1) [x - w * 0.28, x + w * 0.08].forEach((wx) => window_(wx, y, w * 0.2, 0.06));
+        door(x - w * 0.14, b - 0.1, w * 0.28, 0.1, K.darkwood);
+      };
+      tall(-0.34, 0.08, 0.18, 0.3, K.blue); tall(0.34, 0.08, 0.18, 0.28, K.red);
+      // The clock tower.
+      rr(-0.07, -0.32, 0.14, 0.42, 0.01); paint(K.stone); path([[-0.1, -0.31], [0, -0.48], [0.1, -0.31]]); paint(K.teal);
+      ell(0, -0.22, 0.045); paint(K.white); line([[0, -0.22], [0, -0.25]], 0.008); line([[0, -0.22], [0.02, -0.22]], 0.008);
+      tall(-0.16, 0.14, 0.18, 0.32, K.coral, K.cream); tall(0.16, 0.14, 0.18, 0.34, K.purple, K.cream);
+      tall(-0.28, 0.4, 0.2, 0.26, K.red); tall(0.0, 0.42, 0.2, 0.28, K.blue, K.cream); tall(0.28, 0.4, 0.2, 0.24, K.coral);
+    },
+    city(c, s, p, R) {
+      shadow(0.42, 0.48);
+      // The roofs behind the walls, and the keep above them all.
+      [[-0.3, -0.02, 0.16, K.red], [-0.14, -0.06, 0.15, K.blue], [0.14, -0.06, 0.15, K.coral], [0.3, -0.02, 0.16, K.purple]].forEach(([x, b, w, rf]) => house(x, b, w, 0.12, rf));
+      towerAt(0, 0.0, 0.16, 0.34, K.blue, K.stone); flag(0, -0.54, 0.08, K.red);
+      rr(-0.44, 0.04, 0.88, 0.34, 0.02); paint(K.stone); crenel(-0.44, 0.04, 0.88, 9);
+      [-0.38, 0.38].forEach((x) => { towerAt(x, 0.38, 0.14, 0.46, K.red); });
+      door(-0.09, 0.16, 0.18, 0.22, K.darkwood); [-0.04, 0.0, 0.04].forEach((x) => line([[x, 0.19], [x, 0.38]], 0.008));
+      window_(-0.24, 0.14, 0.06, 0.08); window_(0.18, 0.14, 0.06, 0.08);
+    },
+
+    /* ----- Castles and wonders, the second fifty ----- */
+    tomb(c, s, p) {
+      shadow(0.4, 0.4);
+      rr(-0.3, 0.3, 0.6, 0.08, 0.02); paint(K.stone2);
+      rr(-0.24, -0.06, 0.48, 0.36, 0.02); paint(K.stone);
+      path([[-0.3, -0.04], [0, -0.26], [0.3, -0.04]]); paint(K.stone2);
+      [-0.18, 0.18].forEach((x) => { rr(x - 0.03, -0.04, 0.06, 0.34, 0.01); paint(K.cream); });
+      door(-0.1, 0.04, 0.2, 0.26, K.dark); ell(0, 0.18, 0.05); paint(K.stone2);
+      line([[0.06, -0.02], [0.1, 0.04], [0.08, 0.1]], 0.008);
+      ell(-0.24, -0.04, 0.06, 0.03); paint(K.moss); ell(0.22, 0.28, 0.07, 0.03); paint(K.moss);
+      rr(0.3, 0.24, 0.04, 0.1, 0.01); paint(K.cream); path([[0.32, 0.16], [0.335, 0.22], [0.32, 0.24], [0.305, 0.22]]); paint(K.flame);
+    },
+    watchtower(c, s, p) {
+      shadow(0.42, 0.3);
+      CT.save(); CT.lineWidth = X(0.04); CT.strokeStyle = MONO ? CT.strokeStyle : K.darkwood;
+      line([[-0.18, 0.4], [-0.1, -0.06]]); line([[0.18, 0.4], [0.1, -0.06]]); CT.restore();
+      [[-0.18, 0.4, -0.1, -0.06], [0.18, 0.4, 0.1, -0.06]].forEach(([a, b, x, y]) => limb([[a, b], [x, y]], 0.035, K.wood));
+      line([[-0.16, 0.3], [0.12, 0.06]], 0.016); line([[0.16, 0.3], [-0.12, 0.06]], 0.016);
+      rr(-0.2, -0.12, 0.4, 0.08, 0.02); paint(K.wood);
+      rr(-0.15, -0.3, 0.3, 0.18, 0.02); paint(K.wall); rr(-0.08, -0.26, 0.16, 0.08, 0.02); paint(K.dark);
+      path([[-0.22, -0.28], [0, -0.44], [0.22, -0.28]]); paint(K.red); flag(0, -0.44, 0.08, K.gold);
+      [0.36, 0.26, 0.16, 0.06].forEach((y) => line([[0.24, y], [0.3, y]], 0.01)); line([[0.24, 0.4], [0.22, -0.04]], 0.012); line([[0.3, 0.4], [0.28, -0.04]], 0.012);
+    },
+    wall(c, s, p) {
+      shadow(0.4, 0.48);
+      rr(-0.46, -0.02, 0.92, 0.38, 0.02); paint(K.stone); crenel(-0.46, -0.02, 0.92, 10);
+      CT.save(); CT.globalAlpha = 0.35; [0.1, 0.22].forEach((y, i) => { line([[-0.44, y], [0.44, y]], 0.008); for (let x = -0.4 + i * 0.06; x < 0.44; x += 0.12) line([[x, y], [x, y + 0.12]], 0.008); }); CT.restore();
+      towerAt(0, 0.38, 0.2, 0.56, K.blue, K.stone2); flag(0, -0.43, 0.09, K.red);
+      door(-0.06, 0.2, 0.12, 0.18, K.darkwood);
+      ell(-0.3, 0.38, 0.08, 0.03); paint(K.moss); ell(0.32, 0.38, 0.06, 0.025); paint(K.moss);
+    },
+    keep(c, s, p) {
+      shadow(0.42, 0.34);
+      rr(-0.24, -0.24, 0.48, 0.64, 0.02); paint(K.stone); crenel(-0.28, -0.24, 0.56, 5, K.stone);
+      rr(-0.28, -0.26, 0.56, 0.04, 0.01); paint(K.stone2);
+      [-0.12, 0.12].forEach((x) => { rr(x - 0.015, -0.12, 0.03, 0.1, 0.01); paint(K.dark); });
+      window_(-0.05, 0.04, 0.1, 0.1);
+      door(-0.08, 0.2, 0.16, 0.2, K.darkwood);
+      flag(0.16, -0.36, 0.12, K.red);
+      ell(-0.2, 0.4, 0.07, 0.025); paint(K.leaf, false);
+    },
+    fort(c, s, p) {
+      shadow(0.42, 0.48);
+      const pal_ = (x0, x1, b, h) => { for (let x = x0; x < x1 - 0.01; x += 0.06) { path([[x, b], [x, b - h], [x + 0.03, b - h - 0.04], [x + 0.06, b - h], [x + 0.06, b]]); paint(K.wood); } };
+      [[-0.38, -0.22], [0.38, -0.22]].forEach(([x, top]) => {
+        CT.save(); line([[x - 0.06, 0.38], [x - 0.04, top + 0.08]], 0.03); line([[x + 0.06, 0.38], [x + 0.04, top + 0.08]], 0.03); CT.restore();
+        rr(x - 0.08, top, 0.16, 0.1, 0.02); paint(K.darkwood); path([[x - 0.1, top + 0.01], [x, top - 0.12], [x + 0.1, top + 0.01]]); paint(K.red);
+      });
+      pal_(-0.36, 0.36, 0.38, 0.32);
+      rr(-0.1, 0.12, 0.2, 0.26, 0.02); paint(K.dark); line([[0, 0.12], [0, 0.38]], 0.01);
+      flag(0, -0.04, 0.12, K.gold); rr(-0.36, 0.2, 0.72, 0.03, 0.01); paint(K.darkwood);
+    },
+    citadel(c, s, p, R) {
+      CT.beginPath(); CT.moveTo(X(-0.46), X(0.4)); CT.bezierCurveTo(X(-0.36), X(0.0), X(0.36), X(0.0), X(0.46), X(0.4)); CT.closePath(); paint(K.stone2);
+      shine(-0.2, 0.18, 0.08, 0.025);
+      towerAt(-0.26, 0.2, 0.1, 0.3, K.red); towerAt(0.26, 0.2, 0.1, 0.3, K.red);
+      rr(-0.22, -0.04, 0.44, 0.26, 0.02); paint(K.stone); crenel(-0.22, -0.04, 0.44, 5);
+      towerAt(-0.1, -0.02, 0.1, 0.24, K.blue, K.stone); towerAt(0.1, -0.02, 0.1, 0.24, K.blue, K.stone);
+      towerAt(0, 0.0, 0.12, 0.34, K.blue); flag(0, -0.49, 0.08, K.gold);
+      door(-0.05, 0.12, 0.1, 0.1, K.darkwood);
+      line([[-0.04, 0.38], [0.02, 0.3], [-0.03, 0.24]], 0.014);
+    },
+    palace(c, s, p) {
+      shadow(0.42, 0.48);
+      rr(-0.42, 0.02, 0.84, 0.36, 0.02); paint(K.cream);
+      [-0.36, 0.36].forEach((x) => { rr(x - 0.04, -0.3, 0.08, 0.68, 0.02); paint(K.cream); CT.beginPath(); CT.moveTo(X(x - 0.05), X(-0.3)); CT.quadraticCurveTo(X(x - 0.06), X(-0.4), X(x), X(-0.46)); CT.quadraticCurveTo(X(x + 0.06), X(-0.4), X(x + 0.05), X(-0.3)); CT.closePath(); paint(K.pink); });
+      rr(-0.18, -0.12, 0.36, 0.16, 0.02); paint(K.cream);
+      CT.beginPath(); CT.moveTo(X(-0.16), X(-0.12)); CT.bezierCurveTo(X(-0.24), X(-0.3), X(-0.04), X(-0.34), X(0), X(-0.46)); CT.bezierCurveTo(X(0.04), X(-0.34), X(0.24), X(-0.3), X(0.16), X(-0.12)); CT.closePath(); paint(K.gold);
+      shine(-0.07, -0.24, 0.04, 0.03);
+      [-0.24, -0.12, 0.12, 0.24].forEach((x) => door(x - 0.035, 0.12, 0.07, 0.12, K.teal));
+      door(-0.07, 0.16, 0.14, 0.22, K.darkwood);
+      [-0.08, 0.0, 0.08].forEach((x) => door(x - 0.025, -0.08, 0.05, 0.08, K.teal));
+    },
+    kingdom(c, s, p, R) {
+      peakAt(-0.26, 0.04, 0.22, 0.4, K.stone2); peakAt(0.26, 0.04, 0.22, 0.44, K.stone2);
+      ground(0.2, 0.48, 0.24);
+      CT.save(); CT.beginPath(); CT.moveTo(X(0.46), X(0.12)); CT.bezierCurveTo(X(0.2), X(0.2), X(0.34), X(0.34), X(0.06), X(0.44)); CT.strokeStyle = col(K.water); CT.lineWidth = X(0.06); CT.stroke(); CT.restore();
+      mini('castle', 0, -0.08, 0.5);
+      roundTree(-0.38, 0.08, 0.07, R, K.leaf2); roundTree(0.22, 0.12, 0.06, R, K.leaf);
+      cottage(-0.22, 0.34, 0.16, K.red); cottage(-0.02, 0.38, 0.16, K.blue); cottage(0.36, 0.3, 0.14, K.coral);
+    },
+    monastery(c, s, p) {
+      CT.beginPath(); CT.moveTo(X(-0.4), X(0.42)); CT.lineTo(X(-0.36), X(0.06)); CT.lineTo(X(-0.24), X(-0.02)); CT.lineTo(X(0.26), X(-0.04)); CT.lineTo(X(0.38), X(0.08)); CT.lineTo(X(0.42), X(0.42)); CT.closePath(); paint(K.stone2);
+      shine(-0.24, 0.12, 0.06, 0.02);
+      house(-0.12, 0.0, 0.3, 0.16, K.red, K.cream); window_(-0.18, -0.1, 0.05, 0.06); window_(-0.08, -0.1, 0.05, 0.06);
+      rr(0.1, -0.36, 0.14, 0.36, 0.01); paint(K.cream); path([[0.07, -0.35], [0.17, -0.48], [0.27, -0.35]]); paint(K.red);
+      door(0.135, -0.3, 0.07, 0.09, K.dark); ell(0.17, -0.24, 0.025); paint(K.gold);
+      house(0.28, 0.02, 0.14, 0.1, K.coral, K.cream);
+      [0.16, 0.22, 0.28, 0.34].forEach((y, i) => { rr(-0.06 + i * 0.03, y - 0.03, 0.14, 0.04, 0.01); paint(K.stone); });
+      ell(-0.3, 0.4, 0.06, 0.025); paint(K.leaf); ell(0.32, 0.4, 0.05, 0.02); paint(K.leaf);
+    },
+    cathedral(c, s, p) {
+      shadow(0.42, 0.46);
+      house(0, 0.38, 0.44, 0.36, K.blue, K.cream);
+      [-0.28, 0.28].forEach((x) => {
+        rr(x - 0.09, -0.24, 0.18, 0.62, 0.02); paint(K.cream);
+        path([[x - 0.11, -0.23], [x, -0.48], [x + 0.11, -0.23]]); paint(K.blue);
+        line([[x, -0.48], [x, -0.52]], 0.012); window_(x - 0.03, -0.14, 0.06, 0.1); window_(x - 0.03, 0.08, 0.06, 0.1);
+      });
+      ell(0, -0.08, 0.08); paint(K.pink); for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4; line([[0, -0.08], [Math.cos(a) * 0.08, -0.08 + Math.sin(a) * 0.08]], 0.006); } ell(0, -0.08, 0.025); paint(K.gold);
+      door(-0.08, 0.14, 0.16, 0.24, K.darkwood); line([[0, 0.18], [0, 0.38]], 0.01);
+      line([[0, -0.34], [0, -0.42]], 0.014); line([[-0.03, -0.39], [0.03, -0.39]], 0.014);
+    },
+    observatory(c, s, p) {
+      shadow(0.42, 0.42);
+      star(-0.32, -0.34, 0.035, K.gold); star(0.36, -0.28, 0.025, K.gold); star(-0.38, -0.12, 0.02, K.glass);
+      rr(-0.3, 0.02, 0.6, 0.36, 0.03); paint(K.stone);
+      CT.save(); CT.translate(X(0.06), X(-0.12)); CT.rotate(-0.6); rr(-0.04, -0.34, 0.08, 0.3, 0.02); paint(K.gold); rr(-0.05, -0.36, 0.1, 0.05, 0.01); paint(K.darkwood); CT.restore();
+      CT.beginPath(); CT.moveTo(X(-0.26), X(0.04)); CT.arc(X(0), X(0.04), X(0.26), Math.PI, 0); CT.closePath(); paint(K.purple);
+      CT.save(); CT.beginPath(); CT.moveTo(X(-0.26), X(0.04)); CT.arc(X(0), X(0.04), X(0.26), Math.PI, 0); CT.closePath(); CT.clip(); CT.translate(X(0), X(0.04)); CT.rotate(0.95); rr(-0.03, -0.3, 0.06, 0.3, 0.01); paint(K.dark); CT.restore();
+      shine(-0.12, -0.1, 0.05, 0.03);
+      door(-0.06, 0.2, 0.12, 0.18, K.darkwood); window_(-0.22, 0.14, 0.07, 0.08); window_(0.15, 0.14, 0.07, 0.08);
+    },
+    pyramid(c, s, p) {
+      shadow(0.4, 0.48);
+      path([[-0.46, 0.38], [0, -0.36], [0.46, 0.38]]); paint(K.sand);
+      path([[0, -0.36], [0.46, 0.38], [0.12, 0.38]]); paint(K.sand2);
+      CT.save(); CT.globalAlpha = 0.4; [-0.12, 0.06, 0.24].forEach((y) => { const w = 0.46 * (y + 0.36) / 0.74; line([[-w, y], [w * 0.26, y]], 0.008); }); CT.restore();
+      door(-0.06, 0.2, 0.12, 0.18, K.dark);
+      ell(0, -0.36, 0.03); paint(K.gold);
+      ell(0.34, -0.3, 0.07); paint(K.flame);
+    },
+    arena(c, s, p) {
+      shadow(0.42, 0.48);
+      ell(0, 0.06, 0.46, 0.3); paint(K.cream);
+      CT.save(); ell(0, 0.06, 0.46, 0.3); CT.clip();
+      for (let k = 0; k < 8; k++) { const x = -0.42 + k * 0.12; door(x, 0.06, 0.07, 0.12, K.dark); door(x + 0.02, 0.22, 0.07, 0.14, K.dark); }
+      line([[-0.46, 0.2], [0.46, 0.2]], 0.01); CT.restore();
+      ell(0, 0.06, 0.46, 0.3); CT.stroke();
+      ell(0, -0.04, 0.36, 0.14); paint(K.stone);
+      ell(0, -0.02, 0.26, 0.09); paint(K.sand);
+      [-0.36, 0.0, 0.36].forEach((x, i) => flag(x, x ? -0.14 : -0.18, 0.12, [K.red, K.blue, K.red][i]));
+    },
+
+    /* ----- Roads and adventure, the second fifty ----- */
+    crates(c, s, p) {
+      shadow(0.4, 0.42);
+      const crate = (x, y, w) => { rr(x, y, w, w, 0.02); paint(K.wood); rr(x + w * 0.1, y + w * 0.1, w * 0.8, w * 0.8, 0.01); CT.stroke(); line([[x + w * 0.12, y + w * 0.12], [x + w * 0.88, y + w * 0.88]], 0.014); };
+      crate(-0.4, 0.06, 0.32); crate(-0.08, 0.12, 0.26); crate(-0.3, -0.24, 0.28);
+      rr(0.2, -0.02, 0.2, 0.4, 0.08); paint(K.darkwood); [0.06, 0.28].forEach((y) => { rr(0.2, y, 0.2, 0.03, 0.01); paint(K.stone2); }); shine(0.25, 0.04, 0.02, 0.06);
+    },
+    logs(c, s, p) {
+      shadow(0.4, 0.44);
+      const log = (x, y, w, r) => { rr(x - w, y - r, w, r * 2, r * 0.3); paint(K.wood); ell(x, y, r * 0.55, r); paint(K.sand); ell(x, y, r * 0.3, r * 0.55); CT.stroke(); };
+      log(0.3, 0.28, 0.56, 0.09); log(0.36, 0.1, 0.56, 0.09); log(0.28, -0.08, 0.5, 0.09);
+      rr(-0.42, 0.24, 0.2, 0.14, 0.03); paint(K.wood); ell(-0.32, 0.24, 0.1, 0.035); paint(K.sand);
+      CT.save(); CT.translate(X(-0.3), X(0.22)); CT.rotate(-0.5); rr(-0.012, -0.24, 0.024, 0.24, 0.01); paint(K.darkwood); path([[-0.012, -0.22], [0.07, -0.26], [0.08, -0.16], [-0.012, -0.17]]); paint(K.stone); CT.restore();
+    },
+    caravan(c, s, p) {
+      shadow(0.4, 0.44);
+      rr(-0.36, 0.0, 0.62, 0.16, 0.03); paint(K.wood);
+      CT.beginPath(); CT.moveTo(X(-0.34), X(0.0)); CT.bezierCurveTo(X(-0.36), X(-0.38), X(0.26), X(-0.38), X(0.24), X(0.0)); CT.closePath(); paint(K.cream);
+      [-0.16, 0.04].forEach((x) => line([[x, 0.0], [x + 0.01, -0.26]], 0.012));
+      ell(-0.36, -0.06, 0.03, 0.06); paint(K.dark);
+      line([[0.26, 0.1], [0.46, 0.2]], 0.024);
+      wheel(-0.22, 0.22, 0.12); wheel(0.12, 0.22, 0.12);
+      flag(0.0, -0.28, 0.08, K.red);
+    },
+    camp(c, s, p, R) {
+      ground(0.24, 0.46, 0.18);
+      tentAt(-0.22, 0.06, 0.32, K.red); tentAt(0.22, 0.04, 0.3, K.blue);
+      tentAt(0.02, -0.08, 0.24, K.leaf2);
+      mini('fire', 0.02, 0.24, 0.36);
+      [[-0.18, 0.36], [0.24, 0.34]].forEach(([x, y]) => { rr(x - 0.06, y - 0.025, 0.12, 0.05, 0.02); paint(K.wood); });
+    },
+    gallows(c, s, p) {
+      shadow(0.4, 0.4);
+      rr(-0.36, 0.22, 0.72, 0.1, 0.02); paint(K.wood); [-0.3, 0.3].forEach((x) => { rr(x - 0.03, 0.3, 0.06, 0.1, 0.01); paint(K.darkwood); });
+      rr(-0.22, -0.36, 0.06, 0.6, 0.01); paint(K.wood);
+      rr(-0.24, -0.38, 0.44, 0.06, 0.01); paint(K.wood);
+      path([[-0.16, -0.2], [-0.02, -0.32], [-0.02, -0.28], [-0.16, -0.16]]); paint(K.darkwood);
+      line([[0.12, -0.32], [0.12, -0.08]], 0.012); ell(0.12, -0.03, 0.04, 0.05); CT.stroke();
+      [0.24, 0.2, 0.16].forEach((y, i) => { rr(0.2 + i * 0.04, y, 0.16 - i * 0.04, 0.04, 0.005); paint(K.wood); });
+      // A crow keeps watch.
+      ell(-0.06, -0.42, 0.045, 0.03); paint(K.dark); ell(-0.1, -0.45, 0.022); paint(K.dark); path([[-0.12, -0.45], [-0.15, -0.44], [-0.12, -0.43]]); paint(K.flame, false);
+    },
+    battlefield(c, s, p) {
+      ell(0, 0.28, 0.46, 0.14); paint(K.mud);
+      const sword = (x, y, a) => { CT.save(); CT.translate(X(x), X(y)); CT.rotate(a); path([[-0.03, 0], [-0.03, -0.3], [0.03, -0.3], [0.03, 0]]); paint(K.stone); rr(-0.09, -0.33, 0.18, 0.04, 0.015); paint(K.gold); rr(-0.02, -0.43, 0.04, 0.1, 0.01); paint(K.darkwood); ell(0, -0.45, 0.03); paint(K.gold); CT.restore(); };
+      flag(-0.28, 0.2, 0.5, K.red); path([[-0.28, -0.3], [-0.1, -0.24], [-0.16, -0.2], [-0.12, -0.14], [-0.28, -0.12]]); paint(K.red);
+      sword(0.1, 0.3, -0.16); sword(0.3, 0.3, 0.14);
+      ell(-0.06, 0.26, 0.12); paint(K.blue); path([[-0.06, 0.14], [-0.06, 0.38]], false); CT.save(); CT.lineWidth = X(0.03); CT.strokeStyle = col(K.gold); CT.stroke(); CT.restore(); ell(-0.06, 0.26, 0.12); CT.stroke();
+      CT.beginPath(); CT.moveTo(X(0.18), X(0.38)); CT.arc(X(0.24), X(0.38), X(0.08), Math.PI, 0); CT.closePath(); paint(K.stone2);
+    },
+    dragon(c, s, p) {
+      shadow(0.4, 0.44);
+      [[-0.32, 0.36], [0.3, 0.36], [0.36, 0.3], [-0.26, 0.38], [0.0, 0.4]].forEach(([x, y]) => { ell(x, y, 0.06, 0.03); paint(K.gold); });
+      CT.beginPath(); CT.moveTo(X(-0.06), X(0.0)); CT.lineTo(X(-0.36), X(-0.34)); CT.quadraticCurveTo(X(-0.32), X(-0.16), X(-0.42), X(-0.06)); CT.quadraticCurveTo(X(-0.3), X(-0.04), X(-0.3), X(0.06)); CT.closePath(); paint(K.purple);
+      limb([[-0.14, 0.26], [-0.3, 0.28], [-0.36, 0.18]], 0.06, K.red); path([[-0.36, 0.1], [-0.4, 0.18], [-0.32, 0.18]]); paint(K.red);
+      ell(0, 0.16, 0.2, 0.18); paint(K.red); ell(0.04, 0.2, 0.11, 0.12); paint(K.sand);
+      CT.save(); CT.globalAlpha = 0.4; [0.14, 0.2, 0.26].forEach((y) => line([[-0.04, y], [0.12, y]], 0.008)); CT.restore();
+      ell(0.12, -0.12, 0.14, 0.12); paint(K.red); ell(0.24, -0.06, 0.08, 0.06); paint(K.red);
+      [[0.04, -0.22], [0.14, -0.24]].forEach(([x, y]) => { path([[x - 0.02, y + 0.02], [x - 0.03, y - 0.08], [x + 0.03, y + 0.01]]); paint(K.cream); });
+      ell(0.12, -0.12, 0.035); paint(K.white); ell(0.13, -0.12, 0.018); paint(K.dark, false);
+      ell(0.27, -0.08, 0.008); paint(K.dark, false); ell(0.04, -0.06, 0.025, 0.015); paint(K.pink, false);
+      [[-0.06, 0.32], [0.1, 0.32]].forEach(([x, y]) => { ell(x, y, 0.05, 0.035); paint(K.red); });
+      puff(0.36, -0.2, 0.035, 5, rng('puff')); paint(K.smoke);
+    },
+    ropebridge(c, s, p) {
+      rr(-0.46, -0.04, 0.92, 0.44, 0.04); paint(K.dark);
+      path([[-0.46, -0.04], [-0.2, -0.04], [-0.16, 0.08], [-0.22, 0.24], [-0.18, 0.4], [-0.46, 0.4]]); paint(K.stone2);
+      path([[0.46, -0.04], [0.2, -0.04], [0.18, 0.1], [0.24, 0.26], [0.2, 0.4], [0.46, 0.4]]); paint(K.stone2);
+      ell(-0.33, -0.04, 0.13, 0.03); paint(K.grass); ell(0.33, -0.04, 0.13, 0.03); paint(K.grass);
+      [-0.24, 0.24].forEach((x) => { rr(x - 0.015, -0.2, 0.03, 0.18, 0.01); paint(K.wood); });
+      for (let k = 0; k <= 8; k++) { const t = k / 8, x = -0.22 + t * 0.44, y = -0.04 + Math.sin(t * Math.PI) * 0.12; rr(x - 0.02, y - 0.012, 0.04, 0.05, 0.006); paint(K.wood); }
+      CT.beginPath(); CT.moveTo(X(-0.24), X(-0.18)); CT.quadraticCurveTo(X(0), X(0.04), X(0.24), X(-0.18)); CT.stroke();
+    },
+    quarry(c, s, p) {
+      ell(0, 0.1, 0.46, 0.3); paint(K.stone);
+      ell(0, 0.14, 0.34, 0.2); paint(K.stone2);
+      ell(0, 0.18, 0.2, 0.1); paint(K.mud);
+      ell(0, 0.2, 0.08, 0.04); paint(K.dark);
+      rr(0.18, -0.26, 0.12, 0.1, 0.01); paint(K.cream); rr(0.26, -0.18, 0.12, 0.1, 0.01); paint(K.cream);
+      CT.save(); CT.translate(X(-0.3), X(-0.14)); CT.rotate(0.6); rr(-0.012, -0.12, 0.024, 0.26, 0.01); paint(K.wood); CT.beginPath(); CT.moveTo(X(-0.14), X(-0.08)); CT.quadraticCurveTo(X(0), X(-0.18), X(0.14), X(-0.08)); CT.quadraticCurveTo(X(0), X(-0.13), X(-0.14), X(-0.08)); paint(K.stone2); CT.restore();
+    },
+    boat(c, s, p) {
+      ell(0, 0.2, 0.44, 0.16); paint(K.water); waves(0.3, -0.3, 0.3, 3);
+      CT.save(); CT.lineWidth = X(0.02); line([[-0.36, -0.08], [-0.1, 0.16]]); line([[0.36, -0.08], [0.1, 0.16]]); CT.restore();
+      ell(-0.36, -0.08, 0.035, 0.02); paint(K.wood); ell(0.36, -0.08, 0.035, 0.02); paint(K.wood);
+      CT.beginPath(); CT.moveTo(X(-0.32), X(0.02)); CT.lineTo(X(0.32), X(0.02)); CT.quadraticCurveTo(X(0.26), X(0.2), X(0.12), X(0.2)); CT.lineTo(X(-0.12), X(0.2)); CT.quadraticCurveTo(X(-0.26), X(0.2), X(-0.32), X(0.02)); CT.closePath(); paint(K.coral);
+      line([[-0.28, 0.08], [0.28, 0.08]], 0.01); rr(-0.06, 0.0, 0.12, 0.03, 0.01); paint(K.wood);
+    },
+    shipwreck(c, s, p) {
+      ell(0, 0.28, 0.46, 0.13); paint(K.water);
+      ell(0.3, 0.3, 0.1, 0.05); paint(K.stone2); ell(-0.32, 0.32, 0.08, 0.04); paint(K.stone2);
+      CT.save(); CT.translate(X(-0.02), X(0.16)); CT.rotate(-0.28);
+      line([[-0.04, 0.0], [-0.04, -0.46]], 0.026); line([[-0.04, -0.46], [0.04, -0.52]], 0.016);
+      path([[-0.04, -0.42], [0.2, -0.38], [0.14, -0.3], [0.22, -0.22], [0.08, -0.18], [0.14, -0.1], [-0.04, -0.1]]); paint(K.cream);
+      CT.beginPath(); CT.moveTo(X(-0.38), X(-0.02)); CT.lineTo(X(0.18), X(-0.02)); CT.lineTo(X(0.24), X(0.04)); CT.lineTo(X(0.18), X(0.08)); CT.lineTo(X(0.26), X(0.14)); CT.lineTo(X(-0.22), X(0.18)); CT.quadraticCurveTo(X(-0.36), X(0.16), X(-0.38), X(-0.02)); CT.closePath(); paint(K.darkwood);
+      line([[-0.34, 0.06], [0.2, 0.06]], 0.01); [-0.24, -0.08].forEach((x) => { ell(x, 0.12, 0.022); paint(K.dark); });
+      CT.restore();
+      CT.save(); CT.globalAlpha = MONO ? 0.6 : 0.85; CT.beginPath(); CT.ellipse(0, X(0.33), X(0.44), X(0.08), 0, 0, Math.PI); CT.fillStyle = col(K.water); CT.fill(); CT.restore();
+      waves(0.32, -0.3, 0.3, 3);
+      ell(0.36, 0.22, 0.03, 0.02); paint(K.gold);
     },
   };
 
