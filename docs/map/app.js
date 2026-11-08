@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.17';
+  const VERSION = '261108.18';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1509,13 +1509,20 @@
   let currentStamp = 'lake';
   function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); }
 
-  /* ================= A place of your own: drawn in the theme's ink, coloured by dropping colours into its shapes ================= */
+  /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
+  const LINE_W = [0.01, 0.022, 0.036];   // fine, normal, bold
+  const BRUSH_W = [0.03, 0.06, 0.11];
+  const ERASE_R = [0.02, 0.04, 0.075];
   function placeEditor(existing) {
     const S = window.MapStamps;
-    const st = existing ? JSON.parse(JSON.stringify(existing)) : { id: `p-${Math.random().toString(36).slice(2, 10)}`, name: '', strokes: [], fills: [], v: 0 };
+    const norm = (sk) => (Array.isArray(sk) ? { w: 0.022, p: sk } : sk);
+    const st = existing ? JSON.parse(JSON.stringify(existing)) : { id: `p-${Math.random().toString(36).slice(2, 10)}`, name: '', strokes: [], fills: [], paint: [], v: 0 };
+    st.strokes = (st.strokes || []).map(norm); st.fills = st.fills || []; st.paint = st.paint || [];
     const history = [];
-    const remember = () => { history.push(JSON.stringify({ strokes: st.strokes, fills: st.fills })); if (history.length > 60) history.shift(); };
-    let tool = 'draw', paint = null; // paint: the colour picked for a tap (drag works too)
+    const remember = () => { history.push(JSON.stringify({ strokes: st.strokes, fills: st.fills, paint: st.paint })); if (history.length > 80) history.shift(); };
+    let tool = 'line', size = 1, colour = 'water';
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem('troubadour.map.colours') || '[]').filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 6); } catch (e) { recent = []; }
 
     $('#sheet-title').textContent = existing ? 'Change the place' : 'New place';
     const body = $('#sheet-body');
@@ -1534,45 +1541,84 @@
     cv.setAttribute('aria-label', 'Drawing of the place');
     stage.append(cv);
 
+    // Tools: lines, brush, pour, eraser; then the size, undo and start again.
     const tools = el('div', 'pe-tools');
     const tbtn = (id, icon, label) => {
       const b = el('button', 'pe-t'); b.type = 'button'; b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); b.dataset.t = id;
-      b.addEventListener('click', () => { tool = id; paint = null; paintTools(); });
+      b.addEventListener('click', () => { tool = id; paintTools(); });
       return b;
     };
+    const BRUSH = svg('<path d="M18.5 3.5l2 2-8.2 8.2-2.4.4.4-2.4z"/><path d="M9.6 13.8c-2.4-.3-4.4 1.4-4.4 3.8 0 1.4-.8 2.2-1.7 2.4 3.6 1.4 7.6-.4 7.6-4.2"/>', 18);
+    const POUR = svg('<path d="M5 11l7-7 7 7-7 7z"/><path d="M5 11h14"/><path d="M20 15s1.6 2 1.6 3.1a1.6 1.6 0 0 1-3.2 0C18.4 17 20 15 20 15z"/>', 18);
+    tools.append(tbtn('line', ICON.pen, 'Lines'), tbtn('brush', BRUSH, 'Brush: colour under the lines'), tbtn('pour', POUR, 'Pour a colour into a shape'), tbtn('erase', ICON.eraser, 'Eraser: rub out'));
+    const sizes = el('div', 'pe-sizes');
+    [0, 1, 2].forEach((k) => {
+      const b = el('button', 'pe-s'); b.type = 'button'; b.dataset.s = k; b.setAttribute('aria-label', ['Fine', 'Medium', 'Large'][k]); b.title = ['Fine', 'Medium', 'Large'][k];
+      b.append(el('i'));
+      b.addEventListener('click', () => { size = k; paintTools(); });
+      sizes.append(b);
+    });
     const undo = el('button', 'pe-t'); undo.type = 'button'; undo.innerHTML = ICON.undo; undo.title = 'Undo'; undo.setAttribute('aria-label', 'Undo');
     undo.addEventListener('click', () => { const h = history.pop(); if (!h) return; Object.assign(st, JSON.parse(h)); draw(); });
-    const clear = el('button', 'pe-t'); clear.type = 'button'; clear.innerHTML = ICON.trash; clear.title = 'Start again'; clear.setAttribute('aria-label', 'Start again');
-    clear.addEventListener('click', () => { if (!st.strokes.length) return; remember(); st.strokes = []; st.fills = []; draw(); });
-    tools.append(tbtn('draw', ICON.pen, 'Draw'), tbtn('erase', ICON.eraser, 'Erase a line or a colour'), undo, clear);
+    const clear = el('button', 'pe-t'); clear.type = 'button'; clear.innerHTML = ICON.trash; clear.title = 'Start again'; clear.setAttribute('aria-label', 'Start again (undo brings it back)');
+    clear.addEventListener('click', () => { if (!st.strokes.length && !st.paint.length && !st.fills.length) return; remember(); st.strokes = []; st.fills = []; st.paint = []; draw(); toast('Cleared. Undo brings it back.', 1600); });
+    const tools2 = el('div', 'pe-tools');
+    tools2.append(sizes, el('span', 'grow'), undo, clear);
 
+    // Colours: those of the theme, your own (the colour picker), the last ones you made.
     const colours = el('div', 'pe-colours');
     const pal = V.palette();
-    S.FILLS.forEach(([k, label]) => {
-      const chip = el('button', 'pe-c'); chip.type = 'button'; chip.dataset.c = k; chip.title = label; chip.setAttribute('aria-label', `${label}: drag it into a shape`);
-      chip.style.setProperty('--fill', k === 'hole' ? '#17130F' : pal[k]);
-      // A tap picks the colour (then tap inside a shape); a drag drops it where the finger lifts.
-      chip.addEventListener('pointerdown', (e) => {
+    const fillOf = (k) => (k === 'hole' ? '#17130F' : pal[k] || k);
+    const chip = (k, label) => {
+      const c = el('button', 'pe-c'); c.type = 'button'; c.dataset.c = k; c.title = label; c.setAttribute('aria-label', `${label}: tap to pick it, or drag it into a shape`);
+      c.style.setProperty('--fill', fillOf(k));
+      // A tap picks the colour (for the brush or the pour); a drag pours it where the finger lifts.
+      c.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         const id = e.pointerId, x0 = e.clientX, y0 = e.clientY;
         let ghost = null;
-        try { chip.setPointerCapture(id); } catch (err) { /* old browsers */ }
+        try { c.setPointerCapture(id); } catch (err) { /* old browsers */ }
         const move = (ev) => {
           if (ev.pointerId !== id) return;
-          if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) { ghost = el('div', 'pe-ghost'); ghost.style.setProperty('--fill', chip.style.getPropertyValue('--fill')); document.body.append(ghost); }
+          if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) { ghost = el('div', 'pe-ghost'); ghost.style.setProperty('--fill', fillOf(k)); document.body.append(ghost); }
           if (ghost) ghost.style.transform = `translate(${ev.clientX - 14}px, ${ev.clientY - 14}px)`;
         };
         const up = (ev) => {
           if (ev.pointerId !== id) return;
-          chip.removeEventListener('pointermove', move); chip.removeEventListener('pointerup', up); chip.removeEventListener('pointercancel', up);
-          if (ghost) { ghost.remove(); if (ev.type === 'pointerup') dropAt(ev.clientX, ev.clientY, k); return; }
-          tool = 'fill'; paint = paint === k ? null : k; if (!paint) tool = 'draw'; paintTools();
+          c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', up); c.removeEventListener('pointercancel', up);
+          if (ghost) { ghost.remove(); if (ev.type === 'pointerup') pourAt(ev.clientX, ev.clientY, k); return; }
+          colour = k;
+          if (tool === 'line' || tool === 'erase') tool = 'brush';
+          paintTools();
         };
-        chip.addEventListener('pointermove', move); chip.addEventListener('pointerup', up); chip.addEventListener('pointercancel', up);
+        c.addEventListener('pointermove', move); c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
       });
-      colours.append(chip);
-    });
-    const hint = el('p', 'pe-hint', 'Draw the outline of your place with your finger. Then drag a colour into a closed shape.');
+      return c;
+    };
+    const paintColours = () => {
+      colours.textContent = '';
+      S.FILLS.forEach(([k, label]) => colours.append(chip(k, label)));
+      recent.forEach((h) => colours.append(chip(h, h.toUpperCase())));
+      const more = el('label', 'pe-c pe-more');
+      more.title = 'Another colour';
+      more.setAttribute('aria-label', 'Another colour');
+      more.innerHTML = ICON.plus;
+      const pick = el('input');
+      pick.type = 'color';
+      pick.value = /^#/.test(colour) ? colour : '#8a6d3b';
+      pick.addEventListener('change', () => {
+        const h = pick.value.toLowerCase();
+        recent = [h].concat(recent.filter((x) => x !== h)).slice(0, 6);
+        try { localStorage.setItem('troubadour.map.colours', JSON.stringify(recent)); } catch (e) { /* private mode */ }
+        colour = h;
+        if (tool === 'line' || tool === 'erase') tool = 'brush';
+        paintColours(); paintTools();
+      });
+      more.append(pick);
+      colours.append(more);
+      paintTools();
+    };
+    const hint = el('p', 'pe-hint');
 
     const foot = el('div', 'pe-foot');
     if (existing) {
@@ -1591,7 +1637,7 @@
     const cancel = el('button', 'btn slim', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', () => $('#sheet').close());
     const ok = el('button', 'btn slim primary', existing ? 'Save' : 'Add to the library'); ok.type = 'button';
     ok.addEventListener('click', () => {
-      if (!st.strokes.length) { toast('Draw your place first.', 1800); return; }
+      if (!st.strokes.length && !st.paint.length) { toast('Draw your place first.', 1800); return; }
       st.name = name.value.trim() || 'Place';
       st.v = (existing ? (existing.v || 0) : 0) + 1;
       const list = rec.world.stamps || (rec.world.stamps = []);
@@ -1605,17 +1651,27 @@
     foot.append(el('span', 'grow'), cancel, ok);
 
     const side = el('div', 'pe-side');
-    side.append(name, tools, colours, hint);
+    side.append(name, tools, tools2, colours, hint);
     const main = el('div', 'pe-main');
     main.append(stage, side);
     body.append(main, foot);
 
+    const HINTS = {
+      line: 'Draw the lines of your place with your finger. A line that ends near its start closes the shape.',
+      brush: 'Paint with the colour picked: it always stays under the lines.',
+      pour: 'Tap inside a closed shape to pour the colour picked. You can also drag a colour into a shape.',
+      erase: 'Rub out lines and paint. A tap inside a shape takes its poured colour away.',
+    };
     function paintTools() {
       tools.querySelectorAll('[data-t]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === tool)));
-      colours.querySelectorAll('.pe-c').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === paint)));
-      cv.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+      sizes.querySelectorAll('[data-s]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.s) === size)));
+      sizes.dataset.tool = tool;
+      colours.querySelectorAll('.pe-c[data-c]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === colour && tool !== 'line' && tool !== 'erase')));
+      cv.style.cursor = tool === 'pour' ? 'cell' : tool === 'erase' ? 'none' : 'crosshair';
+      hint.textContent = HINTS[tool];
     }
-    let live = null; // the stroke being drawn
+    let live = null, eraser = null, rubbed = false;
+    const widthNow = () => (tool === 'brush' ? BRUSH_W[size] : LINE_W[size]);
     function draw() {
       const r = cv.getBoundingClientRect();
       const d = Math.min(2, window.devicePixelRatio || 1);
@@ -1625,67 +1681,112 @@
       c.setTransform(d, 0, 0, d, 0, 0);
       const p = V.palette();
       c.fillStyle = p.paper; c.fillRect(0, 0, w, w);
-      // A light grid, to keep the shapes even.
       c.strokeStyle = p.line; c.lineWidth = 1; c.globalAlpha = 0.5;
       for (let i = 1; i < 8; i++) { const q = Math.round((i * w) / 8) + 0.5; c.beginPath(); c.moveTo(q, 0); c.lineTo(q, w); c.moveTo(0, q); c.lineTo(w, q); c.stroke(); }
       c.globalAlpha = 1;
-      const shown = Object.assign({}, st, { v: `e${JSON.stringify(st.strokes).length}-${JSON.stringify(st.fills)}` });
+      const shown = Object.assign({}, st, { v: `e${JSON.stringify(st.strokes).length}-${JSON.stringify(st.paint).length}-${JSON.stringify(st.fills)}` });
       c.drawImage(S.picture(shown, Object.assign({ hole: '#17130F' }, p)), 0, 0, w, w);
       if (live) {
-        // The line being drawn, over the picture (it joins it when the finger lifts).
-        c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = p.ink; c.fillStyle = p.ink; c.lineWidth = w * 0.022;
-        c.beginPath(); live.forEach((q, i) => (i ? c.lineTo(q[0] * w, q[1] * w) : c.moveTo(q[0] * w, q[1] * w)));
-        if (live.length === 1) { c.arc(live[0][0] * w, live[0][1] * w, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); } else c.stroke();
+        // The line or the paint being drawn, over the picture (it takes its place when the finger lifts).
+        const col = live.kind === 'brush' ? fillOf(live.c) : p.ink;
+        c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w * live.w;
+        if (live.kind === 'brush') c.globalAlpha = 0.85;
+        c.beginPath(); live.p.forEach((q, i) => (i ? c.lineTo(q[0] * w, q[1] * w) : c.moveTo(q[0] * w, q[1] * w)));
+        if (live.p.length === 1) { c.arc(live.p[0][0] * w, live.p[0][1] * w, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); } else c.stroke();
+        c.globalAlpha = 1;
+      }
+      if (eraser) {
+        c.strokeStyle = p.ink; c.lineWidth = 1.5; c.setLineDash([3, 3]);
+        c.beginPath(); c.arc(eraser[0] * w, eraser[1] * w, ERASE_R[size] * w, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
       }
     }
     const toUnit = (cx, cy) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (cx - r.left) / r.width)), Math.max(0, Math.min(1, (cy - r.top) / r.height))]; };
-    function dropAt(cx, cy, k) {
+    const r3 = (v) => Math.round(v * 1000) / 1000;
+    function pourAt(cx, cy, k) {
       const r = cv.getBoundingClientRect();
       if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return;
       const [x, y] = toUnit(cx, cy);
       const next = S.fillAt(st, x, y, k);
-      if (!next) { toast('Drop the colour inside a closed shape.', 1800); return; }
+      if (!next) { toast('Pour the colour inside a closed shape.', 1800); return; }
       remember(); st.fills = next; draw();
     }
-    function eraseAt(x, y) {
-      const near = 0.03;
-      const dist = (pts) => pts.reduce((m, q, i) => { if (!i) return Math.hypot(q[0] - x, q[1] - y); const a = pts[i - 1]; const dx = q[0] - a[0], dy = q[1] - a[1]; const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.min(m, Math.hypot(a[0] + dx * t - x, a[1] + dy * t - y)); }, Infinity);
-      const i = st.strokes.findIndex((pts) => dist(pts) < near);
-      if (i >= 0) { remember(); st.strokes.splice(i, 1); draw(); return; }
-      // Inside a coloured shape: its colour goes.
-      const mask = S.fillAt(st, x, y, 'stone');
-      if (mask) { const kept = mask.slice(0, -1); if (kept.length !== st.fills.length) { remember(); st.fills = kept; draw(); } }
+    /** The eraser rubs out what lies under it: the lines and the paint are cut where it passes. */
+    function rub(x, y) {
+      const rr = ERASE_R[size];
+      let changed = false;
+      const cut = (list) => {
+        const out = [];
+        list.forEach((sk) => {
+          // Points close enough together for the eraser to cut between them.
+          const dense = [];
+          sk.p.forEach((q, i) => {
+            if (i) { const a = sk.p[i - 1]; const n = Math.ceil(Math.hypot(q[0] - a[0], q[1] - a[1]) / (rr / 3)); for (let k = 1; k < n; k++) dense.push([a[0] + ((q[0] - a[0]) * k) / n, a[1] + ((q[1] - a[1]) * k) / n]); }
+            dense.push(q);
+          });
+          let run = [], hit = false;
+          dense.forEach((q) => {
+            if (Math.hypot(q[0] - x, q[1] - y) <= rr + sk.w / 2) { hit = true; if (run.length > 1) out.push(Object.assign({}, sk, { p: run.map((v) => [r3(v[0]), r3(v[1])]) })); run = []; }
+            else run.push(q);
+          });
+          if (!hit) { out.push(sk); return; }
+          changed = true;
+          if (run.length > 1) out.push(Object.assign({}, sk, { p: run.map((v) => [r3(v[0]), r3(v[1])]) }));
+        });
+        return out;
+      };
+      const s2 = cut(st.strokes), p2 = cut(st.paint);
+      if (!changed) return;
+      if (!rubbed) { remember(); rubbed = true; }
+      st.strokes = s2; st.paint = p2;
     }
     cv.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const [x, y] = toUnit(e.clientX, e.clientY);
-      if (tool === 'fill' && paint) { dropAt(e.clientX, e.clientY, paint); return; }
-      if (tool === 'erase') { eraseAt(x, y); return; }
+      if (tool === 'pour') { pourAt(e.clientX, e.clientY, colour); return; }
       try { cv.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
-      live = [[Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]];
+      if (tool === 'erase') { rubbed = false; eraser = [x, y]; eraser.moved = false; eraser.start = [x, y]; rub(x, y); draw(); return; }
+      live = { kind: tool, c: colour, w: widthNow(), p: [[r3(x), r3(y)]] };
       draw();
     });
     cv.addEventListener('pointermove', (e) => {
-      if (!live) return;
       const [x, y] = toUnit(e.clientX, e.clientY);
-      const last = live[live.length - 1];
-      if (Math.hypot(x - last[0], y - last[1]) < 0.006) return;
-      live.push([Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]);
+      if (eraser) {
+        if (Math.hypot(x - eraser.start[0], y - eraser.start[1]) > 0.01) eraser.moved = true;
+        const keep = { moved: eraser.moved, start: eraser.start };
+        eraser = Object.assign([x, y], keep);
+        rub(x, y); draw(); return;
+      }
+      if (!live) return;
+      const last = live.p[live.p.length - 1];
+      if (Math.hypot(x - last[0], y - last[1]) < 0.005) return;
+      live.p.push([r3(x), r3(y)]);
       draw();
     });
     const end = () => {
+      if (eraser) {
+        // A tap that rubbed nothing, inside a coloured shape: its poured colour goes.
+        if (!eraser.moved && !rubbed) {
+          const next = S.fillAt(st, eraser.start[0], eraser.start[1], 'stone');
+          if (next) { const kept = next.slice(0, -1); if (kept.length !== st.fills.length) { remember(); st.fills = kept; } }
+        }
+        eraser = null; draw(); return;
+      }
       if (!live) return;
-      // A line that ends near where it began closes itself, so it can take a colour.
-      const a = live[0], b = live[live.length - 1];
-      if (live.length > 4 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05) live.push([a[0], a[1]]);
-      remember(); st.strokes.push(live); live = null; draw();
+      if (live.kind === 'line') {
+        // A line that ends near where it began closes itself, so it can take a colour.
+        const a = live.p[0], b = live.p[live.p.length - 1];
+        if (live.p.length > 4 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05) live.p.push([a[0], a[1]]);
+        remember(); st.strokes.push({ w: live.w, p: live.p });
+      } else { remember(); st.paint.push({ c: live.c, w: live.w, p: live.p }); }
+      live = null; draw();
     };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
+    cv.addEventListener('pointerleave', () => { if (eraser && !eraser.moved) return; });
     const ro = new ResizeObserver(() => draw());
     ro.observe(stage);
     $('#sheet').addEventListener('close', () => { ro.disconnect(); $('#sheet').classList.remove('wide'); body.className = ''; }, { once: true });
-    paintTools();
+    paintColours();
     $('#sheet').showModal();
     requestAnimationFrame(draw);
   }

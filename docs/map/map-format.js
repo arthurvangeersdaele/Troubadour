@@ -98,13 +98,18 @@
   }
 
   const FILL_KEYS = ['water', 'leaf', 'stone', 'ground', 'fire', 'ambience', 'events', 'soundbox', 'music', 'hole'];
+  const colourOk = (c) => FILL_KEYS.includes(c) || /^#[0-9a-f]{6}$/i.test(String(c));
   const unit = (v) => Math.round(Math.max(0, Math.min(1, Number(v) || 0)) * 1000) / 1000;
   function cleanStamp(st) {
     if (!st || typeof st.id !== 'string' || !st.id) return null;
     return {
       id: st.id.slice(0, 40), name: String(st.name || 'Place').slice(0, 40), v: Number(st.v) || 0,
-      strokes: (st.strokes || []).filter(Array.isArray).map((pts) => pts.filter(Array.isArray).map((q) => [unit(q[0]), unit(q[1])])).filter((pts) => pts.length).slice(0, 400),
-      fills: (st.fills || []).filter((f) => f && FILL_KEYS.includes(f.c)).map((f) => ({ x: unit(f.x), y: unit(f.y), c: f.c })).slice(0, 200),
+      // A line: its points (older places), or { w: its width, p: its points }.
+      strokes: (st.strokes || []).map((sk) => (Array.isArray(sk) ? { w: 0.022, p: sk } : sk && Array.isArray(sk.p) ? sk : null)).filter(Boolean)
+        .map((sk) => ({ w: Math.round(Math.max(0.004, Math.min(0.08, Number(sk.w) || 0.022)) * 1000) / 1000, p: sk.p.filter(Array.isArray).map((q) => [unit(q[0]), unit(q[1])]) })).filter((sk) => sk.p.length).slice(0, 600),
+      fills: (st.fills || []).filter((f) => f && colourOk(f.c)).map((f) => ({ x: unit(f.x), y: unit(f.y), c: f.c })).slice(0, 200),
+      // Colour laid with the brush, under the lines: { c, w, p }.
+      paint: (st.paint || []).filter((sk) => sk && colourOk(sk.c) && Array.isArray(sk.p)).map((sk) => ({ c: sk.c, w: Math.round(Math.max(0.01, Math.min(0.2, Number(sk.w) || 0.06)) * 1000) / 1000, p: sk.p.filter(Array.isArray).map((q) => [unit(q[0]), unit(q[1])]) })).filter((sk) => sk.p.length).slice(0, 600),
     };
   }
 

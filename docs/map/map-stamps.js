@@ -219,8 +219,10 @@
     cv.width = cv.height = RES;
     const c = cv.getContext('2d');
     c.lineJoin = 'round'; c.lineCap = 'round';
-    c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = RES * 0.022;
-    (st.strokes || []).forEach((pts) => {
+    c.strokeStyle = ink; c.fillStyle = ink;
+    (st.strokes || []).forEach((sk) => {
+      const pts = Array.isArray(sk) ? sk : sk.p || [];
+      c.lineWidth = RES * (Array.isArray(sk) ? 0.022 : sk.w || 0.022);
       if (!pts.length) return;
       if (pts.length === 1) { c.beginPath(); c.arc(pts[0][0] * RES, pts[0][1] * RES, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); return; }
       c.beginPath();
@@ -276,7 +278,7 @@
       st.fills.forEach((f) => {
         const mask = region(alpha, f.x, f.y);
         if (!mask) return;
-        const [r, g, b] = rgbOf(pal[f.c] || pal.stone);
+        const [r, g, b] = rgbOf(pal[f.c] || (/^#/.test(f.c) ? f.c : pal.stone));
         // The colour runs under the ink a little, so no seam shows along the lines.
         for (let i = 0; i < mask.length; i++) {
           if (!mask[i]) continue;
@@ -288,6 +290,15 @@
       });
       c.putImageData(img, 0, 0);
     }
+    // Colour painted with the brush: over the fills, always under the lines.
+    (st.paint || []).forEach((sk) => {
+      const pts = sk.p || [];
+      if (!pts.length) return;
+      const col = pal[sk.c] || (/^#/.test(sk.c) ? sk.c : pal.stone);
+      c.strokeStyle = col; c.fillStyle = col; c.lineWidth = RES * (sk.w || 0.06); c.lineJoin = 'round'; c.lineCap = 'round';
+      if (pts.length === 1) { c.beginPath(); c.arc(pts[0][0] * RES, pts[0][1] * RES, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); return; }
+      c.beginPath(); pts.forEach((q, i) => (i ? c.lineTo(q[0] * RES, q[1] * RES) : c.moveTo(q[0] * RES, q[1] * RES))); c.stroke();
+    });
     c.drawImage(ink, 0, 0);
     if (cache.size > 80) cache.clear();
     cache.set(key, out);
