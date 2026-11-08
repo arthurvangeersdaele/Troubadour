@@ -103,7 +103,7 @@ html:not(.ios) .ios-only { display: none !important; }
 .mp-world.panel #mw-panel { background: var(--text); color: var(--bg); }
 
 @media (max-width: 560px) {
-  .mp-top .ttl { display: none; }
+  .mp-top .ttl > * { display: none; } /* the title steps aside, the buttons stay on the right */
   .mp-tools { left: 8px; top: 8px; padding: 4px; }
   .mp-tools button { width: 38px; height: 38px; }
   .mp-stamps { left: 58px; top: 8px; }
@@ -261,7 +261,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 
 /* ---------- Top bar: what each screen offers ---------- */
 .mp-world[data-mode="play"] #mw-panel, .mp-world[data-mode="play"] #mw-more { display: none !important; }
-.mp-world[data-mode="edit"] #mw-sb { display: none; }
+#mw-more { display: none !important; }
 .mp-switch { background: var(--accent); border-color: var(--accent); color: var(--on-z); }
 .mp-switch svg { margin-left: 2px; }
 .mp-top .sb-toggle { cursor: pointer; }
@@ -348,8 +348,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c .loop.x { min-width: 24px; padding: 0; display: grid; place-items: center; color: var(--muted); }
 .c .loop.x { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
 .c .loop.x:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: var(--danger); }
-/* Stop everything: red, like every action that cannot be taken back. */
-#mw-fade { color: var(--danger); }
+
 .c .ctrl input[type="range"] { flex: 1; min-width: 0; }
 .c .ctrl .heard { width: 34px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; flex: none; }
 .c .ctrl .heard i { display: block; height: 100%; background: var(--z); width: 0; transition: width .2s; }
@@ -390,7 +389,31 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-sbx .pad.on::after { content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--accent); transform-origin: left; animation: pad-run var(--dur, 1s) linear forwards; }
 @keyframes pad-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 10px 0 -4px; }
+/* The fields of a question: side by side when there is room (a name, a first map, a size). */
+.ask-fields { display: grid; gap: 10px 12px; margin: 0 0 14px; grid-template-columns: minmax(0, 1fr); }
+.ask-f { display: grid; gap: 4px; min-width: 0; }
+#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0; }
+#ask .ask-field { margin: 0; }
+.ask-size .seg { width: max-content; max-width: 100%; }
+.ask:has(.ask-size) { width: min(560px, calc(100vw - 32px)) !important; }
+@media (min-width: 600px) {
+  .ask-fields:has(.ask-f + .ask-f + .ask-size) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ask-fields:has(.ask-f + .ask-f + .ask-size) .ask-size { grid-column: 1 / -1; }
+}
+/* A phone on its side: the question sits at the top, above the keyboard, all on a few lines. */
+@media (max-height: 520px) and (orientation: landscape) {
+  dialog.ask { top: max(6px, env(safe-area-inset-top)) !important; bottom: auto !important; margin: 0 auto !important; padding: 10px 16px 10px !important; }
+  .ask:has(.ask-size) { width: min(780px, calc(100vw - 24px)) !important; }
+  .ask h2 { font-size: 21px; margin-bottom: 4px; }
+  .ask:has(.ask-fields) p { display: none; }
+  .ask-fields { margin-bottom: 10px; gap: 6px 10px; }
+  .ask-fields:has(.ask-f + .ask-f + .ask-size) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .ask-fields:has(.ask-f + .ask-f + .ask-size) .ask-size { grid-column: auto; }
+  .ask-fields:has(.ask-f + .ask-size):not(:has(.ask-f + .ask-f + .ask-size)) { grid-template-columns: minmax(0, 1fr) auto; }
+  #ask .ask-field { height: 36px; font-size: 16px; }
+  #ask .ask-label { font-size: 11px; }
+  .ask-acts .btn { min-height: 36px; height: 36px; }
+}
 
 /* A phone on its side: the world card keeps its Play button in view, the hint stays small. */
 @media (max-height: 520px) and (orientation: landscape) {
@@ -411,7 +434,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 }
 
 /* ---------- The world's music: the Music button, right of the Soundbox, and its panel ---------- */
-.mp-world[data-mode="edit"] #mw-mus-btn { display: none; }
+
 .mp-mus-btn .ic { display: grid; place-items: center; color: var(--music); }
 .mp-mus-btn[aria-pressed="true"] .ic { color: inherit; }
 .mp-mus[hidden] { display: none; }
@@ -464,4 +487,36 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
   #library .lib-b { height: 100%; align-items: stretch; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
   #library .lib-b > .hero { position: relative; top: auto; height: auto !important; margin-bottom: max(10px, env(safe-area-inset-bottom)); }
   #library .lib-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Dialogs as in Troubadour: its width, centred in the room left by the notch and the home bar ---------- */
+dialog.settings { width: min(560px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right))); overscroll-behavior: contain; }
+dialog.settings, dialog.ask {
+  position: fixed;
+  top: max(12px, calc(env(safe-area-inset-top) + 8px));
+  bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
+  left: 0; right: 0; margin: auto;
+  max-height: calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px));
+}
+dialog.settings:not(.wide) { height: fit-content; }
+dialog.ask { height: fit-content; }
+
+/* ---------- The editor: the world's soundbox and music, card order ---------- */
+.pn-note { margin: 0; color: var(--muted); font-size: 14px; }
+.c .ord { display: inline-flex; gap: 4px; flex: none; }
+.c .ord .loop { min-width: 26px; padding: 0; display: grid; place-items: center; }
+.c .ord .loop:disabled { opacity: .3; }
+
+/* ---------- The Soundbox and the Music take the room of the sound menu: the map makes way ---------- */
+.mp-world[data-mode="play"].over .mp-body { grid-template-columns: minmax(0, 1fr) clamp(250px, 34vw, 380px); }
+.mp-world.over .mp-sbx { grid-row: 2; grid-column: 2; width: auto; justify-self: stretch; box-shadow: none; }
+@media (orientation: portrait) and (max-width: 700px) {
+  html.portrait-ok .mp-world[data-mode="play"].over .mp-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(0, 48%); }
+  html.portrait-ok .mp-world.over .mp-sbx { position: relative; inset: auto; grid-row: 3; grid-column: 1; height: auto; width: auto; box-shadow: none; }
+  /* Upright, the drawing tools lie in a row. */
+  html.portrait-ok:not(.pc) .mp-tools { flex-direction: row; align-items: center; }
+  html.portrait-ok:not(.pc) .mp-tools i { width: 1px; height: 24px; margin: 0 2px; }
+  html.portrait-ok:not(.pc) .mp-grip { height: 32px; width: 18px; }
+  html.portrait-ok:not(.pc) .mp-tools button { width: 36px; height: 36px; }
+  html.portrait-ok:not(.pc) .mp-stamps { left: 8px; top: 58px; width: calc(100% - 16px); max-height: calc(100% - 70px); }
 }

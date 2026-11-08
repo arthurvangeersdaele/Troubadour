@@ -459,6 +459,12 @@
     pausedByAll = []; heldRandom = [];
     changed();
   }
+  /** The master stop: the world's music fades out over 3 s (the sounds of the map play on). */
+  function stopMusic() {
+    voices.forEach((v) => { if (v.world) end(v, MASTER_FADE); });
+    pausedByAll = pausedByAll.filter((v) => !v.world);
+    changed();
+  }
   const resumePending = () => pausedByAll.length > 0 || heldRandom.length > 0;
 
   /* ---------- Cards ---------- */
@@ -505,7 +511,7 @@
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
-    pauseAll, stopAll, resumePending, fadeAll, list, voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
+    pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point,
   });
   global.MapAudio = api;

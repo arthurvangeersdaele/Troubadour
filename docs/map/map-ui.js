@@ -127,27 +127,47 @@
     $('#ask-text').hidden = !text;
     const acts = $('#ask-acts');
     acts.textContent = '';
-    dlg.querySelectorAll('.ask-field, .ask-label').forEach((o) => o.remove());
-    let input = null, input2 = null;
+    dlg.querySelectorAll('.ask-fields').forEach((o) => o.remove());
+    let input = null, input2 = null, size = null;
+    const box = el('div', 'ask-fields');
     const make = (f) => {
-      if (f.label) acts.before(el('label', 'ask-label', f.label));
+      const w = el('label', 'ask-f');
+      if (f.label) w.append(el('span', 'ask-label', f.label));
       const i = el('input', 'ask-field');
       i.type = 'text';
       i.placeholder = f.placeholder || '';
       i.maxLength = f.max || 120;
       i.value = f.value || '';
-      acts.before(i);
+      w.append(i);
+      box.append(w);
       return i;
     };
-    if (field) input = make(field);
+    if (field) { input = make(field); acts.before(box); }
     // A second field (a new world: its name, then the name of its first map).
     if (field && field.second) input2 = make(field.second);
+    // A choice of map size: [[label, value], ...] with the one picked.
+    if (field && field.sizes) {
+      size = field.sizes.value;
+      const w = el('div', 'ask-f ask-size');
+      w.append(el('span', 'ask-label', field.sizes.label || 'Map size'));
+      const seg = el('div', 'seg small');
+      seg.setAttribute('role', 'radiogroup');
+      const paint = () => seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === size)));
+      field.sizes.options.forEach(([label, v]) => {
+        const b = el('button', '', label); b.type = 'button'; b.dataset.v = v; b.setAttribute('role', 'radio');
+        b.addEventListener('click', () => { size = v; paint(); });
+        seg.append(b);
+      });
+      paint();
+      w.append(seg);
+      box.append(w);
+    }
     return new Promise((resolve) => {
       let answered = false;
       const finish = (v) => {
         if (answered) return; answered = true;
         if (dlg.open) dlg.close();
-        resolve(field ? (v == null ? null : { value: v, text: input.value.trim(), text2: input2 ? input2.value.trim() : '' }) : v);
+        resolve(field ? (v == null ? null : { value: v, text: input.value.trim(), text2: input2 ? input2.value.trim() : '', size }) : v);
       };
       buttons.forEach((b) => {
         const x = el('button', `btn ${b.cls || ''}`, b.label);
