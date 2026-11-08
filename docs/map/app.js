@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.13';
+  const VERSION = '261108.14';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -55,10 +55,41 @@
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   const cardCount = (r) => r.world.places.reduce((a, p) => a + p.general.length + p.elements.reduce((b, e) => b + e.cards.length, 0), 0);
   /** A small picture of the world's first place, in place of a cover. */
-  function mapCover(r, big) {
+  /* The colour of a world, as Troubadour picks the tint of a story cover (cover.js): the one its story carries,
+   * else one drawn from its key. Its colours come from the theme. */
+  const TINTS = ['amb', 'evt', 'blue', 'violet', 'ember'];
+  const TINT_HEX = { amb: '#4DB6A6', evt: '#E5655B', blue: '#5B9BF5', violet: '#B58AE8', ember: '#E39B54', gold: '#E0A84B' };
+  const TINT_CSS = { amb: 'var(--amb)', evt: 'var(--evt)', blue: 'var(--blue)', violet: 'color-mix(in srgb, var(--evt) 50%, var(--blue))', ember: 'color-mix(in srgb, var(--music) 55%, var(--evt))', gold: 'var(--music)' };
+  function tintOf(r) {
+    const carried = r.story.extra && r.story.extra.cover;
+    if (carried) {
+      if (TINT_CSS[carried.tint]) return carried.tint;
+      const k = Object.keys(TINT_HEX).find((t) => TINT_HEX[t].toUpperCase() === String(carried.color || '').toUpperCase());
+      if (k) return k;
+    }
+    const key = String(r.world.id || r.story.id || r.uid || 'world');
+    let h = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return TINTS[(h >>> 8) % TINTS.length];
+  }
+  /** A theme colour (var() or color-mix) as the canvas can paint it. */
+  function solid(css) {
+    const probe = el('span');
+    probe.style.color = css;
+    probe.hidden = true;
+    document.body.append(probe);
+    const c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  }
+  /** A small picture of the world's first map, dressed as a Troubadour story cover (its tint, gold wires, light). */
+  function mapCover(r, big, card) {
     const cv = el('canvas', 'cover');
     cv.setAttribute('aria-hidden', 'true');
-    requestAnimationFrame(() => V.thumb(cv, r.world.places[0], big));
+    const tint = TINT_CSS[tintOf(r)];
+    cv.style.setProperty('--cv-c', tint);
+    if (card) card.style.setProperty('--c', tint);
+    requestAnimationFrame(() => V.storyThumb(cv, r.world.places[0], solid(tint)));
     return cv;
   }
   function btnEl(cls, html, label, fn) {
@@ -74,8 +105,7 @@
 
   function heroCard(r) {
     const c = el('section', 'hero mp-hero');
-    c.style.setProperty('--c', 'var(--accent)');
-    c.append(mapCover(r, true));
+    c.append(mapCover(r, true, c));
     const inner = el('div', 'hero-in');
     const kick = el('div', 'hero-kick');
     kick.append(el('span', 'tag', r.world.revision ? `Revision ${r.world.revision}` : 'World'), el('span', 'kick', 'Last opened'));
@@ -101,10 +131,10 @@
 
   function worldRow(r) {
     const row = el('div', 'srow');
-    row.style.setProperty('--c', 'var(--line)');
+
     const txt = el('div', 'stxt');
     txt.append(el('b', '', r.story.title || 'World'), el('span', 'meta', `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}`));
-    row.append(mapCover(r, true), txt,
+    row.append(mapCover(r, false, row), txt,
       btnEl('more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
       btnEl('go', ICON.play, `Play ${r.story.title}`, () => playAt(r)));
     openOnTap(row, r);

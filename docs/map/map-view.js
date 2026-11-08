@@ -32,6 +32,8 @@
     c = String(c || '').trim();
     const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
     if (m) { let h = m[1]; if (h.length === 3) h = h.split('').map((x) => x + x).join(''); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+    const f = /color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(c); // a colour-mix, as browsers report it
+    if (f) return [f[1], f[2], f[3]].map((x) => Math.round(Number(x) * 255));
     const r = /rgba?\(([^)]+)\)/.exec(c);
     if (r) return r[1].split(',').slice(0, 3).map((x) => Number(x));
     return [128, 128, 128];
@@ -720,6 +722,49 @@
   }
 
   /** A small picture of a place, for the library. */
+  /** The picture of a map in the library, dressed as a Troubadour story cover: no paper, the story's tint glowing
+   *  behind (the .cover background), the map drawn in gold wires, its areas washed with the tint, the party a point of light. */
+  function storyThumb(canvas, p, tint) {
+    readPalette();
+    const r = canvas.getBoundingClientRect();
+    const d = Math.min(2, global.devicePixelRatio || 1);
+    const w = Math.max(60, r.width || 140), h = Math.max(60, r.height || 110);
+    canvas.width = Math.round(w * d); canvas.height = Math.round(h * d);
+    const c = canvas.getContext('2d');
+    const gold = pal.accent, card = pal.paper;
+    // The drawings fill the picture, with a margin, centred on them.
+    const b = p.elements.length || p.walls.length
+      ? p.elements.map((e) => M.bounds(e.shape)).concat(p.walls.map((wl) => wl.points.reduce((a, q) => [Math.min(a[0], q[0]), Math.min(a[1], q[1]), Math.max(a[2], q[0]), Math.max(a[3], q[1])], [Infinity, Infinity, -Infinity, -Infinity])))
+        .reduce((a, x) => [Math.min(a[0], x[0]), Math.min(a[1], x[1]), Math.max(a[2], x[2]), Math.max(a[3], x[3])])
+      : [0, 0, p.width, p.height];
+    const pad = Math.min(w, h) * (Math.min(w, h) > 120 ? 0.08 : 0.14);
+    const k = Math.min((w - 2 * pad) / Math.max(1, b[2] - b[0]), (h - 2 * pad) / Math.max(1, b[3] - b[1]));
+    const ox = w / 2 - ((b[0] + b[2]) / 2) * k, oy = h / 2 - ((b[1] + b[3]) / 2) * k;
+    c.setTransform(d, 0, 0, d, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const px = (n) => n / k; // a width in screen pixels
+    const big = Math.min(w, h) > 120;
+    c.setTransform(d * k, 0, 0, d * k, d * ox, d * oy);
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    const wire = { ...pal, paper: card, ground: card, ink: gold, line: gold, muted: gold, stone: mix(tint, card, 0.55), water: mix(tint, card, 0.6), leaf: mix(tint, card, 0.7), fire: tint, accent: tint, music: tint, ambience: tint, events: tint, soundbox: tint };
+    p.elements.forEach((el) => {
+      const sh = el.shape;
+      if (sh.type === 'stamp') { c.save(); c.translate(sh.x, sh.y); c.rotate((sh.rotation * Math.PI) / 180); c.globalAlpha = 0.95; S.draw(c, sh.stamp, sh.size, wire); c.restore(); return; }
+      c.beginPath(); sh.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); if (sh.closed) c.closePath();
+      if (sh.closed) { c.fillStyle = alpha(tint, 0.16); c.fill(); }
+      c.strokeStyle = alpha(gold, sh.closed ? 0.9 : 0.75); c.lineWidth = px(big ? 1.7 : 1.1); c.stroke();
+    });
+    c.strokeStyle = gold; c.lineWidth = px(big ? 2.2 : 1.4);
+    p.walls.forEach((wl) => { c.beginPath(); wl.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.stroke(); });
+    // The party: a point of light in the story's tint.
+    const [x, y] = p.player, rr = px(big ? 26 : 9);
+    const g = c.createRadialGradient(x, y, 0, x, y, rr);
+    g.addColorStop(0, alpha(tint, 0.55)); g.addColorStop(1, alpha(tint, 0));
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, rr, 0, Math.PI * 2); c.fill();
+    c.fillStyle = tint; c.beginPath(); c.arc(x, y, px(big ? 4.5 : 2.6), 0, Math.PI * 2); c.fill();
+    c.fillStyle = mix(gold, '#ffffff', 0.45); c.beginPath(); c.arc(x, y, px(big ? 1.8 : 1), 0, Math.PI * 2); c.fill();
+  }
+
   function thumb(canvas, p, cover) {
     readPalette(); // the theme may have changed since the last picture
     const r = canvas.getBoundingClientRect();
@@ -815,6 +860,7 @@
 
   Object.assign(api, {
     mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    storyThumb,
     __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,
   });
