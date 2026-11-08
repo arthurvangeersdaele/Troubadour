@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.6';
+  const VERSION = '261108.7';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -86,12 +86,17 @@
     const acts = el('div', 'hero-acts');
     acts.append(
       btnEl('hb primary', `${ICON.play}<span>Play</span>`, null, () => playAt(r)),
-      btnEl('hb', `${ICON.edit}<span>Edit</span>`, null, () => editAt(r)),
       btnEl('hb more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
     );
     inner.append(acts);
     c.append(inner);
+    openOnTap(c, r);
     return c;
+  }
+  /** As in Troubadour: a tap anywhere on a world (not on its buttons) plays it. */
+  function openOnTap(card, r) {
+    card.classList.add('tappable');
+    card.addEventListener('click', (e) => { if (!e.target.closest('button, a')) playAt(r); });
   }
 
   function worldRow(r) {
@@ -102,6 +107,7 @@
     row.append(mapCover(r, true), txt,
       btnEl('more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
       btnEl('go', ICON.play, `Play ${r.story.title}`, () => playAt(r)));
+    openOnTap(row, r);
     return row;
   }
 
@@ -175,7 +181,7 @@
         const ok = await ask(`Remove ${r.story.title}?`, 'Its maps, its drawings and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
         if (!ok) return;
         await DB.remove(r.uid);
-        if (rec && rec.uid === r.uid) location.hash = '#/'; else renderLibrary();
+        if (rec && rec.uid === r.uid) { leaveOk = true; location.hash = '#/'; } else renderLibrary();
       }, 'danger'],
     ]);
   }
@@ -1287,7 +1293,7 @@
     $('[data-action="wipe"]').addEventListener('click', async () => {
       const ok = await ask('Erase everything?', 'Every world and every sound leaves this device. Your settings stay.', [{ label: 'Cancel', value: false }, { label: 'Erase', value: true, cls: 'danger' }]);
       if (!ok) return;
-      A.close(0); rec = null;
+      A.close(0); rec = null; leaveOk = true;
       await DB.wipe();
       $('#settings').close();
       location.hash = '#/';
@@ -1362,8 +1368,27 @@
     if (id !== 'world') { A.close(); releaseWake(); stopPreview(); }
   }
 
+  /** Leaving a world asks first, whatever the way out (the back button of the top bar, of the browser or of the phone). */
+  let leaveOk = false;
+  async function leaveWorld() {
+    if (screen !== 'world' || !rec) { location.hash = '#/'; return; }
+    const playing = mode === 'play';
+    const ok = await ask(`Leave ${rec.story.title || 'this world'}?`,
+      playing ? 'Its sounds fade out and you go back to your worlds.' : 'Your drawing is saved. You go back to your worlds.',
+      [{ label: 'Stay', value: false }, { label: 'Leave', value: true, cls: 'primary' }]);
+    if (!ok) return;
+    leaveOk = true;
+    location.hash = '#/';
+  }
   async function route() {
     const m = /^#\/(play|edit)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
+    if (!m && screen === 'world' && rec && !leaveOk) {
+      // A back gesture: stay in the world (its address comes back) and ask.
+      history.pushState(null, '', here());
+      leaveWorld();
+      return;
+    }
+    leaveOk = false;
     if (!m) { flush(); show('library'); rec = null; await renderLibrary(); return; }
     const n = Number(m[3] || 0);
     if (rec && rec.uid === m[2] && screen === 'world') {
@@ -1503,7 +1528,7 @@
 
     // World screen.
     $('#mw-back').innerHTML = ICON.back;
-    $('#mw-back').addEventListener('click', () => { location.hash = '#/'; });
+    $('#mw-back').addEventListener('click', () => leaveWorld());
     $('#mw-more').innerHTML = ICON.share;
     $('#mw-switch').innerHTML = ICON.go;
     $('#mw-sb .star').innerHTML = ICON.star;

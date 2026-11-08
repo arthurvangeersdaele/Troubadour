@@ -341,3 +341,5 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .c .opts .stepper { padding: 2px; }
 .c .opts .stepper button { width: 28px; height: 26px; font-size: 18px; }
 .c .opts .stepper b { min-width: 40px; font-size: 13px; color: var(--text); }
+#library .tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#library .srow.tappable:active { background: color-mix(in srgb, var(--c) 8%, var(--card)); }
