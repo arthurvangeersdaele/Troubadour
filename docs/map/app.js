@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261108.26';
+  const VERSION = '261109.01';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2988,7 +2988,7 @@
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); } if (A.isOpen()) { A.sync(); } };
-    V.onPlayer = (p) => { if (A.isOpen()) A.hear(p); };
+    V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
       tapped = e || null;

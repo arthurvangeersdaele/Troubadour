@@ -233,10 +233,10 @@
     trail.at = Math.min(trail.len, trail.at + speed * k * dt);
     const { p } = along(trail.at);
     place.player = [Math.round(p[0]), Math.round(p[1])];
-    if (api.onPlayer) api.onPlayer(place.player);
+    if (api.onPlayer) api.onPlayer(place.player, false);
     dirty = true;
     const holding = gesture && gesture.kind === 'cross';
-    if (trail.at >= trail.len - 0.01 && !holding) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
+    if (trail.at >= trail.len - 0.01 && !holding) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player, true); trail = null; edited(); }
   }
   function drawTrail() {
     if (!trail || trail.pts.length < 2) return;
@@ -390,7 +390,7 @@
         if (mode === 'play' && blocked(place.player, clampPoint(w))) break;
         place.player = clampPoint(w);
         dirty = true;
-        if (api.onPlayer) api.onPlayer(place.player);
+        if (api.onPlayer) api.onPlayer(place.player, false);
         break;
       case 'move': {
         // A finger that only trembles does not move the element (nor spoil a long press).
@@ -433,10 +433,11 @@
     } else if (g.kind === 'cross') {
       if (trail) {
         if (trail.phase === 'wait') { trail.phase = 'draw'; endTrail(); }
-        else if (trail.at >= trail.len - 0.01) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player); trail = null; edited(); }
+        else if (trail.at >= trail.len - 0.01) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player, true); trail = null; edited(); }
       }
     } else if (g.kind === 'player') {
-      if (trail && trail.phase === 'draw') endTrail(); else edited();
+      if (trail && trail.phase === 'draw') endTrail();
+      else { edited(); if (g.dragged && api.onPlayer) api.onPlayer(place.player, true); }
     } else if (g.kind === 'move') {
       clearTimeout(g.hold);
       if (!g.moved) {

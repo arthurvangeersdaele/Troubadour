@@ -376,8 +376,11 @@
 
   /* ---------- Space ---------- */
   /** The gain of the space for every voice of an element, from where the player point stands. */
-  function hear(p) {
+  /** p: where the party is; still: false while it walks or is dragged, true once it stops there. */
+  function hear(p, still) {
     if (p) point = p;
+    if (still === false) moving = true;
+    else if (still === true) moving = false;
     if (!place) return;
     followZone();
     const t = now();
@@ -435,14 +438,14 @@
     // the one of the place the party stands in, else the one of the whole map.
     zoneKey = undefined;
     const theme = zoneMusic() || p.general.find(isMusic) || null;
-    zoneKey = theme ? theme.file : 'map';
+    zoneKey = theme ? theme.file : 'map'; moving = false;
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
     changed();
   }
 
   /* ---------- Music zones: a music laid on a place starts when the party walks into it ---------- */
-  let zoneKey;
+  let zoneKey, moving = false;
   function zoneMusic() {
     for (let i = place.elements.length - 1; i >= 0; i--) {
       const e = place.elements[i];
@@ -451,10 +454,11 @@
     }
     return null;
   }
-  /** Called as the party moves: walking into a place with a music crossfades to it; walking out of it brings back the
-   *  music of the whole map. Only a change of zone switches the music, so a music chosen by hand plays on. */
+  /** Called as the party moves: stopping in a place with a music crossfades to it; stopping out of it brings back the
+   *  music of the whole map. Only where the party stops counts: a place it only walks through leaves the music as it
+   *  is. Only a change of zone switches the music, so a music chosen by hand plays on. */
   function followZone() {
-    if (!place || zoneKey === undefined) return;
+    if (!place || zoneKey === undefined || moving) return;
     const z = zoneMusic();
     const key = z ? z.file : 'map';
     if (key === zoneKey) return;
