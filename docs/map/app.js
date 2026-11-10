@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261109.01';
+  const VERSION = '261110.01';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -101,7 +101,7 @@
     b.addEventListener('click', fn);
     return b;
   }
-  const playAt = (r) => { location.hash = `#/play/${r.uid}/0`; };
+  const playAt = (r) => { audio(true); location.hash = `#/play/${r.uid}/0`; };
   const editAt = (r) => { location.hash = `#/edit/${r.uid}/0`; };
 
   function heroCard(r) {
@@ -358,6 +358,55 @@
     }
     if (need.length > 2 && label !== false) idle();
   }
+
+  /* At the table, a world is made ready once, whole: every map changes at once and nothing loads on the way.
+   * Short sounds are decoded (they strike at once, their loops have no seam); long ones (the musics, the long
+   * ambiances) are streamed from the device, since decoding them all would take more memory than a phone has. */
+  const streams = new Map(); // file => { stream: true, url, duration }
+  const sounds = { get: (f) => streams.get(f) || buffers.get(f) };
+  const STREAM_OVER = 300 * 1024;
+  function probe(url, ms) {
+    return new Promise((ok) => {
+      const a = new Audio();
+      let over = false;
+      const done = (d) => { if (over) return; over = true; clearTimeout(timer); a.removeAttribute('src'); try { a.load(); } catch (e) { /* gone */ } ok(d); };
+      const timer = setTimeout(() => done(0), ms);
+      a.preload = 'metadata';
+      a.onloadedmetadata = () => done(Number.isFinite(a.duration) ? a.duration : 0);
+      a.onerror = () => done(0);
+      a.src = url;
+    });
+  }
+  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
+  async function prepare(fileList, label) {
+    const r = rec;
+    const music = new Set((r.world.music || []).map((c) => c.file));
+    r.world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') music.add(c.file); }));
+    const need = [...new Set(fileList)].filter((f) => f && !sounds.get(f) && r.files[f]);
+    if (!need.length) return;
+    const show = label !== false && need.length > 2;
+    let n = 0, blind = 0;
+    const one = async (f) => {
+      try {
+        let blob = await DB.getBlob(r.files[f]);
+        if (!blob) throw new Error('missing');
+        if (music.has(f) || blob.size > STREAM_OVER) {
+          if (!blob.type) blob = new Blob([blob], { type: /\.(ogg|oga)$/i.test(f) ? 'audio/ogg' : /\.wav$/i.test(f) ? 'audio/wav' : /\.(m4a|aac|mp4)$/i.test(f) ? 'audio/mp4' : 'audio/mpeg' });
+          const s = { stream: true, url: URL.createObjectURL(blob), duration: 0 };
+          // Its length, when the browser tells it without playing (else it is learnt at its first play).
+          if (blind < 2) { s.duration = await probe(s.url, 1500); if (!s.duration) blind += 1; }
+          if (rec === r) streams.set(f, s); else URL.revokeObjectURL(s.url);
+        } else if (rec === r) buffers.set(f, await decode(blob));
+      } catch (e) { /* unreadable: stays silent */ }
+      n += 1;
+      if (show && rec === r) busy(label || 'Getting the world ready', `${n} of ${need.length} sounds`, n / need.length);
+    };
+    if (show) busy(label || 'Getting the world ready', `0 of ${need.length} sounds`, 0);
+    const todo = need.slice();
+    await Promise.all([0, 1, 2, 3].map(async () => { while (todo.length && rec === r) await one(todo.shift()); }));
+    if (show) idle();
+  }
+  const worldFiles = (r) => (r.world.music || []).map((c) => c.file).concat(...r.world.places.map(placeFiles));
   const placeFiles = (p) => p.general.map((c) => c.file).concat(...p.elements.map((e) => e.cards.map((c) => c.file)));
 
   /** One sound previewed in the editor or the sound picker, on its own. */
@@ -391,12 +440,28 @@
     if (!(rec && rec.uid === r.uid)) {
       A.close(0);
       buffers.clear();
+      dropStreams();
       rec = r;
       window.MapStamps.register(rec.world.stamps);
       buildStamps();
     }
     mode = m;
     goPlace(Math.max(0, Math.min(rec.world.places.length - 1, n || 0)), true);
+  }
+
+  /** A world opened without a touch (the page reloaded, a link followed): the browser keeps the sound off until one.
+   *  Rather than a silent map, a veil asks for that touch, and everything starts with it. */
+  function soundGate() {
+    const g = $('#mw-gate');
+    const { ctx } = audio(true);
+    const check = () => {
+      const off = screen === 'world' && mode === 'play' && ctx.state !== 'running';
+      g.hidden = !off;
+      return off;
+    };
+    clearInterval(soundGate.timer);
+    // The context may take a moment to wake after the tap that opened the world.
+    setTimeout(() => { if (check()) soundGate.timer = setInterval(() => { if (!check()) clearInterval(soundGate.timer); }, 200); }, 350);
   }
 
   /** Takes the party to another map by a way (a door, stairs): it arrives beside the way that leads back,
@@ -455,9 +520,12 @@
     if (was !== m) { V.fit(); renderPlaces(); }
     $('#mw-stamps').hidden = true;
     if (m === 'play') {
-      await ensure(placeFiles(place()));
-      A.setMusic(worldMusic());
-      A.open(place(), rec.world, buffers);
+      const r0 = rec, music = worldMusic();
+      await prepare(worldFiles(rec));
+      if (rec !== r0 || mode !== 'play') return;
+      A.setMusic(music);
+      A.open(place(), rec.world, sounds);
+      soundGate();
       acquireWake();
       $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
@@ -846,7 +914,7 @@
         const icon = st === 'playing' || waiting ? 'pause' : 'play';
         if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
         pb.setAttribute('aria-label', `${st === 'playing' ? 'Pause' : waiting ? 'Stop' : 'Play'} ${c.name}`);
-        pb.disabled = !buffers.get(c.file);
+        pb.disabled = !sounds.get(c.file);
         end.disabled = !(on || st === 'paused');
         paintLvl();
         const pr = A.progress(c);
@@ -1283,7 +1351,7 @@
 
   function syncAudio() {
     if (mode !== 'play' || !A.isOpen()) return;
-    ensure(placeFiles(place())).then(() => A.sync());
+    prepare(placeFiles(place()), false).then(() => A.sync());
   }
 
   /* ================= More sounds for the world ================= */
@@ -2283,11 +2351,11 @@
     };
     const ensureMusic = async (c, r, pb) => {
       audio(true);
-      if (buffers.get(c.file)) return true;
+      if (sounds.get(c.file)) return true;
       r.classList.add('busy'); pb.classList.add('wait');
-      await ensure([c.file], false);
+      await prepare([c.file], false);
       pb.classList.remove('wait'); r.classList.remove('busy');
-      if (!buffers.get(c.file)) { toast('This music cannot be read here.'); return false; }
+      if (!sounds.get(c.file)) { toast('This music cannot be read here.'); return false; }
       return true;
     };
     const musicRow = (c, opts) => {
@@ -2308,8 +2376,8 @@
         const icon = st === 'playing' ? 'pause' : 'play';
         if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
         r.classList.toggle('in', st === 'playing' || st === 'paused');
-        const b = buffers.get(c.file);
-        const txt = st === 'playing' ? 'Playing' : st === 'paused' ? 'Paused' : st === 'ending' ? 'Fading out' : b ? clockOf(b.duration) : '';
+        const b = sounds.get(c.file);
+        const txt = st === 'playing' ? 'Playing' : st === 'paused' ? 'Paused' : st === 'ending' ? 'Fading out' : b && b.duration ? clockOf(b.duration) : '';
         if (sub.textContent !== txt) sub.textContent = txt;
       });
       return r;

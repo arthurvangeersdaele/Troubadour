@@ -15,9 +15,10 @@
 <link rel="manifest" href="261031_troubadour_map.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/261031_troubadour_map_icon.svg">
 <link rel="apple-touch-icon" href="icons/261031_troubadour_map_180.png">
+<style>html{background:#0A0A0D}html[data-mode="light"]{background:#F3EBDD}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="../play/style.css">
 <link rel="stylesheet" href="../troupe/troupe.css">
 <link rel="stylesheet" href="map.css">
@@ -289,6 +290,9 @@
   <div class="ask-acts" id="ask-acts"></div>
 </dialog>
 
+<button class="veil mp-gate" id="mw-gate" type="button" hidden>
+  <span class="forge"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><b>Tap to start the sound</b><small>Your phone keeps a page silent until you touch it.</small></span>
+</button>
 <div class="veil" id="busy" hidden>
   <div class="forge loading">
     <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>

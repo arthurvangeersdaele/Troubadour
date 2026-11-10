@@ -722,3 +722,10 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .sc .opts .vl { color: var(--muted); font-size: 13px; }
 .sc .opts .stepper button { width: 30px; height: 26px; font-size: 18px; }
 .sc .opts .stepper b { min-width: 44px; font-size: 13px; }
+
+/* A world opened without a touch: the veil that asks for the one the browser wants before any sound. */
+.mp-gate { border: 0; width: 100%; height: 100%; color: var(--text); font: inherit; cursor: pointer; z-index: 40; background: rgba(0,0,0,.6); }
+.mp-gate[hidden] { display: none; }
+.mp-gate .forge { display: grid; justify-items: center; gap: 10px; padding: 22px 26px; border-radius: 18px; background: var(--bar); border: 1px solid var(--accent); box-shadow: 0 14px 40px var(--shadow); }
+.mp-gate b { font-family: 'Cormorant SC', serif; font-size: 24px; }
+.mp-gate small { color: var(--muted); font-size: 14px; }

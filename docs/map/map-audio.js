@@ -107,12 +107,15 @@
   const duration = (v) => { const b = buffers.get(v.card.file); return b ? b.duration : 0; };
   /** Blend (a forever loop's crossfade between two rounds, in seconds): at most a third of the sound. */
   function blendOf(v) {
-    const b = Number(v.card.blend || 0), d = duration(v);
+    // A streamed loop always crosses its two rounds over a second: a media element leaves a gap when it loops.
+    const s = buffers.get(v.card.file);
+    const b = Number(v.card.blend || 0) || (s && s.stream ? 1 : 0), d = duration(v);
     return v.card.play === 'loop' && !(v.world && queue.length) && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
   }
   /** Where the round heard now is, in seconds into the sound. */
   function position(v) {
     if (!v.src) return v.offset;
+    if (v.src.media) return v.src.media.currentTime || 0;
     const d = v.src.buffer.duration || 1;
     const t = now() - v.startedAt;
     return v.src.loop ? t % d : Math.min(d, t);
@@ -122,6 +125,7 @@
   function startSource(v, from = 0) {
     const buf = buffers.get(v.card.file);
     if (!buf) return false;
+    if (buf.stream) return startStream(v, buf, from);
     const { ctx } = audio();
     const src = ctx.createBufferSource();
     src.buffer = buf;
@@ -135,6 +139,65 @@
     const token = ++v.token;
     src.onended = () => { if (token === v.token) ended(v); };
     return true;
+  }
+  /* Long sounds (the musics, the long ambiances) are streamed: a media element into the same chain, so they start
+   * at once and take no memory, whatever their length. The app hands { stream: true, url, duration } for them. */
+  const waitingTouch = new Set(); // elements the browser refused to start without a touch
+  function tryPlay(m) {
+    const p = m.play();
+    if (p && p.catch) p.then(() => waitingTouch.delete(m)).catch((e) => { if (e && e.name === 'NotAllowedError') waitingTouch.add(m); });
+  }
+  ['pointerdown', 'touchend', 'keydown'].forEach((k) => document.addEventListener(k, () => {
+    if (!waitingTouch.size) return;
+    [...waitingTouch].forEach((m) => { waitingTouch.delete(m); if (m.dataset.live) tryPlay(m); });
+  }, { capture: true, passive: true }));
+  function startStream(v, s, from) {
+    const { ctx } = audio();
+    const m = new Audio();
+    // A loop out of reach waits, unread, until the party comes near (restTick).
+    const rest = !v.world && v.el && v.heard < 0.002 && v.card.play === 'loop';
+    m.preload = rest ? 'none' : 'auto';
+    m.dataset.live = '1';
+    m.loop = v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v);
+    m.src = s.url;
+    const offset = s.duration ? Math.max(0, Math.min(s.duration - 0.05, from % s.duration)) : Math.max(0, from);
+    if (offset > 0.05) { try { m.currentTime = offset; } catch (e) { /* set once it is known */ } }
+    m.addEventListener('loadedmetadata', () => {
+      if (Number.isFinite(m.duration) && m.duration > 0) s.duration = m.duration;
+      if (offset > 0.05 && Math.abs(m.currentTime - offset) > 0.5) { try { m.currentTime = offset; } catch (e) { /* stays */ } }
+    });
+    let node = null;
+    const xf = ctx.createGain(); xf.gain.value = 1;
+    try { node = ctx.createMediaElementSource(m); node.connect(xf); } catch (e) { node = null; m.volume = curve(v.card.volume); }
+    xf.connect(v.vg);
+    const src = {
+      media: m, buffer: s,
+      get loop() { return m.loop; }, set loop(x) { m.loop = !!x; },
+      stop() {
+        delete m.dataset.live; waitingTouch.delete(m);
+        try { m.pause(); } catch (e) { /* gone */ }
+        m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ }
+        if (node) { try { node.disconnect(); } catch (e) { /* gone */ } }
+      },
+    };
+    v.src = src; v.xf = xf; v.startedAt = now() - offset; v.quiet = 0;
+    const token = ++v.token;
+    m.addEventListener('ended', () => { if (token === v.token) ended(v); });
+    m.addEventListener('error', () => { if (token === v.token && m.dataset.live) reset(v); });
+    if (!rest) tryPlay(m);
+    return true;
+  }
+  /** A streamed loop nobody hears (its place is out of reach) rests: nothing is read from the device for it. */
+  function restTick(v, t) {
+    const m = v.src && v.src.media;
+    if (!m || !m.dataset.live || v.state !== 'playing' || v.twin || v.world || v.card.play !== 'loop') return;
+    if (v.el && v.heard < 0.002) {
+      if (!v.quiet) v.quiet = t;
+      else if (t - v.quiet > 2500 && !m.paused) m.pause();
+    } else {
+      v.quiet = 0;
+      if (m.paused && !waitingTouch.has(m)) tryPlay(m);
+    }
   }
   function stopSource(v) {
     v.token += 1;
@@ -362,6 +425,7 @@
     let moved = false;
     voices.forEach((v) => {
       blendTick(v);
+      restTick(v, t);
       if (!v.rnd) return;
       const sounding = v.state === 'playing' || v.state === 'paused' || v.state === 'ending';
       if (sounding) { if (v.next) v.next = 0; return; }
@@ -563,7 +627,7 @@
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
-    pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
+    pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point,
   });
   global.MapAudio = api;
