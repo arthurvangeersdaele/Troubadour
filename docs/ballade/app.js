@@ -6,11 +6,14 @@
 (function () {
   'use strict';
 
-  const VERSION = '261114.1';
+  const VERSION = '261114.2';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
   const pc = () => document.documentElement.classList.contains('pc');
+  const ipad = () => document.documentElement.classList.contains('ipad');
+  /** The builder runs on a computer, and on an iPad held sideways (charter 8). */
+  const canBuild = () => pc() || (ipad() && matchMedia('(orientation: landscape) and (min-width: 1000px)').matches);
   let screen = '';
 
   /* ================= Library ================= */
@@ -24,8 +27,8 @@
         <h1>Follow the golden wire.</h1>
         <p>Troubadour Ballade plays your story on time: every sound of a chapter waits on a wire running down the screen, and lights up when its moment comes. You only tap Go at the gates.</p>
         <p class="muted">${pc()
-          ? 'Import a <b>.troubadour</b> to shape its Flow in the editor, or a <b>.troubadour-ballade</b> to play it.'
-          : 'Import a <b>.troubadour-ballade</b> forged in the Flow editor on a computer. A plain <b>.troubadour</b> works too: it gets a first Flow, ready to play.'}</p>`;
+          ? 'Import a <b>.troubadour</b> to shape its Ballade in the builder, or a <b>.troubadour-ballade</b> to play it.'
+          : 'Import a <b>.troubadour-ballade</b> rhythmed in the Ballade builder. A plain <b>.troubadour</b> works too: it gets a first Ballade, ready to play.'}</p>`;
       const b = el('button', 'btn primary', 'Import a story');
       b.type = 'button';
       b.addEventListener('click', pickFile);
@@ -52,7 +55,7 @@
       play.innerHTML = `${ICON.play}<span>Play</span>`;
       play.addEventListener('click', () => { location.hash = `#/play/${r.uid}`; });
       acts.append(play);
-      if (pc()) {
+      if (pc() || ipad()) {
         const ed = el('button', 'btn slim');
         ed.type = 'button';
         ed.innerHTML = `${ICON.edit}<span>Edit the Ballade</span>`;
@@ -124,7 +127,7 @@
       b.addEventListener('click', () => { $('#sheet').close(); fn(); });
       body.append(b);
     };
-    if (pc()) item(ICON.edit, 'Edit the Ballade', 'Steps, gates, timings and fades', () => { location.hash = `#/edit/${r.uid}`; });
+    if (pc() || ipad()) item(ICON.edit, 'Edit the Ballade', 'Steps, gates, timings and fades', () => { location.hash = `#/edit/${r.uid}`; });
     item(ICON.share, 'Export .troubadour-ballade', 'Rhythms the next revision, signed with your troubadour name', () => exportFlow(r));
     item(ICON.share, 'Export .troubadour', 'The story alone, for Troubadour', () => exportTroubadour(r));
     item(ICON.trash, 'Remove from this device', 'Keep a .troubadour-ballade if you want it back', async () => {
@@ -213,7 +216,7 @@
       idle();
       if (!flow && pc()) { location.hash = `#/edit/${rec.uid}`; toast('A first Ballade is ready: shape it, then rhythm the .troubadour-ballade.', 4200); }
       else {
-        if (!flow) toast('A first Ballade was made from its sounds. Shape it in the Ballade editor, on a computer.', 4600);
+        if (!flow) toast('A first Ballade was made from its sounds. Shape it in the Ballade builder, on a computer or an iPad.', 4600);
         else toast(`${story.title} is ready to play.`);
         if (location.hash === '#/' || !location.hash) renderLibrary(); else location.hash = '#/';
       }
@@ -304,7 +307,7 @@
 
   /* ================= Routing ================= */
   function show(id) {
-    ['library', 'player', 'editor'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
+    ['library', 'player', 'editor', 'nobuild'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
     screen = id;
     document.documentElement.dataset.screen = id;
     if (id === 'player') acquireWake(); else releaseWake();
@@ -318,7 +321,15 @@
     const rec = await DB.get(m[2]);
     if (!rec) { location.hash = '#/'; return; }
     if (m[1] === 'edit') {
-      if (!pc()) { toast('The Ballade editor opens on a computer.'); location.hash = `#/play/${rec.uid}`; return; }
+      if (!canBuild()) {
+        // A phone, or an iPad held upright: a page that says where to build, and offers to play.
+        const upright = ipad();
+        $('#nobuild-title').textContent = upright ? 'Turn your iPad sideways' : 'The builder needs a bigger screen';
+        $('#nobuild-text').textContent = upright ? 'The builder opens on an iPad held sideways, or on a computer. It opens by itself as you turn it.' : 'Shape the timing of your Ballade on a computer, or on an iPad held sideways. Here, you can play it.';
+        $('#nobuild-play').onclick = () => { location.hash = `#/play/${rec.uid}`; };
+        show('nobuild');
+        return;
+      }
       show('editor');
       await window.FlowEditor.open(rec, { chapter: Number(m[3] || 0), onLeave: () => { location.hash = '#/'; }, onPlay: (ch) => { location.hash = `#/play/${rec.uid}/${ch}`; } });
     } else {
@@ -346,6 +357,9 @@
     window.FlowPlayer.wire();
     window.FlowEditor.wire();
     window.addEventListener('hashchange', route);
+    $('#nobuild-back').addEventListener('click', () => { location.hash = '#/'; });
+    // An iPad turned sideways on the fallback page opens the builder.
+    matchMedia('(orientation: landscape)').addEventListener('change', () => { if (screen === 'nobuild' && canBuild()) route(); });
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (settings.mode === 'system') applyTheme(); });
     // Space pauses at the table on a computer.
     document.addEventListener('keydown', (e) => {

@@ -17,7 +17,9 @@
   let where = 'bottom-center', label = 'Share', btn = 'share';
 
   const dev = window.TROUBADOUR_DEVICE || 'iPhone';
-  $('#inst-dev').textContent = dev === 'tablet' ? 'Troubadour for your tablet' : `Troubadour for ${dev}`;
+  // Ballade shares this script: its page has no device line (and no tablet steps).
+  const devLine = $('#inst-dev');
+  if (devLine) devLine.textContent = dev === 'tablet' ? 'Troubadour for your tablet' : `Troubadour for ${dev}`;
 
   if (dev === 'tablet') {
     // Android tablet: the browser menu installs the app; Chrome can also do it in one tap.

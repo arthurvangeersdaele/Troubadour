@@ -347,6 +347,29 @@ New files follow `YYMMDD_name` (for example `261114_troubadour_graphic_charter.m
 | Item | Now | Charter |
 | --- | --- | --- |
 | `.btn` radius | 10 px (La Troupe), 12 px (website) | apps 10 px, calls to action 12 px |
-| Ballade answers | pill-shaped | allowed: they are silver choice tokens, not calls to action; review if this conflicts with the "never pill" rule |
+| Ballade answers | pill-shaped | **done (Ballade 261114.2)**: 12 px rounded rectangles, like every call to action |
 | Gold in light mode | `#C48A0E` in Ballade only | use it for every gold element in light mode |
 | Dialog backdrops | `.45` in apps, `.72` blur 3 px on the website QR veil | apps keep `.45`; website overlays may blur |
+
+## 12. Ballade review (14 November 2026, Ballade 261114.2)
+
+What the review of the Ballade app and its builder against this charter changed:
+
+| Where | Was | Now |
+| --- | --- | --- |
+| Player top bar | story name as a grey overline | the story name in Cormorant 20 px (17 px on phones), `--text` (4.2) |
+| Chapter tabs, choice answers, builder options and ways | pills | 10 px (tabs, options) and 12 px (answers) rounded rectangles (5.2) |
+| Dock buttons | round, big button radius 16 | 12 px rounded squares and a 12 px call to action |
+| Chapter numbers, Discovery overline | Ballade gold | `--accent` (gold is only time and gates, 3.6) |
+| Library story card | gold line down the card | bare wire colour (gold is never a static border) |
+| Soundbox | opened over the dock, hiding its own button and Go | opens above the dock, glides in over .25 s |
+| Rolling card names | moved after a short pause | rest 30 % of the cycle at each end, so a name is read before it moves |
+| Builder remove buttons | 22 px | 30 px, quiet until hovered |
+| Builder step tools | always at full strength | dimmed until the step is hovered or focused (computer); delete turns danger red on hover |
+| Rebuild this chapter | confirm button primary | confirm button danger (it replaces the chapter's steps) |
+| Words | "editor", "forged in the Flow editor" | "builder", "rhythmed in the Ballade builder" (9.3) |
+| Platforms | iPad saw "Made for iPhone"; the builder on a phone was a toast | iPad installs like an iPhone; the builder opens on a computer or an iPad held sideways; elsewhere a page says where to build and offers to play (8) |
+| Builder on iPad (1024 to 1180 px) | side panel overflowed, step counts ran over long chapter names | panel narrows to 300 px, counts sit under the names |
+| Ink on gold | hard-coded `#1A1206` | token `--gold-ink` |
+
+Also fixed while testing: the shared install script (`ios/install.js`) stopped at its first lines on the Ballade install page, so the steps never adapted to the browser; it now skips the line the Ballade page does not have.

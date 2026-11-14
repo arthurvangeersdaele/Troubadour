@@ -23,7 +23,7 @@
     E.blobs = await global.FlowDB.filesOf(rec);
     E.rec.lengths = E.rec.lengths || {};
     $('#fe-title').textContent = rec.story.title || 'Story';
-    $('#fe-sub').textContent = `Ballade editor, revision ${rec.flow.revision || 0}, ${rec.flow.bard || ''}`;
+    $('#fe-sub').textContent = `Ballade builder, revision ${rec.flow.revision || 0}, ${rec.flow.bard || ''}`;
     renderAll();
   }
   function close() { closeHelp(); stopPreview(); flush(); E.rec = null; E.buffers.clear(); E.blobs = null; }
@@ -325,7 +325,7 @@
     reset.type = 'button';
     reset.title = 'Replace its steps with a first Ballade made from its sounds';
     reset.addEventListener('click', async () => {
-      const ok = await ask('Rebuild this chapter?', 'Its steps, and its choice, are replaced by a first Ballade made from its sounds: music and ambiances together, then every other sound behind its own gate.', [{ label: 'Cancel', value: false }, { label: 'Rebuild', value: true, cls: 'primary' }]);
+      const ok = await ask('Rebuild this chapter?', 'Its steps, and its choice, are replaced by a first Ballade made from its sounds: music and ambiances together, then every other sound behind its own gate.', [{ label: 'Cancel', value: false }, { label: 'Rebuild', value: true, cls: 'danger' }]);
       if (!ok) return;
       E.rec.flow.chapters[E.ch] = F.defaultChapter(E.rec.story.chapters[E.ch], E.rec.lengths);
       E.sel = null; E.path = [];
@@ -795,8 +795,9 @@
     }
     box.textContent = '';
     const tabs = el('div', 'seg small fe-tabs');
-    [['chapter', 'This chapter'], ['others', 'Other chapters'], ['soundbox', 'Soundbox']].forEach(([v, t]) => {
+    [['chapter', 'This chapter'], ['others', 'Others'], ['soundbox', 'Soundbox']].forEach(([v, t]) => {
       const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(E.tab === v));
+      if (v === 'others') b.title = 'Sounds of the other chapters';
       b.addEventListener('click', () => { E.tab = v; renderSounds(); });
       tabs.append(b);
     });
@@ -842,11 +843,11 @@
     const bard = global.Troubadour.bardName();
     try {
       busy('Rhythming the .troubadour-ballade', '', 0);
-      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Rhythming the .troubadour-ballade', '', f), 'Troubadour Ballade editor (web)');
+      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Rhythming the .troubadour-ballade', '', f), 'Troubadour Ballade builder (web)');
       E.rec.flow = out.flow;
       await global.FlowDB.put(E.rec);
       idle();
-      $('#fe-sub').textContent = `Ballade editor, revision ${out.flow.revision}, ${out.flow.bard}`;
+      $('#fe-sub').textContent = `Ballade builder, revision ${out.flow.revision}, ${out.flow.bard}`;
       await deliver(out.blob, out.fileName);
       toast(`${out.fileName} rhythmed, revision ${out.flow.revision}. Open it in Troubadour Ballade on your phone.`, 4200);
     } catch (e) { idle(); toast(`Could not rhythm: ${e.message || e}`, 4200); }

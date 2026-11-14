@@ -34,7 +34,11 @@
       root.dataset.mode = mode;
     } catch (e) {}
     try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
-    var iphone = /iPhone|iPod/.test(ua);
+    // An iPad counts as an iPhone (installed from Safari, played from the Home Screen); it also holds the builder in landscape.
+    var ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    root.classList.toggle('ipad', ipad);
+    var iphone = /iPhone|iPod/.test(ua) || ipad;
+    window.TROUBADOUR_DEVICE = ipad ? 'iPad' : 'iPhone';
     var standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     root.classList.toggle('iphone', iphone);
     root.classList.toggle('standalone', standalone);
@@ -47,14 +51,14 @@
 </head>
 <body>
 
-<!-- ============ Not an iPhone, not a computer ============ -->
+<!-- ============ Not an iPhone, not an iPad, not a computer ============ -->
 <main class="gate gate-other">
   <div class="gate-card">
     <img class="gate-icon" src="icons/261017_troubadour_ballade_180.png" alt="" width="84" height="84">
     <p class="kicker">Troubadour Ballade</p>
-    <h1>Made for iPhone</h1>
-    <p>Troubadour Ballade installs on an iPhone, from Safari, as an app on the Home Screen. Open this page on your iPhone to install it.</p>
-    <p class="small">On a computer, this page is the Ballade editor: shape the timing of your stories there. On Android, Troubadour Ballade is coming as an app.</p>
+    <h1>Made for iPhone and iPad</h1>
+    <p>Troubadour Ballade installs on an iPhone or an iPad, from Safari, as an app on the Home Screen. Open this page there to install it.</p>
+    <p class="small">On a computer, this page is the Ballade builder: shape the timing of your stories there, or on an iPad held sideways. On Android, Troubadour Ballade is coming as an app.</p>
     <a class="btn primary" href="../">Back to Troubadour</a>
   </div>
 </main>
@@ -241,14 +245,27 @@
   </aside>
 </main>
 
-<!-- ============ Editor (computer) ============ -->
+<!-- ============ Builder asked for on a phone, or an iPad held upright ============ -->
+<main id="nobuild" class="fl-nobuild" hidden>
+  <div>
+    <svg class="big" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <h1 id="nobuild-title">The builder needs a bigger screen</h1>
+    <p id="nobuild-text">Shape the timing of your Ballade on a computer, or on an iPad held sideways. Here, you can play it.</p>
+    <div class="acts">
+      <button class="btn" type="button" id="nobuild-back">Back to the stories</button>
+      <button class="btn primary" type="button" id="nobuild-play">Play this story</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ Editor (computer, iPad in landscape) ============ -->
 <main id="editor" class="fe-screen" hidden>
   <header class="tbar">
     <button class="ico" type="button" id="fe-back" aria-label="Back to the stories" title="Back"></button>
     <div class="ttl"><b id="fe-title"></b><span id="fe-sub"></span></div>
     <span class="fe-saved" id="fe-saved" aria-live="polite"></span>
     <button class="btn slim" type="button" id="fe-troubadour" title="The story alone, without its Ballade">Export .troubadour</button>
-    <button class="btn slim" type="button" id="fe-play">Play here</button>
+    <button class="btn slim" type="button" id="fe-play" title="Play this chapter as at the table">Play</button>
     <button class="btn slim primary" type="button" id="fe-forge">Export the Ballade</button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>

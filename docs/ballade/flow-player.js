@@ -651,7 +651,7 @@
     // Redrawn (a way picked, a font loaded): the gold takes its place at once instead of running from the top.
     P.dom = { runs: [], end: null, cards: new Map(), dots: [], shown: 0, last: 0, choices: [], fresh: true, head: null };
     const pending = choiceOf();
-    if (!P.steps.length && !pending) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade editor, on a computer.'));
+    if (!P.steps.length && !pending) box.append(el('p', 'fl-empty', 'This chapter has no steps yet. Shape it in the Ballade builder, on a computer or an iPad.'));
     P.offsets = F.runOffsets(P.steps);
     const runs = runsOf(P.steps);
     const cs = getComputedStyle(box);
@@ -1330,6 +1330,10 @@
       if (P.sbBus) P.sbBus.gain.value = settings.sbVolume;
       saveSettings();
     });
+    // The soundbox opens above the dock: Go and the soundbox button stay in reach.
+    const dock = document.querySelector('#player .fl-dock');
+    const setDock = () => $('#player').style.setProperty('--dock-h', `${dock.offsetHeight}px`);
+    if ('ResizeObserver' in window) new ResizeObserver(setDock).observe(dock); else setDock();
     let resizeT = 0;
     window.addEventListener('resize', () => {
       clearTimeout(resizeT);
