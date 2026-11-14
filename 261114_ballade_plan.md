@@ -227,3 +227,18 @@ Work happens on weekends and weekday evenings (project rule). One phase can take
 2. Cues never release by themselves: the table always taps Go.
 3. Tracks are **free**: any number, any name; a track's kind only sets its default colour and loudness target.
 4. The builder runs on a **computer and an iPad in landscape** (touch editing: drag, pinch to zoom, long press for menus, two-finger scrub). Phones and other devices get a fallback page explaining where to build.
+
+## 10. Progress
+
+**P0, 14 November 2026: done.** `tests/ballade` (sound lab, runner, GitHub workflow). Baseline: 15 loops with a hole at each turn (44 to 873 ms), 7 seam clicks, 1 hard start. The debug overlay waits for the engine clock of P3.
+
+**P1, first part, 14 November 2026: shipped (Ballade 261114.1).** `docs/ballade/ballade-engine.js`, used by the player and the lab:
+- trims the silence at both ends of every sound, and for loops also a fade baked into the file (where the sound stays 30 dB under its own loudness, 2 s at most);
+- gapless loops: the last 80 ms before the loop end is the tail crossfaded (equal power) into the head, and the turn jumps just past it; written into the buffer itself, in a copy only when the sound is also played once;
+- at least 6 ms of glide on every start and stop (cards, random cards, soundbox);
+- loudness evened out by kind (music -18, ambiance -22, events -16 LUFS, gain kept between -9 and +6 dB), setting "Even out the loudness", on by default; a limiter at -2 dBFS on the master;
+- the sound comes back on its own after a call, a lock or a switch of app, unless the bard paused it.
+
+The lab now plays every card of both discovery tales through the engine and fails on any hole, click, hard start or hard stop: both tales pass.
+
+**Left in P1:** the look-ahead scheduler and the clock of 4.1 (they come with the v2 timeline, P2 and P3); crossfades between clips (v2); the decode window and streamed long sounds (4.4); loudness measured in the builder and stored in the file instead of on the phone.

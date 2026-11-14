@@ -49,7 +49,7 @@
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.flow.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, awake: true, silent: true, master: 0.8, sbVolume: 0.8, autoNext: false, clock: 10 };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, awake: true, silent: true, master: 0.8, sbVolume: 0.8, autoNext: false, clock: 10, even: true };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -140,7 +140,11 @@
       ctx = new AC({ latencyHint: 'playback' });
       master = ctx.createGain();
       master.gain.value = settings.master;
-      master.connect(ctx.destination);
+      // A limiter after the master: sounds evened out and stacked together never clip.
+      const E = global.BalladeEngine;
+      if (E) { const lim = E.limiter(ctx); master.connect(lim); lim.connect(ctx.destination); } else master.connect(ctx.destination);
+      // After a call, a lock or a switch of app, the sound comes back on its own (unless the bard paused it).
+      if (E) E.guard(ctx, () => !(global.FlowPlayer && global.FlowPlayer.isPaused && global.FlowPlayer.isPaused()));
     }
     if (wake && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume().catch(() => {});
     return { ctx, master };

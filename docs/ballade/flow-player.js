@@ -8,6 +8,7 @@
   'use strict';
 
   const { $, el, ICON, settings, saveSettings, toast, audio, decode, ask, busy, idle } = global.FlowUI;
+  const E = global.BalladeEngine;
   const F = global.TroubadourBallade;
   const LEAD = 0.06; // seconds between a tap and the sound
   const POUR = 0.5;  // a gate opens: the gold runs down from it to the sounds, which start as it arrives
@@ -101,7 +102,7 @@
     for (const f of missing) {
       if (token !== P.chapterToken) return;
       const blob = P.blobs.get(f);
-      try { if (blob) P.buffers.set(f, await decode(blob)); } catch (e) { console.warn('Could not decode', f, e); }
+      try { if (blob) { const b = await decode(blob); E.analyse(b); P.buffers.set(f, b); } } catch (e) { console.warn('Could not decode', f, e); }
       P.loading -= 1;
       paintDock();
     }
@@ -118,31 +119,28 @@
 
   const now = () => audio().ctx.currentTime;
 
+  /** The sounds of the whole story that some card plays once (their loops get a seam of their own, in a copy). */
+  function onceFiles() {
+    if (P.onceOf === P.rec) return P.once;
+    const once = new Set();
+    (P.rec.flow.chapters || []).forEach((ch) => F.allSteps(ch).forEach((s) => (s.cards || []).forEach((c) => { if (!(c.repeat || c.hold || c.play === 'loop')) once.add(c.file); })));
+    (P.rec.story.soundbox || []).forEach((s) => once.add(s.file));
+    P.once = once; P.onceOf = P.rec;
+    return once;
+  }
+  const evenOn = () => settings.even !== false;
+  /** What a card's volume is multiplied by, so every sound of a kind sits at the same loudness. */
+  const normOf = (card) => { const b = P.buffers.get(card.file); return b ? E.norm(b, card.zone, evenOn()) : 1; };
+
+  /** One card on the clock, through the Ballade engine (gapless loops, micro fades, even loudness). */
   function makeVoice(stepIdx, k, card, t0, from = 0) {
     const buf = P.buffers.get(card.file);
     if (!buf) return null;
     if (card.play === 'random') return randomVoice(stepIdx, k, card, t0, buf);
     const { ctx } = audio();
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    let start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
-    if (from > 0) start = Math.min(buf.duration - 0.05, start + (card.play === 'loop' ? from % Math.max(0.05, buf.duration - start) : from));
-    // A loop that holds plays until a gate, the choice or the end of the chapter fades it out.
-    const hold = !!card.hold;
-    const dur = hold ? Infinity : card.repeat ? card.duration : Math.min(card.duration, buf.duration - start);
-    if (card.repeat) { src.loop = true; src.loopStart = start; src.loopEnd = buf.duration; }
-    const g = ctx.createGain();
-    const vol = card.volume;
-    const fi = Math.min(card.fadeIn || 0, hold ? 30 : dur);
-    const fo = hold ? 0 : Math.min(card.fadeOut || 0, Math.max(0, dur - fi));
-    g.gain.setValueAtTime(fi > 0 ? 0 : vol, t0);
-    if (fi > 0) g.gain.linearRampToValueAtTime(vol, t0 + fi);
-    if (fo > 0) { g.gain.setValueAtTime(vol, t0 + dur - fo); g.gain.linearRampToValueAtTime(0, t0 + dur); }
-    src.connect(g).connect(P.bus);
-    src.start(t0, start);
-    if (!hold) src.stop(t0 + dur + 0.03);
-    const v = { step: stepIdx, k, file: card.file, src, g, t0, end: t0 + dur, cut: null, hold };
-    src.onended = () => { v.done = true; try { g.disconnect(); } catch (e) { /* gone */ } };
+    const e = E.voice(ctx, P.bus, buf, card, t0, from, { even: evenOn(), shared: onceFiles().has(card.file) });
+    const v = { step: stepIdx, k, file: card.file, src: e.src, g: e.g, t0, end: e.end, cut: null, hold: e.hold, norm: normOf(card) };
+    e.src.onended = () => { v.done = true; try { e.g.disconnect(); } catch (er) { /* gone */ } };
     return v;
   }
 
@@ -150,23 +148,19 @@
   function randomVoice(stepIdx, k, card, t0, buf) {
     const { ctx } = audio();
     const g = ctx.createGain();
-    g.gain.setValueAtTime(card.volume, t0);
+    const n = E.norm(buf, card.zone, evenOn());
+    g.gain.setValueAtTime(card.volume * n, t0);
     g.connect(P.bus);
-    const start = Math.min(card.start || 0, Math.max(0, buf.duration - 0.05));
-    const len = Math.max(0.05, Math.min(card.duration, buf.duration - start));
     const lo = card.gapMin ?? 5, hi = Math.max(lo, card.gapMax ?? 30);
-    const v = { step: stepIdx, k, file: card.file, src: null, g, t0, end: Infinity, cut: null, hold: true, random: true };
+    const v = { step: stepIdx, k, file: card.file, src: null, g, t0, end: Infinity, cut: null, hold: true, random: true, norm: n };
     const play = (at) => {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(g);
-      src.start(at, start);
-      src.stop(at + len + 0.03);
-      v.src = src;
-      src.onended = () => {
+      const s = E.shot(ctx, g, buf, at, card.start || 0, card.duration, 1);
+      v.src = s.src;
+      s.src.onended = () => {
+        try { s.g.disconnect(); } catch (er) { /* gone */ }
         // Faded out, or the chapter was left: the chain ends here.
-        if (v.cut != null || !P.voices.includes(v)) { v.done = true; try { g.disconnect(); } catch (e) { /* gone */ } return; }
-        play(Math.max(ctx.currentTime + 0.05, at + len) + lo + Math.random() * (hi - lo));
+        if (v.cut != null || !P.voices.includes(v)) { v.done = true; try { g.disconnect(); } catch (er) { /* gone */ } return; }
+        play(Math.max(ctx.currentTime + 0.05, at + s.len) + lo + Math.random() * (hi - lo));
       };
     };
     play(t0);
@@ -422,12 +416,7 @@
     if (!buf) { toast('This effect is still loading.'); return; }
     const { ctx } = audio(true);
     if (P.paused) { ctx.resume().catch(() => {}); P.paused = false; paintDock(); }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const g = ctx.createGain();
-    g.gain.value = typeof sound.volume === 'number' ? sound.volume : 0.75;
-    src.connect(g).connect(P.sbBus);
-    src.start();
+    E.shot(ctx, P.sbBus, buf, ctx.currentTime + 0.01, 0, null, (typeof sound.volume === 'number' ? sound.volume : 0.75) * E.norm(buf, 'soundbox', evenOn()));
   }
 
   function renderPads() {
@@ -504,7 +493,7 @@
     vol.addEventListener('input', () => {
       c.volume = Number(vol.value); vv.textContent = String(Math.round(c.volume * 100)); paintRange(vol);
       const v = voiceOf(i, k);
-      if (v && !v.done && v.cut == null) { const t = now(); try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(v.paused ? 0 : c.volume, t, 0.03); } catch (e) { /* gone */ } }
+      if (v && !v.done && v.cut == null) { const t = now(); try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(v.paused ? 0 : c.volume * (v.norm || 1), t, 0.03); } catch (e) { /* gone */ } }
     });
     paintRange(vol);
     vrow.append(el('span', '', 'Volume'), vol, vv);
@@ -533,7 +522,7 @@
           // Start again from where it stopped: same sound, same loop, the rest of its length.
           const nv = makeVoice(i, k, Object.assign({}, c, { fadeIn: 0.2 }), t + LEAD, v.pos);
           if (nv) { nv.t0 = t + LEAD - v.pos; nv.end = v.end + dt; P.voices = P.voices.filter((x) => x !== v); P.voices.push(nv); }
-        } else { try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(c.volume, t, 0.05); } catch (e) { /* gone */ } }
+        } else { try { v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(c.volume * (v.norm || 1), t, 0.05); } catch (e) { /* gone */ } }
       }
     } else if (!cardReached(i, k)) {
       force(i, k);
@@ -1357,5 +1346,5 @@
     $('#fl-back').addEventListener('click', leave);
   }
 
-  global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause };
+  global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause, isPaused: () => P.paused };
 })(window);

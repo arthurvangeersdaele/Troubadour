@@ -4,7 +4,7 @@
     "story": "Underwater Adventure",
     "cards": 47,
     "sounds": 49,
-    "findings": [
+    "before": [
       {
         "where": "ch1 step 1",
         "name": "Gentle waves",
@@ -66,6 +66,7 @@
         "gapMs": 261
       }
     ],
+    "engine": [],
     "soundsDetail": [
       {
         "file": "sounds/1/music/01-mediterranean-waves.mp3",
@@ -466,7 +467,7 @@
     "story": "Treasure Island, by your choices",
     "cards": 26,
     "sounds": 29,
-    "findings": [
+    "before": [
       {
         "where": "ch1 step 1",
         "name": "Rainy night at the Benbow",
@@ -546,6 +547,7 @@
         "gapMs": 12
       }
     ],
+    "engine": [],
     "soundsDetail": [
       {
         "file": "sounds/1/music/01-rainy-night-at-the-benbow.mp3",

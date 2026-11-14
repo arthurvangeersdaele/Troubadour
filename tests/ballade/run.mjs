@@ -1,7 +1,8 @@
-// Ballade sound lab runner (phase 0 of 261114_ballade_plan.md).
+// Ballade sound lab runner (261114_ballade_plan.md, phases 0 and 1).
 //   node tests/ballade/run.mjs [file.troubadour-ballade ...]
 // With no argument, every discovery tale in docs/ballade/discovery. Writes tests/ballade/report.json and
-// prints a summary. Report-only for now: it exits 0 whatever it finds (the baseline before the new engine).
+// prints a summary: "before" is the raw files looped the old way (the baseline), "engine" is what the Ballade
+// engine plays. It fails (exit 1) when the engine leaves a hole, a click, a hard start or a hard stop.
 // CHROMIUM=/path/to/chrome to use a given browser (else Playwright's own).
 import { chromium } from 'playwright';
 import http from 'node:http';
@@ -31,17 +32,20 @@ await page.goto(`${base}/tests/ballade/lab.html`);
 await page.waitForFunction(() => window.labReady);
 
 const report = [];
+let failed = 0;
 for (const f of inputs) {
   const url = '/' + path.relative(ROOT, f).split(path.sep).join('/');
   const r = await page.evaluate((u) => window.runLab(u), url);
   report.push(Object.assign({ file: path.relative(ROOT, f) }, r));
-  const by = {};
-  r.findings.forEach((x) => { by[x.kind] = (by[x.kind] || 0) + 1; });
+  const count = (list) => { const by = {}; list.forEach((x) => { by[x.kind] = (by[x.kind] || 0) + 1; }); return Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ') || 'clean'; };
   console.log(`\n${r.story}: ${r.cards} cards, ${r.sounds} sounds`);
-  Object.entries(by).forEach(([k, n]) => console.log(`  ${k}: ${n}`));
-  const gaps = r.findings.filter((x) => x.kind === 'loop gap').sort((a, b) => b.gapMs - a.gapMs).slice(0, 5);
-  gaps.forEach((g) => console.log(`    ${g.gapMs} ms hole each turn: ${g.name} (${g.where})`));
+  console.log(`  raw files, old loop: ${count(r.before)}`);
+  console.log(`  through the engine:  ${count(r.engine)}`);
+  r.engine.forEach((x) => console.log(`    ${x.kind}: ${x.name} (${x.where})${x.gapMs ? ` ${x.gapMs} ms` : ''}${x.jump ? ` jump ${x.jump}` : ''}${x.amp ? ` amp ${x.amp}` : ''}`));
+  failed += r.engine.length;
 }
 fs.writeFileSync(path.join(ROOT, 'tests/ballade/report.json'), JSON.stringify(report, null, 2) + '\n');
 await browser.close();
 server.close();
+if (failed) { console.log(`\n${failed} problem(s) left in what the engine plays.`); process.exit(1); }
+console.log('\nThe engine plays every card gapless and without a click.');

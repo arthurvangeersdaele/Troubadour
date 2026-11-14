@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261030.1';
+  const VERSION = '261114.1';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -239,6 +239,7 @@
       settings.clock = Number(b.dataset.v); saveSettings(); paintSettings();
       if (window.FlowPlayer.isOpen()) window.FlowPlayer.relayout();
     });
+    $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); });
     $('#opt-autonext').addEventListener('change', (e) => { settings.autoNext = e.target.checked; saveSettings(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
@@ -261,6 +262,7 @@
     document.querySelectorAll('#clock-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === Number(settings.clock || 10))));
     document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
     $('#opt-awake').checked = settings.awake;
+    $('#opt-even').checked = settings.even !== false;
     $('#opt-autonext').checked = !!settings.autoNext;
     $('#opt-silent').checked = settings.silent;
   }

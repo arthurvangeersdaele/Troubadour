@@ -12,6 +12,7 @@
      hard starts and hard stops. Nothing is played aloud: renders go through OfflineAudioContext. -->
 <script src="../../docs/troupe/troubadour-format.js"></script>
 <script src="../../docs/ballade/flow-format.js"></script>
+<script src="../../docs/ballade/ballade-engine.js"></script>
 <script>
 (function () {
   'use strict';
@@ -52,6 +53,61 @@
     return { longestSilenceMs: Math.round(longest / RATE * 1000), seamJump: +jump.toFixed(4) };
   }
 
+  const E = window.BalladeEngine;
+
+  /** Renders one card through the engine, from `from` seconds into it, for `sec` seconds. */
+  async function renderVoice(buf, card, from, sec, shared) {
+    const len = Math.ceil(sec * RATE);
+    const c = new OfflineAudioContext(buf.numberOfChannels, len, RATE);
+    E.voice(c, c.destination, buf, card, 0, from, { even: false, shared });
+    return (await c.startRendering()).getChannelData(0);
+  }
+  /** The longest silent run that covers sample i, in ms. */
+  function silenceAt(d, i) {
+    if (Math.abs(d[i]) >= SILENT && Math.abs(d[i - 1]) >= SILENT) return 0;
+    let a = i; while (a > 0 && Math.abs(d[a - 1]) < SILENT) a--;
+    let b = i; while (b < d.length && Math.abs(d[b]) < SILENT) b++;
+    return (b - a) / RATE * 1000;
+  }
+  /** The jump between two samples at i, against the biggest jump around it (a seam is heard when it stands out). */
+  function jumpAt(d, i) {
+    const j = Math.abs(d[i] - d[i - 1]);
+    let around = 0;
+    for (let k = Math.max(1, i - 48); k < Math.min(d.length, i + 48); k++) if (k !== i) around = Math.max(around, Math.abs(d[k] - d[k - 1]));
+    return { j, around };
+  }
+
+  /** What the engine plays: the same checks, on the sound the table hears. */
+  async function engineChecks(card, raw, findings, where, shared) {
+    const buf = raw;
+    const info = E.analyse(buf);
+    const loops = card.play === 'loop' || card.repeat || card.hold;
+    if (loops) {
+      const L = E.loopOf(buf, card.start || 0, shared);
+      const first = L.loopEnd - L.a, per = L.loopEnd - L.loopStart;
+      const held = Object.assign({}, card, { hold: true, fadeIn: 0, volume: 1 });
+      // The first turn and the second, one second either side.
+      for (const [n, at] of [[1, first], [2, first + per]]) {
+        const pre = Math.min(1, at * 0.5);
+        const d = await renderVoice(buf, held, at - pre, pre + 1, shared);
+        const i = Math.round(pre * RATE);
+        // Silence the file itself has around the same place is not a hole.
+        const inner = Math.max(silenceAt(buf.getChannelData(0), Math.round((L.loopEnd - 0.002) * buf.sampleRate)), silenceAt(buf.getChannelData(0), Math.round((L.loopStart + 0.002) * buf.sampleRate)));
+        const hole = silenceAt(d, i);
+        if (hole > 10 && hole > inner + 5) findings.push({ where, name: card.name, kind: 'loop gap', turn: n, gapMs: Math.round(hole) });
+        const { j, around } = jumpAt(d, i);
+        if (j > CLICK && j > 2 * around) findings.push({ where, name: card.name, kind: 'loop seam click', turn: n, jump: +j.toFixed(4) });
+      }
+    }
+    // The start and the end glide.
+    const d0 = await renderVoice(buf, Object.assign({}, card, { hold: false, volume: 1, duration: Math.min(card.duration || 1, 0.5) }), 0, 0.6, shared);
+    if (Math.abs(d0[0]) > 0.001 || Math.abs(d0[1]) > CLICK) findings.push({ where, name: card.name, kind: 'hard start', amp: +Math.abs(d0[1]).toFixed(3) });
+    const endAt = Math.round(Math.min(card.duration || 1, 0.5) * RATE);
+    let tail = 0; for (let k = endAt - 2; k < Math.min(d0.length, endAt + 8); k++) tail = Math.max(tail, Math.abs(d0[k]));
+    if (tail > CLICK) findings.push({ where, name: card.name, kind: 'hard stop', amp: +tail.toFixed(3) });
+    void info;
+  }
+
   window.runLab = async function (url) {
     const blob = await (await fetch(url)).blob();
     const { story, flow, files } = await window.TroubadourBallade.read(new File([blob], url.split('/').pop()));
@@ -86,8 +142,18 @@
       const cutsEarly = !loops && c.duration + (c.start || 0) < s.seconds - 0.05;
       if (!(c.fadeOut > 0) && cutsEarly) findings.push({ where, name: c.name, kind: 'hard stop (cut mid-sound without fade)' });
     }
+    // The same cards through the engine. Every sound is decoded again so each check starts from the file itself.
+    const once = new Set(cards.filter(({ c }) => !(c.play === 'loop' || c.repeat || c.hold)).map(({ c }) => c.file));
+    const engine = [];
+    const fresh = {};
+    for (const { c, where } of cards) {
+      const s = sounds[c.file];
+      if (!s || s.error) continue;
+      if (!fresh[c.file]) fresh[c.file] = await dec(await files.get(c.file).arrayBuffer());
+      await engineChecks(c, fresh[c.file], engine, where, once.has(c.file));
+    }
     const list = Object.entries(sounds).map(([p, s]) => Object.assign({ file: p }, s, { buf: undefined }));
-    return { story: story.title, cards: cards.length, sounds: list.length, findings, soundsDetail: list };
+    return { story: story.title, cards: cards.length, sounds: list.length, before: findings, engine, soundsDetail: list };
   };
   window.labReady = true;
 })();

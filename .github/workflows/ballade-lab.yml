@@ -1,7 +1,7 @@
 name: Ballade sound lab
 
-# Phase 0 of 261114_ballade_plan.md: measures gaps, loop seams and clicks in the Ballade discovery tales.
-# Report-only for now (it never fails the push); the report is kept as an artifact of each run.
+# 261114_ballade_plan.md, phases 0 and 1: plays every card of the Ballade discovery tales through the Ballade
+# engine and fails on a loop hole, a seam click, a hard start or a hard stop. The report is kept as an artifact.
 on:
   push:
     paths: ['docs/ballade/**', 'tests/ballade/**', '.github/workflows/ballade-lab.yml']
@@ -19,8 +19,11 @@ jobs:
         run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
       - name: Run the lab
         working-directory: tests/ballade
-        run: node run.mjs | tee lab.txt
+        run: |
+          set -o pipefail
+          node run.mjs | tee lab.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ballade-lab-report
           path: |
