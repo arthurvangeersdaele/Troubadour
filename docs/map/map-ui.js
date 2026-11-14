@@ -32,6 +32,13 @@
     saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
     // The soundbox of a world, in the editor: Troubadour's book with a star.
     bookStar: '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-2-1.4-5.5-1.9-9-1.2v12.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2V5.2c-3.5-.7-7-.2-9 1.2z"/><path d="M12.00 9.40L12.79 11.51L15.04 11.61L13.28 13.02L13.88 15.19L12.00 13.95L10.12 15.19L10.72 13.02L8.96 11.61L11.21 11.51Z" fill="var(--music)" stroke="var(--music)" stroke-width="0.6"/></svg>',
+    eye: svg('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>', 16),
+    eyeOff: svg('<path d="M4 4l16 16M9.9 5.8A10.6 10.6 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17 17 0 0 1-3 3.7M14.5 14.6A3.5 3.5 0 0 1 9.4 9.5M6.3 7.7A16.500 16.500 0 0 0 2 12s3.600 6.500 10 6.500a10.300 10.300 0 0 0 4.200-.900"/>', 16),
+    lock: svg('<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', 16),
+    unlock: svg('<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.4-2.100"/>', 16),
+    layers: svg('<path d="M12 3.500 21 8l-9 4.500L3 8z"/><path d="M3.500 12.200 12 16.500l8.500-4.300M3.500 16.200 12 20.500l8.500-4.300"/>', 19),
+    minus: svg('<path d="M5 12h14"/>', 16),
+    grip: svg('<circle cx="9" cy="6" r="1.300" fill="currentColor"/><circle cx="15" cy="6" r="1.300" fill="currentColor"/><circle cx="9" cy="12" r="1.300" fill="currentColor"/><circle cx="15" cy="12" r="1.300" fill="currentColor"/><circle cx="9" cy="18" r="1.300" fill="currentColor"/><circle cx="15" cy="18" r="1.300" fill="currentColor"/>', 14),
     copy: svg('<rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>', 16),
     turn: svg('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/>', 16),
     grow: svg('<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>', 16),

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261114.02';
+  const VERSION = '261114.03';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -511,6 +511,7 @@
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
     V.setMode(mode);
     V.show(place(), rec.world);
+    V.layers.hidden.clear(); V.layers.locked.clear(); V.layers.wallsHidden = false; V.layers.wallsLocked = false;
     renderPlaces();
     if (location.hash !== here()) history.replaceState(null, '', here());
     await setMode(mode, !first);
@@ -535,6 +536,9 @@
     V.setMode(m);
     if (was !== m) { V.fit(); renderPlaces(); }
     $('#mw-stamps').hidden = true;
+    if (m !== 'edit') setLayers(false);
+    renderOpts(m === 'edit' ? V.tool() : null);
+    renderLayers();
     if (m === 'play') {
       const r0 = rec, music = worldMusic();
       await prepare(worldFiles(rec));
@@ -1111,8 +1115,32 @@
 
 
 
+  /* The inspector, as an editor's: what is selected in tabs. A place: Place, Sounds, Way. The map: Map, Sounds. */
+  const inspTab = { el: 'place', map: 'map' };
+  function tabbed(box, kind, tabs) {
+    const seg = el('div', 'seg insp-tabs');
+    seg.setAttribute('role', 'tablist');
+    const show = () => {
+      [...box.children].forEach((c) => { if (c.dataset.tab) c.hidden = c.dataset.tab !== inspTab[kind]; });
+      seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === inspTab[kind])));
+      paintRanges(box);
+      requestAnimationFrame(() => rollTitles(box));
+    };
+    if (!tabs.some(([v]) => v === inspTab[kind])) inspTab[kind] = tabs[0][0];
+    tabs.forEach(([v, label, count]) => {
+      const b = el('button', '', label);
+      b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.v = v;
+      if (count) b.append(el('i', 'n', String(count)));
+      b.addEventListener('click', () => { inspTab[kind] = v; show(); });
+      seg.append(b);
+    });
+    box.prepend(seg);
+    show();
+  }
+  const inTab = (node, tab) => { node.dataset.tab = tab; return node; };
+
   function editPlace(box, p) {
-    const name = section('Map');
+    const name = inTab(section('Map'), 'map');
     const t = el('input'); t.type = 'text'; t.value = p.title; t.maxLength = 80; t.setAttribute('aria-label', 'Name of the map');
     t.addEventListener('input', () => { p.title = t.value.trim() || 'Map'; renderPlaces(); save(); });
     name.append(t);
@@ -1132,15 +1160,9 @@
     name.append(sz);
     box.append(name);
 
-    box.append(cardsBlock('Whole map', p.general, null, 'Sounds heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music laid here starts when the party arrives.'));
+    box.append(inTab(cardsBlock('Whole map', p.general, null, 'Sounds heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music laid here starts when the party arrives.'), 'sounds'));
 
-
-    const walls = section('Walls');
-    walls.append(slider('Muffle', Math.round(rec.world.wallLoss * 100), 0, 100, 5, (v) => `${v} %`, (v) => { rec.world.wallLoss = v / 100; save(); }));
-    walls.append(el('p', '', 'Each wall between a sound and the party takes this share of it away. The same for every map of the world.'));
-    box.append(walls);
-
-    const how = section('Drawing');
+    const how = inTab(section('Drawing'), 'map');
     how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Double tap an element (with the select tool) to give it sounds, a reach and a way to another place.'));
     box.append(how);
 
@@ -1161,7 +1183,8 @@
     });
     row.append(up, down, del);
     acts.append(row);
-    box.append(acts);
+    box.append(inTab(acts, 'map'));
+    tabbed(box, 'map', [['map', 'Map'], ['sounds', 'Sounds', p.general.length]]);
   }
 
   function movePlace(d) {
@@ -1177,7 +1200,7 @@
 
   function editElement(box, e) {
     const sh = e.shape;
-    const id = section('Element');
+    const id = inTab(section('Place'), 'place');
     const t = el('input'); t.type = 'text'; t.value = e.title; t.maxLength = 80; t.placeholder = 'Name (shown on the map)';
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
@@ -1194,14 +1217,14 @@
     }
     box.append(id);
 
-    box.append(cardsBlock('Sounds', e.cards, e, 'No sound yet: this element is a drawing only. Add sounds of the story to hear it from the map.'));
+    box.append(inTab(cardsBlock('Sounds', e.cards, e, 'No sound yet: this place is a drawing only. Add sounds of the story to hear it from the map.'), 'sounds'));
 
-    const reach = section('Reach');
+    const reach = inTab(section('Reach'), 'place');
     reach.append(reachSlider(e));
     reach.append(el('p', '', 'How far beyond its edge its sounds carry, counted in times its own size: full inside, fading to silence at this distance. The tinted ground shows it.'));
     box.append(reach);
 
-    const way = section('Leads to');
+    const way = inTab(section('Leads to'), 'way');
     const sel = el('select');
     sel.setAttribute('aria-label', 'Map this element leads to');
     const none = el('option', '', 'Nowhere'); none.value = ''; sel.append(none);
@@ -1227,7 +1250,8 @@
     del.innerHTML = `${ICON.trash}<span>Delete this element</span>`;
     del.addEventListener('click', () => { V.deleteSelected(); });
     acts.append(del);
-    box.append(acts);
+    box.append(inTab(acts, 'place'));
+    tabbed(box, 'el', [['place', 'Place'], ['sounds', 'Sounds', e.cards.length], ['way', 'Way', e.link ? 1 : 0]]);
   }
 
   /** How much of an element reaches the party (worked out again only when the party moves). */
@@ -1729,6 +1753,135 @@
 
 
 
+  /* ================= Layers (the list of everything on the map, as a drawing editor's) ================= */
+  function layerThumb(e) {
+    const c = el('canvas', 'ly-th'); c.width = c.height = 56;
+    const g = c.getContext('2d');
+    try {
+      if (e.shape.type === 'stamp') { g.translate(28, 28); window.MapStamps.draw(g, e.shape.stamp, 46, V.palette()); }
+      else {
+        const b = M.bounds(e.shape), w = Math.max(1, b[2] - b[0]), h = Math.max(1, b[3] - b[1]), k = 44 / Math.max(w, h);
+        g.strokeStyle = V.palette().ink || '#888'; g.lineWidth = 3; g.lineJoin = g.lineCap = 'round';
+        g.beginPath();
+        e.shape.points.forEach((q, i) => { const x = 28 + (q[0] - (b[0] + w / 2)) * k, y = 28 + (q[1] - (b[1] + h / 2)) * k; if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+        if (e.shape.closed) g.closePath();
+        g.stroke();
+      }
+    } catch (err) { /* a place the library no longer knows: an empty thumb */ }
+    return c;
+  }
+  function renderLayers() {
+    const list = $('#mw-layers-list');
+    if (!list || !rec || mode !== 'edit') return;
+    const p = place(), L = V.layers, sel = V.selected();
+    // What is gone from the map is gone from the sets.
+    [L.hidden, L.locked].forEach((s) => s.forEach((e) => { if (!p.elements.includes(e)) s.delete(e); }));
+    const keep = list.scrollTop;
+    list.textContent = '';
+    const flag = (on, iconOn, iconOff, label, fn) => {
+      const b = el('button', `ly-f${on ? ' on' : ''}`); b.type = 'button';
+      b.innerHTML = on ? iconOn : iconOff; b.title = label; b.setAttribute('aria-label', label); b.setAttribute('aria-pressed', String(on));
+      b.addEventListener('click', (ev) => { ev.stopPropagation(); fn(); V.redraw(); renderLayers(); });
+      return b;
+    };
+    if (!p.elements.length) list.append(el('div', 'pn-empty', 'Nothing on this map yet. Lay a place from the library, or draw a wall.'));
+    // The one on top of the map first, as in every layers list.
+    p.elements.slice().reverse().forEach((e) => {
+      const hid = L.hidden.has(e), lock = L.locked.has(e);
+      const row = el('div', `ly-row${e === sel ? ' sel' : ''}${hid ? ' hid' : ''}`);
+      row.setAttribute('role', 'button'); row.tabIndex = 0;
+      const grip = el('span', 'ly-grip'); grip.innerHTML = ICON.grip; grip.title = 'Drag to bring it over or under the others';
+      const nm = el('span', 'ly-nm', elName(e));
+      const meta = el('small', 'ly-meta', [e.cards.length ? `${e.cards.length} sound${e.cards.length > 1 ? 's' : ''}` : '', e.link ? 'way' : ''].filter(Boolean).join(', '));
+      const txt = el('span', 'ly-t'); txt.append(nm, meta);
+      row.append(grip, layerThumb(e), txt,
+        flag(hid, ICON.eyeOff, ICON.eye, hid ? `Show ${elName(e)}` : `Hide ${elName(e)} while drawing`, () => { if (hid) L.hidden.delete(e); else { L.hidden.add(e); if (V.selected() === e) V.select(null); } }),
+        flag(lock, ICON.lock, ICON.unlock, lock ? `Unlock ${elName(e)}` : `Lock ${elName(e)}: it cannot be moved on the map`, () => { if (lock) L.locked.delete(e); else L.locked.add(e); }));
+      const pick = () => { edView = null; V.select(e); if (!narrowEditor()) setPanel(true); else setLayers(false); renderLayers(); };
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+      row.addEventListener('dblclick', () => { V.centreOn(M.centre(e.shape)); setPanel(true); });
+      dragLayer(grip, row, e);
+      list.append(row);
+    });
+    if (p.walls.length) {
+      const row = el('div', `ly-row walls${L.wallsHidden ? ' hid' : ''}`);
+      const ic = el('span', 'ly-th ly-wall'); ic.innerHTML = ICON.wall;
+      const txt = el('span', 'ly-t'); txt.append(el('span', 'ly-nm', 'Walls'), el('small', 'ly-meta', `${p.walls.length} drawn`));
+      row.append(el('span', 'ly-grip none'), ic, txt,
+        flag(L.wallsHidden, ICON.eyeOff, ICON.eye, L.wallsHidden ? 'Show the walls' : 'Hide the walls while drawing', () => { L.wallsHidden = !L.wallsHidden; }),
+        flag(L.wallsLocked, ICON.lock, ICON.unlock, L.wallsLocked ? 'Unlock the walls' : 'Lock the walls: the eraser leaves them', () => { L.wallsLocked = !L.wallsLocked; }));
+      list.append(row);
+    }
+    list.scrollTop = keep;
+  }
+  /** Dragging a row by its grip changes what is over what on the map. */
+  function dragLayer(grip, row, e) {
+    grip.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      const list = $('#mw-layers-list');
+      const rows = [...list.querySelectorAll('.ly-row:not(.walls)')];
+      const from = rows.indexOf(row), h = row.getBoundingClientRect().height + 4, y0 = ev.clientY;
+      let to = from;
+      row.classList.add('drag');
+      try { grip.setPointerCapture(ev.pointerId); } catch (err) { /* older browsers */ }
+      const move = (m) => {
+        const dy = m.clientY - y0;
+        to = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / h)));
+        row.style.transform = `translateY(${dy}px)`;
+        rows.forEach((r, i) => { if (r === row) return; r.style.transform = from < to && i > from && i <= to ? `translateY(${-h}px)` : from > to && i < from && i >= to ? `translateY(${h}px)` : ''; });
+      };
+      const up = () => {
+        grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+        if (to !== from) {
+          V.snapshot();
+          const els = place().elements, n = els.length;
+          // The list shows the top of the map first: row i is element n - 1 - i.
+          els.splice(n - 1 - from, 1);
+          els.splice(n - 1 - to, 0, e);
+          save(); V.redraw();
+        }
+        renderLayers();
+      };
+      grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+    });
+    grip.addEventListener('click', (ev) => ev.stopPropagation());
+  }
+  /** On a narrow screen (a phone), the layers open over the map, one panel at a time; on a wide one they stay beside it. */
+  const narrowEditor = () => matchMedia('(max-width: 900px)').matches;
+  function setLayers(open) {
+    $('#world').classList.toggle('layers', !!open);
+    const b = $('#mw-layers-btn');
+    if (b) b.setAttribute('aria-pressed', String(!!open));
+    if (open) { $('#mw-stamps').hidden = true; if (narrowEditor()) setPanel(false); renderLayers(); }
+  }
+
+  /* ================= The options of the tool in hand (a bar over the map, only while the tool has some) ================= */
+  function renderOpts(t) {
+    const bar = $('#mw-opts');
+    if (!bar) return;
+    bar.textContent = '';
+    if (mode !== 'edit' || !rec) { bar.hidden = true; return; }
+    const label = (s) => el('span', 'op-l', s);
+    if (t === 'wall') {
+      const steps = [[0.25, 'A little'], [0.5, 'Half'], [0.75, 'A lot'], [1, 'All']];
+      const seg = el('div', 'seg small'); seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'How much a wall muffles');
+      const near = steps.reduce((a, b) => (Math.abs(b[0] - rec.world.wallLoss) < Math.abs(a[0] - rec.world.wallLoss) ? b : a))[0];
+      steps.forEach(([v, s]) => {
+        const b = el('button', '', s); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(v === near));
+        b.title = `Each wall between a sound and the party takes ${Math.round(v * 100)} % of it away, on every map of the world`;
+        b.addEventListener('click', () => { rec.world.wallLoss = v; save(); if (A.isOpen()) A.hear(); renderOpts('wall'); });
+        seg.append(b);
+      });
+      bar.append(label('Walls muffle'), seg, el('small', 'op-h', 'Shift: a straight wall'));
+    } else if (t === 'stamp') {
+      bar.append(label('Size'), placeSizeSeg(), el('small', 'op-h', currentStamp ? `${stampLabel(currentStamp)}: tap the map to lay it` : 'Pick a place in the library'));
+    } else if (t === 'eraser') {
+      bar.append(el('small', 'op-h', 'Tap a place, or a wall, to erase it. Undo brings it back.'));
+    } else { bar.hidden = true; return; }
+    bar.hidden = false;
+  }
+
   /* ================= Tools ================= */
   const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, stamp: ICON.stamp, eraser: ICON.eraser };
   function paintTools(t) {
@@ -1771,7 +1924,6 @@
       tile(st.id, st.name, ed);
     });
     let group = null;
-    box.prepend(placeSizeRow());
     S.LIST.forEach((s) => {
       if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
       tile(s.id, s.label);
@@ -1784,9 +1936,7 @@
   const PLACE_SHARE = { s: 0.06, m: 0.1, l: 0.16, xl: 0.25 };
   const placeShare = (id) => PLACE_SHARE[settings.placeSize] || (window.MapStamps.natural ? window.MapStamps.natural(id) : 0.07);
   V.setStampSizer && V.setStampSizer((id, p) => Math.max(20, Math.round((p.width * placeShare(id)) / 5) * 5));
-  function placeSizeRow() {
-    const row = el('div', 'st-size');
-    row.append(el('span', '', 'Size'));
+  function placeSizeSeg() {
     const seg = el('div', 'seg small');
     seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Size of the places you lay');
     PLACE_SIZES.forEach(([v, label, tip]) => {
@@ -1796,16 +1946,13 @@
       b.addEventListener('click', () => {
         settings.placeSize = v; saveSettings();
         seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.v === v)));
-        hint.textContent = tip;
       });
       seg.append(b);
     });
-    const hint = el('small', '', (PLACE_SIZES.find((x) => x[0] === (settings.placeSize || 'auto')) || PLACE_SIZES[0])[2]);
-    row.append(seg, hint);
-    return row;
+    return seg;
   }
   let currentStamp = null;
-  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); }
+  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); if ($('#mw-opts') && !$('#mw-opts').hidden) renderOpts('stamp'); }
 
   /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
   const LINE_W = [0.01, 0.022, 0.036];   // fine, normal, bold
@@ -2988,9 +3135,10 @@
       if (b.dataset.tool === 'stamp') {
         // The library opens with nothing picked: a place is armed only once chosen in it.
         const box = $('#mw-stamps');
-        if (!box.hidden) { box.hidden = true; paintTools(V.tool()); return; }
+        if (!box.hidden) { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); return; }
         paintStamps(null);
         box.hidden = false;
+        renderOpts('stamp');
         box.scrollTop = 0;
         b.setAttribute('aria-pressed', 'true');
         return;
@@ -2999,7 +3147,18 @@
       if (b.dataset.tool) V.setTool(b.dataset.tool);
       else if (b.dataset.act === 'undo') { if (!V.undo()) toast('Nothing to undo.', 1400); }
       else if (b.dataset.act === 'fit') V.fit();
+
     });
+    $('#mw-layers-btn').innerHTML = ICON.layers;
+    $('#mw-layers-btn').addEventListener('click', () => setLayers(!$('#world').classList.contains('layers')));
+    $('#mw-layers-close').innerHTML = ICON.close;
+    $('#mw-layers-close').addEventListener('click', () => setLayers(false));
+    // Zoom, as in every editor: out, the value (a tap brings the whole map back), in.
+    $('#mw-zout').innerHTML = ICON.minus; $('#mw-zin').innerHTML = ICON.plus;
+    $('#mw-zout').addEventListener('click', () => V.zoomBy(1 / 1.25));
+    $('#mw-zin').addEventListener('click', () => V.zoomBy(1.25));
+    $('#mw-zval').addEventListener('click', () => V.fit());
+    setInterval(() => { if (screen !== 'world' || document.hidden) return; const z = `${Math.round(V.zoomShown() * 100)} %`; const b = $('#mw-zval'); if (b.textContent !== z) b.textContent = z; }, 200);
     $('#mw-fill').innerHTML = ICON.fit;
     $('#mw-fill').addEventListener('click', () => V.fit());
 
@@ -3022,7 +3181,7 @@
     // The map.
     V.mount($('#mw-canvas'));
     $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
-    V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; };
+    V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; renderOpts(t); };
     // An element deleted (its button, the Delete key, the eraser): its panel closes, never falling back on the map's
     // panel (where the map itself can be deleted).
     let shownEl = null;
@@ -3033,6 +3192,7 @@
       if (e) edView = null;
       if (gone) setPanel(false);
       renderPanel();
+      renderLayers();
     };
     // A new element: a name of its own, and its panel opens to name it and give it sounds.
     V.onCreate = (e) => {
@@ -3048,6 +3208,7 @@
       if (e.shape.type === 'stamp') V.setTool('select');
       edView = null;
       renderPanel();
+      renderLayers();
     };
     // The tools stand beside the map, never over it: the whole map fits next to them.
     V.insets = () => {
@@ -3071,7 +3232,7 @@
     $('#mw-title-in').addEventListener('input', (ev) => { if (!rec) return; rec.story.title = ev.target.value.slice(0, 120); $('#mw-title').textContent = rec.story.title || 'World'; document.title = `${rec.story.title || 'World'} | Troubadour Map`; save(); });
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
-    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); } if (A.isOpen()) { A.sync(); } };
+    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); } };
     V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
@@ -3113,6 +3274,8 @@
       if (screen !== 'world' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('dialog[open]')) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (mode === 'edit') V.undo(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '+' || e.key === '=') { V.zoomBy(1.25); return; }
+      if (e.key === '-') { V.zoomBy(1 / 1.25); return; }
       if (mode === 'edit') {
         const map = { v: 'select', h: 'hand', w: 'wall', e: 'eraser' };
         const k = e.key.toLowerCase();

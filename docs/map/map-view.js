@@ -122,16 +122,25 @@
     for (let i = 0; i < n; i++) if (M.nearestOnSegment(p, pts[i], pts[(i + 1) % pts.length]).d2 <= tol * tol) return true;
     return pts.length === 1 && Math.hypot(p[0] - pts[0][0], p[1] - pts[0][1]) <= tol;
   }
+  /* The layers of the editor: an element hidden is not drawn while editing, an element locked cannot be touched on
+   * the map (it still is from the layers list). An aid for drawing only: nothing of it is saved, the table sees all. */
+  const layers = { hidden: new Set(), locked: new Set(), wallsHidden: false, wallsLocked: false };
+  const editing = () => mode === 'edit';
+  const shown = () => (editing() && layers.hidden.size ? place.elements.filter((e) => !layers.hidden.has(e)) : place.elements);
+  const shownWalls = () => (editing() && layers.wallsHidden ? [] : place.walls);
+  const untouchable = (e) => editing() && (layers.hidden.has(e) || layers.locked.has(e));
   function elementAt(p) {
     const tol = 12 / view.k;
     for (let i = place.elements.length - 1; i >= 0; i--) {
       const e = place.elements[i], s = e.shape;
+      if (untouchable(e)) continue;
       if (s.type === 'stamp') { if (Math.hypot(p[0] - s.x, p[1] - s.y) <= s.size / 2 + tol * 0.5) return e; }
       else if ((s.closed && M.inside(p, s.points)) || nearPath(p, s.points, s.closed, tol)) return e;
     }
     return null;
   }
   function wallAt(p) {
+    if (editing() && (layers.wallsHidden || layers.wallsLocked)) return null;
     const tol = 12 / view.k;
     for (let i = place.walls.length - 1; i >= 0; i--) if (nearPath(p, place.walls[i].points, false, tol)) return place.walls[i];
     return null;
@@ -615,7 +624,7 @@
 
     // How far every sound reaches, then the elements, then the walls on top.
     const heard = new Map();
-    place.elements.forEach((el) => {
+    shown().forEach((el) => {
       if (!el.cards.length) return;
       let h = 0;
       if (audioOn) {
@@ -625,8 +634,8 @@
       const rings = mode === 'edit' || global.MapUI.settings.rings || el === selected;
       if (rings) drawReach(el, h);
     });
-    place.elements.forEach((el) => drawElement(el, heard.get(el) || 0));
-    place.walls.forEach((w) => drawWall(w));
+    shown().forEach((el) => drawElement(el, heard.get(el) || 0));
+    shownWalls().forEach((w) => drawWall(w));
     ctx.restore();
 
     // The line being drawn.
@@ -641,7 +650,7 @@
     ctx.font = '600 14px "Barlow Semi Condensed", system-ui, sans-serif';
     ctx.textAlign = 'center';
     if (!global.MapUI || global.MapUI.settings.names !== false) drawLabels();
-    place.elements.forEach((el) => {
+    shown().forEach((el) => {
       if (el.link) {
         // The way to another map, in the middle of the element: a long press on it goes there.
         const [lx, ly] = toScreen(M.centre(el.shape));
@@ -715,14 +724,14 @@
     const box = (x, y, w, h) => ({ x0: x, y0: y, x1: x + w, y1: y + h });
     const hits = (r, own) => taken.some((t) => t.el !== own && r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0);
     // The drawings of the library (a forest, a lake) are not written over either, except by their own name.
-    place.elements.forEach((el) => {
+    shown().forEach((el) => {
       if (el.shape.type !== 'stamp') return;
       const b = M.bounds(el.shape), [x0, y0] = toScreen([b[0], b[1]]), [x1, y1] = toScreen([b[2], b[3]]), d = (x1 - x0) * 0.15;
       taken.push(Object.assign(box(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d), { el }));
     });
     const [px, py] = toScreen(place.player);
     taken.push(box(px - 24, py - 24, 48, 48));
-    place.elements.forEach((el) => { if (el.link) { const [lx, ly] = toScreen(M.centre(el.shape)); taken.push(box(lx - 18, ly - 18, 36, 36)); } });
+    shown().forEach((el) => { if (el.link) { const [lx, ly] = toScreen(M.centre(el.shape)); taken.push(box(lx - 18, ly - 18, 36, 36)); } });
     const order = place.elements.map((el, i) => ({ el, i })).sort((a, b) => (b.el.cards.length > 0) - (a.el.cards.length > 0) || a.i - b.i);
     ctx.textBaseline = 'middle';
     order.forEach(({ el }) => {
@@ -920,7 +929,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, setStamp, setStampSizer, select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,

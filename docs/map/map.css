@@ -729,3 +729,65 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .mp-gate .forge { display: grid; justify-items: center; gap: 10px; padding: 22px 26px; border-radius: 18px; background: var(--bar); border: 1px solid var(--accent); box-shadow: 0 14px 40px var(--shadow); }
 .mp-gate b { font-family: 'Cormorant SC', serif; font-size: 24px; }
 .mp-gate small { color: var(--muted); font-size: 14px; }
+
+/* ================= M2, the editor shell (261114_map_plan.md): layers, inspector tabs, tool options, zoom ================= */
+/* Layers: beside the map on a wide screen (under the maps), over it on a phone, one panel at a time. */
+.mp-layers { display: none; min-height: 0; flex-direction: column; background: var(--bar); }
+.mp-layers .ly-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 6px; }
+.mp-layers .ly-head h3 { margin: 0; font: 600 13px/1 'Barlow Semi Condensed', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.mp-layers .ly-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px 8px 10px; display: grid; gap: 4px; align-content: start; touch-action: pan-y; overscroll-behavior: contain; }
+.ly-row { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 2px 4px 2px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; min-width: 0; }
+.ly-row:hover { border-color: var(--muted); }
+.ly-row.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ly-row.hid .ly-th, .ly-row.hid .ly-t { opacity: .4; }
+.ly-row.drag { position: relative; z-index: 2; box-shadow: 0 10px 30px var(--shadow); transition: none; }
+.ly-row { transition: transform .12s; }
+.ly-grip { flex: none; width: 22px; height: 34px; display: grid; place-items: center; color: var(--muted); cursor: grab; touch-action: none; }
+.ly-grip.none { cursor: default; }
+.ly-th { flex: none; width: 28px; height: 28px; }
+.ly-wall { display: grid; place-items: center; color: var(--muted); }
+.ly-t { flex: 1; min-width: 0; display: grid; }
+.ly-nm { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-meta:empty { display: none; }
+.ly-f { flex: none; width: 34px; height: 34px; border: 0; background: none; border-radius: 9px; color: var(--muted); display: grid; place-items: center; cursor: pointer; opacity: .55; }
+.ly-f:hover { background: var(--bar); opacity: 1; }
+.ly-f.on { color: var(--accent); opacity: 1; }
+.mp-layers .ly-head .ico { display: none; }
+.tl-layers { display: none !important; position: absolute; left: 12px; bottom: 12px; z-index: 2; background: var(--bar); box-shadow: 0 10px 30px var(--shadow); }
+.tl-layers[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+@media (min-width: 901px) {
+  .mp-world[data-mode="edit"] .mp-body { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "rail stage side" "layers stage side"; }
+  .mp-world[data-mode="edit"] .mp-rail { max-height: 40vh; overflow-y: auto; }
+  .mp-world[data-mode="edit"] .mp-layers { display: flex; grid-area: layers; border-right: 1px solid var(--line); border-top: 1px solid var(--line); }
+}
+@media (max-width: 900px) {
+  .mp-world[data-mode="edit"] .tl-layers { display: grid !important; }
+  .mp-world[data-mode="edit"].layers .mp-layers { display: flex; position: absolute; left: 0; top: 0; bottom: 0; width: min(300px, 86vw); z-index: 5; border-right: 1px solid var(--line); box-shadow: 20px 0 50px var(--shadow); }
+  .mp-world[data-mode="edit"] .mp-layers .ly-head .ico { display: grid; }
+}
+
+/* The inspector's tabs. */
+.insp-tabs { display: flex; position: sticky; top: 0; z-index: 2; }
+.insp-tabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.insp-tabs button .n { font-style: normal; font-size: 12px; font-weight: 600; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: color-mix(in srgb, currentColor 18%, transparent); }
+.mp-side-body > [hidden] { display: none !important; }
+
+/* The options of the tool in hand. */
+.mp-opts { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 160px); display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 12px; border-radius: 12px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 10px 30px var(--shadow); z-index: 2; white-space: nowrap; }
+.mp-opts[hidden] { display: none; }
+.mp-opts .op-l { font-size: 13px; font-weight: 600; }
+.mp-opts .op-h { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+.mp-opts .seg button { padding: 3px 9px; font-size: 13px; min-width: 34px; }
+@media (max-width: 700px) { .mp-opts .op-h { display: none; } .mp-opts { gap: 8px; padding: 4px 8px; } }
+@media (orientation: portrait) { .mp-opts { top: auto; bottom: 64px; left: 12px; transform: none; max-width: calc(100% - 24px); } }
+
+/* Zoom: out, the value, in, the whole map. */
+.mp-zoom { grid-auto-flow: column; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 10px 30px var(--shadow); }
+.mp-zoom .ico { width: 34px; height: 34px; border-color: transparent; background: none; }
+.mp-zoom .ico:hover { background: var(--card); }
+.mp-zoom .zv { min-width: 54px; height: 34px; border: 0; background: none; color: var(--text); font: 600 13px 'Barlow Semi Condensed', system-ui, sans-serif; font-variant-numeric: tabular-nums; border-radius: 9px; cursor: pointer; }
+.mp-zoom .zv:hover { background: var(--card); }
+.mp-world[data-mode="play"] .mp-zoom .zm, .mp-world[data-mode="play"] .mp-zoom .zv { display: none; }
+.mp-world[data-mode="play"] .mp-zoom { padding: 0; border: 0; background: none; box-shadow: none; }
+@media (max-height: 520px) and (orientation: landscape) { .tl-layers { left: 58px; bottom: 8px; } }
