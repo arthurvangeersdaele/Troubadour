@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en" data-theme="obsidian" data-mode="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Troubadour Map | Troubadour</title>
+<meta name="description" content="Troubadour Map: draw the maps of your world, lay their sounds on the map, and hear what the party hears as it moves.">
+<meta name="theme-color" content="#15151B">
+<link rel="icon" type="image/svg+xml" href="../map/icons/261031_troubadour_map_icon.svg">
+<link rel="apple-touch-icon" href="../map/icons/261031_troubadour_map_180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../play/style.css">
+<link rel="stylesheet" href="../troupe/troupe.css">
+<script src="../themes.js"></script>
+<script>
+  (function () {
+    var root = document.documentElement;
+    try {
+      var s = JSON.parse(localStorage.getItem('troubadour.settings') || '{}');
+      var mode = s.mode || 'dark';
+      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
+      root.dataset.mode = mode;
+    } catch (e) {}
+    try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
+    try { var ua = navigator.userAgent; root.classList.toggle('iphone', /iPhone|iPod|iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)); } catch (e) {}
+  })();
+</script>
+<style>
+  .map-art { width: 96px; height: 96px; margin: 0 auto 18px; display: block; border-radius: 22px; box-shadow: 0 10px 30px var(--shadow); }
+  .steps { display: grid; gap: 12px; max-width: 660px; margin: 26px auto 0; text-align: left; }
+  .steps div { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .steps .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 18px; }
+  .steps p { margin: 3px 0 0; }
+  .steps b { display: block; color: var(--text); font-size: 17px; }
+  .steps span { color: var(--muted); font-size: 15px; }
+  .door.flow-editor { --z: var(--amb); }
+  .door.flow-iphone { --z: var(--accent); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card) 55%); }
+  .door.flow-iphone b { color: var(--accent); }
+  .door.flow-android { --z: var(--blue); }
+  .door .tag { align-self: flex-start; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--z, var(--accent)); border: 1px solid color-mix(in srgb, var(--z, var(--accent)) 55%, var(--line)); border-radius: 999px; padding: 2px 9px; }
+  .door .off { font-size: 13px; }
+  html.pc .doors.three { grid-template-columns: repeat(3, minmax(0, 290px)); }
+  .door.flow-iphone { cursor: pointer; text-align: left; font: inherit; color: inherit; }
+  /* The player installs on an iPhone; a computer shows a QR code to scan with it; elsewhere it explains. */
+  .door .for-iphone, .door .for-pc, .door .for-other { display: none; }
+  html.iphone .door .for-iphone, html.pc .door .for-pc, html:not(.iphone):not(.pc) .door .for-other { display: block; }
+  html:not(.iphone):not(.pc) .door.flow-iphone { pointer-events: none; opacity: .75; }
+  html:not(.iphone):not(.pc) .door.flow-iphone .go { display: none; }
+  .qr-veil { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(5,5,8,.72); backdrop-filter: blur(3px); padding: 16px; }
+  .qr-veil[hidden] { display: none; }
+  .qr-box { position: relative; background: var(--bar); border: 1px solid var(--line); border-radius: 18px; padding: 26px 28px 22px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+  .qr-box h3 { font-size: 28px; margin: 0 0 4px; }
+  .qr-box p { color: var(--muted); font-size: 15px; margin: 0 0 14px; }
+  .qr-code { background: #fff; border-radius: 14px; padding: 14px; width: 232px; height: 232px; margin: 0 auto 14px; display: grid; place-items: center; }
+  .qr-code svg { width: 100%; height: 100%; display: block; }
+  .qr-close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; display: grid; place-items: center; }
+</style>
+<script src="../device.js"></script>
+<script src="../back.js"></script>
+</head>
+<body>
+<div class="cpage">
+<header class="sbar">
+  <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+  <nav class="tabs" aria-label="La Troupe">
+    <a href="../play/" class="no-phone">Online player</a>
+    <a href="../troupe/builder.html" class="pc-only">Story builder</a>
+    <a href="../troupe/recueil.html">Recueil</a>
+    <a href="../troubadour-ballade/">Ballade</a>
+    <a href="../troubadour-map/" aria-current="page">Map</a>
+  </nav>
+  <span class="grow"></span>
+</header>
+
+<main class="hall">
+  <img class="map-art" src="../map/icons/261031_troubadour_map_180.png" alt="" width="96" height="96">
+  <p class="kicker">Troubadour</p>
+  <h1>Troubadour Map</h1>
+  <div class="oath">
+    <p>Some stories are told chapter by chapter. Others are walked.</p>
+    <p>Troubadour Map is for the troubadours who draw their world: lay <em>the sounds on the map</em>, the forge in the village, the wolves in the woods, the music of the castle.</p>
+    <p>At the table, move the golden point where the party goes. Closer is louder, walls muffle, and the music changes where the party stops.</p>
+  </div>
+
+  <div class="steps">
+    <div><span class="n">1</span><p><b>Draw your world</b><span>Maps, walls, a hundred places to lay or your own to draw, and ways from one map to the next.</span></p></div>
+    <div><span class="n">2</span><p><b>Lay the sounds on it</b><span>Musics, ambiances and events on the whole map or on a place, with how far each place is heard.</span></p></div>
+    <div><span class="n">3</span><p><b>Move the party at the table</b><span>Drag the golden point: the sounds follow. Share a world as a .troubadour-map file.</span></p></div>
+  </div>
+
+  <nav class="doors three" aria-label="Troubadour Map">
+    <a class="door flow-editor pc-only" href="../map/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Computer</span><b>Map on this computer</b><span>Draw your worlds with a mouse and play them from here.</span></a>
+    <a class="door flow-iphone" href="../map/" id="map-phone"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">iPhone and iPad</span><b>Map for iPhone</b><span class="for-iphone">Open the page, then add it to your Home Screen: it becomes the Troubadour Map app.</span><span class="for-pc">Scan a QR code with your iPhone or iPad, then add the page to its Home Screen.</span><span class="for-other">Open this page on an iPhone or an iPad, in Safari, to add the app to its Home Screen.</span></a>
+    <a class="door flow-android" href="../map/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Android</span><b>Map in your browser</b><span>On an Android phone or tablet, Troubadour Map opens in Chrome. Its menu can add it to your Home screen.</span></a>
+  </nav>
+  <div class="qr-veil" id="qr" hidden role="dialog" aria-modal="true" aria-labelledby="qr-title">
+    <div class="qr-box">
+      <button class="qr-close" type="button" id="qr-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <h3 id="qr-title">Map for iPhone and iPad</h3>
+      <p>Scan with your camera and open the page in Safari. Then tap Share and Add to Home Screen.</p>
+      <div class="qr-code" id="qr-code"></div>
+    </div>
+  </div>
+</main>
+</div>
+<script src="../vendor/qrcode-generator-1.4.4.js"></script>
+<script>
+  // On a computer, the phone door shows a QR code to scan with the phone.
+  (function () {
+    var veil = document.getElementById('qr'), door = document.getElementById('map-phone');
+    door.addEventListener('click', function (e) {
+      if (!document.documentElement.classList.contains('pc') || typeof qrcode !== 'function') return;
+      e.preventDefault();
+      var q = qrcode(0, 'M'); q.addData(new URL('../map/', location.href).href); q.make();
+      document.getElementById('qr-code').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+      veil.hidden = false; document.getElementById('qr-close').focus();
+    });
+    function hide() { veil.hidden = true; door.focus(); }
+    document.getElementById('qr-close').addEventListener('click', hide);
+    veil.addEventListener('click', function (e) { if (e.target === veil) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !veil.hidden) hide(); });
+  })();
+</script>
+<script src="../auth/account.js"></script>
+<script src="../troupe/settings.js"></script>
+</body>
+</html>

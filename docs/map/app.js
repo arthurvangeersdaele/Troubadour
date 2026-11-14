@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261110.01';
+  const VERSION = '261114.01';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2920,8 +2920,6 @@
     const root = document.documentElement;
     let hinted = false;
     try { hinted = localStorage.getItem('troubadour.map.ioshint') === '1'; } catch (e) { /* private mode */ }
-    if (root.classList.contains('ios') && !root.classList.contains('standalone') && !hinted) $('#ios-hint').hidden = false;
-    $('#ios-hint-close').addEventListener('click', () => { $('#ios-hint').hidden = true; try { localStorage.setItem('troubadour.map.ioshint', '1'); } catch (e) { /* private mode */ } });
 
     // World screen.
     $('#mw-back').innerHTML = ICON.back;
