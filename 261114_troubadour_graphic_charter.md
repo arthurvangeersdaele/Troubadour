@@ -260,7 +260,7 @@ Name on one line that rolls when too long; a zone pill (18 × 5 px, radius 3); a
 | Shine | 1.1 px | gold hot | .75 (.45 light) |
 | Bare wire | 3 px | wire colour | 1 |
 
-Straight lines and round joins only. Gates: 46 px round nodes; lit gold; waiting gates pulse (box-shadow 0 to 4 px, 1.4 s). Choice gates silver, answers as silver pills with a sheen sweep (3.2 s). The time line is a 2 px gold line with a 12 px hot dot, hidden only inside a node.
+Straight lines and round joins only. Gates: 46 px round nodes; lit gold; waiting gates pulse (box-shadow 0 to 4 px, 1.4 s). Choice gates silver, answers as silver 12 px rounded rectangles with a sheen sweep (3.2 s). The time line is a 2 px gold line with a 12 px hot dot, hidden only inside a node.
 
 ### 6.5 Dialogs and sheets
 
