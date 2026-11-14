@@ -1,0 +1,784 @@
+[
+  {
+    "file": "docs/ballade/discovery/261017_underwater-adventure.troubadour-ballade",
+    "story": "Underwater Adventure",
+    "cards": 47,
+    "sounds": 49,
+    "findings": [
+      {
+        "where": "ch1 step 1",
+        "name": "Gentle waves",
+        "kind": "loop gap",
+        "gapMs": 187
+      },
+      {
+        "where": "ch1 step 1",
+        "name": "Tropical day",
+        "kind": "loop gap",
+        "gapMs": 242
+      },
+      {
+        "where": "ch2 step 1",
+        "name": "Storm winds",
+        "kind": "loop gap",
+        "gapMs": 57
+      },
+      {
+        "where": "ch2 step 3",
+        "name": "Raging sea",
+        "kind": "loop seam click",
+        "jump": 0.0702
+      },
+      {
+        "where": "ch3 step 1",
+        "name": "Deep water",
+        "kind": "loop seam click",
+        "jump": 0.0312
+      },
+      {
+        "where": "ch3 step 2",
+        "name": "Ocean current",
+        "kind": "loop gap",
+        "gapMs": 184
+      },
+      {
+        "where": "ch4 step 1",
+        "name": "Creaking ship",
+        "kind": "loop gap",
+        "gapMs": 225
+      },
+      {
+        "where": "ch4 step 1",
+        "name": "Harbor",
+        "kind": "loop seam click",
+        "jump": 0.066
+      },
+      {
+        "where": "ch4 step 2",
+        "name": "Treasure chest",
+        "kind": "hard start",
+        "amp": 0.027
+      },
+      {
+        "where": "ch5 step 1",
+        "name": "Hull under strain",
+        "kind": "loop gap",
+        "gapMs": 261
+      }
+    ],
+    "soundsDetail": [
+      {
+        "file": "sounds/1/music/01-mediterranean-waves.mp3",
+        "seconds": 267.41,
+        "leadMs": 390,
+        "trailMs": 2315,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/music/02-waters-edge.mp3",
+        "seconds": 188.91,
+        "leadMs": 451,
+        "trailMs": 921,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/ambience/01-gentle-waves.mp3",
+        "seconds": 56.34,
+        "leadMs": 136,
+        "trailMs": 51,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/ambience/02-tropical-day.mp3",
+        "seconds": 31.27,
+        "leadMs": 0,
+        "trailMs": 227,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/01-footsteps-in-the-sand.mp3",
+        "seconds": 3.37,
+        "leadMs": 0,
+        "trailMs": 101,
+        "firstAmp": 0.014,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/02-splash.mp3",
+        "seconds": 2.48,
+        "leadMs": 65,
+        "trailMs": 151,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/03-ship-horn-far-away.mp3",
+        "seconds": 4.42,
+        "leadMs": 0,
+        "trailMs": 6,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/music/01-point-of-no-return.mp3",
+        "seconds": 150.5,
+        "leadMs": 421,
+        "trailMs": 1562,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/music/02-suspense.mp3",
+        "seconds": 320.24,
+        "leadMs": 0,
+        "trailMs": 3340,
+        "firstAmp": 0.003,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/ambience/01-raging-sea.mp3",
+        "seconds": 47.14,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.01,
+        "lastAmp": 0.08
+      },
+      {
+        "file": "sounds/2/ambience/02-storm-winds.mp3",
+        "seconds": 121.44,
+        "leadMs": 4,
+        "trailMs": 52,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/01-earthquake-rumble.mp3",
+        "seconds": 6.16,
+        "leadMs": 3,
+        "trailMs": 85,
+        "firstAmp": 0.003,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/02-the-giant-wave.mp3",
+        "seconds": 9,
+        "leadMs": 3,
+        "trailMs": 15,
+        "firstAmp": 0.002,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/03-thunder.mp3",
+        "seconds": 12.48,
+        "leadMs": 25,
+        "trailMs": 261,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/04-panic-scream.mp3",
+        "seconds": 0.27,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.005,
+        "lastAmp": 0.003
+      },
+      {
+        "file": "sounds/3/music/01-the-deep-path.mp3",
+        "seconds": 217.72,
+        "leadMs": 0,
+        "trailMs": 741,
+        "firstAmp": 0.002,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/music/02-mirage.mp3",
+        "seconds": 100.87,
+        "leadMs": 276,
+        "trailMs": 888,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/ambience/01-deep-water.mp3",
+        "seconds": 45.83,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.031
+      },
+      {
+        "file": "sounds/3/ambience/02-ocean-current.mp3",
+        "seconds": 39.25,
+        "leadMs": 132,
+        "trailMs": 52,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/events/01-bubbles.mp3",
+        "seconds": 2.48,
+        "leadMs": 65,
+        "trailMs": 151,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/events/02-mermaid-call.mp3",
+        "seconds": 1.09,
+        "leadMs": 2,
+        "trailMs": 70,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/events/03-something-huge-swims-by.mp3",
+        "seconds": 5.13,
+        "leadMs": 3,
+        "trailMs": 72,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/music/01-three-sheets.mp3",
+        "seconds": 200.32,
+        "leadMs": 530,
+        "trailMs": 671,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/music/02-bandit-country.mp3",
+        "seconds": 99.76,
+        "leadMs": 630,
+        "trailMs": 1218,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/ambience/01-creaking-ship.mp3",
+        "seconds": 35.53,
+        "leadMs": 41,
+        "trailMs": 184,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/ambience/02-harbor.mp3",
+        "seconds": 37.04,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.066,
+        "lastAmp": 0.002
+      },
+      {
+        "file": "sounds/4/events/01-cannon-fire.mp3",
+        "seconds": 2.92,
+        "leadMs": 0,
+        "trailMs": 277,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/events/02-cutlass-clash.mp3",
+        "seconds": 0.59,
+        "leadMs": 0,
+        "trailMs": 99,
+        "firstAmp": 0.002,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/events/03-ramming-speed.mp3",
+        "seconds": 0.89,
+        "leadMs": 0,
+        "trailMs": 2,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/events/04-treasure-chest.mp3",
+        "seconds": 0.45,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.027,
+        "lastAmp": 0.015
+      },
+      {
+        "file": "sounds/4/events/05-musket-shot.mp3",
+        "seconds": 1.73,
+        "leadMs": 0,
+        "trailMs": 4,
+        "firstAmp": 0.003,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/music/01-weight-of-revenge.mp3",
+        "seconds": 242.76,
+        "leadMs": 935,
+        "trailMs": 995,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/music/02-undead-siege.mp3",
+        "seconds": 194.07,
+        "leadMs": 13,
+        "trailMs": 1509,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/ambience/01-storm-at-sea.mp3",
+        "seconds": 39.25,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.005,
+        "lastAmp": 0.011
+      },
+      {
+        "file": "sounds/5/ambience/02-hull-under-strain.mp3",
+        "seconds": 34.53,
+        "leadMs": 31,
+        "trailMs": 230,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/events/01-kraken-roar.mp3",
+        "seconds": 4,
+        "leadMs": 3,
+        "trailMs": 0,
+        "firstAmp": 0.002,
+        "lastAmp": 0.021
+      },
+      {
+        "file": "sounds/5/events/02-tentacle-slam.mp3",
+        "seconds": 2.95,
+        "leadMs": 13,
+        "trailMs": 6,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/events/03-the-hull-breaks.mp3",
+        "seconds": 3.87,
+        "leadMs": 6,
+        "trailMs": 145,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/events/04-man-overboard.mp3",
+        "seconds": 3.08,
+        "leadMs": 3,
+        "trailMs": 197,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/5/events/05-the-kraken-dies.mp3",
+        "seconds": 2.6,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.002,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/01-critical-hit.mp3",
+        "seconds": 1.55,
+        "leadMs": 42,
+        "trailMs": 542,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/02-level-up.mp3",
+        "seconds": 2.57,
+        "leadMs": 6,
+        "trailMs": 308,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/03-fireball.mp3",
+        "seconds": 0.83,
+        "leadMs": 10,
+        "trailMs": 76,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/04-explosion.mp3",
+        "seconds": 1.5,
+        "leadMs": 0,
+        "trailMs": 6,
+        "firstAmp": 0.005,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/05-gold-coins.mp3",
+        "seconds": 1.7,
+        "leadMs": 0,
+        "trailMs": 20,
+        "firstAmp": 0.003,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/06-drink-a-potion.mp3",
+        "seconds": 2.8,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.011
+      },
+      {
+        "file": "sounds/soundbox/07-creaking-door.mp3",
+        "seconds": 2.13,
+        "leadMs": 0,
+        "trailMs": 17,
+        "firstAmp": 0.229,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/08-evil-laugh.mp3",
+        "seconds": 5,
+        "leadMs": 0,
+        "trailMs": 2500,
+        "firstAmp": 0.002,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/soundbox/09-fanfare.mp3",
+        "seconds": 3.2,
+        "leadMs": 24,
+        "trailMs": 435,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      }
+    ]
+  },
+  {
+    "file": "docs/ballade/discovery/261021_treasure-island-choices.troubadour-ballade",
+    "story": "Treasure Island, by your choices",
+    "cards": 26,
+    "sounds": 29,
+    "findings": [
+      {
+        "where": "ch1 step 1",
+        "name": "Rainy night at the Benbow",
+        "kind": "loop gap",
+        "gapMs": 274
+      },
+      {
+        "where": "ch1 step 1",
+        "name": "Inn fireplace",
+        "kind": "loop seam click",
+        "jump": 0.0203
+      },
+      {
+        "where": "ch1 step 3",
+        "name": "Old sailor's tavern",
+        "kind": "loop seam click",
+        "jump": 0.0421
+      },
+      {
+        "where": "ch1 way 1 step 1",
+        "name": "Old sailor's tavern",
+        "kind": "loop seam click",
+        "jump": 0.0421
+      },
+      {
+        "where": "ch1 way 1 step 2",
+        "name": "Knock at the door",
+        "kind": "loop gap",
+        "gapMs": 44
+      },
+      {
+        "where": "ch1 way 2 step 1",
+        "name": "Three sheets to the wind",
+        "kind": "loop gap",
+        "gapMs": 417
+      },
+      {
+        "where": "ch1 way 2 step 1",
+        "name": "Inn fireplace",
+        "kind": "loop seam click",
+        "jump": 0.0203
+      },
+      {
+        "where": "ch2 step 1",
+        "name": "Fearless sailors",
+        "kind": "loop gap",
+        "gapMs": 873
+      },
+      {
+        "where": "ch2 step 3",
+        "name": "Tailwind",
+        "kind": "loop gap",
+        "gapMs": 12
+      },
+      {
+        "where": "ch2 step 3",
+        "name": "Parrot squawks",
+        "kind": "loop gap",
+        "gapMs": 33
+      },
+      {
+        "where": "ch2 way 1 step 1",
+        "name": "Ireland's coast",
+        "kind": "loop gap",
+        "gapMs": 388
+      },
+      {
+        "where": "ch2 way 1 step 1",
+        "name": "Barrel rolls",
+        "kind": "loop gap",
+        "gapMs": 28
+      },
+      {
+        "where": "ch2 way 2 step 1",
+        "name": "Tailwind",
+        "kind": "loop gap",
+        "gapMs": 12
+      }
+    ],
+    "soundsDetail": [
+      {
+        "file": "sounds/1/music/01-rainy-night-at-the-benbow.mp3",
+        "seconds": 91.72,
+        "leadMs": 52,
+        "trailMs": 220,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/music/02-old-sailors-tavern.mp3",
+        "seconds": 51.46,
+        "leadMs": 4,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.042
+      },
+      {
+        "file": "sounds/1/music/03-three-sheets-to-the-wind.mp3",
+        "seconds": 199.49,
+        "leadMs": 25,
+        "trailMs": 339,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/ambience/01-inn-fireplace.mp3",
+        "seconds": 45.68,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.005,
+        "lastAmp": 0.015
+      },
+      {
+        "file": "sounds/1/ambience/02-sea-storm-outside.mp3",
+        "seconds": 44.64,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.079,
+        "lastAmp": 0.089
+      },
+      {
+        "file": "sounds/1/ambience/03-rain-on-the-shutters.mp3",
+        "seconds": 53.06,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.015,
+        "lastAmp": 0.015
+      },
+      {
+        "file": "sounds/1/ambience/04-wind-at-the-door.mp3",
+        "seconds": 46.86,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.009,
+        "lastAmp": 0.012
+      },
+      {
+        "file": "sounds/1/ambience/05-creaking-timbers.mp3",
+        "seconds": 50.05,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.018,
+        "lastAmp": 0.024
+      },
+      {
+        "file": "sounds/1/events/01-knock-at-the-door.mp3",
+        "seconds": 1.04,
+        "leadMs": 1,
+        "trailMs": 43,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/02-sea-chest-opens.mp3",
+        "seconds": 0.45,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/03-coins-spill.mp3",
+        "seconds": 0.5,
+        "leadMs": 1,
+        "trailMs": 21,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/1/events/04-pistol-shot.mp3",
+        "seconds": 0.42,
+        "leadMs": 0,
+        "trailMs": 50,
+        "firstAmp": 0.002,
+        "lastAmp": 0.003
+      },
+      {
+        "file": "sounds/1/events/05-horses-gallop-away.mp3",
+        "seconds": 0.91,
+        "leadMs": 0,
+        "trailMs": 7,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/music/01-fearless-sailors.mp3",
+        "seconds": 163.17,
+        "leadMs": 1,
+        "trailMs": 872,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/music/02-tailwind.mp3",
+        "seconds": 134,
+        "leadMs": 1,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/music/03-irelands-coast.mp3",
+        "seconds": 203.57,
+        "leadMs": 11,
+        "trailMs": 377,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/ambience/01-open-sea.mp3",
+        "seconds": 53.84,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.005,
+        "lastAmp": 0.007
+      },
+      {
+        "file": "sounds/2/ambience/02-ship-under-sail.mp3",
+        "seconds": 45.5,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.021,
+        "lastAmp": 0.023
+      },
+      {
+        "file": "sounds/2/ambience/03-wind-in-the-sails.mp3",
+        "seconds": 50.06,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.043,
+        "lastAmp": 0.059
+      },
+      {
+        "file": "sounds/2/ambience/04-seagulls.mp3",
+        "seconds": 52,
+        "leadMs": 1,
+        "trailMs": 0,
+        "firstAmp": 0.001,
+        "lastAmp": 0.015
+      },
+      {
+        "file": "sounds/2/ambience/05-creaking-hull.mp3",
+        "seconds": 45.36,
+        "leadMs": 0,
+        "trailMs": 0,
+        "firstAmp": 0.051,
+        "lastAmp": 0.051
+      },
+      {
+        "file": "sounds/2/events/01-ships-bell.mp3",
+        "seconds": 3.57,
+        "leadMs": 0,
+        "trailMs": 5,
+        "firstAmp": 0.004,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/02-sail-catches-the-wind.mp3",
+        "seconds": 0.66,
+        "leadMs": 0,
+        "trailMs": 36,
+        "firstAmp": 0.003,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/03-anchor-chain.mp3",
+        "seconds": 11.3,
+        "leadMs": 1,
+        "trailMs": 35,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/04-parrot-squawks.mp3",
+        "seconds": 2.12,
+        "leadMs": 1,
+        "trailMs": 32,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/2/events/05-barrel-rolls.mp3",
+        "seconds": 0.81,
+        "leadMs": 0,
+        "trailMs": 28,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/events/01-cannon-fire.mp3",
+        "seconds": 0.9,
+        "leadMs": 9,
+        "trailMs": 9,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/3/events/02-cutlass-clash.mp3",
+        "seconds": 1.08,
+        "leadMs": 3,
+        "trailMs": 27,
+        "firstAmp": 0.001,
+        "lastAmp": 0.001
+      },
+      {
+        "file": "sounds/4/events/02-gold-coins.mp3",
+        "seconds": 0.61,
+        "leadMs": 0,
+        "trailMs": 44,
+        "firstAmp": 0.011,
+        "lastAmp": 0.001
+      }
+    ]
+  }
+]

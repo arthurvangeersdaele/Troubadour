@@ -1,0 +1,7 @@
+{
+  "name": "ballade-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "lab": "node run.mjs" },
+  "dependencies": { "playwright": "1.56.1" }
+}
