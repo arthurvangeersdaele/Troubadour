@@ -48,7 +48,7 @@ The `.troubadour-ballade` file gets **format version 2**. Version 1 files open a
 | Object | Meaning | Main fields |
 | --- | --- | --- |
 | **Chapter** | one timeline | `tracks`, `clips`, `markers`, `choice` |
-| **Track** | a horizontal lane; any number; each has a kind colour by default | `id`, `name`, `kind` (music, ambiance, events), `volume`, `mute` |
+| **Track** | a horizontal lane; any number, any name; its kind (music, ambiance, events) only sets its default colour and loudness target | `id`, `name`, `kind` (music, ambiance, events), `volume`, `mute` |
 | **Clip** | one sound placed in time | `id`, `track`, `file`, `at` (seconds from the chapter start), `in` (seconds into the file), `length`, `loop` (`once`, `loop`, `random`), `fadeIn`, `fadeOut`, `fadeCurve` (`linear`, `equal-power`, `s`), `gain` (dB), `holdToCue` (bool) |
 | **Cue** (marker) | the timeline stops here and waits for the troubadour | `id`, `at`, `name`, `hold` (which clips keep looping while it waits: all `holdToCue` clips crossing it) |
 | **Section** (marker) | a named moment, for reading and jumping, never stops anything | `id`, `at`, `name` |
@@ -113,7 +113,7 @@ Resume the context on `visibilitychange`, `pageshow`, `audiosession` events and 
 
 ### 5.1 Principle
 
-A horizontal **timeline editor** like Premiere, Final Cut, Logic or Audacity, dressed in the Troubadour charter, with a **program monitor**: a phone-shaped live preview of the Parade player on the right, running on the same engine. Computer only (`.pc`), landscape, mouse and keyboard first, trackpad gestures supported.
+A horizontal **timeline editor** like Premiere, Final Cut, Logic or Audacity, dressed in the Troubadour charter, with a **program monitor**: a phone-shaped live preview of the Parade player on the right, running on the same engine. Computer and iPad in landscape; other devices get a fallback page. Mouse and keyboard on a computer, touch on an iPad (drag, pinch to zoom, long press for the context menu, two-finger scrub), trackpad gestures supported.
 
 ### 5.2 Layout
 
@@ -221,9 +221,9 @@ Work happens on weekends and weekday evenings (project rule). One phase can take
 | Converting v1 changes timing | conversion keeps every relative time; the banner asks to check cues |
 | The builder grows too big for one file | modules: `engine`, `model`, `timeline-view`, `media`, `inspector`, `monitor`, `keys` |
 
-## 9. Open questions
+## 9. Decisions (14 November 2026)
 
-1. **Parade or Ballade?** The request says Troubadour Parade; the repo and apps say Troubadour Ballade. Is Parade the new name (to apply everywhere, with a new file extension), or Ballade stays?
-2. Do cues need an optional **auto-release** after a set time (for a table that forgets to tap)?
-3. Track count: free tracks, or three fixed kinds (music, ambiances, events) with any number of lanes each?
-4. Should the builder also open on an iPad in landscape (touch editing), or computer only as today?
+1. The name stays **Troubadour Ballade** (no Parade).
+2. Cues never release by themselves: the table always taps Go.
+3. Tracks are **free**: any number, any name; a track's kind only sets its default colour and loudness target.
+4. The builder runs on a **computer and an iPad in landscape** (touch editing: drag, pinch to zoom, long press for menus, two-finger scrub). Phones and other devices get a fallback page explaining where to build.

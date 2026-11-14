@@ -316,7 +316,8 @@ Dashed 1 px `--line` box, radius 12, padding 14, `--muted` 14 px text saying wha
 | Troubadour app (Android, iPhone) | landscape only | a turn-your-phone screen otherwise |
 | Troubadour Ballade player | portrait only | the wire runs top to bottom |
 | Troubadour Map | landscape only | |
-| Builders (Story builder, Ballade builder, Map editor) | computer only (`.pc`) | phones see a short notice |
+| Story builder, Map editor | computer only (`.pc`) | phones see a short notice |
+| Ballade builder | computer, and iPad in landscape | other devices see a fallback page |
 | Website | any | |
 
 iPhone web apps run only from the Home Screen ("this page is the app"); a browser tab shows the install guide. Safe areas are respected with `env(safe-area-inset-*)` on every bar.
