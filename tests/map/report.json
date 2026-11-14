@@ -1,0 +1,225 @@
+{
+  "offline": {
+    "story": "The Wolves of Hollowmere",
+    "sounds": 67,
+    "loops": 76,
+    "before": [
+      {
+        "where": "world music",
+        "name": "The cards are dealt",
+        "kind": "loop gap",
+        "gapMs": 1438
+      },
+      {
+        "where": "world music",
+        "name": "Night town",
+        "kind": "loop gap",
+        "gapMs": 666
+      },
+      {
+        "where": "world music",
+        "name": "Dawn over Ravenmoor",
+        "kind": "loop gap",
+        "gapMs": 361
+      },
+      {
+        "where": "world music",
+        "name": "Casualties of the night",
+        "kind": "loop gap",
+        "gapMs": 341
+      },
+      {
+        "where": "world music",
+        "name": "Unrest in Ravenmoor",
+        "kind": "loop gap",
+        "gapMs": 16
+      },
+      {
+        "where": "world music",
+        "name": "Teeth in the dark",
+        "kind": "loop gap",
+        "gapMs": 111
+      },
+      {
+        "where": "world music",
+        "name": "Northern dread",
+        "kind": "loop gap",
+        "gapMs": 522
+      },
+      {
+        "where": "world music",
+        "name": "The wolves gather",
+        "kind": "loop gap",
+        "gapMs": 789
+      },
+      {
+        "where": "world music",
+        "name": "Legends of the wolf",
+        "kind": "loop gap",
+        "gapMs": 1611
+      },
+      {
+        "where": "world music",
+        "name": "Frantic accusations",
+        "kind": "loop gap",
+        "gapMs": 998
+      },
+      {
+        "where": "world music",
+        "name": "Siege of doubt",
+        "kind": "loop gap",
+        "gapMs": 48
+      },
+      {
+        "where": "world music",
+        "name": "Quiet village",
+        "kind": "loop gap",
+        "gapMs": 45
+      },
+      {
+        "where": "world music",
+        "name": "Mourning",
+        "kind": "loop gap",
+        "gapMs": 4441
+      },
+      {
+        "where": "Dusk: the rules of the village, Woodcutter's clearing",
+        "name": "Woodcutter at work",
+        "kind": "loop gap",
+        "gapMs": 49
+      },
+      {
+        "where": "Dusk: the rules of the village, Carpenter's workshop",
+        "name": "Carpenter's workshop",
+        "kind": "loop gap",
+        "gapMs": 50
+      },
+      {
+        "where": "Dusk: the rules of the village, Farm",
+        "name": "Farmyard",
+        "kind": "loop gap",
+        "gapMs": 125
+      },
+      {
+        "where": "Dusk: the rules of the village, The old well",
+        "name": "The village well",
+        "kind": "loop gap",
+        "gapMs": 38
+      }
+    ],
+    "engine": [],
+    "notes": [
+      {
+        "where": "world music",
+        "name": "The cards are dealt",
+        "dB": 13.9
+      },
+      {
+        "where": "world music",
+        "name": "Siege of doubt",
+        "dB": 6
+      },
+      {
+        "where": "world music",
+        "name": "Quiet village",
+        "dB": 3.3
+      },
+      {
+        "where": "world music",
+        "name": "Mourning",
+        "dB": 15.1
+      },
+      {
+        "where": "Dusk: the rules of the village, Tavern",
+        "name": "Back room murmur",
+        "dB": 5
+      },
+      {
+        "where": "Dusk: the rules of the village, The old well",
+        "name": "The village well",
+        "dB": 5.2
+      },
+      {
+        "where": "Dusk: the rules of the village, Cemetery",
+        "name": "Wind in the cemetery",
+        "dB": 4
+      },
+      {
+        "where": "Night: the village sleeps",
+        "name": "Village at night",
+        "dB": 7.4
+      },
+      {
+        "where": "Night: the village sleeps, Village square",
+        "name": "Torches in the wind",
+        "dB": 3.8
+      },
+      {
+        "where": "Night: the village sleeps, Little Girl's home",
+        "name": "Restless sleep",
+        "dB": 7.3
+      },
+      {
+        "where": "Day: the body and the debate, Village square",
+        "name": "Restless villagers",
+        "dB": 4.8
+      }
+    ],
+    "loudness": {
+      "music": {
+        "sounds": 13,
+        "spreadBefore": 2,
+        "spreadAfter": 0
+      },
+      "ambience": {
+        "sounds": 38,
+        "spreadBefore": 8.7,
+        "spreadAfter": 3.2
+      },
+      "events": {
+        "sounds": 16,
+        "spreadBefore": 8.3,
+        "spreadAfter": 2.5
+      }
+    }
+  },
+  "live": {
+    "open": 629,
+    "maps": [
+      70,
+      33,
+      34
+    ],
+    "turns": [
+      {
+        "name": "The cards are dealt",
+        "holeMs": 4,
+        "ownHoleMs": 0,
+        "dipDb": 24.8,
+        "ownDipDb": 5.1
+      },
+      {
+        "name": "Wind in the leaves",
+        "holeMs": 1,
+        "ownHoleMs": 1,
+        "dipDb": 12.5,
+        "ownDipDb": 12.6
+      },
+      {
+        "name": "Village square at dusk",
+        "holeMs": 0,
+        "ownHoleMs": 0,
+        "dipDb": 1.9,
+        "ownDipDb": 2.1
+      },
+      {
+        "name": "Murmurs of the villagers",
+        "holeMs": 0,
+        "ownHoleMs": 0,
+        "dipDb": 3.9,
+        "ownDipDb": 4.6
+      }
+    ]
+  },
+  "errors": []
+}

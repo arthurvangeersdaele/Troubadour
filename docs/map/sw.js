@@ -1,6 +1,6 @@
 /* Troubadour Map: keeps the app itself on the device so it opens without a connection.
  * Worlds and sounds live in IndexedDB, not here. Bump VERSION (and VERSION in app.js) to ship an update. */
-const VERSION = '261114.01';
+const VERSION = '261114.02';
 const SHELL = `troubadour-map-${VERSION}`;
 const FONTS = 'troubadour-map-fonts';
 const FILES = [
@@ -27,6 +27,7 @@ const FILES = [
   '../auth/account.js',
   '../themes.js',
   '../ballade/flow-install.css',
+  '../ballade/ballade-engine.js',
   '../ios/install.js',
 ];
 

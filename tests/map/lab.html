@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Map sound lab</title></head>
+<body>
+<!-- Map sound lab (261114_map_plan.md, M0 and M1), offline part. Opened by run.mjs in headless Chromium.
+     Reads a .troubadour-map, decodes every sound its cards use, and renders each looping card through the shared
+     engine (docs/ballade/ballade-engine.js) with OfflineAudioContext: a hole or a click at a loop turn fails.
+     "before" is the same loop the way Map played it until 261114.01 (the whole file, turned at its end). -->
+<script src="../../docs/troupe/troubadour-format.js"></script>
+<script src="../../docs/map/map-format.js"></script>
+<script src="../../docs/ballade/ballade-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const RATE = 44100, SILENT = Math.pow(10, -60 / 20), CLICK = 0.02;
+  const E = window.BalladeEngine;
+  const dec = (ab) => new Promise((ok, ko) => { const c = new OfflineAudioContext(2, 1, RATE); const r = c.decodeAudioData(ab, ok, ko); if (r && r.catch) r.catch(ko); });
+  function silenceAt(d, i) {
+    if (Math.abs(d[i]) >= SILENT && Math.abs(d[i - 1]) >= SILENT) return 0;
+    let a = i; while (a > 0 && Math.abs(d[a - 1]) < SILENT) a--;
+    let b = i; while (b < d.length && Math.abs(d[b]) < SILENT) b++;
+    return (b - a) / RATE * 1000;
+  }
+  function jumpAt(d, i) {
+    const j = Math.abs(d[i] - d[i - 1]);
+    let around = 0;
+    for (let k = Math.max(1, i - 48); k < Math.min(d.length, i + 48); k++) if (k !== i) around = Math.max(around, Math.abs(d[k] - d[k - 1]));
+    return { j, around };
+  }
+  const db = (x) => 20 * Math.log10(x + 1e-9);
+  function rms(d, a, b) { let s = 0; for (let i = Math.max(0, a); i < Math.min(d.length, b); i++) s += d[i] * d[i]; return Math.sqrt(s / Math.max(1, b - a)); }
+
+  /** The loop as it was: the whole file, turned at its end. The silence heard at the turn, in ms. */
+  function oldGap(buf) {
+    const d = buf.getChannelData(0), n = buf.length;
+    let a = 0; while (a < n && Math.abs(d[a]) < SILENT) a++;
+    let b = n; while (b > a && Math.abs(d[b - 1]) < SILENT) b--;
+    return Math.round((a + n - b) / buf.sampleRate * 1000);
+  }
+  /** The loop through the engine: one second either side of its first two turns. */
+  async function turnChecks(buf, name, where, out, notes) {
+    const L = E.loopOf(buf, 0, true);
+    const first = L.loopEnd - L.a, per = L.loopEnd - L.loopStart;
+    const card = { hold: true, play: 'loop', fadeIn: 0, volume: 1, zone: 'ambience', start: 0, duration: 1 };
+    for (const [n, at] of [[1, first], [2, first + per]]) {
+      const pre = Math.min(1, at * 0.5), len = Math.ceil((pre + 1) * RATE);
+      const c = new OfflineAudioContext(buf.numberOfChannels, len, RATE);
+      E.voice(c, c.destination, buf, card, 0, at - pre, { even: false, shared: true });
+      const d = (await c.startRendering()).getChannelData(0);
+      const i = Math.round(pre * RATE);
+      const raw = buf.getChannelData(0);
+      const inner = Math.max(silenceAt(raw, Math.round((L.loopEnd - 0.002) * buf.sampleRate)), silenceAt(raw, Math.round((L.loopStart + 0.002) * buf.sampleRate)));
+      const hole = silenceAt(d, i);
+      if (hole > 10 && hole > inner + 5) out.push({ where, name, kind: 'loop gap', turn: n, gapMs: Math.round(hole) });
+      const { j, around } = jumpAt(d, i);
+      if (j > CLICK && j > 2 * around) out.push({ where, name, kind: 'loop seam click', turn: n, jump: +j.toFixed(4) });
+      // The level through the turn: 100 ms just before and just after it.
+      const w = Math.round(0.1 * RATE), step = Math.abs(db(rms(d, i - w, i)) - db(rms(d, i, i + w)));
+      // Against what the sound does by itself 100 ms apart, away from the turn.
+      const own = Math.abs(db(rms(d, i - 3 * w, i - 2 * w)) - db(rms(d, i - 2 * w, i - w)));
+      // Told, not failed: a music that ends softly and starts loud turns with a step that is its own.
+      if (n === 1 && step > 3 && step > own + 2) notes.push({ where, name, dB: +step.toFixed(1) });
+    }
+  }
+
+  window.runLab = async function (url) {
+    const blob = await (await fetch(url)).blob();
+    const { story, world, files } = await window.TroubadourMap.read(new File([blob], url.split('/').pop()));
+    const cards = [];
+    (world.music || []).forEach((c) => cards.push({ c, where: 'world music' }));
+    (world.places || []).forEach((p) => {
+      (p.general || []).forEach((c) => cards.push({ c, where: p.title }));
+      (p.elements || []).forEach((e) => (e.cards || []).forEach((c) => cards.push({ c, where: `${p.title}, ${e.title || 'a place'}` })));
+    });
+    const before = [], engine = [], notes = [], seen = new Set(), loud = [];
+    for (const { c, where } of cards) {
+      if (seen.has(c.file) || !files.has(c.file)) continue;
+      seen.add(c.file);
+      let buf;
+      try { buf = await dec(await files.get(c.file).arrayBuffer()); } catch (e) { engine.push({ where, name: c.name, kind: 'undecodable' }); continue; }
+      const info = E.analyse(buf);
+      loud.push({ name: c.name, zone: c.zone, lufs: +info.lufs.toFixed(1), evened: +(info.lufs + db(E.norm(buf, c.zone, true))).toFixed(1) });
+      if (c.play !== 'loop') continue;
+      const gap = oldGap(buf);
+      if (gap > 10) before.push({ where, name: c.name, kind: 'loop gap', gapMs: gap });
+      await turnChecks(buf, c.name, where, engine, notes);
+    }
+    const spread = (k, z) => { const v = loud.filter((x) => x.zone === z).map((x) => x[k]); return v.length ? +(Math.max(...v) - Math.min(...v)).toFixed(1) : 0; };
+    const loudness = {}; ['music', 'ambience', 'events'].forEach((z) => { loudness[z] = { sounds: loud.filter((x) => x.zone === z).length, spreadBefore: spread('lufs', z), spreadAfter: spread('evened', z) }; });
+    return { story: story.title, sounds: seen.size, loops: cards.filter(({ c }) => c.play === 'loop').length, before, engine, notes, loudness };
+  };
+  window.labReady = true;
+})();
+</script>
+</body>
+</html>

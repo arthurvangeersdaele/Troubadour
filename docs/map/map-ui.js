@@ -85,7 +85,7 @@
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, vol: { music: 'full', ambience: 'full', events: 'full' } };
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -227,7 +227,9 @@
       ctx = new AC({ latencyHint: 'playback' });
       master = ctx.createGain();
       master.gain.value = settings.master * settings.master; // heard on Troubadour's curve
-      master.connect(ctx.destination);
+      // A limiter on the master (the shared engine's): many evened-out sounds together never clip.
+      const lim = global.BalladeEngine ? global.BalladeEngine.limiter(ctx) : null;
+      if (lim) master.connect(lim).connect(ctx.destination); else master.connect(ctx.destination);
     }
     if (wake && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume().catch(() => {});
     return { ctx, master };

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261114.01';
+  const VERSION = '261114.02';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -377,6 +377,19 @@
       a.src = url;
     });
   }
+  /** A long sound is listened to once, whole, to learn where it really starts and ends (the encoder's silence), where
+   *  it loops and how loud it is. Kept on the device with the sound; one at a time, so the memory stays low. */
+  let measuring = Promise.resolve();
+  function measure(blob) {
+    measuring = measuring.then(async () => {
+      try {
+        const buf = await decode(blob);
+        const i = window.BalladeEngine.analyse(buf);
+        return { a: i.a, b: i.b, la: i.la, lb: i.lb, lufs: i.lufs, d: buf.duration };
+      } catch (e) { return null; }
+    });
+    return measuring;
+  }
   function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
   async function prepare(fileList, label) {
     const r = rec;
@@ -392,9 +405,12 @@
         if (!blob) throw new Error('missing');
         if (music.has(f) || blob.size > STREAM_OVER) {
           if (!blob.type) blob = new Blob([blob], { type: /\.(ogg|oga)$/i.test(f) ? 'audio/ogg' : /\.wav$/i.test(f) ? 'audio/wav' : /\.(m4a|aac|mp4)$/i.test(f) ? 'audio/mp4' : 'audio/mpeg' });
-          const s = { stream: true, url: URL.createObjectURL(blob), duration: 0 };
-          // Its length, when the browser tells it without playing (else it is learnt at its first play).
-          if (blind < 2) { s.duration = await probe(s.url, 1500); if (!s.duration) blind += 1; }
+          const s = { stream: true, url: URL.createObjectURL(blob), duration: 0, a: 0, b: 0, la: 0, lb: 0, lufs: null };
+          let an = await DB.getKV(`an:${r.files[f]}`, null);
+          if (!an) { an = await measure(blob); if (an) DB.setKV(`an:${r.files[f]}`, an).catch(() => {}); }
+          if (an) Object.assign(s, an, { duration: an.b - an.a });
+          // Unreadable here: its length, when the browser tells it without playing (else learnt at its first play).
+          else if (blind < 2) { s.duration = await probe(s.url, 1500); if (!s.duration) blind += 1; }
           if (rec === r) streams.set(f, s); else URL.revokeObjectURL(s.url);
         } else if (rec === r) buffers.set(f, await decode(blob));
       } catch (e) { /* unreadable: stays silent */ }
@@ -2148,6 +2164,7 @@
     });
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
+    $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
     document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.addEventListener('click', () => { settings.ground = b.dataset.v; saveSettings(); paintSettings(); V.redraw(); }));
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
@@ -2188,6 +2205,7 @@
     $('#opt-rings').checked = settings.rings;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
+    $('#opt-even').checked = settings.even !== false;
     document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.ground || 'grid'))));
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
@@ -3069,6 +3087,8 @@
       travel(to);
     };
     A.onChange = () => { V.redraw(); };
+    // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
+    if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
 
     // Browsers keep sound off until a touch or a click: every gesture wakes the audio, unless paused by hand.
     // iPhone also wants a sound started inside that gesture: a silent one, once.

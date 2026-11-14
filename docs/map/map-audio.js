@@ -17,6 +17,7 @@
   'use strict';
 
   const { audio, settings } = global.MapUI;
+  const E = global.BalladeEngine; // the shared sound engine: trimmed ends, loop seams, loudness (261114_map_plan.md, M1)
   const M = global.TroubadourMap;
 
   let place = null, world = null, buffers = new Map(), point = [0, 0];
@@ -57,9 +58,10 @@
     const life = ctx.createGain(); life.gain.value = 1;
     const env = ctx.createGain(); env.gain.value = 0;
     const space = ctx.createGain(); space.gain.value = el ? 0 : 1;
-    vg.connect(life).connect(env).connect(space).connect(master);
+    const nm = ctx.createGain(); nm.gain.value = 1; // evens out the loudness of the sound, by kind
+    vg.connect(nm).connect(life).connect(env).connect(space).connect(master);
     return {
-      card, el, vg, life, env, space, src: null, xf: null, twin: null,
+      card, el, vg, nm, life, env, space, src: null, xf: null, twin: null,
       state: 'idle', heard: el ? 0 : 1, offset: 0, startedAt: 0, timer: 0, token: 0, plays: 0,
       rnd: false, next: 0, rndAt: 0, fadingOut: null, volMs: 0, volFrom: card.volume, volAt: 0,
       get active() { return this.state === 'playing' || this.state === 'ending'; },
@@ -104,38 +106,76 @@
     return v ? v.card : null;
   }
 
-  const duration = (v) => { const b = buffers.get(v.card.file); return b ? b.duration : 0; };
-  /** Blend (a forever loop's crossfade between two rounds, in seconds): at most a third of the sound. */
+  /* ---------- Where a sound really is: its ends without the encoder's silence, its loop points, its loudness ----------
+   * Decoded sounds are measured by the engine; streamed ones carry the same numbers, measured once by the app. */
+  const FULL = { a: 0, b: 0, la: 0, lb: 0, lufs: null };
+  function infoOf(file) {
+    const s = buffers.get(file);
+    if (!s) return FULL;
+    if (s.stream) return s.b > 0 ? s : { a: 0, b: s.duration || 0, la: 0, lb: s.duration || 0, lufs: null };
+    return E.analyse(s);
+  }
+  const isStream = (v) => { const s = buffers.get(v.card.file); return !!(s && s.stream); };
+  /** The length of the sound, ends trimmed. */
+  const duration = (v) => { const i = infoOf(v.card.file); return Math.max(0, i.b - i.a); };
+  /** Where a new round of a loop starts and where it turns, in seconds from the trimmed start. */
+  const headOf = (v) => { const i = infoOf(v.card.file); return Math.max(0, i.la - i.a); };
+  const turnOf = (v) => { const i = infoOf(v.card.file); return Math.max(0, i.lb - i.a); };
+  /** The gain that brings the sound to the loudness of its kind (music -18, ambiance -22, events -16 LUFS). */
+  function normOf(v) {
+    if (settings.even === false) return 1;
+    const L = infoOf(v.card.file).lufs;
+    if (!(L > -60)) return 1;
+    const zone = v.card.zone === 'soundbox' ? 'events' : v.card.zone;
+    const target = E.TARGET[zone] != null ? E.TARGET[zone] : -18;
+    return Math.min(Math.pow(10, 6 / 20), Math.max(Math.pow(10, -9 / 20), Math.pow(10, (target - L) / 20)));
+  }
+  function evenOut() { voices.forEach((v) => v.nm.gain.setTargetAtTime(normOf(v), now(), 0.3)); }
+
+  /** A loop crosses its two rounds over: a decoded one only when the card asks for a blend (its seam is exact
+   *  otherwise, written by the engine); a streamed one always, over a third of a second at least, since a media
+   *  element cannot turn on a sample. In seconds, at most a third of the sound. */
+  const STREAM_SEAM = 0.35;
   function blendOf(v) {
-    // A streamed loop always crosses its two rounds over a second: a media element leaves a gap when it loops.
-    const s = buffers.get(v.card.file);
-    const b = Number(v.card.blend || 0) || (s && s.stream ? 1 : 0), d = duration(v);
+    const b = Number(v.card.blend || 0) || (isStream(v) ? STREAM_SEAM : 0), d = turnOf(v) - headOf(v);
     return v.card.play === 'loop' && !(v.world && queue.length) && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
   }
-  /** Where the round heard now is, in seconds into the sound. */
+  /** Where the round heard now is, in seconds from the trimmed start of the sound. */
   function position(v) {
     if (!v.src) return v.offset;
-    if (v.src.media) return v.src.media.currentTime || 0;
-    const d = v.src.buffer.duration || 1;
-    const t = now() - v.startedAt;
-    return v.src.loop ? t % d : Math.min(d, t);
+    if (v.src.media) return Math.max(0, (v.src.media.currentTime || 0) - v.src.info.a);
+    const e = now() - v.startedAt;
+    const L = v.src.L;
+    if (!L) return Math.min(duration(v), e);
+    const first = L.loopEnd - L.a, per = Math.max(0.01, L.loopEnd - L.loopStart);
+    return e < first ? e : first + ((e - first) % per);
   }
 
   /** A new round of the sound, from `from` seconds, into the voice's chain. */
   function startSource(v, from = 0) {
     const buf = buffers.get(v.card.file);
     if (!buf) return false;
+    v.nm.gain.setTargetAtTime(normOf(v), now(), 0.05);
     if (buf.stream) return startStream(v, buf, from);
     const { ctx } = audio();
+    const info = E.analyse(buf);
     const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v);
     const xf = ctx.createGain(); xf.gain.value = 1;
     src.connect(xf).connect(v.vg);
     const t = now();
-    const offset = Math.max(0, Math.min(buf.duration - 0.01, from % buf.duration));
-    src.start(t, offset);
-    v.src = src; v.xf = xf; v.startedAt = t - offset;
+    if (v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v)) {
+      // The engine's gapless loop: ends trimmed, the seam crossfaded inside the buffer, the turn on a sample.
+      const L = E.loopOf(buf, 0, true);
+      src.buffer = L.buf; src.loop = true; src.loopStart = L.loopStart; src.loopEnd = L.loopEnd;
+      src.L = L;
+      src.start(t, E.loopPos(L, Math.max(0, from)));
+    } else {
+      const d = Math.max(0.02, info.b - info.a);
+      const offset = Math.max(0, Math.min(d - 0.01, from));
+      src.buffer = buf; src.loopStart = info.la; src.loopEnd = info.lb;
+      src.start(t, info.a + offset, d - offset);
+    }
+    v.src = src; v.xf = xf; v.startedAt = t - Math.max(0, from);
     const token = ++v.token;
     src.onended = () => { if (token === v.token) ended(v); };
     return true;
@@ -151,34 +191,45 @@
     if (!waitingTouch.size) return;
     [...waitingTouch].forEach((m) => { waitingTouch.delete(m); if (m.dataset.live) tryPlay(m); });
   }, { capture: true, passive: true }));
-  function startStream(v, s, from) {
-    const { ctx } = audio();
+  /** A media element on the sound, ready at `at` seconds into the file. */
+  function deck(s, at, rest) {
     const m = new Audio();
-    // A loop out of reach waits, unread, until the party comes near (restTick).
-    const rest = !v.world && v.el && v.heard < 0.002 && v.card.play === 'loop';
     m.preload = rest ? 'none' : 'auto';
     m.dataset.live = '1';
-    m.loop = v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v);
     m.src = s.url;
-    const offset = s.duration ? Math.max(0, Math.min(s.duration - 0.05, from % s.duration)) : Math.max(0, from);
-    if (offset > 0.05) { try { m.currentTime = offset; } catch (e) { /* set once it is known */ } }
+    if (at > 0.02) { try { m.currentTime = at; } catch (e) { /* set once it is known */ } }
     m.addEventListener('loadedmetadata', () => {
-      if (Number.isFinite(m.duration) && m.duration > 0) s.duration = m.duration;
-      if (offset > 0.05 && Math.abs(m.currentTime - offset) > 0.5) { try { m.currentTime = offset; } catch (e) { /* stays */ } }
+      if (!(s.b > 0) && Number.isFinite(m.duration) && m.duration > 0) s.duration = m.duration;
+      if (at > 0.02 && Math.abs(m.currentTime - at) > 0.3) { try { m.currentTime = at; } catch (e) { /* stays */ } }
     });
+    return m;
+  }
+  function undeck(m) {
+    delete m.dataset.live; waitingTouch.delete(m);
+    try { m.pause(); } catch (e) { /* gone */ }
+    m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ }
+  }
+  function startStream(v, s, from) {
+    const { ctx } = audio();
+    const info = infoOf(v.card.file);
+    const d = Math.max(0, info.b - info.a);
+    const offset = d ? Math.max(0, Math.min(d - 0.05, from)) : Math.max(0, from);
+    // A loop out of reach waits, unread, until the party comes near (restTick).
+    const rest = !v.world && v.el && !v.near && v.card.play === 'loop';
+    // The next round of a loop was made ready a moment before its turn (blendTick).
+    let m = null;
+    if (v.primed && Math.abs(v.primed.at - (info.a + offset)) < 0.02) m = v.primed.m; else if (v.primed) undeck(v.primed.m);
+    v.primed = null;
+    if (!m) m = deck(s, info.a + offset, rest);
+    m.loop = false;
     let node = null;
     const xf = ctx.createGain(); xf.gain.value = 1;
     try { node = ctx.createMediaElementSource(m); node.connect(xf); } catch (e) { node = null; m.volume = curve(v.card.volume); }
     xf.connect(v.vg);
     const src = {
-      media: m, buffer: s,
-      get loop() { return m.loop; }, set loop(x) { m.loop = !!x; },
-      stop() {
-        delete m.dataset.live; waitingTouch.delete(m);
-        try { m.pause(); } catch (e) { /* gone */ }
-        m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ }
-        if (node) { try { node.disconnect(); } catch (e) { /* gone */ } }
-      },
+      media: m, info, buffer: s,
+      get loop() { return m.loop; }, set loop(x) { /* a streamed loop turns by crossing two rounds (blendTick) */ },
+      stop() { undeck(m); if (node) { try { node.disconnect(); } catch (e) { /* gone */ } } },
     };
     v.src = src; v.xf = xf; v.startedAt = now() - offset; v.quiet = 0;
     const token = ++v.token;
@@ -187,11 +238,18 @@
     if (!rest) tryPlay(m);
     return true;
   }
+  /** A streamed sound ends where its sound ends, not where its file does (the encoder's silence is left out). */
+  function endTick(v) {
+    const m = v.src && v.src.media;
+    if (!m || v.twin || !v.active) return;
+    const b = v.src.info.b;
+    if (b > 0 && m.currentTime >= b - 0.012 && !blendOf(v)) ended(v);
+  }
   /** A streamed loop nobody hears (its place is out of reach) rests: nothing is read from the device for it. */
   function restTick(v, t) {
     const m = v.src && v.src.media;
     if (!m || !m.dataset.live || v.state !== 'playing' || v.twin || v.world || v.card.play !== 'loop') return;
-    if (v.el && v.heard < 0.002) {
+    if (v.el && !v.near) {
       if (!v.quiet) v.quiet = t;
       else if (t - v.quiet > 2500 && !m.paused) m.pause();
     } else {
@@ -201,23 +259,44 @@
   }
   function stopSource(v) {
     v.token += 1;
+    if (v.primed) { undeck(v.primed.m); v.primed = null; }
     if (v.src) { try { v.src.stop(); } catch (e) { /* already */ } try { v.xf.disconnect(); } catch (e) { /* gone */ } }
     v.src = null; v.xf = null;
   }
   /** A blended loop: near the end of a round, the next one starts and the two cross over. */
+  const CURVE = 32;
+  const UP = Float32Array.from({ length: CURVE }, (_, k) => Math.sin((k / (CURVE - 1)) * Math.PI / 2));
+  const DOWN = Float32Array.from({ length: CURVE }, (_, k) => Math.cos((k / (CURVE - 1)) * Math.PI / 2));
+  /** Two rounds cross over at equal power: the level stays even through the turn. */
+  function cross(up, down, t, span) {
+    try {
+      up.cancelScheduledValues(t); up.setValueCurveAtTime(UP, t, span);
+      down.cancelScheduledValues(t); down.setValueCurveAtTime(DOWN, t, span);
+    } catch (e) {
+      up.cancelScheduledValues(t); up.setValueAtTime(0, t); up.linearRampToValueAtTime(1, t + span);
+      down.cancelScheduledValues(t); down.setValueAtTime(1, t); down.linearRampToValueAtTime(0, t + span);
+    }
+  }
   function blendTick(v) {
     if (!v.src || v.twin || v.state !== 'playing') return;
     const b = blendOf(v);
     if (!b) return;
-    const left = v.src.buffer.duration - position(v);
+    const left = turnOf(v) - position(v);
+    const s = buffers.get(v.card.file);
+    // A streamed loop gets its next round ready (loaded, at its place) a few seconds before the turn.
+    if (s && s.stream && !v.primed && left <= b + 3 && left > b && !(v.src.media && v.src.media.paused)) {
+      const at = infoOf(v.card.file).a + headOf(v);
+      v.primed = { m: deck(s, at, false), at };
+    }
     if (!(left <= b)) return;
     const old = { src: v.src, xf: v.xf };
     v.token += 1; // the old round's end is no longer this voice's end
     const span = Math.max(0.05, left);
-    startSource(v, 0);
-    const t = now();
-    v.xf.gain.setValueAtTime(0, t); v.xf.gain.linearRampToValueAtTime(1, t + span);
-    old.xf.gain.cancelScheduledValues(t); old.xf.gain.setValueAtTime(1, t); old.xf.gain.linearRampToValueAtTime(0, t + span);
+    const primed = v.primed; v.primed = null;
+    v.src = null; // the old round lives on as the twin
+    v.primed = primed;
+    startSource(v, headOf(v));
+    cross(v.xf.gain, old.xf.gain, now(), span);
     v.twin = old;
     v.twinTimer = setTimeout(() => dropTwin(v), span * 1000 + 150);
   }
@@ -226,7 +305,7 @@
     const tw = v.twin;
     v.twin = null;
     if (tw) { try { tw.src.stop(); } catch (e) { /* gone */ } try { tw.xf.disconnect(); } catch (e) { /* gone */ } }
-    if (full && v.xf) { const g = v.xf.gain; g.cancelScheduledValues(now()); g.setValueAtTime(1, now()); }
+    if (full && v.xf) { const g = v.xf.gain; try { g.cancelScheduledValues(now()); g.setValueAtTime(1, now()); } catch (e) { /* a curve still runs: it ends at 1 */ } }
   }
 
   /* ---------- A voice, as Troubadour's Voice ---------- */
@@ -304,6 +383,8 @@
   }
   /** The sound came to its end on its own. */
   function ended(v) {
+    // A loop that came to its end without a seam (too short to cross, or its length unknown): round again.
+    if (v.card.play === 'loop' && v.state === 'playing' && !(v.world && queue.length)) { stopSource(v); startSource(v, headOf(v)); return; }
     v.plays += 1;
     if (v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
     const natural = v.state === 'playing';
@@ -342,7 +423,8 @@
     // Between two plays, a tap stops the random event.
     if (v.waiting) { v.rnd = false; v.next = 0; changed(); return; }
     if (v.state === 'playing') { pause(v, settings.fade); return; }
-    if (v.card.zone === 'music' && v.state !== 'ending') {
+    // One music at a time, also when the one asked for was still fading out (two quick changes of map).
+    if (v.card.zone === 'music') {
       const others = musicsOf(v).filter((o) => o !== v && (o.active || o.state === 'paused'));
       const crossing = others.some((o) => o.active);
       others.forEach((o) => end(o, settings.crossfade ? settings.fade : 150));
@@ -425,6 +507,7 @@
     let moved = false;
     voices.forEach((v) => {
       blendTick(v);
+      endTick(v);
       restTick(v, t);
       if (!v.rnd) return;
       const sounding = v.state === 'playing' || v.state === 'paused' || v.state === 'ending';
@@ -450,14 +533,19 @@
     const t = now();
     const memo = new Map();
     voices.forEach((v) => {
-      let g = 1;
+      let g = 1, near = true;
       if (v.el) {
-        if (!memo.has(v.el)) memo.set(v.el, M.hearing(point, v.el, place.walls, world.wallLoss).gain);
-        g = memo.get(v.el);
+        if (!memo.has(v.el)) {
+          const heard = M.hearing(point, v.el, place.walls, world.wallLoss).gain;
+          // The pre-roll ring: within one and a half times its reach, a resting loop is already running, silent.
+          const wide = heard > 0 || M.hearing(point, Object.assign({}, v.el, { radius: v.el.radius * 1.5 + 80 }), [], 0).gain > 0;
+          memo.set(v.el, [heard, wide]);
+        }
+        [g, near] = memo.get(v.el);
       }
-      v.heard = g;
+      v.heard = g; v.near = near;
       v.space.gain.cancelScheduledValues(t);
-      v.space.gain.setTargetAtTime(g, t, 0.08);
+      v.space.gain.setTargetAtTime(g, t, 0.15);
     });
   }
 
@@ -627,7 +715,7 @@
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
-    pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
+    pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point,
   });
   global.MapAudio = api;
