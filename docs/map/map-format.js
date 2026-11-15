@@ -90,6 +90,7 @@
     out.title = String(p.title || `Map ${i + 1}`).slice(0, 80);
     out.width = Math.round(num(p.width, W, 400, 8000));
     out.height = Math.round(num(p.height, H, 400, 8000));
+    if (['grid', 'grass', 'dirt', 'empty'].includes(p.ground)) out.ground = p.ground; else delete out.ground;
     out.player = pt(p.player || [out.width / 2, out.height / 2], out.width, out.height);
     out.general = (p.general || []).map(cleanCard);
     out.walls = (p.walls || []).map((w) => Object.assign({}, w, { points: (w.points || []).map((q) => pt(q, out.width, out.height)) })).filter((w) => w.points.length >= 2);

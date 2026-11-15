@@ -92,6 +92,7 @@ A **place** (one map):
 | `id` | string | Unique in the world; links point to it. |
 | `title` | string | Shown at the top of the map. |
 | `width`, `height` | number | Size of the map, in map units (400 to 8000). Every coordinate below is in these units, from the top left corner. |
+| `ground` | string | Optional. What lies under the drawings of this map: `grid` (the default), `grass`, `dirt` or `empty`. |
 | `player` | [x, y] | Where the player point stands when the place opens. |
 | `general` | array of cards | Sounds of the whole place: heard everywhere at their own volume, never muffled by distance or walls. |
 | `walls` | array | Each `{ "points": [[x, y], ...] }`, an open line of 2 points or more. |

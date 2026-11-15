@@ -791,3 +791,6 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 .mp-world[data-mode="play"] .mp-zoom .zm, .mp-world[data-mode="play"] .mp-zoom .zv { display: none; }
 .mp-world[data-mode="play"] .mp-zoom { padding: 0; border: 0; background: none; box-shadow: none; }
 @media (max-height: 520px) and (orientation: landscape) { .tl-layers { left: 58px; bottom: 8px; } }
+
+.ground-seg { display: flex; }
+.ground-seg button { flex: 1; }

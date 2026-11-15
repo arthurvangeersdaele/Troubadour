@@ -609,7 +609,8 @@
     ctx.restore();
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, place.width, place.height); ctx.clip();
-    const ground = (global.MapUI && global.MapUI.settings.ground) || 'grid';
+    // The ground of this map (its panel in the editor); a map without one keeps the old setting, then the grid.
+    const ground = place.ground || (global.MapUI && global.MapUI.settings.ground) || 'grid';
     if (ground === 'grid') {
       ctx.strokeStyle = alpha(pal.ink, 0.05);
       ctx.lineWidth = 1 / view.k;
@@ -687,7 +688,7 @@
     ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill();
   }
 
-  /** The ground under the map (Settings): grass or dirt, a soft tile of the theme's paper, painted once per theme. */
+  /** The ground under the map (chosen map by map, in its panel): grass or dirt, a soft tile of the theme's paper, painted once per theme. */
   const grounds = new Map();
   function groundPattern(kind) {
     const key = `${kind}|${pal.paper}`;

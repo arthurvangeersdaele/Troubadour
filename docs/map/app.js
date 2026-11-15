@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261114.03';
+  const VERSION = '261115.01';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1162,6 +1162,18 @@
 
     box.append(inTab(cardsBlock('Whole map', p.general, null, 'Sounds heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music laid here starts when the party arrives.'), 'sounds'));
 
+    // The ground under the drawings, map by map: a forest on grass, a cave on dirt.
+    const ground = inTab(section('Ground'), 'map');
+    const gseg = el('div', 'seg ground-seg'); gseg.setAttribute('role', 'radiogroup'); gseg.setAttribute('aria-label', 'Ground of this map');
+    const now = p.ground || settings.ground || 'grid';
+    [['grid', 'Grid'], ['grass', 'Grass'], ['dirt', 'Dirt'], ['empty', 'Empty']].forEach(([v, label]) => {
+      const b = el('button', '', label); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(v === now));
+      b.addEventListener('click', () => { p.ground = v; save(); V.redraw(); gseg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b))); });
+      gseg.append(b);
+    });
+    ground.append(gseg);
+    box.append(ground);
+
     const how = inTab(section('Drawing'), 'map');
     how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Double tap an element (with the select tool) to give it sounds, a reach and a way to another place.'));
     box.append(how);
@@ -2313,7 +2325,6 @@
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
-    document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.addEventListener('click', () => { settings.ground = b.dataset.v; saveSettings(); paintSettings(); V.redraw(); }));
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
@@ -2353,7 +2364,6 @@
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
     $('#opt-even').checked = settings.even !== false;
-    document.querySelectorAll('#ground-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.ground || 'grid'))));
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
     $('#trail-speed-row').hidden = !settings.trail;
