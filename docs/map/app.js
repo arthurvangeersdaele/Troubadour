@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261115.03';
+  const VERSION = '261115.04';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1895,6 +1895,7 @@
       });
       bar.append(label('Walls muffle'), seg, el('small', 'op-h', 'Shift: a straight wall'));
     } else if (t === 'stamp') {
+      if (!$('#mw-stamps').hidden) { bar.hidden = true; return; }
       bar.append(label('Size'), placeSizeSeg(), el('small', 'op-h', currentStamp ? `${stampLabel(currentStamp)}: tap the map to lay it` : 'Pick a place in the library'));
     } else if (t === 'eraser') {
       bar.append(el('small', 'op-h', 'Tap a place, or a wall, to erase it. Undo brings it back.'));
@@ -1924,7 +1925,7 @@
       S.draw(c, id, 100, pal);
       b.append(cv, el('span', '', label));
       if (extra) b.append(extra);
-      b.addEventListener('click', () => { V.setStamp(id); paintStamps(id); box.hidden = true; toast(`Tap the map to lay ${label.toLowerCase()}.`, 1800); });
+      b.addEventListener('click', () => { V.setStamp(id); paintStamps(id); box.hidden = true; });
       box.append(b);
     };
     // First, a new place of your own; then the places of this world; then the library.
@@ -1944,6 +1945,10 @@
       tile(st.id, st.name, ed);
     });
     let group = null;
+    // The size of the places laid, at the head of the library while it is open (the options bar takes over once closed).
+    const size = el('div', 'st-size');
+    size.append(el('span', '', 'Size'), placeSizeSeg());
+    box.prepend(size);
     S.LIST.forEach((s) => {
       if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
       tile(s.id, s.label);
@@ -1972,7 +1977,7 @@
     return seg;
   }
   let currentStamp = null;
-  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); if ($('#mw-opts') && !$('#mw-opts').hidden) renderOpts('stamp'); }
+  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); setTimeout(() => { if (mode === 'edit' && (V.tool() === 'stamp' || !$('#mw-stamps').hidden)) renderOpts('stamp'); }, 0); }
 
   /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
   const LINE_W = [0.01, 0.022, 0.036];   // fine, normal, bold
@@ -2150,7 +2155,7 @@
       S.register([st]);
       save(); buildStamps(); V.redraw();
       $('#sheet').close();
-      if (!existing) { V.setStamp(st.id); paintStamps(st.id); toast(`Tap the map to lay ${st.name.toLowerCase()}.`, 2000); }
+      if (!existing) { V.setStamp(st.id); paintStamps(st.id); }
     });
     foot.append(el('span', 'grow'), cancel, ok);
 
@@ -3058,7 +3063,27 @@
     if (!sw || !tw) return;
     const nx = Math.max(6, Math.min(sw - tw - 6, x)), ny = Math.max(6, Math.min(sh - th - 6, y));
     tools.style.left = `${nx}px`; tools.style.top = `${ny}px`;
+    placeFloats();
     return [nx, ny];
+  }
+  /** What floats over the map makes way for the tools, wherever they were dragged: the library of places opens beside
+   *  them (never over them), the zoom and the layers button go to the other side. */
+  function placeFloats() {
+    const tools = $('#mw-tools'), stage = $('#mw-stage'), lib = $('#mw-stamps');
+    const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
+    if (!sw || !tw) return;
+    const x = tools.offsetLeft, y = tools.offsetTop, m = 8;
+    const right = x + tw / 2 > sw / 2, low = y + th / 2 > sh / 2;
+    stage.classList.toggle('tools-right', right);
+    const s = lib.style;
+    if (tw > th) {
+      // The tools lie flat (an upright phone): the library takes the width, under them or over them.
+      const top = low ? m : y + th + m, bottom = low ? sh - y + m : m;
+      s.left = `${m}px`; s.width = `${sw - 2 * m}px`; s.top = `${top}px`; s.maxHeight = `${Math.max(120, sh - top - bottom)}px`;
+    } else {
+      const room = right ? x - 2 * m : sw - (x + tw) - 2 * m, w = Math.max(160, Math.min(380, room));
+      s.width = `${w}px`; s.left = `${right ? Math.max(m, x - m - w) : x + tw + m}px`; s.top = `${m}px`; s.maxHeight = `${sh - 2 * m}px`;
+    }
   }
   function wireToolsGrip() {
     const grip = $('#mw-grip'), tools = $('#mw-tools');
@@ -3156,6 +3181,7 @@
         if (!box.hidden) { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); return; }
         paintStamps(null);
         box.hidden = false;
+        placeFloats();
         renderOpts('stamp');
         box.scrollTop = 0;
         b.setAttribute('aria-pressed', 'true');

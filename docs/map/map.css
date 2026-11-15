@@ -794,3 +794,11 @@ dialog.sheet:has(#sheet-body.picker) .set-head { flex: none; }
 
 .ground-seg { display: flex; }
 .ground-seg button { flex: 1; }
+
+/* The tools dragged to the right: the zoom and the layers button go to the left, the library opens on their left (placeFloats). */
+.mp-stage.tools-right .mp-zoom { right: auto; left: 12px; }
+@media (max-width: 900px) {
+  .mp-stage.tools-right .tl-layers { left: 12px; }
+  .mp-stage.tools-right .mp-zoom { left: 62px; }
+}
+.mp-stamps .st-size small { display: none; }
