@@ -427,3 +427,15 @@ dialog.forge.credit::backdrop { background: rgba(0,0,0,.55); }
 .snd .snd-t { flex: 1; min-width: 0; }
 .snd .snd-t b { display: block; font-weight: 600; }
 .snd .snd-t small { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+
+/* Bars under La Troupe: the back button and the name of the page, nothing else; the tools are listed on La Troupe only */
+.sbar .here{font-family:'Cormorant SC',serif;font-weight:700;font-size:20px;color:var(--text);margin-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* La Troupe: the tools, in two groups */
+.tools-title{margin:40px 0 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.tools-title+.doors{margin-top:14px}
+html.pc .doors.tools{grid-template-columns:repeat(4,minmax(0,232px))}
+html.pc .doors.tools.builders{grid-template-columns:repeat(3,minmax(0,316px))}
+html.pc .doors.two{grid-template-columns:repeat(2,minmax(0,320px))}
+.builder-note{color:var(--muted);font-size:15px;margin:18px 0 0;text-align:center}
+.builder-note a{color:var(--accent)}
+@media (max-width:420px){.sbar .here{font-size:17px;margin-left:6px}}

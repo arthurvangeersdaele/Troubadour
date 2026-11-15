@@ -520,3 +520,17 @@ a.install:hover{color:var(--text)}
 .light-rays.on{opacity:.9;transform:rotate(8deg) scale(1)}
 /* once open, the door is drawn flat: only its long free edge keeps its wood, the many small 3D pieces go */
 .tdoor.settled .leaf-rim i:not(.keep){visibility:hidden}
+
+/* On phones, La Troupe's door gives way to a special golden button: honey gold, a white reflection sweeping across,
+   a spark running along the border (the call-to-action rules of the charter, in gold). */
+html.phone .tdoor{display:none}
+.troupe-gold{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:10px;height:56px;margin:26px auto 0;max-width:360px;
+  border-radius:12px;border:1px solid #FFE3A3;color:#17151A;font-weight:600;font-size:19px;text-decoration:none;
+  background:linear-gradient(100deg,transparent 0 38%,rgba(255,255,255,.08) 44%,rgba(255,255,255,.85) 50%,rgba(255,255,255,.35) 54%,transparent 62% 100%) no-repeat,linear-gradient(180deg,#F6D27E,#E0A84B);
+  background-size:260% 100%,auto;background-position:130% 0,0 0;box-shadow:0 0 30px rgba(240,190,90,.35),0 0 2px rgba(255,227,163,.8);animation:cta-sweep 3.4s ease-in-out infinite}
+.troupe-gold::before{content:'';position:absolute;inset:-3px;border-radius:15px;padding:2px;pointer-events:none;z-index:-1;
+  background:conic-gradient(from var(--cta-ring),transparent 0 62%,rgba(255,240,200,.15) 72%,#FFF6DC 84%,rgba(255,240,200,.15) 92%,transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  filter:drop-shadow(0 0 3px #FFE3A3);animation:cta-ring 3.4s linear infinite}
+.troupe-gold:active{transform:scale(.98)}
+@media (prefers-reduced-motion:reduce){.troupe-gold,.troupe-gold::before{animation:none}}

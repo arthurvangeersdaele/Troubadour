@@ -516,3 +516,7 @@ html.phone .no-phone { display: none !important; }
 /* The last opened story stays on screen while the other stories scroll by (under it on a narrow screen). */
 .lib-b > .hero { position: sticky; top: var(--hero-top, 70px); z-index: 1; }
 @media (max-width: 720px) { .lib-b > .hero { box-shadow: 0 -16px 0 0 var(--bg), 0 10px 18px -12px var(--shadow, rgba(0,0,0,.45)); } }
+
+/* Bars under La Troupe: the back button and the name of the page */
+.sbar .here { font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 20px; color: var(--text); margin-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 420px) { .sbar .here { font-size: 17px; margin-left: 6px; } }

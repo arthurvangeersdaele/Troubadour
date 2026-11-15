@@ -1,13 +1,13 @@
 /* Smart back button for the pages under La Troupe (web player, Story builder, Recueil, Ballade).
  * The back button returns where the visitor entered La Troupe from:
- *   the home page      ‹ Website      (Test it quick)
- *   How to use         ‹ How to use   (the discovery cards, Open the web player)
+ *   the home page      ‹ Website      (Try a discovery story)
+ *   How to use         ‹ How to use   (the discovery cards, See the discovery stories)
  *   anywhere else      ‹ La Troupe
  * Moving between La Troupe's tabs keeps that place; passing through La Troupe's own page resets it. */
 (function () {
   var KEY = 'troubadour.back';
   var ROOT = new URL('./', document.currentScript.src).href;
-  var TROUPE = ['play/', 'troupe/builder.html', 'troupe/recueil.html', 'troubadour-ballade/', 'ballade/'];
+  var TROUPE = ['play/', 'troupe/builder.html', 'troupe/recueil.html', 'troubadour-ballade/', 'troubadour-map/', 'ballade/', 'map/'];
   function get() { try { return JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
   function set(v) { try { if (v) sessionStorage.setItem(KEY, JSON.stringify(v)); else sessionStorage.removeItem(KEY); } catch (e) { /* private mode */ } }
 

@@ -216,7 +216,7 @@
 
   /* ---------- preview ---------- */
   // Several sounds can play together, so the troubadour hears a combination (music, ambiances, an event)
-  // before rhythming it. Endless sounds loop while they are previewed.
+  // before exporting it. Endless sounds loop while they are previewed.
   const players = new Map(); // sound id -> { audio, url }
   function togglePreview(s) {
     if (players.has(s.id)) { stopPreview(s.id); return; }
@@ -682,7 +682,7 @@
   function showForged(out) {
     const heavy = out.blob.size > SHARE_LIMIT;
     const missing = unsourced(out.story);
-    const box = veil(`<h2>Your tale is rhythmed</h2>
+    const box = veil(`<h2>Your tale is ready</h2>
       <p><b class="fname"></b> (${formatSize(out.blob.size)}) is in your downloads, revision ${out.story.revision} signed by <b class="bname"></b>. Open it in the Troubadour app, or keep it for your next session.</p>
       <p>The builder is now empty, ready for a new tale. To change this one again, open its .troubadour file with <b>Open a .troubadour</b>.</p>
       ${heavy ? '<p class="errors" style="list-style:none;padding:0">It weighs more than 100 MB, the limit for the Recueil on GitHub. Lighter MP3s (128 kbps) will make it fit.</p>'
@@ -691,7 +691,7 @@
       <div class="acts">
         ${heavy || missing.length ? '' : `<a class="btn primary" href="${UPLOAD_URL}" target="_blank" rel="noopener">Lay it in the Recueil</a>`}
         <button class="btn" type="button" data-again>Download again</button>
-        <button class="btn" type="button" data-close>Rhythm a new tale</button>
+        <button class="btn" type="button" data-close>Build a new tale</button>
       </div>`);
     box.querySelector('.fname').textContent = out.fileName;
     const ns = box.querySelector('.nosrc');
@@ -737,7 +737,7 @@
       fillFields();
       renderAll();
       closeVeil();
-      toast(by ? `"${state.title}" by ${by} is open. Rhythming it makes the next revision.` : `"${state.title}" is open.`);
+      toast(by ? `"${state.title}" by ${by} is open. Exporting it makes the next revision.` : `"${state.title}" is open.`);
     } catch (err) {
       const b = veil('<h2>Could not open this file</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
       b.querySelector('.err').textContent = err.message || String(err);
@@ -762,7 +762,7 @@
     return new Blob(chunks, { type: 'application/zip' });
   }
   $('#open-btn').addEventListener('click', () => {
-    if (allSounds().length && !confirm('Open another story? The current one will be replaced (rhythm it first to keep it).')) return;
+    if (allSounds().length && !confirm('Open another story? The current one will be replaced (export it first to keep it).')) return;
     $('#open-input').click();
   });
   $('#open-input').addEventListener('change', (e) => {
@@ -824,7 +824,7 @@
     paintSaved('');
   }
   $('#new-btn').addEventListener('click', async () => {
-    if (!isEmpty() && !confirm('Start a new story? The one in progress will be cleared from this browser (rhythm it first to keep it).')) return;
+    if (!isEmpty() && !confirm('Start a new story? The one in progress will be cleared from this browser (export it first to keep it).')) return;
     await clearEditor();
     $('#f-title').focus();
   });

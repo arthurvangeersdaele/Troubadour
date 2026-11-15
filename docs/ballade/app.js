@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261114.2';
+  const VERSION = '261115.1';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -28,7 +28,7 @@
         <p>Troubadour Ballade plays your story on time: every sound of a chapter waits on a wire running down the screen, and lights up when its moment comes. You only tap Go at the gates.</p>
         <p class="muted">${pc()
           ? 'Import a <b>.troubadour</b> to shape its Ballade in the builder, or a <b>.troubadour-ballade</b> to play it.'
-          : 'Import a <b>.troubadour-ballade</b> rhythmed in the Ballade builder. A plain <b>.troubadour</b> works too: it gets a first Ballade, ready to play.'}</p>`;
+          : 'Import a <b>.troubadour-ballade</b> made in the Ballade builder. A plain <b>.troubadour</b> works too: it gets a first Ballade, ready to play.'}</p>`;
       const b = el('button', 'btn primary', 'Import a story');
       b.type = 'button';
       b.addEventListener('click', pickFile);
@@ -128,7 +128,7 @@
       body.append(b);
     };
     if (pc() || ipad()) item(ICON.edit, 'Edit the Ballade', 'Steps, gates, timings and fades', () => { location.hash = `#/edit/${r.uid}`; });
-    item(ICON.share, 'Export .troubadour-ballade', 'Rhythms the next revision, signed with your troubadour name', () => exportFlow(r));
+    item(ICON.share, 'Export .troubadour-ballade', 'Exports the next revision, signed with your troubadour name', () => exportFlow(r));
     item(ICON.share, 'Export .troubadour', 'The story alone, for Troubadour', () => exportTroubadour(r));
     item(ICON.trash, 'Remove from this device', 'Keep a .troubadour-ballade if you want it back', async () => {
       const ok = await ask(`Remove ${r.story.title}?`, 'Its Ballade and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
@@ -141,14 +141,14 @@
 
   async function exportFlow(r) {
     try {
-      busy('Rhythming the .troubadour-ballade', '', 0);
+      busy('Exporting the .troubadour-ballade', '', 0);
       const files = await DB.filesOf(r);
-      const out = await F.pack(r.story, r.flow, files, window.Troubadour.bardName(), (f) => busy('Rhythming the .troubadour-ballade', '', f), `Troubadour Ballade ${VERSION}`);
+      const out = await F.pack(r.story, r.flow, files, window.Troubadour.bardName(), (f) => busy('Exporting the .troubadour-ballade', '', f), `Troubadour Ballade ${VERSION}`);
       r.flow = out.flow;
       await DB.put(r);
       idle();
       await deliver(out.blob, out.fileName);
-    } catch (e) { idle(); toast(`Could not rhythm: ${e.message || e}`, 4200); }
+    } catch (e) { idle(); toast(`Could not export: ${e.message || e}`, 4200); }
   }
   async function exportTroubadour(r) {
     try {
@@ -195,7 +195,7 @@
         const newer = flow && (fl.revision || 0) > (twin.flow.revision || 0);
         const answer = await ask(`${story.title} is already here`, flow
           ? `This device holds revision ${twin.flow.revision || 0} of its Ballade; the file is revision ${fl.revision || 0}.${newer ? ' The file is newer.' : ''}`
-          : 'A Ballade of this story, never rhythmed yet, is already on this device.', [
+          : 'A Ballade of this story, never exported yet, is already on this device.', [
           { label: 'Cancel', value: null },
           { label: 'Keep both', value: 'both' },
           { label: 'Replace', value: 'replace', cls: 'primary' },
@@ -214,7 +214,7 @@
       const rec = await DB.put({ uid, story, flow: fl, files: keys, lengths });
       await DB.collect();
       idle();
-      if (!flow && pc()) { location.hash = `#/edit/${rec.uid}`; toast('A first Ballade is ready: shape it, then rhythm the .troubadour-ballade.', 4200); }
+      if (!flow && pc()) { location.hash = `#/edit/${rec.uid}`; toast('A first Ballade is ready: shape it, then export the .troubadour-ballade.', 4200); }
       else {
         if (!flow) toast('A first Ballade was made from its sounds. Shape it in the Ballade builder, on a computer or an iPad.', 4600);
         else toast(`${story.title} is ready to play.`);

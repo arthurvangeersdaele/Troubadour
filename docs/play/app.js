@@ -460,7 +460,7 @@
     more.href = '../troupe/';
     more.innerHTML = `<span class="add-i">${ICON.tales}</span>`;
     const mt = el('span', 'stxt');
-    mt.append(el('b', '', 'More tales in La Troupe'), el('span', 'meta', 'Stories rhythmed by other game masters'));
+    mt.append(el('b', '', 'More tales in La Troupe'), el('span', 'meta', 'Stories shared by other game masters'));
     more.append(mt);
     side.append(more);
     wrap.append(side);
@@ -644,7 +644,7 @@
     $('#stories').hidden = true;
     $('#table').hidden = true;
     $('#import').hidden = false;
-    document.title = 'Play a tale | Troubadour';
+    document.title = 'Online player | Troubadour';
     releaseWake();
   }
   function dropState(title, sub, frac, busy, err) {
