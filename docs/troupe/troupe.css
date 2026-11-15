@@ -439,3 +439,45 @@ html.pc .doors.two{grid-template-columns:repeat(2,minmax(0,320px))}
 .builder-note{color:var(--muted);font-size:15px;margin:18px 0 0;text-align:center}
 .builder-note a{color:var(--accent)}
 @media (max-width:420px){.sbar .here{font-size:17px;margin-left:6px}}
+
+/* La Troupe, after the charter (15 Nov 2026). Cards are --card on --line, names in Cormorant, text --muted.
+   Zone colours mean sounds only, so no card wears one; the only colours are the apps' own marks.
+   Each app: its player and its builder, two secondary buttons side by side. Expansions' names in italics. */
+.oath em{color:var(--text);font-style:normal}
+.oath i.ext,.app i.ext{font-style:italic}
+.tools-title{margin:40px 0 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.apps{display:grid;grid-template-columns:minmax(0,360px);gap:16px;margin-top:14px;justify-content:center;width:100%}
+html.pc .apps{grid-template-columns:repeat(3,minmax(0,296px))}
+.app{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.app:hover{border-color:var(--muted);box-shadow:0 12px 30px var(--shadow);transform:translateY(-2px)}
+.app-head{display:flex;align-items:center;gap:14px}
+.app h2{margin:0;font-family:'Cormorant SC',serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:.4px;color:var(--text)}
+.app p{margin:0;color:var(--muted);font-size:15px;line-height:1.4;flex:1}
+.app-mark{width:44px;height:44px;flex:none;padding:6px;border-radius:10px;background:#15151B;box-sizing:border-box}
+.app-mark.wire path{fill:none;stroke:#F0C24F;stroke-width:34;stroke-linecap:round}
+.app-mark.wire circle{fill:#FFE08A}
+.app-mark.ring g circle{fill:none;stroke:#F0C24F;stroke-linecap:round}
+.app-mark.ring .core{fill:#FFE08A}.app-mark.ring .eye{fill:#15151B}
+.app-btns{display:grid;grid-template-columns:1fr;gap:8px}
+html.pc .app-btns{grid-template-columns:1fr 1fr}
+.abtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--bar);color:var(--text);font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap;transition:border-color .15s}
+.abtn:hover{border-color:var(--muted)}
+.abtn svg{color:var(--accent);flex:none}
+.abtn.build svg{color:var(--muted)}
+.abtn:focus-visible,.lore:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.lore{display:flex;align-items:center;gap:16px;width:min(100%,360px);margin:14px auto 0;padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--text);text-decoration:none;text-align:left;transition:border-color .15s,box-shadow .15s,transform .15s}
+html.pc .lore{width:min(100%,920px)}
+.lore:hover{border-color:var(--muted);box-shadow:0 12px 30px var(--shadow);transform:translateY(-2px)}
+.lore .lore-book{color:var(--accent);flex:none}
+.lore>span{flex:1;display:flex;flex-direction:column;gap:4px}
+.lore b{font-family:'Cormorant SC',serif;font-size:28px;line-height:1}
+.lore>span>span{color:var(--muted);font-size:15px}
+.lore .go{color:var(--accent);flex:none}
+html.pc .discord-bar{width:min(100%,920px)}
+@media (prefers-reduced-motion:reduce){.app,.lore{transition:none}.app:hover,.lore:hover{transform:none}}
+html.pc .apps{grid-template-columns:repeat(3,minmax(0,300px))}
+html.pc .abtn{font-size:14px;gap:6px;padding:0 8px}
+html.pc .app{padding:18px}
+html.pc .apps{grid-template-columns:repeat(3,minmax(0,306px))}
+html.pc .app{padding:16px}
+.abtn{min-width:0}.abtn span{overflow:hidden;text-overflow:ellipsis}
