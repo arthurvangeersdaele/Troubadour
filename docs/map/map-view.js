@@ -174,7 +174,7 @@
     if (!trail) return;
     clearTimeout(trail.timer);
     trail = null;
-    dirty = true;
+    light = true;
   }
   function startTrail() {
     dropTrail();
@@ -187,7 +187,7 @@
     const last = trail.pts[trail.pts.length - 1];
     if (blocked(last, q)) return; // the trail waits at the wall until the finger comes back round it
     if (Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) trail.pts.push(q);
-    dirty = true;
+    light = true;
   }
   function measure(pts) {
     const cum = [0];
@@ -200,8 +200,8 @@
     const len = cum[cum.length - 1];
     if (pts.length < 2 || len * view.k < 8) { dropTrail(); return; }
     trail = Object.assign(trail, { pts, cum, len, phase: 'wait', at: 0 });
-    trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = trail.tl = performance.now(); dirty = true; } }, WALK_DELAY);
-    dirty = true;
+    trail.timer = setTimeout(() => { if (trail && trail.phase === 'wait') { trail.phase = 'walk'; trail.t0 = trail.tl = performance.now(); light = true; } }, WALK_DELAY);
+    light = true;
   }
   /** The cross at the end of a trail, on screen (null while the trail is drawn). */
   function crossAt() { return trail && trail.phase !== 'draw' && trail.len ? toScreen(trail.pts[trail.pts.length - 1]) : null; }
@@ -220,7 +220,7 @@
     trail.cum = measure(pts);
     trail.len = trail.cum[trail.cum.length - 1];
     if (trail.at > trail.len) trail.at = trail.len;
-    dirty = true;
+    light = true;
   }
   /** The point at distance d along the trail. */
   function along(d) {
@@ -243,7 +243,7 @@
     const { p } = along(trail.at);
     place.player = [Math.round(p[0]), Math.round(p[1])];
     if (api.onPlayer) api.onPlayer(place.player, false);
-    dirty = true;
+    light = true;
     const holding = gesture && gesture.kind === 'cross';
     if (trail.at >= trail.len - 0.01 && !holding) { place.player = trail.pts[trail.pts.length - 1].slice(); if (api.onPlayer) api.onPlayer(place.player, true); trail = null; edited(); }
   }
@@ -286,7 +286,7 @@
     }
     return null;
   }
-  function endPress() { if (press) { clearTimeout(press.timer); press = null; dirty = true; } }
+  function endPress() { if (press) { clearTimeout(press.timer); press = null; light = true; } }
   let gesture = null; // { kind, ... }
   let spaceDown = false;
 
@@ -315,7 +315,7 @@
       if (lk) {
         endPress();
         press = { el: lk, t0: performance.now(), s, timer: setTimeout(() => { const e2 = press && press.el; endPress(); gesture = null; if (e2 && api.onLink) api.onLink(e2); }, PRESS_MS) };
-        dirty = true;
+        light = true;
       }
       // The cross of a trail: dragged elsewhere, even while the party walks.
       const cx = crossAt();
@@ -398,7 +398,7 @@
         if (walks) { addToTrail(w); break; }
         if (mode === 'play' && blocked(place.player, clampPoint(w))) break;
         place.player = clampPoint(w);
-        dirty = true;
+        light = true;
         if (api.onPlayer) api.onPlayer(place.player, false);
         break;
       case 'move': {
@@ -416,7 +416,7 @@
         const last = gesture.pts[gesture.pts.length - 1];
         if (Math.hypot(w[0] - last[0], w[1] - last[1]) * view.k > 3) gesture.pts.push(w);
         gesture.shift = gesture.shift || e.shiftKey;
-        dirty = true;
+        light = true;
         break;
       }
       case 'erase': erase(w, gesture); break;
@@ -549,7 +549,7 @@
     ctx.restore();
   }
 
-  function drawElement(el, heard) {
+  function drawElement(el) {
     const sh = el.shape;
     const c = zoneColour(el);
     ctx.save();
@@ -566,16 +566,18 @@
       ctx.stroke();
     }
     ctx.restore();
-    if (heard > 0.01) {
-      ctx.save();
-      ctx.strokeStyle = alpha(c, 0.25 + 0.55 * heard);
-      ctx.lineWidth = 3 / view.k + 6 * heard / view.k;
-      ctx.lineJoin = 'round';
-      if (sh.type === 'stamp') { ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.size / 2 + 6 / view.k, 0, Math.PI * 2); }
-      else tracePath(sh.points, sh.closed);
-      ctx.stroke();
-      ctx.restore();
-    }
+  }
+  /** The ring around an element that is heard, wider as it is louder. */
+  function drawHeard(el, heard) {
+    const sh = el.shape, c = zoneColour(el);
+    ctx.save();
+    ctx.strokeStyle = alpha(c, 0.25 + 0.55 * heard);
+    ctx.lineWidth = 3 / view.k + 6 * heard / view.k;
+    ctx.lineJoin = 'round';
+    if (sh.type === 'stamp') { ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.size / 2 + 6 / view.k, 0, Math.PI * 2); }
+    else tracePath(sh.points, sh.closed);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawWall(w, ghost) {
@@ -591,17 +593,24 @@
     ctx.restore();
   }
 
-  function draw() {
-    if (!ctx) return;
-    dirty = false;
+  /* What does not change while the party moves (the paper, its ground, every drawing, the walls, the names) is painted
+   * once into two layers kept aside, and only laid back each frame: under them and over them, what does change (how far
+   * the sounds reach and which are heard, the trail, the party). A frame of a walk costs two images, not the whole map. */
+  let light = false, layerA = null, layerB = null;
+  function layer(old) {
+    const c = old || document.createElement('canvas');
+    if (c.width !== cv.width || c.height !== cv.height) { c.width = cv.width; c.height = cv.height; }
+    return c;
+  }
+  function paintStatic() {
+    const main = ctx;
+    layerA = layer(layerA); layerB = layer(layerB);
+    // Under: the table, the paper and its ground.
+    ctx = layerA.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = pal.bg;
     ctx.fillRect(0, 0, W, H);
-    if (!place) return;
-    const audioOn = mode === 'play' && global.MapAudio && global.MapAudio.isOpen();
     ctx.setTransform(dpr * view.k, 0, 0, dpr * view.k, dpr * view.x, dpr * view.y);
-
-    // The paper and its grid.
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 30 / view.k;
     ctx.fillStyle = pal.paper;
@@ -623,8 +632,53 @@
       if (pat) { ctx.fillStyle = pat; ctx.fillRect(0, 0, place.width, place.height); }
     }
 
-    // How far every sound reaches, then the elements, then the walls on top.
+    ctx.restore();
+    // Over: the elements, the walls, then in screen pixels the names and the signs of the ways.
+    ctx = layerB.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, layerB.width, layerB.height);
+    ctx.setTransform(dpr * view.k, 0, 0, dpr * view.k, dpr * view.x, dpr * view.y);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, place.width, place.height); ctx.clip();
+    shown().forEach((el) => drawElement(el));
+    shownWalls().forEach((w) => drawWall(w));
+    ctx.restore();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = '600 14px "Barlow Semi Condensed", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    if (!global.MapUI || global.MapUI.settings.names !== false) drawLabels();
+    shown().forEach((el) => {
+      if (!el.link) return;
+      // The way to another map, in the middle of the element: a long press on it goes there.
+      const [lx, ly] = toScreen(M.centre(el.shape));
+      ctx.beginPath(); ctx.arc(lx, ly, 15, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
+      ctx.lineWidth = 2.5; ctx.strokeStyle = pal.bg; ctx.stroke();
+      ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(lx - 5, ly + 5); ctx.lineTo(lx + 5, ly - 5); ctx.moveTo(lx - 1, ly - 5); ctx.lineTo(lx + 5, ly - 5); ctx.lineTo(lx + 5, ly + 1); ctx.stroke();
+    });
+    ctx = main;
+  }
+
+  function draw() {
+    if (!ctx) return;
+    const heavy = dirty || !layerA || layerA.width !== cv.width || layerA.height !== cv.height;
+    dirty = false; light = false;
+    if (!place) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = pal.bg;
+      ctx.fillRect(0, 0, W, H);
+      layerA = null;
+      return;
+    }
+    if (heavy) paintStatic();
+    const audioOn = mode === 'play' && global.MapAudio && global.MapAudio.isOpen();
+    const world = () => { ctx.setTransform(dpr * view.k, 0, 0, dpr * view.k, dpr * view.x, dpr * view.y); ctx.beginPath(); ctx.rect(0, 0, place.width, place.height); ctx.clip(); };
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(layerA, 0, 0);
+
+    // How far every sound reaches, under the drawings.
     const heard = new Map();
+    ctx.save(); world();
     shown().forEach((el) => {
       if (!el.cards.length) return;
       let h = 0;
@@ -635,9 +689,14 @@
       const rings = mode === 'edit' || global.MapUI.settings.rings || el === selected;
       if (rings) drawReach(el, h);
     });
-    shown().forEach((el) => drawElement(el, heard.get(el) || 0));
-    shownWalls().forEach((w) => drawWall(w));
     ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(layerB, 0, 0);
+    // What is heard right now, ringed.
+    ctx.save(); world();
+    heard.forEach((h, el) => { if (h > 0.01) drawHeard(el, h); });
+    ctx.restore();
+    ctx.setTransform(dpr * view.k, 0, 0, dpr * view.k, dpr * view.x, dpr * view.y);
 
     // The line being drawn.
     if (gesture && gesture.kind === 'stroke') {
@@ -646,27 +705,15 @@
       else { ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; tracePath(pts, false); ctx.stroke(); ctx.restore(); }
     }
 
-    // In screen pixels from here: labels, the selection, the player point.
+    // In screen pixels from here: the long press on a way, the selection, the party.
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.font = '600 14px "Barlow Semi Condensed", system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    if (!global.MapUI || global.MapUI.settings.names !== false) drawLabels();
-    shown().forEach((el) => {
-      if (el.link) {
-        // The way to another map, in the middle of the element: a long press on it goes there.
-        const [lx, ly] = toScreen(M.centre(el.shape));
-        ctx.beginPath(); ctx.arc(lx, ly, 15, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
-        ctx.lineWidth = 2.5; ctx.strokeStyle = pal.bg; ctx.stroke();
-        ctx.lineWidth = 2.2;
-        ctx.beginPath(); ctx.moveTo(lx - 5, ly + 5); ctx.lineTo(lx + 5, ly - 5); ctx.moveTo(lx - 1, ly - 5); ctx.lineTo(lx + 5, ly - 5); ctx.lineTo(lx + 5, ly + 1); ctx.stroke();
-        if (press && press.el === el) {
-          const f = Math.min(1, (performance.now() - press.t0) / PRESS_MS);
-          ctx.beginPath(); ctx.arc(lx, ly, 21, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
-          ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.stroke();
-          dirty = true;
-        }
-      }
-    });
+    if (press && press.el && press.el.link) {
+      const [lx, ly] = toScreen(M.centre(press.el.shape));
+      const f = Math.min(1, (performance.now() - press.t0) / PRESS_MS);
+      ctx.beginPath(); ctx.arc(lx, ly, 21, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.stroke();
+      light = true;
+    }
     if (hoverEl) {
       const b = M.bounds(hoverEl.shape);
       const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
@@ -767,14 +814,14 @@
 
   function loop() {
     stepTrail();
-    if (dirty) draw();
+    if (dirty || light) draw();
     requestAnimationFrame(loop);
   }
 
   function resize() {
     const r = cv.parentNode.getBoundingClientRect();
     W = Math.max(1, r.width); H = Math.max(1, r.height);
-    dpr = Math.min(3, global.devicePixelRatio || 1);
+    dpr = Math.min(2, global.devicePixelRatio || 1); // two is sharp enough for a map, and less than half the pixels of three to paint each frame
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     if (!needFit && place && mode === 'play') { if (fillOnResize) fit(); else keepOnMap(); }
     cv.style.width = `${W}px`; cv.style.height = `${H}px`;
@@ -925,14 +972,14 @@
   }
   /** The element a dragged sound would join (null: none), outlined on the map. */
   let hoverEl = null;
-  function dropHover(el) { if (hoverEl !== el) { hoverEl = el || null; dirty = true; } }
+  function dropHover(el) { if (hoverEl !== el) { hoverEl = el || null; light = true; } }
   function flash(el) { selected = el; dirty = true; if (api.onSelect) api.onSelect(el); }
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
     mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, fit, fill, undo, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
-    __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
+    __toScreen: (p) => toScreen(p), __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0,
   });
   global.MapView = api;

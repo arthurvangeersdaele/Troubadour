@@ -639,6 +639,7 @@
   function setPanel(open) {
     $('#world').classList.toggle('panel', !!open);
     paintMenuBtn();
+    if (open && mode === 'play') refreshLive();
   }
   function paintMenuBtn() {
     const b = $('#mw-menu');
@@ -1398,7 +1399,14 @@
   function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); }
   function liveLoop() {
     clearInterval(liveTimer);
-    liveTimer = setInterval(() => { if (screen === 'world' && mode === 'play' && !document.hidden) { refreshLive(); paintMaster(); } }, 66);
+    // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
+    // touched, and the map keeps the whole frame for itself.
+    liveTimer = setInterval(() => {
+      if (screen !== 'world' || mode !== 'play' || document.hidden) return;
+      const w = $('#world').classList;
+      if (w.contains('panel') || w.contains('over')) refreshLive();
+      paintMaster();
+    }, 100);
   }
 
   function syncAudio() {
@@ -3257,7 +3265,8 @@
       toast(`To ${rec.world.places[to].title}`, 1600);
       travel(to);
     };
-    A.onChange = () => { V.redraw(); };
+    // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
+    A.onChange = () => { V.touch(); };
     // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
     if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
 
