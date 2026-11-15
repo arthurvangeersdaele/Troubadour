@@ -29,7 +29,17 @@
   })();
 </script>
 <style>
-  .map-art { width: 96px; height: 96px; margin: 0 auto 18px; display: block; border-radius: 22px; box-shadow: 0 10px 30px var(--shadow); }
+  /* The golden point and its rings of dots, from the Map icon, drawn like the Ballade's golden wire (same height, same gold) */
+  .ring-art { width: 160px; height: 160px; margin: 0 auto 18px; display: block; overflow: visible; }
+  .ring-art .halo, .ring-art .dots { fill: none; stroke: var(--accent); stroke-linecap: round; }
+  .ring-art .halo { opacity: .7; filter: blur(9px); }
+  .ring-art .core-glow { fill: var(--accent); opacity: .8; filter: blur(14px); }
+  .ring-art .core { fill: color-mix(in srgb, var(--accent) 45%, #FFF4D6); filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 60%, transparent)); }
+  .ring-art .eye { fill: var(--bg); }
+  .ring-art .r1, .ring-art .halo circle:first-child { transform-origin: 512px 560px; animation: ring-turn 40s linear infinite; }
+  .ring-art .r2, .ring-art .halo circle:last-child { transform-origin: 512px 560px; animation: ring-turn 70s linear infinite reverse; }
+  @keyframes ring-turn { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .ring-art * { animation: none !important; } }
   .steps { display: grid; gap: 12px; max-width: 660px; margin: 26px auto 0; text-align: left; }
   .steps div { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
   .steps .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 18px; }
@@ -77,7 +87,11 @@
 </header>
 
 <main class="hall">
-  <img class="map-art" src="../map/icons/261031_troubadour_map_180.png" alt="" width="96" height="96">
+  <svg class="ring-art" viewBox="182 230 660 660" aria-hidden="true">
+    <g class="halo"><circle cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/><circle cx="512" cy="560" r="290" stroke-width="26" stroke-dasharray="1 82" opacity=".7"/></g>
+    <g class="dots"><circle class="r1" cx="512" cy="560" r="150" stroke-width="26" stroke-dasharray="1 72"/><circle class="r2" cx="512" cy="560" r="290" stroke-width="22" stroke-dasharray="1 82" opacity=".7"/></g>
+    <circle class="core-glow" cx="512" cy="560" r="96"/><circle class="core" cx="512" cy="560" r="70"/><circle class="eye" cx="512" cy="560" r="26"/>
+  </svg>
   <p class="kicker">Troubadour</p>
   <h1>Troubadour Map</h1>
   <div class="oath">
