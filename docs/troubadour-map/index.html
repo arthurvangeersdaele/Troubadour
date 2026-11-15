@@ -39,7 +39,8 @@
   .door.flow-editor { --z: var(--amb); }
   .door.flow-iphone { --z: var(--accent); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card) 55%); }
   .door.flow-iphone b { color: var(--accent); }
-  .door.flow-android { --z: var(--blue); }
+  .door.flow-android { --z: var(--muted); cursor: default; opacity: .8; }
+  .door.flow-android:hover { transform: none; box-shadow: none; border-color: var(--line); }
   .door .tag { align-self: flex-start; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--z, var(--accent)); border: 1px solid color-mix(in srgb, var(--z, var(--accent)) 55%, var(--line)); border-radius: 999px; padding: 2px 9px; }
   .door .off { font-size: 13px; }
   html.pc .doors.three { grid-template-columns: repeat(3, minmax(0, 290px)); }
@@ -93,14 +94,14 @@
 
   <nav class="doors three" aria-label="Troubadour Map">
     <a class="door flow-editor pc-only" href="../map/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Computer</span><b>Map on this computer</b><span>Draw your worlds with a mouse and play them from here.</span></a>
-    <a class="door flow-iphone" href="../map/" id="map-phone"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">iPhone and iPad</span><b>Map for iPhone</b><span class="for-iphone">Open the page, then add it to your Home Screen: it becomes the Troubadour Map app.</span><span class="for-pc">Scan a QR code with your iPhone or iPad, then add the page to its Home Screen.</span><span class="for-other">Open this page on an iPhone or an iPad, in Safari, to add the app to its Home Screen.</span></a>
-    <a class="door flow-android" href="../map/"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">Android</span><b>Map in your browser</b><span>On an Android phone or tablet, Troubadour Map opens in Chrome. Its menu can add it to your Home screen.</span></a>
+    <a class="door flow-iphone" href="../map/" id="map-phone"><svg class="go" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="tag">iPhone and iPad</span><b>Map for iPhone</b><span>Your worlds at the table, on your Home Screen.</span><span class="off for-iphone">Tap to install it on this iPhone or iPad.</span><span class="off for-pc">Click for a QR code to scan with your iPhone or iPad.</span><span class="off for-other">Made for iPhone and iPad for now: open this page on one to install it.</span></a>
+    <div class="door flow-android" aria-disabled="true"><span class="tag">Coming soon</span><b>Map for Android</b><span>The Android app is on its way. It will be dropped here soon.</span></div>
   </nav>
   <div class="qr-veil" id="qr" hidden role="dialog" aria-modal="true" aria-labelledby="qr-title">
     <div class="qr-box">
       <button class="qr-close" type="button" id="qr-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-      <h3 id="qr-title">Map for iPhone and iPad</h3>
-      <p>Scan with your camera and open the page in Safari. Then tap Share and Add to Home Screen.</p>
+      <h3 id="qr-title">Map for iPhone</h3>
+      <p>Scan with your iPhone or iPad camera and open the page in Safari. Then tap Share and Add to Home Screen.</p>
       <div class="qr-code" id="qr-code"></div>
     </div>
   </div>

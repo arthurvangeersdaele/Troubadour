@@ -41,13 +41,27 @@
     var standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     root.classList.toggle('standalone', standalone);
     // Which face of the page, as the other Troubadour apps: on an iPhone or an iPad in a browser tab, this page is the
-    // app to add to the Home Screen (the install guide); everywhere else, the app itself.
+    // app to add to the Home Screen (the install guide); from the Home Screen or on a computer, the app itself.
     window.TROUBADOUR_DEVICE = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iPad' : 'iPhone';
-    root.classList.add(ios && !standalone ? 'mode-install' : 'mode-app');
+    // Android phones and tablets (and any other touch device): not available there for now, a notice instead.
+    var pc = root.classList.contains('pc');
+    root.classList.add(ios ? (standalone ? 'mode-app' : 'mode-install') : (pc ? 'mode-app' : 'mode-other'));
   })();
 </script>
 </head>
 <body>
+
+<!-- ============ Not an iPhone, not an iPad, not a computer (Android): not available yet ============ -->
+<main class="gate gate-other">
+  <div class="gate-card">
+    <img class="gate-icon" src="icons/261031_troubadour_map_180.png" alt="" width="84" height="84">
+    <p class="kicker">Troubadour Map</p>
+    <h1>Made for iPhone and iPad</h1>
+    <p>Troubadour Map installs on an iPhone or an iPad, from Safari, as an app on the Home Screen. Open this page there to install it.</p>
+    <p class="small">On a computer, this page is the Map editor: draw your worlds there. On Android, Troubadour Map is coming as an app.</p>
+    <a class="btn primary" href="../troubadour-map/">Back to Troubadour Map</a>
+  </div>
+</main>
 
 <!-- ============ iPhone or iPad, in a browser: install guide (the same as Troubadour and Ballade) ============ -->
 <main class="gate gate-install">
