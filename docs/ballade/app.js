@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.11';
+  const VERSION = '261117.13';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -36,7 +36,8 @@
         onClick: async () => { const have = recs.find((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision); if (have) location.hash = `#/play/${have.uid}`; else addDiscovery(d); } })),
       drop: { text: 'Drop a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
       history: {
-        title: 'On this computer', playOnly: true,
+        title: 'In this browser, for now', playOnly: true,
+        note: "Opened here, kept only in this browser's temporary storage: it may be cleared without asking. Your files stay safe where you keep them.",
         empty: 'Nothing here yet. Open a .troubadour-ballade to play it.',
         items: recs.map((r) => {
           const cover = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -61,7 +62,8 @@
         .map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour or a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
       history: {
-        title: 'Your Ballades',
+        title: 'Your Ballades, in this browser',
+        note: "These live in this browser's storage, which it may clear without asking (private windows, cleaning up space, another browser). Export each one to keep it for good.",
         empty: 'Nothing here yet. Your Ballades are kept in this browser as you shape them.',
         items: recs.map((r) => {
           const cover = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -283,7 +285,7 @@
     if (pc() || ipad()) item(ICON.edit, 'Edit the Ballade', 'Steps, gates, timings and fades', () => { location.hash = `#/edit/${r.uid}`; });
     item(ICON.share, 'Export .troubadour-ballade', 'Exports the next revision, signed with your troubadour name', () => exportFlow(r));
     item(ICON.share, 'Export .troubadour', 'The story alone, for Troubadour', () => exportTroubadour(r));
-    item(ICON.trash, 'Remove from this device', 'Keep a .troubadour-ballade if you want it back', async () => {
+    item(ICON.trash, (document.documentElement.classList.contains('pc') ? 'Remove from this browser' : 'Remove from this device'), 'Keep a .troubadour-ballade if you want it back', async () => {
       const ok = await ask(`Remove ${r.story.title}?`, 'Its Ballade and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
       if (!ok) return;
       await DB.remove(r.uid);

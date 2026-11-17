@@ -23,7 +23,7 @@
 
   <!-- 1. Name and title -->
   <header class="hero">
-    <span class="badge not-iphone"><i></i>Android beta available</span><span class="badge iphone-only"><i></i>Now on iPhone</span>
+    <span class="badge not-iphone"><i></i>Android app in development</span><span class="badge iphone-only"><i></i>Now on iPhone</span>
     <h1>Your table deserves a soundtrack.</h1>
     <p class="lead">Troubadour turns your phone into a sound desk for tabletop RPGs. Prepare music, ambiances and events for each chapter of your story, then play them live with one hand while you run the game.</p>
 
@@ -38,7 +38,7 @@
     <div class="get" id="get">
       <a class="for-android" id="get-android" href="https://github.com/arthurvangeersdaele/Troubadour/releases/tag/dev-latest">
         <span class="gi"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/></svg></span>
-        <span><small>Free, beta</small><b>Get Troubadour for Android</b></span>
+        <span><small>In development, early build</small><b>Get Troubadour for Android</b></span>
       </a>
       <a class="for-ios" href="ios/">
         <span class="gi"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v6M9 11h6"/></svg></span>
@@ -231,13 +231,13 @@
   window.addEventListener('resize',fit);fit();
   // Same colours as the app's themes (play/style.css, Theme.kt).
   var THEMES=[
-    {name:'Obsidian',dot:'#2B2B35',bg:'#0F0F13',bar:'#15151B',card:'#1C1C24',line:'#2E2E39',text:'#ECE8DE',muted:'#A29FAE',accent:'#E0A84B'},
-    {name:'Parchment',dot:'#D8C39A',bg:'#1E1912',bar:'#251F16',card:'#30281D',line:'#4A3D2B',text:'#F1E6CF',muted:'#BBA987',accent:'#E0B062'},
-    {name:'Blood',dot:'#C23540',bg:'#140B0C',bar:'#1A0E10',card:'#261517',line:'#43242A',text:'#F2E4E2',muted:'#B79A9D',accent:'#F0606A'},
-    {name:'Divination',dot:'#8B66D6',bg:'#0B1020',bar:'#0F1529',card:'#18213D',line:'#2B3762',text:'#E6E9F8',muted:'#9EA6C8',accent:'#C9A7F5'}
+    {name:'Obsidian',dot:'#2B2B35',bg:'#0F0F13',bar:'#15151B',card:'#1C1C24',line:'#2E2E39',text:'#ECE8DE',muted:'#A29FAE',accent:'#E0A84B',music:'#E0A84B',amb:'#4FB3A5',evt:'#E06A63'},
+    {name:'Abyss',dot:'#2EE6D6',bg:'#020A13',bar:'#05101C',card:'#0A192A',line:'#163049',text:'#DCF4F8',muted:'#7EA3B6',accent:'#2EE6D6',music:'#2EE6D6',amb:'#4C86FF',evt:'#C76BFF'},
+    {name:'Dragonfire',dot:'#FF5A1F',bg:'#130705',bar:'#1B0A07',card:'#28110B',line:'#4E2315',text:'#F9E7D9',muted:'#C49C87',accent:'#FF5A1F',music:'#FFB238',amb:'#B9A397',evt:'#FF3B2F'},
+    {name:'Excalibur',dot:'#C8D7E2',bg:'#0D1310',bar:'#121A15',card:'#1A241D',line:'#2F3E33',text:'#EEF2EC',muted:'#A3AFA4',accent:'#C8D7E2',music:'#DCC37A',amb:'#7FBF8E',evt:'#72A9DE'}
   ];
   var phone=document.getElementById('phone'), box=document.getElementById('swatches'), btns=[], cur=0, timer=null;
-  var KEYS=['bg','bar','card','line','text','muted','accent'];
+  var KEYS=['bg','bar','card','line','text','muted','accent','music','amb','evt'];
   var quiet=matchMedia('(prefers-reduced-motion: reduce)').matches;
   function rgb(h){h=h.replace('#','');return [0,2,4].map(function(k){return parseInt(h.substr(k,2),16);});}
   // The colours glide from one theme to the next: every colour of the table at once, eased, in one breath.

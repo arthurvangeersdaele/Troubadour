@@ -28,6 +28,28 @@
     b.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
     return b;
   }
+  /** A small menu under a button: items [{ label, icon, danger, fn }]. */
+  let pop = null;
+  function closePop() { if (pop) { pop.remove(); pop = null; document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', esc, true); } }
+  function outside(e) { if (pop && !pop.contains(e.target)) closePop(); }
+  function esc(e) { if (e.key === 'Escape') { closePop(); } }
+  function openPop(anchor, items) {
+    closePop();
+    pop = el('div', 'bm-pop'); pop.setAttribute('role', 'menu');
+    items.forEach((it) => {
+      if (it === '-') { pop.append(el('hr')); return; }
+      const b = el('button', it.danger ? 'danger' : ''); b.type = 'button'; b.setAttribute('role', 'menuitem');
+      b.innerHTML = it.icon || ''; b.append(el('span', '', it.label));
+      b.addEventListener('click', (e) => { e.stopPropagation(); closePop(); it.fn(); });
+      pop.append(b);
+    });
+    document.body.append(pop);
+    const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.right - w))}px`;
+    pop.style.top = `${r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6}px`;
+    setTimeout(() => { document.addEventListener('pointerdown', outside, true); document.addEventListener('keydown', esc, true); pop && pop.querySelector('button')?.focus(); });
+  }
+
   /** "Today, 14:05", "Yesterday", "3 days ago", or the date. */
   function when(iso) {
     if (!iso) return '';
@@ -41,6 +63,12 @@
     return d.toLocaleDateString([], { day: 'numeric', month: 'long', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
   }
 
+  function moreBtn(it) {
+    const b = el('button', 'bm-btn ico-only'); b.type = 'button'; b.innerHTML = I.more;
+    b.setAttribute('aria-label', `More: ${it.title}`); b.setAttribute('aria-haspopup', 'menu');
+    b.addEventListener('click', (e) => { e.stopPropagation(); if (Array.isArray(it.more)) openPop(b, it.more); else if (it.onMore) it.onMore(); });
+    return b;
+  }
   function head(title, n) {
     const h = el('h3', 'bm-h');
     h.append(el('span', '', title));
@@ -106,6 +134,7 @@
     // 2. History
     const h = o.history;
     root.append(head(h.title, h.items.length));
+    if (h.note) { const n = el('p', 'bm-note'); n.innerHTML = `${svg('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>', 16)}`; n.append(el('span', '', h.note)); root.append(n); }
     const list = el('section', 'bm-list');
     if (!h.items.length) list.append(el('p', 'bm-empty', h.empty));
     h.items.forEach((it) => {
@@ -118,7 +147,7 @@
       if (w) txt.append(el('span', 'bm-when', `Last changed ${w.charAt(0).toLowerCase()}${w.slice(1)}`));
       const acts = el('div', 'bm-acts');
       if (h.playOnly) {
-        acts.append(button('bm-btn main', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay), button('bm-btn ico-only', I.more, `More: ${it.title}`, it.onMore));
+        acts.append(button('bm-btn main', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay), moreBtn(it));
         row.append(cov, txt, acts);
         row.addEventListener('click', (e) => { if (!e.target.closest('button')) it.onPlay(); });
         list.append(row);
@@ -127,7 +156,7 @@
       acts.append(
         button('bm-btn main', `${I.edit}<span>Edit</span>`, `Edit ${it.title}`, it.onEdit),
         button('bm-btn', `${I.share}<span>${it.exportLabel || 'Export'}</span>`, `${it.exportLabel || 'Export'}: ${it.title}`, it.onExport),
-        button('bm-btn ico-only', I.more, `More: ${it.title}`, it.onMore),
+        moreBtn(it),
       );
       if (it.onPlay) acts.insertBefore(button('bm-btn', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay), acts.children[1]);
       row.append(cov, txt, acts);
@@ -138,5 +167,5 @@
     host.append(root);
   }
 
-  g.TroupeBuilderMenu = { render, when };
+  g.TroupeBuilderMenu = { render, when, openPop, icons: I };
 })(window);

@@ -861,7 +861,8 @@
       create: { title: 'New story', sub: 'A blank story, then your chapters and sounds', onClick: newStory },
       drop: { text: 'Drop a .troubadour here', onFile: (f) => openFile(f, f.name), onBrowse: () => $('#open-input').click() },
       history: {
-        title: 'Your stories',
+        title: 'Your stories, in this browser',
+        note: 'These stories live in this browser\'s storage, which it may clear without asking (private windows, cleaning up space, another browser). Export each story as a .troubadour file to keep it for good.',
         empty: 'Nothing here yet. Your stories are kept in this browser as you build them.',
         items: recs.map((r) => ({
           title: r.title || 'Untitled story',
@@ -871,14 +872,36 @@
           onEdit: () => { location.hash = `#/edit/${r.uid}`; },
           onExport: async () => { location.hash = `#/edit/${r.uid}`; await route(); $('#forge-btn').click(); },
           exportLabel: 'Export',
-          onMore: async () => {
-            if (!confirm(`Remove "${r.title || 'Untitled story'}" from this browser? Export it first to keep it.`)) return;
-            try { await Draft.remove(r.uid); } catch (e) { /* gone */ }
-            renderMenu();
-          },
+          more: [
+            { label: 'Edit', fn: () => { location.hash = `#/edit/${r.uid}`; } },
+            { label: 'Export the .troubadour', fn: async () => { location.hash = `#/edit/${r.uid}`; await route(); $('#forge-btn').click(); } },
+            { label: 'Rename', fn: () => renameStory(r) },
+            { label: 'Duplicate', fn: () => duplicateStory(r) },
+            '-',
+            { label: 'Remove from this browser', danger: true, fn: async () => {
+              if (!confirm(`Remove "${r.title || 'Untitled story'}" from this browser? Export it first to keep it.`)) return;
+              try { await Draft.remove(r.uid); } catch (e) { /* gone */ }
+              renderMenu();
+            } },
+          ],
         })),
       },
     });
+  }
+  async function renameStory(r) {
+    const name = prompt('A new title for this story', r.title || '');
+    if (name == null || !name.trim()) return;
+    const d = await Draft.load(r.uid); if (!d) return;
+    d.story.title = name.trim().slice(0, 120);
+    await Draft.save(d.story, d.current, r.uid);
+    renderMenu();
+  }
+  async function duplicateStory(r) {
+    const d = await Draft.load(r.uid); if (!d) return;
+    d.story.title = `${d.story.title || 'Untitled story'} (copy)`;
+    d.story.id = null; d.story.revision = 0; d.story.created = null;
+    await Draft.save(d.story, d.current, newUid());
+    renderMenu();
   }
   function showMenu(on) {
     document.documentElement.classList.toggle('bld-menu', on);

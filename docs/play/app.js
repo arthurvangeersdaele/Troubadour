@@ -639,7 +639,17 @@
   }
 
   /* ---------------- Play your own .troubadour (computer) ---------------- */
+  /** The discovery stories on the online player's page, as on the other online players. */
+  function paintDiscovery() {
+    const box = $('#od-discovery'); if (!box || box.childElementCount) return;
+    STORIES.forEach((st) => {
+      const b = el('a', 'bm-tale'); b.href = `#/${st.id}`;
+      b.append(el('span', 'bm-tag', 'Discovery story'), el('b', '', st.title), el('span', '', st.blurb || st.description || `${st.chapters.length} chapters`));
+      box.append(b);
+    });
+  }
   function showImport() {
+    paintDiscovery();
     $('#stories').hidden = true;
     $('#table').hidden = true;
     $('#import').hidden = false;
@@ -680,7 +690,7 @@
         soundbox: d.soundbox.map(conv),
       };
       if (!CUSTOM.meta.chapters.length) throw new Error('This tale has no chapter.');
-      dropState('Drop a .troubadour file here', 'or click to browse your computer', null, false);
+      dropState('Import', 'Drop a .troubadour here, or browse', null, false);
       audio();
       // The page may already sit on #/troubadour/1 (reloaded on a tale): no hashchange then, so open it here.
       if (location.hash === '#/troubadour/1') route(); else location.hash = '#/troubadour/1';

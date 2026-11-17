@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=261115.1">
+<link rel="stylesheet" href="style.css?v=261117.1">
+<link rel="stylesheet" href="../troupe/troupe.css?v=261117.6">
 <script src="../themes.js"></script>
 <script>
   // Apply the saved theme before first paint (no flash).
@@ -157,24 +158,29 @@
     <a class="install" href="../#get">Install now</a>
     <button class="ico" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
-  <div class="stories-wrap import-wrap">
+  <div class="bm-host od-host pc-only">
+    <div class="bm">
+      <header class="bm-hero">
+        <span class="bm-mark"><svg viewBox="200 232 624 540" class="bars"><rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/></svg></span>
+        <div class="bm-hero-t"><p class="bm-kicker">La Troupe des Troubadours</p><h1>Online player</h1><p class="bm-lead">Open a .troubadour, made in the Story builder or the Troubadour app, and run it on the mixing table, right on this screen.</p></div>
+      </header>
+      <section class="bm-top solo">
+        <label class="bm-drop dropbig" id="troubadour-drop" tabindex="0">
+          <input type="file" id="troubadour-input" accept=".troubadour,.bardic,application/zip" hidden>
+          <span class="bm-drop-i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+          <span class="bm-txt"><b id="drop-title">Import</b><span id="drop-sub">Drop a .troubadour here, or <u>browse</u></span><span class="bar" hidden><i></i></span></span>
+        </label>
+      </section>
+      <h3 class="bm-h"><span>Discovery stories</span></h3>
+      <section class="bm-more" id="od-discovery"></section>
+      <p class="bm-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Nothing is kept here: a file opened in the online player lives in this browser tab only, and is gone when you close it. Your .troubadour file stays safe on your computer. Looking for a tale? Browse the <a href="../troupe/recueil.html">Recueil</a>.</span></p>
+    </div>
+  </div>
+  <div class="stories-wrap import-wrap phone-only">
     <p class="kicker">La Troupe des Troubadours</p>
     <h1>Online player</h1>
-    <div class="pc-only">
-      <p class="lead">Open a .troubadour file from your computer, made in the Story builder or the Troubadour app, and run it on the mixing table.</p>
-      <label class="dropbig" id="troubadour-drop">
-        <input type="file" id="troubadour-input" accept=".troubadour,.bardic,application/zip" hidden>
-        <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
-        <b id="drop-title">Drop a .troubadour file here</b>
-        <span id="drop-sub">or click to browse your computer</span>
-        <span class="bar" hidden><i></i></span>
-      </label>
-      <p class="note">The file is read by your browser and never uploaded. Looking for a tale? Browse the <a href="../troupe/recueil.html">Recueil</a>.</p>
-    </div>
-    <div class="phone-only">
-      <p class="lead">Playing your own .troubadour files is for a computer. On your phone, the Troubadour app is your table: open the file there.</p>
-      <p><a class="btn-link" href="../troupe/recueil.html">Browse the Recueil</a></p>
-    </div>
+    <p class="lead">Playing your own .troubadour files is for a computer. On your phone, the Troubadour app is your table: open the file there.</p>
+    <p><a class="btn-link" href="../troupe/recueil.html">Browse the Recueil</a></p>
   </div>
 </main>
 

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.09';
+  const VERSION = '261117.11';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -225,7 +225,8 @@
         onClick: () => { const have = hasDiscovery(recs, d); if (have) playAt(have); else addDiscovery(d); } })),
       drop: { text: 'Drop a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
       history: {
-        title: 'On this computer', playOnly: true,
+        title: 'In this browser, for now', playOnly: true,
+        note: "Opened here, kept only in this browser's temporary storage: it may be cleared without asking. Your files stay safe where you keep them.",
         empty: 'Nothing here yet. Open a .troubadour-map to play it.',
         items: recs.map((r) => ({ title: r.story.title || 'World',
           meta: `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}`, updated: r.updated,
@@ -244,7 +245,8 @@
         .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
       history: {
-        title: 'Your worlds',
+        title: 'Your worlds, in this browser',
+        note: "These live in this browser's storage, which it may clear without asking (private windows, cleaning up space, another browser). Export each one to keep it for good.",
         empty: 'Nothing here yet. Your worlds are kept in this browser as you draw them.',
         items: recs.map((r) => ({
           title: r.story.title || 'World',
@@ -355,7 +357,7 @@
         renderLibrary();
       }],
       [ICON.share, 'Export .troubadour-map', 'Forges the next revision, signed with your troubadour name', () => exportWorld(r)],
-      [ICON.trash, 'Remove from this device', 'Keep a .troubadour-map if you want it back', async () => {
+      [ICON.trash, (document.documentElement.classList.contains('pc') ? 'Remove from this browser' : 'Remove from this device'), 'Keep a .troubadour-map if you want it back', async () => {
         const ok = await ask(`Remove ${r.story.title}?`, 'Its maps, its drawings and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
         if (!ok) return;
         await DB.remove(r.uid);

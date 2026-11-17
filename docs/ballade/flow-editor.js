@@ -60,7 +60,7 @@
   async function flush() {
     clearTimeout(E.saveT);
     if (!E.rec) return;
-    try { await global.FlowDB.put(E.rec); $('#fe-saved').textContent = 'Saved on this computer'; } catch (e) { $('#fe-saved').textContent = 'Not saved'; toast(`Could not save: ${e.message || e}`); }
+    try { await global.FlowDB.put(E.rec); $('#fe-saved').textContent = 'Saved in this browser'; } catch (e) { $('#fe-saved').textContent = 'Not saved'; toast(`Could not save: ${e.message || e}`); }
   }
 
   /* ---------- Lengths and preview ---------- */
