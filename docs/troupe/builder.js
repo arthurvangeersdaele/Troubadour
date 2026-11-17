@@ -987,6 +987,11 @@
     await routing; routing = null;
   }
   window.addEventListener('hashchange', route);
+  // Erase everything (Settings, Storage): back to an empty menu.
+  window.addEventListener('troubadour:wiped', () => {
+    pending = false; clearTimeout(saveTimer);
+    if (openUid) { openUid = null; location.hash = '#/'; } else renderMenu();
+  });
 
   async function start() {
     const fromUrl = new URLSearchParams(location.search).get('open');

@@ -47,6 +47,8 @@
   dlg.addEventListener('toggle', paintThemes);
   dlg.querySelectorAll('.seg button').forEach((b) => { b.onclick = () => { write({ mode: b.dataset.v }); sync(); }; });
   if (window.BardAccount) window.BardAccount.mount(dlg.querySelector('.troubadour-account'));
+  // Pages that keep stories in this browser (the Story builder) show what they keep, as Ballade and Map do.
+  if (window.TroubadourDraft && window.TroubadourDraft.storageSection) dlg.append(window.TroubadourDraft.storageSection(() => window.dispatchEvent(new CustomEvent('troubadour:wiped'))));
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 
   function sync() {

@@ -788,6 +788,8 @@
       location.replace('#/troubadour');
     } finally { keptLoading = null; }
   }
+  // The Storage section of the settings, as in Ballade and Map.
+  if (Draft && Draft.storageSection && $('#store-host')) $('#store-host').append(Draft.storageSection(() => { if (!$('#import').hidden) renderOnline(); }));
   function showImport() {
     renderOnline();
     $('#stories').hidden = true;

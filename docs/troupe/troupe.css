@@ -661,3 +661,7 @@ dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; 
 .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
 .forge .name-in { width: 100%; box-sizing: border-box; margin: 6px 0 4px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; }
 .forge .name-in:focus { outline: none; border-color: var(--accent); }
+.settings .set-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.settings .store-info { line-height: 1.45; }
+.settings .storage .small { font-size: 13px; color: var(--muted); }
+.settings .storage p { margin: 6px 0 0; }

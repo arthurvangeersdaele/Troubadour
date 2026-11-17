@@ -214,5 +214,48 @@
     await save(d.story, d.current, uid);
   }
 
-  window.TroubadourDraft = { save, load, clear, list, remove, addFile, addDiscovery, rename, newUid };
+  /* The Storage section of the settings (Story builder, Troubadour online player), as in Ballade and Map:
+     what this browser keeps, whether it is protected, and Erase everything. */
+  const size = (b) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : b < 1073741824 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1073741824).toFixed(2)} GB`);
+  async function paintStorage(info) {
+    let usage = null, persisted = false;
+    try {
+      if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted();
+      if (!persisted && navigator.storage && navigator.storage.persist) persisted = await navigator.storage.persist();
+      if (navigator.storage && navigator.storage.estimate) usage = (await navigator.storage.estimate()).usage;
+    } catch (e) { /* unknown */ }
+    let n = 0;
+    try { n = (await list()).length; } catch (e) { /* none */ }
+    info.textContent = `${n} ${n === 1 ? 'story' : 'stories'} kept in this browser.${usage != null ? ` In use: about ${size(usage)}.` : ''} ${persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
+  }
+  function storageSection(onWiped) {
+    const sec = document.createElement('section');
+    sec.className = 'storage';
+    sec.innerHTML = '<h3>Storage</h3><div class="store-info muted small">Checking…</div><div class="set-acts"><button class="btn danger" type="button">Erase everything</button></div><p class="muted small">Your stories live in this browser only. Keep the .troubadour files you export: they are your backup.</p>';
+    const info = sec.querySelector('.store-info');
+    const dlg = () => sec.closest('dialog');
+    sec.querySelector('.btn.danger').addEventListener('click', () => {
+      const v = document.createElement('div');
+      v.className = 'veil';
+      v.innerHTML = '<div class="forge"><h2>Erase everything?</h2><p>Every story and every sound kept in this browser leaves it, in the Story builder and the online player. Your settings stay.</p><div class="acts"><button class="btn" type="button" data-no>Cancel</button><button class="btn danger" type="button" data-ok>Erase</button></div></div>';
+      const end = () => v.remove();
+      v.querySelector('[data-no]').onclick = end;
+      v.addEventListener('click', (e) => { if (e.target === v) end(); });
+      v.querySelector('[data-ok]').onclick = async () => {
+        end();
+        try { await clear(); } catch (e) { /* nothing kept */ }
+        paintStorage(info);
+        if (onWiped) onWiped();
+      };
+      // Above the settings dialog (a modal dialog sits in the top layer): close it first.
+      if (dlg() && dlg().open) dlg().close();
+      document.body.append(v);
+    });
+    const watch = () => { const d = dlg(); if (d && !d.dataset.storeWatch) { d.dataset.storeWatch = '1'; d.addEventListener('toggle', () => { if (d.open) paintStorage(info); }); } };
+    setTimeout(watch, 0);
+    paintStorage(info);
+    return sec;
+  }
+
+  window.TroubadourDraft = { save, load, clear, list, remove, addFile, addDiscovery, rename, newUid, storageSection };
 })();
