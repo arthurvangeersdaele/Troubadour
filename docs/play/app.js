@@ -390,8 +390,10 @@
 
   /* ---------------- Routing ---------------- */
   function route() {
+    const k = location.hash.match(/^#\/s\/([\w-]+)(?:\/(\d+))?/);
+    if (k) { playKept(k[1], parseInt(k[2] || '1', 10) - 1); return; }
     const m = location.hash.match(/^#\/([\w-]+)(?:\/(\d+))?/);
-    if (m && m[1] === 'troubadour' && !CUSTOM) { closeStory(); showImport(); return; }
+    if (m && m[1] === 'troubadour' && (!CUSTOM || CUSTOM.meta.kept)) { closeStory(); showImport(); return; }
     const meta = m && (m[1] === 'troubadour' ? CUSTOM.meta : STORIES.find((s) => s.id === m[1]));
     if (!meta) { closeStory(); showStories(); return; }
     const idx = Math.min(Math.max(parseInt(m[2] || '1', 10) - 1, 0), meta.chapters.length - 1);
@@ -639,82 +641,152 @@
   }
 
   /* ---------------- Play your own .troubadour (computer) ---------------- */
-  /** The discovery stories on the online player's page, as on the other online players. */
-  function paintDiscovery() {
-    const box = $('#od-discovery'); if (!box || box.childElementCount) return;
-    STORIES.forEach((st) => {
-      const b = el('a', 'bm-tale'); b.href = `#/${st.id}`;
-      b.append(el('span', 'bm-tag', 'Discovery story'), el('b', '', st.title), el('span', '', st.blurb || st.description || `${st.chapters.length} chapters`));
-      box.append(b);
+  /* The Troubadour online player, as the Ballade and Map ones: a discovery story or a .troubadour joins the list of
+     this browser (the Story builder's, troupe/draft.js) without opening; Play opens it on the mixing table. */
+  const Draft = window.TroubadourDraft;
+  const BM = window.TroupeBuilderMenu;
+  function toast(msg) { const t = el('div', 'toast', msg); document.body.append(t); setTimeout(() => t.remove(), 3200); }
+  function busy(title, sub, frac) {
+    let v = $('#od-veil');
+    if (!v) { v = el('div', 'veil'); v.id = 'od-veil'; v.innerHTML = '<div class="forge loading"><div class="eq" aria-hidden="true"><i></i><i></i><i></i></div><h2></h2><p class="lbl"></p><div class="bar"><i></i></div></div>'; document.body.append(v); }
+    v.querySelector('h2').textContent = title;
+    v.querySelector('.lbl').textContent = sub || '';
+    v.querySelector('.bar i').style.width = `${Math.round((frac == null ? 0.5 : frac) * 100)}%`;
+  }
+  const idle = () => { $('#od-veil')?.remove(); };
+  const BARS = '<svg viewBox="200 232 624 540" class="bars"><rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/></svg>';
+  async function renderOnline() {
+    const host = $('#od-host');
+    if (!host || !BM || !Draft) return;
+    let recs = [];
+    try { recs = await Draft.list(); } catch (e) { recs = []; }
+    const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    const cover = () => { const t = document.createElement('template'); t.innerHTML = BARS; return t.content.firstChild; };
+    BM.render(host, {
+      hero: { title: 'Troubadour online player', lead: 'Open a .troubadour, made in the Story builder or the Troubadour app, and play it on this screen: the mixing table, chapter by chapter.',
+        mark: '<svg viewBox="0 0 24 24" class="portal"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path d="M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3"/><path d="M9 21h6M12 17v4"/></svg>' },
+      moreTitle: 'Discovery stories',
+      more: STORIES.filter((d) => !recs.some((r) => r.discovery === d.id))
+        .map((d) => ({ tag: 'Discovery story', title: d.title, sub: d.blurb || `${d.chapters.length} chapters`, onClick: () => addDiscovery(d) })),
+      drop: { text: 'Drop a .troubadour here', onFile: (f) => addFile(f, f.name), onBrowse: () => $('#troubadour-input').click() },
+      history: {
+        title: 'In this browser, for now', playOnly: true,
+        note: "Opened here, kept only in this browser's temporary storage: it may be cleared without asking. Your files stay safe where you keep them.",
+        empty: 'Nothing here yet. Open a .troubadour to play it.',
+        items: recs.map((r) => ({ title: r.title || 'Untitled story', meta: `${n(r.chapters, 'chapter')}, ${n(r.sounds, 'sound')}`,
+          updated: r.savedAt ? new Date(r.savedAt).toISOString() : null, cover: cover(),
+          onPlay: () => { audio(); location.hash = `#/s/${r.uid}/1`; }, onMore: () => storyMenu(r) })),
+      },
     });
   }
+  function storyMenu(r) {
+    BM.sheet(r.title || 'Untitled story', [
+      { icon: 'edit', label: 'Edit the story', sub: 'In the Story builder: chapters, sounds and their sources', fn: () => { location.href = `../troupe/builder.html#/edit/${r.uid}`; } },
+      { icon: 'pen', label: 'Rename the story', sub: 'Its title, on its cover and at the table', fn: () => renameStory(r) },
+      { icon: 'share', label: 'Export .troubadour', sub: 'Exports the next revision, signed with your troubadour name', fn: () => exportStory(r) },
+      { icon: 'trash', label: 'Remove from this browser', sub: 'Keep a .troubadour if you want it back', danger: true, fn: () => removeStory(r) },
+    ]);
+  }
+  function confirmBox(title, text, okLabel, danger, input) {
+    return new Promise((resolve) => {
+      const v = el('div', 'veil');
+      v.innerHTML = `<div class="forge"><h2></h2>${text ? '<p></p>' : ''}${input ? '<input class="name-in" type="text" maxlength="120">' : ''}<div class="acts"><button class="btn" type="button" data-no>Cancel</button><button class="btn ${danger ? 'danger' : 'primary'}" type="button" data-ok></button></div></div>`;
+      v.querySelector('h2').textContent = title;
+      if (text) v.querySelector('p').textContent = text;
+      v.querySelector('[data-ok]').textContent = okLabel;
+      const inp = v.querySelector('input');
+      if (inp) { inp.value = input; setTimeout(() => { inp.focus(); inp.select(); }, 30); }
+      const end = (val) => { v.remove(); resolve(val); };
+      v.querySelector('[data-no]').onclick = () => end(null);
+      v.querySelector('[data-ok]').onclick = () => end(inp ? inp.value.trim() : true);
+      if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') end(inp.value.trim()); });
+      v.addEventListener('click', (e) => { if (e.target === v) end(null); });
+      document.body.append(v);
+    });
+  }
+  async function renameStory(r) {
+    const t = await confirmBox('Rename the story', '', 'Save', false, r.title || '');
+    if (!t) return;
+    await Draft.rename(r.uid, t.slice(0, 120));
+    renderOnline();
+  }
+  async function removeStory(r) {
+    if (!await confirmBox(`Remove ${r.title || 'Untitled story'}?`, 'It leaves this browser, with its sounds. Keep a .troubadour if you want it back.', 'Remove', true)) return;
+    try { await Draft.remove(r.uid); } catch (e) { /* gone */ }
+    renderOnline();
+  }
+  async function exportStory(r) {
+    try {
+      busy('Exporting the story', r.title, 0);
+      const d = await Draft.load(r.uid);
+      const T = window.Troubadour;
+      const out = await T.pack(d.story, T.bardName(), (f) => busy('Exporting the story', r.title, f), { generator: 'Troubadour online player (web)' });
+      d.story.id = out.story.id; d.story.revision = out.story.revision; d.story.created = out.story.created;
+      await Draft.save(d.story, d.current, r.uid);
+      idle();
+      const a = el('a'); a.href = URL.createObjectURL(out.blob); a.download = out.fileName; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      toast(`${out.fileName} is in your downloads.`);
+    } catch (e) { idle(); toast(`Could not export: ${e.message || e}`); }
+  }
+  async function addFile(source, label) {
+    try {
+      busy('Opening the tale', label, 0);
+      const r = await Draft.addFile(source, (f, t) => busy('Opening the tale', t, f));
+      idle();
+      toast(`"${r.title}" is in your list.`);
+      renderOnline();
+    } catch (e) { idle(); toast(`This file could not be opened: ${e.message || e}`); }
+  }
+  async function addDiscovery(meta) {
+    try {
+      busy('Downloading the story', meta.title, 0);
+      const r = await Draft.addDiscovery(meta, LIBRARY, DISCOVERY, (f, t) => busy('Downloading the story', `${meta.title}, ${t}`, f));
+      idle();
+      toast(`"${r.title}" is in your list.`);
+      renderOnline();
+    } catch (e) { idle(); toast(`${meta.title} could not be downloaded (${e.message || e}). Check your connection and try again.`); }
+  }
+  /** Plays a story of the list on the mixing table. */
+  let keptLoading = null;
+  async function playKept(uid, ch) {
+    if (story && story.meta.kept === uid) { setChapter(Math.min(Math.max(ch, 0), story.chapters.length - 1)); return; }
+    if (keptLoading === uid) return;
+    keptLoading = uid;
+    try {
+      busy('Opening the tale', '', 0.5);
+      const d = await Draft.load(uid);
+      if (!d) throw new Error('it is not in this browser any more');
+      const conv = (s) => ({ name: s.name, blob: s.blob, size: s.blob.size, loop: s.loop, volume: s.volume });
+      CUSTOM = {
+        meta: { id: `s/${uid}`, kept: uid, key: uid, custom: true, title: d.story.title || 'Untitled tale', revision: d.story.revision,
+          chapters: d.story.chapters.map((c, i) => ({ id: `c${i + 1}`, title: c.title || `Chapter ${i + 1}` })) },
+        chapters: d.story.chapters.map((c) => ({ music: c.music.map(conv), ambience: c.ambience.map(conv), events: c.events.map(conv) })),
+        soundbox: d.story.soundbox.map(conv),
+      };
+      idle();
+      if (!CUSTOM.meta.chapters.length) throw new Error('this tale has no chapter');
+      openStory(CUSTOM.meta, Math.min(Math.max(ch, 0), CUSTOM.meta.chapters.length - 1));
+    } catch (e) {
+      idle(); toast(`Could not open it: ${e.message || e}`);
+      location.replace('#/troubadour');
+    } finally { keptLoading = null; }
+  }
   function showImport() {
-    paintDiscovery();
+    renderOnline();
     $('#stories').hidden = true;
     $('#table').hidden = true;
     $('#import').hidden = false;
-    document.title = 'Online player | Troubadour';
+    document.title = 'Troubadour online player | Troubadour';
     releaseWake();
   }
-  function dropState(title, sub, frac, busy, err) {
-    const d = $('#troubadour-drop');
-    d.classList.toggle('busy', !!busy);
-    d.classList.toggle('err', !!err);
-    $('#drop-title').textContent = title;
-    $('#drop-sub').textContent = sub;
-    const bar = d.querySelector('.bar');
-    bar.hidden = frac == null;
-    if (frac != null) bar.firstElementChild.style.width = `${Math.round(frac * 100)}%`;
-  }
-  async function openTroubadour(source, label) {
-    showImport();
-    const started = Date.now();
-    try {
-      let blob = source;
-      if (typeof source === 'string') {
-        dropState('Fetching the tale', label, 0, true);
-        blob = await download(source, undefined, (() => { let got = 0; return (n) => { got += n; dropState('Fetching the tale', `${label}, ${fmtSize(got)}`, null, true); }; })());
-      }
-      dropState('Opening the tale', label, 0, true);
-      const d = await window.Troubadour.unpack(blob, (done, total) => dropState('Opening the tale', `Reading sound ${done} of ${total}`, done / total, true));
-      const wait = 700 - (Date.now() - started);
-      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-      const conv = (s) => ({ name: s.name, blob: s.blob, size: s.blob.size, loop: s.loop, volume: s.volume });
-      const key = `t${Date.now()}`;
-      CUSTOM = {
-        meta: {
-          id: 'troubadour', key, custom: true, title: d.title || 'Untitled tale', bard: d.bard, revision: d.revision,
-          chapters: d.chapters.map((c, i) => ({ id: `c${i + 1}`, title: c.title || `Chapter ${i + 1}` })),
-        },
-        chapters: d.chapters.map((c) => ({ music: c.music.map(conv), ambience: c.ambience.map(conv), events: c.events.map(conv) })),
-        soundbox: d.soundbox.map(conv),
-      };
-      if (!CUSTOM.meta.chapters.length) throw new Error('This tale has no chapter.');
-      dropState('Import', 'Drop a .troubadour here, or browse', null, false);
-      audio();
-      // The page may already sit on #/troubadour/1 (reloaded on a tale): no hashchange then, so open it here.
-      if (location.hash === '#/troubadour/1') route(); else location.hash = '#/troubadour/1';
-    } catch (e) {
-      dropState('This file could not be opened', e.message || String(e), null, false, true);
-    }
-  }
-  function fmtSize(b) { return b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`; }
-  {
-    const drop = $('#troubadour-drop');
-    $('#troubadour-input').addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      e.target.value = '';
-      if (f) openTroubadour(f, f.name);
-    });
-    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
-    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-    drop.addEventListener('drop', (e) => {
-      e.preventDefault();
-      drop.classList.remove('over');
-      const f = e.dataTransfer.files[0];
-      if (f) openTroubadour(f, f.name);
-    });
-  }
+  /** A tale sent from the Recueil (?troubadour=) joins the list too. */
+  function openTroubadour(source, label) { showImport(); addFile(source, label); }
+  $('#troubadour-input').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (f) addFile(f, f.name);
+  });
 
   /* ---------------- Chapters & zones ---------------- */
   function renderRail() {

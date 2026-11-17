@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.13';
+  const VERSION = '261117.14';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -32,8 +32,8 @@
     window.TroupeBuilderMenu.render($('#bm-host'), {
       hero: { title: 'Ballade online player', lead: 'Open a .troubadour-ballade and play it on this screen: the golden wire runs, every sound falls at its moment.',
         mark: '<svg viewBox=\"0 0 24 24\" class=\"portal\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"13\" rx=\"2.5\"/><path d=\"M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3\"/><path d=\"M9 21h6M12 17v4\"/></svg>' },
-      more: DISCOVERIES.map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb,
-        onClick: async () => { const have = recs.find((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision); if (have) location.hash = `#/play/${have.uid}`; else addDiscovery(d); } })),
+      more: DISCOVERIES.filter((d) => !recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision))
+        .map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
       history: {
         title: 'In this browser, for now', playOnly: true,
@@ -283,6 +283,13 @@
       body.append(b);
     };
     if (pc() || ipad()) item(ICON.edit, 'Edit the Ballade', 'Steps, gates, timings and fades', () => { location.hash = `#/edit/${r.uid}`; });
+    item('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>', 'Rename the Ballade', 'Its title, on its cover and at the table', async () => {
+      const a = await ask('Rename the Ballade', '', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: 'Story title', value: r.story.title, max: 120 });
+      if (!a || !a.value || !a.text) return;
+      r.story.title = a.text;
+      await DB.put(r);
+      renderLibrary();
+    });
     item(ICON.share, 'Export .troubadour-ballade', 'Exports the next revision, signed with your troubadour name', () => exportFlow(r));
     item(ICON.share, 'Export .troubadour', 'The story alone, for Troubadour', () => exportTroubadour(r));
     item(ICON.trash, (document.documentElement.classList.contains('pc') ? 'Remove from this browser' : 'Remove from this device'), 'Keep a .troubadour-ballade if you want it back', async () => {
@@ -369,13 +376,10 @@
       const rec = await DB.put({ uid, story, flow: fl, files: keys, lengths });
       await DB.collect();
       idle();
-      if (pc() && isOnline()) { location.hash = `#/play/${rec.uid}`; return; }
-      if (!flow && pc()) { location.hash = `#/edit/${rec.uid}`; toast('A first Ballade is ready: shape it, then export the .troubadour-ballade.', 4200); }
-      else {
-        if (!flow) toast('A first Ballade was made from its sounds. Shape it in the Ballade builder, on a computer or an iPad.', 4600);
-        else toast(`${story.title} is ready to play.`);
-        if (location.hash === '#/' || !location.hash) renderLibrary(); else location.hash = '#/';
-      }
+      // Imported or downloaded, a Ballade joins the list without opening: Edit or Play it from there.
+      if (!flow) toast(pc() || ipad() ? `A first Ballade of ${story.title} was made from its sounds: Edit it to shape it.` : 'A first Ballade was made from its sounds. Shape it in the Ballade builder, on a computer or an iPad.', 4600);
+      else toast(`${story.title} is in your list.`);
+      if (location.hash === '#/' || !location.hash || isOnline()) renderLibrary(); else location.hash = '#/';
     } catch (e) {
       idle();
       toast(`${isFlow ? 'This .troubadour-ballade' : 'This file'} could not be opened: ${e.message || e}`, 5200);

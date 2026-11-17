@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.11';
+  const VERSION = '261117.12';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -221,8 +221,9 @@
     window.TroupeBuilderMenu.render($('#bm-host'), {
       hero: { title: 'Map online player', lead: 'Open a .troubadour-map and play it on this screen: move the party, and hear what it hears.',
         mark: '<svg viewBox=\"0 0 24 24\" class=\"portal\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"13\" rx=\"2.5\"/><path d=\"M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3\"/><path d=\"M9 21h6M12 17v4\"/></svg>' },
-      more: DISCOVERIES.map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb,
-        onClick: () => { const have = hasDiscovery(recs, d); if (have) playAt(have); else addDiscovery(d); } })),
+      moreTitle: 'Discovery worlds',
+      more: DISCOVERIES.filter((d) => !hasDiscovery(recs, d))
+        .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
       history: {
         title: 'In this browser, for now', playOnly: true,
@@ -241,6 +242,7 @@
       hero: { title: 'Map builder', lead: 'Command space: draw the places of your world, bind your sounds to them, and the party hears them as it walks.',
         mark: '<svg viewBox="182 230 660 660" class="ring"><g><circle cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/><circle cx="512" cy="560" r="290" stroke-width="26" stroke-dasharray="1 82" opacity=".7"/></g><circle class="core" cx="512" cy="560" r="80"/><circle class="eye" cx="512" cy="560" r="28"/></svg>' },
       create: { title: 'New world', sub: 'A blank map, then your own sounds', onClick: newWorld },
+      moreTitle: 'Discovery worlds',
       more: DISCOVERIES.filter((d) => !hasDiscovery(recs, d))
         .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
@@ -422,9 +424,10 @@
       const r = await DB.put({ uid, story, world: wd, files: keys });
       await DB.collect();
       idle();
-      if (world && pc() && isOnline()) { location.hash = `#/play/${r.uid}/0`; return; }
-      if (!world) { toast('Your world is ready: one map per chapter. Its sounds wait in Add sounds: draw the map, then lay them on it.', 5200); location.hash = `#/edit/${r.uid}/0`; }
-      else { toast(`${story.title} is ready.`); location.hash = `#/play/${r.uid}/0`; }
+      // Imported or downloaded, a world joins the list without opening: Edit or Play it from there.
+      if (!world) toast(`A world of ${story.title} is ready, one map per chapter: Edit it to draw the maps and lay its sounds.`, 5200);
+      else toast(`${story.title} is in your list.`);
+      if (location.hash === '#/' || !location.hash || isOnline()) renderLibrary(); else location.hash = '#/';
     } catch (e) {
       idle();
       toast(`${isMap ? 'This .troubadour-map' : 'This file'} could not be opened: ${e.message || e}`, 5200);

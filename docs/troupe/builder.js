@@ -641,10 +641,13 @@
 
   /* ---------- forge ---------- */
   let lastForged = null;
-  async function forge() {
+  /** Exports the open story, or a story of the list (given: { story, current, uid }) without opening it. */
+  async function forge(given) {
     stopPreview();
+    if (!given || !given.story) given = null;
+    const st = given ? given.story : state;
     const bard = bardName();
-    const errors = validate(state, bard);
+    const errors = validate(st, bard);
     if (errors.length) {
       const box = veil('<h2>Not quite ready</h2><ul class="errors"></ul><div class="acts"><button class="btn" type="button" data-close>Back to the story</button></div>');
       errors.forEach((m) => box.querySelector('.errors').append(el('li', '', m)));
@@ -654,12 +657,12 @@
     const box = veil('<h2>Exporting the story…</h2><p>Packing your chapters and sounds into one file. Everything happens on this computer.</p><div class="bar"><i></i></div>');
     $('#veil').dataset.busy = '1';
     try {
-      const out = await pack(state, bard, (f) => { box.querySelector('.bar i').style.width = `${Math.round(f * 100)}%`; });
+      const out = await pack(st, bard, (f) => { box.querySelector('.bar i').style.width = `${Math.round(f * 100)}%`; });
       lastForged = out;
       download(out);
-      // The story stays in the builder's history, at its new revision.
-      state.id = out.story.id; state.revision = out.story.revision; state.created = out.story.created;
-      pending = true; await flush();
+      // The story stays in the list of this browser, at its new revision.
+      st.id = out.story.id; st.revision = out.story.revision; st.created = out.story.created;
+      if (given) { await Draft.save(st, given.current, given.uid); if (!openUid) renderMenu(); } else { pending = true; await flush(); }
       showForged(out);
     } catch (err) {
       const b = veil('<h2>The export failed</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
@@ -684,21 +687,21 @@
     const missing = unsourced(out.story);
     const box = veil(`<h2>Your tale is ready</h2>
       <p><b class="fname"></b> (${formatSize(out.blob.size)}) is in your downloads, revision ${out.story.revision} signed by <b class="bname"></b>. Open it in the Troubadour app, or keep it for your next session.</p>
-      <p>The builder is now empty, ready for a new tale. To change this one again, open its .troubadour file with <b>Open a .troubadour</b>.</p>
+      <p>It stays in <b>Your stories, in this browser</b>, at this revision.</p>
       ${heavy ? '<p class="errors" style="list-style:none;padding:0">It weighs more than 100 MB, the limit for the Recueil on GitHub. Lighter MP3s (128 kbps) will make it fit.</p>'
         : missing.length ? '<p class="errors nosrc" style="list-style:none;padding:0"></p>'
         : '<p>Want other troubadours to play it? Lay it in the Recueil: GitHub opens a pull request for you, and once accepted your tale appears in the book.</p>'}
       <div class="acts">
         ${heavy || missing.length ? '' : `<a class="btn primary" href="${UPLOAD_URL}" target="_blank" rel="noopener">Lay it in the Recueil</a>`}
         <button class="btn" type="button" data-again>Download again</button>
-        <button class="btn" type="button" data-close>Build a new tale</button>
+        <button class="btn" type="button" data-close>Close</button>
       </div>`);
     box.querySelector('.fname').textContent = out.fileName;
     const ns = box.querySelector('.nosrc');
     if (ns) ns.textContent = `The Recueil only takes tales whose every sound names its source. ${missing.length === 1 ? 'One sound has' : `${missing.length} sounds have`} none yet: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ', and more' : ''}. Open the .troubadour again and tap the i on each card.`;
     box.querySelector('.bname').textContent = out.story.bard;
     box.querySelector('[data-again]').onclick = () => download(lastForged);
-    box.querySelector('[data-close]').onclick = () => { closeVeil(); $('#f-title').focus(); };
+    box.querySelector('[data-close]').onclick = () => { closeVeil(); };
   }
 
   /* ---------- open an existing .troubadour ---------- */
@@ -765,9 +768,44 @@
   $('#open-input').addEventListener('change', (e) => {
     const f = e.target.files[0];
     e.target.value = '';
-    if (f) openFile(f, f.name);
+    if (f) addFile(f, f.name);
   });
-  /** A .troubadour (or a Recueil tale) opens as a new story of the history. */
+  /** A .troubadour dropped or browsed joins the list of this browser, without opening: as in the Ballade and Map builders. */
+  async function addFile(source, label) {
+    const ui = loadingVeil(label);
+    try {
+      const r = await Draft.addFile(source, (f, t) => ui.progress(f, t));
+      closeVeil();
+      toast(`"${r.title}" is in your stories.`);
+      if (!openUid) renderMenu(); else location.hash = '#/';
+    } catch (err) {
+      const b = veil('<h2>Could not open this file</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
+      b.querySelector('.err').textContent = err.message || String(err);
+      b.querySelector('[data-close]').onclick = closeVeil;
+    }
+  }
+  /** A discovery story joins the list of this browser, its sounds downloaded, without opening. */
+  let DISC = null;
+  function loadDiscoveries() {
+    if (!DISC) DISC = fetch('../discovery/index.json', { cache: 'no-cache' }).then((r) => r.json()).catch(() => { DISC = null; return { stories: [], library: {} }; });
+    return DISC;
+  }
+  async function addDiscovery(meta) {
+    const d = await loadDiscoveries();
+    const ui = loadingVeil(meta.title);
+    $('#veil h2').textContent = 'Downloading the story';
+    try {
+      const r = await Draft.addDiscovery(meta, d.library, '../discovery/', (f, t) => ui.progress(f == null ? 0.5 : f, t));
+      closeVeil();
+      toast(`"${r.title}" is in your stories.`);
+      renderMenu();
+    } catch (err) {
+      const b = veil('<h2>Could not download this story</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
+      b.querySelector('.err').textContent = `${err.message || err}. Check your connection and try again.`;
+      b.querySelector('[data-close]').onclick = closeVeil;
+    }
+  }
+  /** A tale opened from the Recueil (?open=) opens as a new story of the list. */
   async function openFile(source, label) {
     await flush();
     await clearEditor();
@@ -852,6 +890,8 @@
   async function renderMenu() {
     let recs = [];
     try { recs = Draft ? await Draft.list() : []; } catch (e) { recs = []; }
+    const disc = await loadDiscoveries();
+    if (openUid) return;
     const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
     const cover = () => { const c = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); c.setAttribute('viewBox', '200 232 624 540');
       c.innerHTML = '<rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/>'; c.classList.add('bars'); return c; };
@@ -859,7 +899,10 @@
       hero: { title: 'Story builder', lead: 'Summon your story and its chapters, drop your sounds or borrow them from the Recueil, then export a .troubadour for the table.',
         mark: '<svg viewBox="200 232 624 540" class="bars"><rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/></svg>' },
       create: { title: 'New story', sub: 'A blank story, then your chapters and sounds', onClick: newStory },
-      drop: { text: 'Drop a .troubadour here', onFile: (f) => openFile(f, f.name), onBrowse: () => $('#open-input').click() },
+      moreTitle: 'Discovery stories',
+      more: (disc.stories || []).filter((d) => !recs.some((r) => r.discovery === d.id))
+        .map((d) => ({ tag: 'Discovery story', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
+      drop: { text: 'Drop a .troubadour here', onFile: (f) => addFile(f, f.name), onBrowse: () => $('#open-input').click() },
       history: {
         title: 'Your stories, in this browser',
         note: 'These stories live in this browser\'s storage, which it may clear without asking (private windows, cleaning up space, another browser). Export each story as a .troubadour file to keep it for good.',
@@ -870,38 +913,41 @@
           updated: r.savedAt ? new Date(r.savedAt).toISOString() : null,
           cover: cover(),
           onEdit: () => { location.hash = `#/edit/${r.uid}`; },
-          onExport: async () => { location.hash = `#/edit/${r.uid}`; await route(); $('#forge-btn').click(); },
+          onPlay: () => { location.href = `../play/#/s/${r.uid}/1`; },
+          onExport: () => exportStory(r),
           exportLabel: 'Export',
-          more: [
-            { label: 'Edit', fn: () => { location.hash = `#/edit/${r.uid}`; } },
-            { label: 'Export the .troubadour', fn: async () => { location.hash = `#/edit/${r.uid}`; await route(); $('#forge-btn').click(); } },
-            { label: 'Rename', fn: () => renameStory(r) },
-            { label: 'Duplicate', fn: () => duplicateStory(r) },
-            '-',
-            { label: 'Remove from this browser', danger: true, fn: async () => {
-              if (!confirm(`Remove "${r.title || 'Untitled story'}" from this browser? Export it first to keep it.`)) return;
-              try { await Draft.remove(r.uid); } catch (e) { /* gone */ }
-              renderMenu();
-            } },
-          ],
+          onMore: () => storyMenu(r),
         })),
       },
     });
   }
-  async function renameStory(r) {
-    const name = prompt('A new title for this story', r.title || '');
-    if (name == null || !name.trim()) return;
-    const d = await Draft.load(r.uid); if (!d) return;
-    d.story.title = name.trim().slice(0, 120);
-    await Draft.save(d.story, d.current, r.uid);
-    renderMenu();
+  /** The contextual sheet of a story: the same as the Ballade and Map ones. */
+  function storyMenu(r) {
+    window.TroupeBuilderMenu.sheet(r.title || 'Untitled story', [
+      { icon: 'edit', label: 'Edit the story', sub: 'Chapters, sounds and their sources', fn: () => { location.hash = `#/edit/${r.uid}`; } },
+      { icon: 'pen', label: 'Rename the story', sub: 'Its title, on its cover and at the table', fn: () => renameStory(r) },
+      { icon: 'share', label: 'Export .troubadour', sub: 'Exports the next revision, signed with your troubadour name', fn: () => exportStory(r) },
+      { icon: 'trash', label: 'Remove from this browser', sub: 'Keep a .troubadour if you want it back', danger: true, fn: () => removeStory(r) },
+    ]);
   }
-  async function duplicateStory(r) {
-    const d = await Draft.load(r.uid); if (!d) return;
-    d.story.title = `${d.story.title || 'Untitled story'} (copy)`;
-    d.story.id = null; d.story.revision = 0; d.story.created = null;
-    await Draft.save(d.story, d.current, newUid());
-    renderMenu();
+  async function exportStory(r) {
+    const d = await Draft.load(r.uid);
+    if (d) forge({ story: d.story, current: d.current, uid: r.uid });
+  }
+  function removeStory(r) {
+    const box = veil('<h2></h2><p>It leaves this browser, with its sounds. Export it first to keep it.</p><div class="acts"><button class="btn" type="button" data-close>Cancel</button><button class="btn danger" type="button" data-ok>Remove</button></div>');
+    box.querySelector('h2').textContent = `Remove ${r.title || 'Untitled story'}?`;
+    box.querySelector('[data-close]').onclick = closeVeil;
+    box.querySelector('[data-ok]').onclick = async () => { closeVeil(); try { await Draft.remove(r.uid); } catch (e) { /* gone */ } renderMenu(); };
+  }
+  function renameStory(r) {
+    const box = veil('<h2>Rename the story</h2><input class="name-in" type="text" maxlength="120" placeholder="Story title"><div class="acts"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="button" data-ok>Save</button></div>');
+    const inp = box.querySelector('input'); inp.value = r.title || '';
+    const ok = async () => { const t = inp.value.trim(); if (!t) return; closeVeil(); await Draft.rename(r.uid, t.slice(0, 120)); renderMenu(); };
+    box.querySelector('[data-close]').onclick = closeVeil;
+    box.querySelector('[data-ok]').onclick = ok;
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
   }
   function showMenu(on) {
     document.documentElement.classList.toggle('bld-menu', on);

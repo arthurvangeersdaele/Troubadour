@@ -139,7 +139,7 @@
     return recs.map((r, i) => {
       let n = (r.soundbox || []).length;
       (r.chapters || []).forEach((c) => window.Troubadour.ZONES.forEach((z) => { n += (c[z] || []).length; }));
-      return { uid: ks[i], title: r.title || '', chapters: (r.chapters || []).length, sounds: n, savedAt: r.savedAt || 0, revision: r.revision || 0 };
+      return { uid: ks[i], discovery: (r.extra || {}).discovery || null, title: r.title || '', chapters: (r.chapters || []).length, sounds: n, savedAt: r.savedAt || 0, revision: r.revision || 0 };
     }).sort((a, b) => b.savedAt - a.savedAt);
   }
 
@@ -156,5 +156,63 @@
     await done(t2);
   }
 
-  window.TroubadourDraft = { save, load, clear, list, remove };
+  const newUid = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+  /** A .troubadour (a File, a Blob or a URL) joins the list of this browser, without opening. onProgress(fraction, text). */
+  async function addFile(source, onProgress) {
+    let blob = source;
+    if (typeof source === 'string') {
+      const res = await fetch(source);
+      if (!res.ok) throw new Error(`the server answered ${res.status}`);
+      blob = await res.blob();
+    }
+    const d = await window.Troubadour.unpack(blob, (k, total) => onProgress && onProgress(k / total, `Reading sound ${k} of ${total}`));
+    if (!d.chapters.length) throw new Error('This tale has no chapter.');
+    delete d.bard;
+    const uid = newUid();
+    await save(d, 0, uid);
+    return { uid, title: d.title || 'Untitled story' };
+  }
+
+  /** A discovery story (docs/discovery/index.json: its chapters, the library of its sounds) joins the list, sounds downloaded. */
+  async function addDiscovery(meta, library, base, onProgress) {
+    const Z = window.Troubadour.ZONES;
+    const wanted = [];
+    const chapters = meta.chapters.map((c) => {
+      const z = (library.chapters || {})[`${meta.id}/${c.id}`] || {};
+      const ch = { title: c.title, extra: {} };
+      Z.forEach((k) => { ch[k] = (z[k] || []).map((x) => { const s = { name: x.name, fileName: x.file.split('/').pop(), loop: x.loop || (k === 'events' ? 'once' : 'infinite'), volume: typeof x.volume === 'number' ? x.volume : 0.75, extra: {}, url: base + x.file, size: x.size || 0 }; wanted.push(s); return s; }); });
+      return ch;
+    });
+    const mk = (x, loop) => { const s = { name: x.name, fileName: x.file.split('/').pop(), loop: x.loop || loop, volume: typeof x.volume === 'number' ? x.volume : 0.75, extra: {}, url: base + x.file, size: x.size || 0 }; wanted.push(s); return s; };
+    const soundbox = (library.soundbox || []).filter((x) => x && x.file).map((x) => mk(x, 'once'));
+    const total = wanted.reduce((a, s) => a + s.size, 0);
+    let got = 0;
+    const files = new Map();
+    for (const s of wanted) {
+      if (!files.has(s.url)) {
+        const res = await fetch(s.url);
+        if (!res.ok) throw new Error(`a sound could not be downloaded (${res.status})`);
+        const b = await res.blob();
+        files.set(s.url, new File([b], s.fileName, { type: b.type || 'audio/mpeg' }));
+        got += s.size || b.size;
+        if (onProgress) onProgress(total ? Math.min(1, got / total) : null, `${files.size} of ${wanted.length} sounds`);
+      }
+      s.blob = files.get(s.url);
+      delete s.url; delete s.size;
+    }
+    const uid = newUid();
+    await save({ id: null, revision: 0, created: null, title: meta.title, description: meta.blurb || '', extra: { discovery: meta.id }, chapters, soundbox }, 0, uid);
+    return { uid, title: meta.title };
+  }
+
+  /** A new title for a kept story. */
+  async function rename(uid, title) {
+    const d = await load(uid);
+    if (!d) return;
+    d.story.title = title;
+    await save(d.story, d.current, uid);
+  }
+
+  window.TroubadourDraft = { save, load, clear, list, remove, addFile, addDiscovery, rename, newUid };
 })();

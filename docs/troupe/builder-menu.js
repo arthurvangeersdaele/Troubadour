@@ -167,5 +167,40 @@
     host.append(root);
   }
 
-  g.TroupeBuilderMenu = { render, when, openPop, icons: I };
+  /* The contextual sheet of a story, the same as the Ballade and Map ones: a dialog with one row per action.
+     items: [{ icon, label, sub, danger, fn }]. */
+  const SI = {
+    edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
+    share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 16),
+    trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
+    play: svg('<path d="M7 4.5v15l13-7.5z"/>', 16),
+    pen: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>', 16),
+    close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 18),
+  };
+  function sheet(title, items) {
+    let d = document.getElementById('bm-sheet');
+    if (!d) {
+      d = el('dialog', 'settings sheet bm-sheet'); d.id = 'bm-sheet';
+      const h = el('div', 'set-head'); const t = el('h2'); t.id = 'bm-sheet-title';
+      const x = el('button', 'ico small'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.innerHTML = SI.close;
+      x.addEventListener('click', () => d.close());
+      h.append(t, x);
+      d.append(h, el('div', 'bm-menu'));
+      d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+      document.body.append(d);
+    }
+    d.querySelector('h2').textContent = title;
+    const body = d.querySelector('.bm-menu'); body.textContent = '';
+    items.forEach((it) => {
+      const b = el('button', `bm-menu-item${it.danger ? ' danger' : ''}`); b.type = 'button';
+      b.innerHTML = SI[it.icon] || it.icon || '';
+      const t = el('span'); t.append(el('b', '', it.label)); if (it.sub) t.append(el('small', '', it.sub));
+      b.append(t);
+      b.addEventListener('click', () => { d.close(); it.fn(); });
+      body.append(b);
+    });
+    if (!d.open) d.showModal();
+  }
+
+  g.TroupeBuilderMenu = { render, when, openPop, sheet, icons: I };
 })(window);

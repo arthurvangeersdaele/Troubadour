@@ -649,3 +649,15 @@ html:not(.pc) .tapp .app-btns{display:none}
 .od-host .bm-drop.err #drop-title{color:var(--danger,#E5534B)}
 .od-host a.bm-tale{text-decoration:none}
 .bm-mark .bars{width:42px;height:42px}
+
+/* The contextual sheet of a story (Story builder, Troubadour online player): the same as the Ballade and Map ones. */
+dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100% - 20px); width: min(520px, calc(100vw - 20px)); overflow-x: hidden; overflow-y: auto; }
+.bm-menu { display: grid; gap: 6px; padding: 4px 0 6px; }
+.bm-menu-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; }
+.bm-menu-item:hover { border-color: var(--muted); }
+.bm-menu-item b { display: block; font-weight: 600; }
+.bm-menu-item small { display: block; color: var(--muted); font-size: 13px; }
+.bm-menu-item.danger { color: var(--danger); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
+.forge .name-in { width: 100%; box-sizing: border-box; margin: 6px 0 4px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; }
+.forge .name-in:focus { outline: none; border-color: var(--accent); }
