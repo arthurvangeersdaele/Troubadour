@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.1';
+  const VERSION = '261117.2';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -17,9 +17,40 @@
   let screen = '';
 
   /* ================= Library ================= */
+  /** On a computer, the library is the Ballade builder's main menu, after the Story builder. */
+  function renderMenu(recs) {
+    const steps = (r) => r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
+    const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      create: { title: 'New Ballade', sub: 'From a .troubadour story: its sounds become the first steps', onClick: pickFile },
+      more: DISCOVERIES.filter((d) => !recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision))
+        .map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
+      drop: { text: 'Drop a .troubadour or a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'Your Ballades',
+        empty: 'Nothing here yet. Your Ballades are kept in this browser as you shape them.',
+        items: recs.map((r) => {
+          const cover = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          cover.setAttribute('viewBox', '290 120 444 770');
+          cover.innerHTML = '<path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/>';
+          return {
+            title: r.story.title || 'Story',
+            meta: `${n(r.story.chapters.length, 'chapter')}, ${n(steps(r), 'step')}${r.flow.revision ? `, revision ${r.flow.revision}` : ''}`,
+            updated: r.updated,
+            cover,
+            exportLabel: 'Export',
+            onEdit: () => { location.hash = `#/edit/${r.uid}`; }, onPlay: () => { location.hash = `#/play/${r.uid}`; },
+            onExport: () => exportFlow(r), onMore: () => storyMenu(r),
+          };
+        }),
+      },
+    });
+  }
+
   async function renderLibrary() {
     const list = $('#flow-list');
     const recs = await DB.list();
+    if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
     list.textContent = '';
     if (!recs.length) {
       const e = el('div', 'fl-welcome');
@@ -350,6 +381,7 @@
     $('[data-action="close-sheet"]').addEventListener('click', () => $('#sheet').close());
     document.querySelectorAll('.i-import').forEach((s) => { s.outerHTML = ICON.import; });
     $('[data-action="import"]').addEventListener('click', pickFile);
+    document.querySelectorAll('[data-bm="new"], [data-bm="open"]').forEach((b) => b.addEventListener('click', pickFile));
     $('#pick-file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); });
     // A file dropped anywhere on the library (computer).
     $('#library').addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });

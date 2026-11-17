@@ -489,3 +489,59 @@ html.pc .tapp{padding:16px}
 .abtn:not(.build):hover{border-color:var(--accent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 10%,transparent),0 0 12px color-mix(in srgb,var(--accent) 22%,transparent)}
 .abtn.build:hover{border-color:var(--muted);background:linear-gradient(180deg,color-mix(in srgb,var(--text) 9%,var(--bar)),var(--bar))}
 .abtn:active{transform:translateY(1px)}
+
+/* Builders' main menu on a computer (Ballade builder, Map builder; troupe/builder-menu.js), after the Story builder.
+   Off everywhere but on a computer: the apps keep their own library on phones and tablets. */
+.bm-bar,.bm-host{display:none}
+html.pc .bm-bar{display:flex}
+html.pc .bm-host{display:block;flex:1;overflow:auto}
+html.pc #library>.mp-sbar,html.pc #library>.lib-wrap,html.pc #library>.fl-sbar,html.pc #library>.fl-lib{display:none!important}
+html.pc #library{display:flex;flex-direction:column;height:100%}
+html.pc #library[hidden]{display:none}
+.bm{max-width:1120px;margin:0 auto;padding:28px 28px 60px;display:flex;flex-direction:column;gap:16px}
+.bm-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:16px}
+.bm-create,.bm-drop{display:flex;align-items:center;gap:16px;min-height:120px;padding:20px 22px;border-radius:16px;text-align:left;cursor:pointer;color:var(--text);font:inherit}
+.bm-create{border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 14%,var(--card)),color-mix(in srgb,var(--accent) 6%,var(--card)));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 8%,transparent)}
+.bm-create:hover{border-color:var(--accent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 10%,transparent),0 0 16px color-mix(in srgb,var(--accent) 20%,transparent)}
+.bm-plus{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;flex:none;background:var(--accent);color:var(--on-z,#1A1206)}
+.bm-drop{border:1.5px dashed var(--line);background:color-mix(in srgb,var(--card) 60%,transparent);transition:border-color .15s,background .15s}
+.bm-drop:hover,.bm-drop:focus-visible{border-color:var(--muted);outline:none}
+.bm-drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+.bm-drop-i{color:var(--muted);flex:none}
+.bm-drop.over .bm-drop-i{color:var(--accent)}
+.bm-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.bm-txt b{font-family:'Cormorant SC',serif;font-weight:700;font-size:26px;line-height:1;letter-spacing:.4px}
+.bm-txt>span{color:var(--muted);font-size:15px;line-height:1.35}
+.bm-txt u{color:var(--accent);text-decoration:none;font-weight:600}
+.bm-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bm-tale{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);text-align:left;cursor:pointer;font:inherit}
+.bm-tale:hover{border-color:var(--muted)}
+.bm-tale b{font-family:'Cormorant SC',serif;font-size:20px;line-height:1.1}
+.bm-tale>span:not(.bm-tag){color:var(--muted);font-size:13px;line-height:1.35}
+.bm-tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--accent)}
+.bm-h{margin:16px 0 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.bm-list{display:flex;flex-direction:column;gap:8px}
+.bm-empty{margin:0;padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:14px}
+.bm-row{display:flex;align-items:center;gap:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;transition:border-color .15s}
+.bm-row:hover{border-color:var(--muted)}
+.bm-cover{width:96px;height:60px;flex:none;border-radius:8px;overflow:hidden;background:#15151B;display:grid;place-items:center}
+.bm-cover canvas{width:100%;height:100%;display:block;object-fit:cover}
+.bm-cover svg{height:46px;width:auto}
+.bm-cover svg path{fill:none;stroke:#F0C24F;stroke-width:34;stroke-linecap:round}
+.bm-cover svg circle{fill:#FFE08A}
+.bm-rtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bm-rtxt b{font-family:'Cormorant SC',serif;font-size:22px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm-meta{color:var(--muted);font-size:14px}
+.bm-when{color:var(--muted);font-size:13px;opacity:.8}
+.bm-acts{display:flex;gap:8px;flex:none}
+.bm-btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);color:var(--text);font:inherit;font-weight:600;font-size:14px;cursor:pointer;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--text) 6%,var(--bar)),var(--bar));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 8%,transparent)}
+.bm-btn:hover{border-color:var(--muted)}
+.bm-btn svg{color:var(--muted)}
+.bm-btn.main{border-color:color-mix(in srgb,var(--accent) 40%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 16%,var(--bar)),color-mix(in srgb,var(--accent) 7%,var(--bar)))}
+.bm-btn.main svg{color:var(--accent)}
+.bm-btn.main:hover{border-color:var(--accent)}
+.bm-btn.ico-only{width:38px;padding:0;justify-content:center}
+.bm-btn:focus-visible,.bm-create:focus-visible,.bm-tale:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.bm-bar .btn{height:38px}
+@media (max-width:1100px){.bm-top{grid-template-columns:1fr}.bm-btn span{display:none}.bm-btn{width:38px;padding:0;justify-content:center}}

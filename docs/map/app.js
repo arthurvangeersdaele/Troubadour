@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.01';
+  const VERSION = '261117.02';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -142,9 +142,29 @@
     return row;
   }
 
+  /** On a computer, the library is the Map builder's main menu, after the Story builder. */
+  function renderMenu(recs) {
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      create: { title: 'New world', sub: 'A blank map, then your own sounds', onClick: newWorld },
+      drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'Your worlds',
+        empty: 'Nothing here yet. Your worlds are kept in this browser as you draw them.',
+        items: recs.map((r) => ({
+          title: r.story.title || 'World',
+          meta: `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}${r.world.revision ? `, revision ${r.world.revision}` : ''}`,
+          updated: r.updated,
+          cover: mapCover(r, false, null),
+          onEdit: () => editAt(r), onPlay: () => playAt(r), onExport: () => exportWorld(r), onMore: () => worldMenu(r),
+        })),
+      },
+    });
+  }
+
   async function renderLibrary() {
     const grid = $('#world-list');
     const recs = await DB.list();
+    if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
     grid.textContent = '';
     if (!recs.length) {
       const hello = el('div', 'hello');
@@ -3120,6 +3140,8 @@
     document.querySelectorAll('.i-import').forEach((s) => { s.outerHTML = ICON.import; });
     $('[data-action="add-world"]').innerHTML = ICON.plus;
     $('[data-action="add-world"]').addEventListener('click', openAddWorld);
+    document.querySelectorAll('[data-bm="new"]').forEach((b) => b.addEventListener('click', newWorld));
+    document.querySelectorAll('[data-bm="open"]').forEach((b) => b.addEventListener('click', pickFile));
     $('#pick-file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); });
     $('#library').addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });
     $('#library').addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); importFile(f); } });
