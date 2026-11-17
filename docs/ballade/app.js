@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.8';
+  const VERSION = '261117.9';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -17,6 +17,38 @@
   let screen = '';
 
   /* ================= Library ================= */
+  /** The Ballade online player (#/online, on a computer): open a .troubadour-ballade and play it here, as Troubadour's online player does. */
+  const isOnline = () => location.hash === '#/online';
+  let fromOnline = false;
+  function barFor(online) {
+    const here = document.querySelector('.bm-bar .here');
+    if (here) here.textContent = online ? 'Ballade online player' : 'Ballade builder';
+    document.querySelectorAll('[data-bm="new"]').forEach((b) => { b.hidden = online; });
+    document.title = online ? 'Ballade online player | Troubadour' : 'Troubadour Ballade';
+  }
+  function renderOnline(recs) {
+    const steps = (r) => r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
+    const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Ballade online player', lead: 'Open a .troubadour-ballade and play it on this screen: the golden wire runs, every sound falls at its moment.',
+        mark: '<svg viewBox=\"0 0 24 24\" class=\"portal\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"13\" rx=\"2.5\"/><path d=\"M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3\"/><path d=\"M9 21h6M12 17v4\"/></svg>' },
+      more: DISCOVERIES.map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb,
+        onClick: async () => { const have = recs.find((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision); if (have) location.hash = `#/play/${have.uid}`; else addDiscovery(d); } })),
+      drop: { text: 'Drop a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'On this computer', playOnly: true,
+        empty: 'Nothing here yet. Open a .troubadour-ballade to play it.',
+        items: recs.map((r) => {
+          const cover = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          cover.setAttribute('viewBox', '290 120 444 770');
+          cover.innerHTML = '<path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/>';
+          return { title: r.story.title || 'Story', meta: `${n(r.story.chapters.length, 'chapter')}, ${n(steps(r), 'step')}`, updated: r.updated, cover,
+            onPlay: () => { location.hash = `#/play/${r.uid}`; }, onMore: () => storyMenu(r) };
+        }),
+      },
+    });
+  }
+
   /** On a computer, the library is the Ballade builder's main menu, after the Story builder. */
   function renderMenu(recs) {
     const steps = (r) => r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
@@ -53,7 +85,7 @@
     await loadDiscoveries();
     const list = $('#flow-list');
     const recs = await DB.list();
-    if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
+    if (pc() && window.TroupeBuilderMenu) { barFor(isOnline()); if (isOnline()) renderOnline(recs); else renderMenu(recs); return; }
     list.textContent = '';
     // As in Troubadour and Map: a welcome and the ways in when the device holds nothing; else the story last
     // opened as a big card, the others in rows under it, and a last row to add one.
@@ -335,6 +367,7 @@
       const rec = await DB.put({ uid, story, flow: fl, files: keys, lengths });
       await DB.collect();
       idle();
+      if (pc() && isOnline()) { location.hash = `#/play/${rec.uid}`; return; }
       if (!flow && pc()) { location.hash = `#/edit/${rec.uid}`; toast('A first Ballade is ready: shape it, then export the .troubadour-ballade.', 4200); }
       else {
         if (!flow) toast('A first Ballade was made from its sounds. Shape it in the Ballade builder, on a computer or an iPad.', 4600);
@@ -438,6 +471,9 @@
     const m = /^#\/(play|edit)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
     if (screen === 'player' && !(m && m[1] === 'play')) window.FlowPlayer.close();
     if (screen === 'editor' && !(m && m[1] === 'edit')) window.FlowEditor.close();
+    if (isOnline()) fromOnline = true;
+    else if (!m && fromOnline && screen === 'player') { location.replace('#/online'); return; }
+    else if (!m) fromOnline = false;
     if (!m) { show('library'); await renderLibrary(); return; }
     const rec = await DB.get(m[2]);
     if (!rec) { location.hash = '#/'; return; }

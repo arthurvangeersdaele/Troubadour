@@ -8,7 +8,8 @@
   var RELEASE = 'https://github.com/arthurvangeersdaele/Troubadour/releases/tag/dev-latest', apk = RELEASE;
   var IOS = ROOT + 'ios/', h = document.documentElement;
   var links = [].slice.call(document.querySelectorAll('a.install'));
-  if (!links.length) return;
+  var doors = [].slice.call(document.querySelectorAll('a.qr-door'));
+  if (!links.length && !doors.length) return;
   function setAll(url) { links.forEach(function (a) { a.href = url; }); }
   if (h.classList.contains('android')) setAll(RELEASE);
   else if (h.classList.contains('touch')) setAll(IOS);
@@ -20,7 +21,7 @@
       var a = j && (j.assets || []).filter(function (x) { return /\.apk$/i.test(x.name); })[0];
       if (!a) return;
       apk = a.browser_download_url;
-      if (h.classList.contains('android')) setAll(apk);
+      if (h.classList.contains('android')) { setAll(apk); doors.forEach(function (d) { if (d.getAttribute('data-android') === 'apk') d.href = apk; }); }
     }).catch(function () {});
 
   var css = '.in-veil{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(5,5,8,.72);backdrop-filter:blur(3px);padding:16px}'
@@ -34,7 +35,8 @@
     + '.in-pair b{display:block;font-size:17px;margin-bottom:4px}'
     + '.in-pair span{display:block;color:var(--muted);font-size:14px;line-height:1.4}'
     + '.in-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;display:grid;place-items:center}'
-    + '.in-close:hover{border-color:var(--muted)}';
+    + '.in-close:hover{border-color:var(--muted)}'
+    + '.in-code.soon{background:var(--card);border:1px dashed var(--line);color:var(--muted);font-weight:600}';
   var veil = null, last = null;
   function build() {
     var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
@@ -53,6 +55,10 @@
   function draw(el, url) { var q = qrcode(0, 'M'); q.addData(url); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
   function show(a) {
     if (!veil) build();
+    veil.querySelector('#in-title').textContent = 'Install Troubadour';
+    veil.querySelector('[data-for="android"]').classList.remove('soon');
+    veil.querySelector('[data-for="android"]').nextElementSibling.nextElementSibling.textContent = 'The APK downloads. Open it and allow installs from your browser when asked.';
+    veil.querySelector('[data-for="ios"]').nextElementSibling.nextElementSibling.textContent = 'Open the page, then add Troubadour to your Home Screen.';
     draw(veil.querySelector('[data-for="android"]'), apk);
     draw(veil.querySelector('[data-for="ios"]'), IOS);
     last = a; veil.hidden = false; veil.querySelector('.in-close').focus();
@@ -65,6 +71,31 @@
     s.onload = done;
     document.head.appendChild(s);
   }
+  /* Play on my phone (La Troupe): a.qr-door with data-name, data-ios (path from the site's root) and data-android
+     ('apk' for the latest APK, or nothing when the app is not on Android yet). On a computer: the two QR codes.
+     On a phone or a tablet: straight to the right place, or a short note when it is not there yet. */
+  function showDoor(a) {
+    if (!veil) build();
+    var name = a.getAttribute('data-name') || 'Troubadour', ios = ROOT + a.getAttribute('data-ios'), andr = a.getAttribute('data-android');
+    veil.querySelector('#in-title').textContent = 'Play ' + name + ' on your phone';
+    var A = veil.querySelector('[data-for="android"]'), I = veil.querySelector('[data-for="ios"]');
+    draw(I, ios);
+    I.nextElementSibling.nextElementSibling.textContent = 'Open the page in Safari, then add ' + name + ' to your Home Screen.';
+    if (andr === 'apk') { A.classList.remove('soon'); draw(A, apk); A.nextElementSibling.nextElementSibling.textContent = 'The APK downloads. Open it and allow installs from your browser when asked.'; }
+    else { A.classList.add('soon'); A.innerHTML = '<span>Coming soon</span>'; A.nextElementSibling.nextElementSibling.textContent = name + ' is on its way to Android.'; }
+    last = a; veil.hidden = false; veil.querySelector('.in-close').focus();
+  }
+  doors.forEach(function (a) {
+    var andr = a.getAttribute('data-android');
+    if (h.classList.contains('android')) {
+      if (andr === 'apk') a.href = RELEASE; else { a.removeAttribute('href'); a.classList.add('off'); a.setAttribute('aria-disabled', 'true'); var t = a.querySelector('.qd-t'); if (t) t.textContent = 'Coming soon on Android'; }
+    } else if (h.classList.contains('touch')) a.href = ROOT + a.getAttribute('data-ios');
+    a.addEventListener('click', function (e) {
+      if (!h.classList.contains('pc')) { if (a.classList.contains('off')) e.preventDefault(); return; }
+      e.preventDefault();
+      withQr(function () { showDoor(a); });
+    });
+  });
   links.forEach(function (a) {
     a.addEventListener('click', function (e) {
       if (!h.classList.contains('pc')) return;

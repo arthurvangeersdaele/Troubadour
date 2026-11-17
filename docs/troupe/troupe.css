@@ -585,3 +585,33 @@ html.pc .bm-host{background:radial-gradient(ellipse 70% 45% at 50% -8%,color-mix
 .bm-cover{width:108px;height:66px;border-radius:10px;background:radial-gradient(circle at 50% 35%,#1E1D24,#0E0E12)}
 @media (max-width:1100px){.bm-top{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.bm-create,.bm-tale{transition:none}.bm-create:hover,.bm-tale:hover{transform:none}}
+
+/* La Troupe cards, 17 Nov: each card over its long "Play on my phone" door */
+.tapp-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tapp-col>.tapp{flex:1}
+.qr-door{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:12px;text-decoration:none;font-weight:600;font-size:16px;color:var(--text);cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));
+  background:radial-gradient(120% 220% at 50% 0%,color-mix(in srgb,var(--accent) 16%,var(--bar)),color-mix(in srgb,var(--accent) 5%,var(--bar)) 70%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 8%,transparent),0 6px 18px var(--shadow);transition:border-color .2s,box-shadow .2s,transform .2s}
+.qr-door svg{color:var(--accent);flex:none}
+.qr-door:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 10%,transparent),0 0 18px color-mix(in srgb,var(--accent) 22%,transparent)}
+.qr-door.off{cursor:default;opacity:.6;border-color:var(--line);background:var(--bar);box-shadow:none;transform:none}
+.qr-door.off svg{color:var(--muted)}
+.qr-door:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+html:not(.pc) .tapp .app-btns{display:none}
+/* the builder's flame: the torches' own, small, alive */
+.flame-i{overflow:visible}
+.flame-i path{transform-box:fill-box;transform-origin:50% 100%}
+.flame-i .f1{fill:#E0A84B;animation:flick 1.1s ease-in-out infinite alternate;filter:drop-shadow(0 0 3px rgba(255,190,90,.7))}
+.flame-i .f2{fill:#F6C55A;animation:flick .8s ease-in-out infinite alternate-reverse}
+.flame-i .f3{fill:#FFF0C2;animation:flick .55s ease-in-out infinite alternate}
+.abtn.build .flame-i{color:inherit}
+/* the online player's screen: a portal turning slowly, a spark that twinkles */
+.portal-i .swirl{transform-box:fill-box;transform-origin:50% 50%;animation:portal-turn 6s linear infinite}
+.portal-i .spark{animation:spark 2.4s ease-in-out infinite}
+@keyframes portal-turn{to{transform:rotate(360deg)}}
+@keyframes spark{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.flame-i path,.portal-i .swirl,.portal-i .spark{animation:none}}
+/* builder menu: the Online player has no create card; the drop zone takes the row; its mark is the portal screen */
+.bm-top.solo{grid-template-columns:1fr}
+.bm-mark .portal{width:44px;height:44px;fill:none;stroke:#F0C24F;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 10px rgba(240,194,79,.45))}

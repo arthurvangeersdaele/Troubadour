@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.06';
+  const VERSION = '261117.07';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -208,6 +208,32 @@
     return row;
   }
 
+  /** The Map online player (#/online, on a computer): open a .troubadour-map and play it here, as Troubadour's online player does. */
+  const isOnline = () => location.hash === '#/online';
+  let fromOnline = false;
+  function barFor(online) {
+    const here = document.querySelector('.bm-bar .here');
+    if (here) here.textContent = online ? 'Map online player' : 'Map builder';
+    document.querySelectorAll('[data-bm="new"]').forEach((b) => { b.hidden = online; });
+    document.title = online ? 'Map online player | Troubadour' : 'Troubadour Map';
+  }
+  function renderOnline(recs) {
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Map online player', lead: 'Open a .troubadour-map and play it on this screen: move the party, and hear what it hears.',
+        mark: '<svg viewBox=\"0 0 24 24\" class=\"portal\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"13\" rx=\"2.5\"/><path d=\"M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3\"/><path d=\"M9 21h6M12 17v4\"/></svg>' },
+      more: DISCOVERIES.map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb,
+        onClick: () => { const have = hasDiscovery(recs, d); if (have) playAt(have); else addDiscovery(d); } })),
+      drop: { text: 'Drop a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'On this computer', playOnly: true,
+        empty: 'Nothing here yet. Open a .troubadour-map to play it.',
+        items: recs.map((r) => ({ title: r.story.title || 'World',
+          meta: `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}`, updated: r.updated,
+          cover: mapCover(r, false, null), onPlay: () => playAt(r), onMore: () => worldMenu(r) })),
+      },
+    });
+  }
+
   /** On a computer, the library is the Map builder's main menu, after the Story builder. */
   function renderMenu(recs) {
     window.TroupeBuilderMenu.render($('#bm-host'), {
@@ -235,7 +261,7 @@
     const grid = $('#world-list');
     await loadDiscoveries();
     const recs = await DB.list();
-    if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
+    if (pc() && window.TroupeBuilderMenu) { barFor(isOnline()); if (isOnline()) renderOnline(recs); else renderMenu(recs); return; }
     grid.textContent = '';
     if (!recs.length) {
       const hello = el('div', 'hello');
@@ -394,6 +420,7 @@
       const r = await DB.put({ uid, story, world: wd, files: keys });
       await DB.collect();
       idle();
+      if (world && pc() && isOnline()) { location.hash = `#/play/${r.uid}/0`; return; }
       if (!world) { toast('Your world is ready: one map per chapter. Its sounds wait in Add sounds: draw the map, then lay them on it.', 5200); location.hash = `#/edit/${r.uid}/0`; }
       else { toast(`${story.title} is ready.`); location.hash = `#/play/${r.uid}/0`; }
     } catch (e) {
@@ -2538,6 +2565,9 @@
       return;
     }
     leaveOk = false;
+    if (isOnline()) fromOnline = true;
+    else if (!m && fromOnline && screen === 'world' && location.hash !== '#/soundbox') { location.replace('#/online'); return; }
+    else if (!m) fromOnline = false;
     if (!m && location.hash === '#/soundbox') { flush(); show('sbx'); rec = null; renderShared(); return; }
     if (!m) { flush(); show('library'); rec = null; await renderLibrary(); return; }
     const n = Number(m[3] || 0);

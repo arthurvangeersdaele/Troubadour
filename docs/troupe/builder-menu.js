@@ -16,7 +16,7 @@
   const I = {
     plus: svg('<path d="M12 5v14M5 12h14"/>', 22),
     drop: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>', 26),
-    edit: svg('<path d="M13 11 4 20"/><rect x="8.5" y="5.75" width="14" height="5.5" rx="1.4" fill="currentColor" transform="rotate(45 15.5 8.5)"/>', 16),
+    edit: '<svg class="flame-i" width="16" height="16" viewBox="13 0 34 58" aria-hidden="true"><path class="f1" d="M30 2C38 14 46 24 44 38C43 49 37 56 30 56C23 56 17 49 16 38C15 28 22 20 26 10C27 17 29 20 31 22C31 14 30 8 30 2Z"/><path class="f2" d="M30 16C36 25 40 32 39 40C38 48 34 53 30 53C26 53 22 48 22 41C22 34 26 30 28 24C29 29 30 31 31 32C32 27 31 21 30 16Z"/><path class="f3" d="M30 30C34 36 35 41 34 45C33 50 31 52 30 52C28 52 26 49 26 45C26 41 28 37 30 30Z"/></svg>',
     play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>',
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>', 16),
     more: svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', 18),
@@ -61,13 +61,15 @@
     }
 
     // 1. Start: create, or import
-    const top = el('section', 'bm-top');
-    const create = el('button', 'bm-create');
+    const top = el('section', o.create ? 'bm-top' : 'bm-top solo');
+    const create = o.create ? el('button', 'bm-create') : null;
+    if (create) {
     create.type = 'button';
     create.innerHTML = `<span class="bm-plus">${I.plus}</span>`;
     const ct = el('span', 'bm-txt'); ct.append(el('b', '', o.create.title), el('span', '', o.create.sub));
     create.append(ct);
     create.addEventListener('click', o.create.onClick);
+    }
 
     const drop = el('div', 'bm-drop');
     drop.tabIndex = 0;
@@ -84,7 +86,8 @@
     drop.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) drop.classList.remove('over'); });
     drop.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });
     drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; depth = 0; drop.classList.remove('over'); if (f) { e.preventDefault(); e.stopPropagation(); o.drop.onFile(f); } });
-    top.append(create, drop);
+    if (create) top.append(create);
+    top.append(drop);
     root.append(top);
 
     if (o.more && o.more.length) {
@@ -114,6 +117,13 @@
       const w = when(it.updated);
       if (w) txt.append(el('span', 'bm-when', `Last changed ${w.charAt(0).toLowerCase()}${w.slice(1)}`));
       const acts = el('div', 'bm-acts');
+      if (h.playOnly) {
+        acts.append(button('bm-btn main', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay), button('bm-btn ico-only', I.more, `More: ${it.title}`, it.onMore));
+        row.append(cov, txt, acts);
+        row.addEventListener('click', (e) => { if (!e.target.closest('button')) it.onPlay(); });
+        list.append(row);
+        return;
+      }
       acts.append(
         button('bm-btn main', `${I.edit}<span>Edit</span>`, `Edit ${it.title}`, it.onEdit),
         button('bm-btn', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay),
