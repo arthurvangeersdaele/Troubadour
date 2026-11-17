@@ -16,7 +16,7 @@
   const I = {
     plus: svg('<path d="M12 5v14M5 12h14"/>', 22),
     drop: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>', 26),
-    edit: '<svg class="flame-i" width="16" height="16" viewBox="13 0 34 58" aria-hidden="true"><path class="f1" d="M30 2C38 14 46 24 44 38C43 49 37 56 30 56C23 56 17 49 16 38C15 28 22 20 26 10C27 17 29 20 31 22C31 14 30 8 30 2Z"/><path class="f2" d="M30 16C36 25 40 32 39 40C38 48 34 53 30 53C26 53 22 48 22 41C22 34 26 30 28 24C29 29 30 31 31 32C32 27 31 21 30 16Z"/><path class="f3" d="M30 30C34 36 35 41 34 45C33 50 31 52 30 52C28 52 26 49 26 45C26 41 28 37 30 30Z"/></svg>',
+    edit: '<svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></svg>',
     play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>',
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>', 16),
     more: svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', 18),
