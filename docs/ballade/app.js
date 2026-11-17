@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.2';
+  const VERSION = '261117.3';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -22,6 +22,8 @@
     const steps = (r) => r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
     const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
     window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Ballade builder', lead: 'Command time: set the exact moment of every sound of your story, and the golden wire plays it for you at the table.',
+        mark: '<svg viewBox="290 120 444 770" class="wire"><path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/></svg>' },
       create: { title: 'New Ballade', sub: 'From a .troubadour story: its sounds become the first steps', onClick: pickFile },
       more: DISCOVERIES.filter((d) => !recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision))
         .map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.02';
+  const VERSION = '261117.03';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -145,6 +145,8 @@
   /** On a computer, the library is the Map builder's main menu, after the Story builder. */
   function renderMenu(recs) {
     window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Map builder', lead: 'Command space: draw the places of your world, bind your sounds to them, and the party hears them as it walks.',
+        mark: '<svg viewBox="182 230 660 660" class="ring"><g><circle cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/><circle cx="512" cy="560" r="290" stroke-width="26" stroke-dasharray="1 82" opacity=".7"/></g><circle class="core" cx="512" cy="560" r="80"/><circle class="eye" cx="512" cy="560" r="28"/></svg>' },
       create: { title: 'New world', sub: 'A blank map, then your own sounds', onClick: newWorld },
       drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
       history: {
