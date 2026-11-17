@@ -815,7 +815,7 @@ html:not(.mode-app) .splash { display: none; }
 .mps-ring.out { --o: .7; }
 .mps-ring circle.glow { stroke: #F0C24F; }
 .mps-wave { fill: none; stroke: #FFE08A; stroke-width: 6; opacity: 0; transform-box: view-box; transform-origin: 512px 560px; transform: scale(.2); }
-.mps-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); filter: drop-shadow(0 0 14px rgba(255, 224, 138, .9)) drop-shadow(0 0 30px rgba(240, 194, 79, .5)); }
+.mps-dot { transform-box: fill-box; transform-origin: center; transform: scale(0); filter: drop-shadow(0 0 4px rgba(255, 224, 138, .8)) drop-shadow(0 0 10px rgba(240, 194, 79, .4)); }
 .mps-word { position: relative; margin: 0; text-align: center; }
 
 /* Timeline: the bars glow up (0 s), the party's point lights (.3 s), its sound rings out, the near ring (.65 s) then

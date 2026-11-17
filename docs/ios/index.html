@@ -156,12 +156,10 @@
       if (!root.classList.contains('mode-app')) { sp.remove(); gone = true; sync(); return; }
       paint('#0F0F13');
       var started = false;
-      // The word takes the middle three fifths of the screen width, whatever the orientation.
+      // Small and quiet, as an app's opening: the letters at 8 % of the short side of the screen, between 28 and 46 px,
+      // whatever the orientation (Ballade and Map open at the same letter size).
       function fit() {
-        word.style.fontSize = '100px';
-        var w = word.getBoundingClientRect().width || 1;
-        var size = 100 * (window.innerWidth * 0.6) / w;
-        word.style.fontSize = Math.min(size, window.innerHeight * 0.42) + 'px';
+        word.style.fontSize = Math.max(28, Math.min(46, Math.min(window.innerWidth, window.innerHeight) * 0.08)) + 'px';
       }
       function hide() {
         if (gone) return; gone = true;

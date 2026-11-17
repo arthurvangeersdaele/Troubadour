@@ -152,22 +152,12 @@
     var meta = document.querySelector('meta[name="theme-color"]'), was = meta && meta.getAttribute('content');
     if (meta) meta.setAttribute('content', '#0A0A0D');
     var started = false, gone = false;
-    // Sized on Troubadour's own opening (ios/index.html): its word takes three fifths of the long side of the phone,
-    // at most .42 of the short side. Map's word gets the same letter size; the mark stands above it at a little over
-    // twice the height of the letters, like Ballade's lockup. Held sideways, the whole lockup stays within four fifths
-    // of the height.
+    // Small and quiet, at Troubadour's letter size (ios/index.html): 8 % of the short side of the screen, between 28
+    // and 46 px; the mark stands above the word at 1.7 times the height of its letters, as Ballade's.
     function fit() {
-      var long = Math.max(window.innerWidth, window.innerHeight), short = Math.min(window.innerWidth, window.innerHeight);
-      var probe = document.createElement('span');
-      probe.textContent = 'Troubadour';
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:700 100px "Cormorant SC",serif;letter-spacing:.03em';
-      document.body.appendChild(probe);
-      var tw = probe.getBoundingClientRect().width || 600;
-      probe.remove();
-      var size = Math.min(100 * long * 0.6 / tw, short * 0.42);
-      size = Math.min(size, window.innerHeight * 0.8 / (2.2 + 0.28 + 1.05));
-      var logo = size * 2.2;
-      stage.style.gap = (size * 0.28) + 'px';
+      var size = Math.max(28, Math.min(46, Math.min(window.innerWidth, window.innerHeight) * 0.08));
+      var logo = size * 1.7;
+      stage.style.gap = (size * 0.35) + 'px';
       stage.querySelector('svg').style.height = logo + 'px';
       stage.querySelector('svg').style.width = logo + 'px';
       word.style.fontSize = size + 'px';

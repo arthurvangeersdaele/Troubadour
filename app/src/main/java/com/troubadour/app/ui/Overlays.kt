@@ -673,8 +673,9 @@ fun Splash(onDone: () -> Unit) {
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDone() },
         contentAlignment = Alignment.Center,
     ) {
-        // The word takes three fifths of the width, without overflowing a short screen.
-        val wordWidth = minOf(maxWidth * 0.6f, maxHeight * 0.36f * (TroubadourWord.WIDTH / TroubadourWord.HEIGHT))
+        // Small and quiet, as the web apps' openings: the word at 45 % of the short side of the screen, between 150
+        // and 240 dp wide, whatever the orientation.
+        val wordWidth = (minOf(maxWidth, maxHeight) * 0.45f).coerceIn(150.dp, 240.dp)
         val p = t.value
         val settle = ((p - 0.6f) / 0.4f).coerceIn(0f, 1f)
         val sweep = p * 2.2f - 0.6f
@@ -696,8 +697,8 @@ fun Splash(onDone: () -> Unit) {
                 val k = size.width / TroubadourWord.WIDTH
                 withTransform({ scale(k, k, pivot = Offset.Zero) }) { drawPath(word, brush) }
             }
-            Spacer(Modifier.height(14.dp))
-            Eq(Modifier.alpha(settle), height = 22.dp)
+            Spacer(Modifier.height(10.dp))
+            Eq(Modifier.alpha(settle), height = 14.dp)
         }
     }
 }

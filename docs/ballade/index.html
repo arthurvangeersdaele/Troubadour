@@ -161,24 +161,13 @@
     var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word'), stage = document.getElementById('bl-stage');
     if (!root.classList.contains('mode-app')) { sp.remove(); return; }
     var started = false, gone = false;
-    // Sized on Troubadour's own opening (ios/index.html): its word takes three fifths of the long side of the phone,
-    // at most .42 of the short side. Ballade's word gets the same letter size, kept within three fifths of the
-    // screen's width; the logo stands above it at a little over twice the height of the letters, like a lockup.
+    // Small and quiet, at Troubadour's letter size (ios/index.html): 8 % of the short side of the screen, between 28
+    // and 46 px; the logo stands above the word at 1.7 times the height of its letters.
     function fit() {
-      var long = Math.max(window.innerWidth, window.innerHeight), short = Math.min(window.innerWidth, window.innerHeight);
-      var probe = document.createElement('span');
-      probe.textContent = 'Troubadour';
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:700 100px "Cormorant SC",serif;letter-spacing:.03em';
-      document.body.appendChild(probe);
-      var tw = probe.getBoundingClientRect().width || 600;
-      probe.textContent = 'Ballade';
-      var bw = probe.getBoundingClientRect().width || 420;
-      probe.remove();
-      var size = Math.min(100 * long * 0.6 / tw, short * 0.42);
-      size = Math.min(size, 100 * window.innerWidth * 0.6 / bw);
-      var logo = size * 2.2;
+      var size = Math.max(28, Math.min(46, Math.min(window.innerWidth, window.innerHeight) * 0.08));
+      var logo = size * 1.7;
       stage.style.width = (logo * 704 / 740) + 'px';
-      stage.style.gap = (size * 0.28) + 'px';
+      stage.style.gap = (size * 0.35) + 'px';
       stage.querySelector('svg').style.height = logo + 'px';
       word.style.fontSize = size + 'px';
     }
