@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.5';
+  const VERSION = '261117.6';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -54,58 +54,139 @@
     const recs = await DB.list();
     if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
     list.textContent = '';
+    // As in Troubadour and Map: a welcome and the ways in when the device holds nothing; else the story last
+    // opened as a big card, the others in rows under it, and a last row to add one.
     if (!recs.length) {
-      const e = el('div', 'fl-welcome');
-      e.innerHTML = `<svg class="fl-wire-art" viewBox="290 120 444 770" aria-hidden="true"><path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/></svg>
-        <h1>Follow the golden wire.</h1>
-        <p>Troubadour Ballade plays your story on time: every sound of a chapter waits on a wire running down the screen, and lights up when its moment comes. You only tap Go at the gates.</p>
-        <p class="muted">${pc()
-          ? 'Import a <b>.troubadour</b> to shape its Ballade in the builder, or a <b>.troubadour-ballade</b> to play it.'
-          : 'Import a <b>.troubadour-ballade</b> made in the Ballade builder. A plain <b>.troubadour</b> works too: it gets a first Ballade, ready to play.'}</p>`;
-      const b = el('button', 'btn primary', 'Import a story');
-      b.type = 'button';
-      b.addEventListener('click', pickFile);
-      e.append(b);
-      list.append(e);
-      DISCOVERIES.forEach((d) => list.append(discoveryCard(d)));
+      const hello = el('div', 'hello');
+      hello.innerHTML = MARK;
+      hello.append(el('h1', '', 'Your Ballade awaits'), el('p', 'lead', 'Every sound of a chapter waits on a golden wire and plays on time: you only tap Go at the gates. Import a story, or start from a discovery tale.'));
+      list.append(hello, el('h3', 'lib-h', 'Add a story'));
+      const doors = el('div', 'lib-doors');
+      doors.append(...addDoors());
+      list.append(doors);
       return;
     }
-    recs.forEach((r) => {
-      const card = el('article', 'fl-item');
-      const steps = r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
-      const main = el('button', 'fl-item-main');
-      main.type = 'button';
-      main.append(el('h2', '', r.story.title || 'Story'));
-      main.append(el('p', 'muted', `${r.story.chapters.length} chapter${r.story.chapters.length > 1 ? 's' : ''}, ${steps} steps, by ${r.flow.bard || r.story.bard || 'Forgotten Barde'}`));
-      const chs = el('ol', 'fl-item-ch');
-      r.story.chapters.slice(0, 6).forEach((c) => chs.append(el('li', '', c.title || 'Chapter')));
-      if (r.story.chapters.length > 6) chs.append(el('li', 'muted', `and ${r.story.chapters.length - 6} more`));
-      main.append(chs);
-      main.addEventListener('click', () => { location.hash = `#/play/${r.uid}`; });
-      const acts = el('div', 'fl-item-acts');
-      const play = el('button', 'btn primary slim');
-      play.type = 'button';
-      play.innerHTML = `${ICON.play}<span>Play</span>`;
-      play.addEventListener('click', () => { location.hash = `#/play/${r.uid}`; });
-      acts.append(play);
-      if (pc() || ipad()) {
-        const ed = el('button', 'btn slim');
-        ed.type = 'button';
-        ed.innerHTML = `${ICON.edit}<span>Edit the Ballade</span>`;
-        ed.addEventListener('click', () => { location.hash = `#/edit/${r.uid}`; });
-        acts.append(ed);
-      }
-      const more = el('button', 'ico small');
-      more.type = 'button';
-      more.innerHTML = ICON.more;
-      more.setAttribute('aria-label', `More for ${r.story.title}`);
-      more.addEventListener('click', () => storyMenu(r));
-      acts.append(el('span', 'grow'), more);
-      card.append(main, acts);
-      list.append(card);
+    const at = (r) => RECENT[r.uid] || Date.parse(r.updated || '') || 0;
+    const [first, ...rest] = recs.slice().sort((x, y) => at(y) - at(x));
+    const wrap = el('div', 'lib-b');
+    wrap.append(heroCard(first));
+    const rows = el('div', 'lib-list');
+    rows.append(el('h3', 'lib-h', rest.length ? 'All stories' : 'Your library'));
+    rest.forEach((r) => rows.append(storyRow(r)));
+    const add = el('button', 'srow add');
+    add.type = 'button';
+    add.innerHTML = `<span class="add-i">${ICON.plus}</span>`;
+    const t = el('span', 'stxt');
+    t.append(el('b', '', 'Add a story'), el('span', 'meta', 'A discovery tale, or a file'));
+    add.append(t);
+    add.addEventListener('click', openAddStory);
+    rows.append(add);
+    wrap.append(rows);
+    list.append(wrap);
+  }
+
+  /* The Ballade mark in gold: the wire runs down from its dot and splits in two (branding, 2.2 of the charter). */
+  const WIRE = '<path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/>';
+  const MARK = `<svg class="bl-mark" viewBox="300 120 424 760" aria-hidden="true">${WIRE}</svg>`;
+  /** When each story was last opened on this device (its uid: a time), so the last one leads the library. */
+  const RECENT = (() => { try { return JSON.parse(localStorage.getItem('troubadour.ballade.recent') || '{}'); } catch (e) { return {}; } })();
+  function opened(uid) { RECENT[uid] = Date.now(); try { localStorage.setItem('troubadour.ballade.recent', JSON.stringify(RECENT)); } catch (e) { /* private mode */ } }
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const stepsOf = (r) => r.flow.chapters.reduce((a, c) => a + F.allSteps(c).length, 0);
+  /** A story's cover: its golden wire, branching once for every chapter (up to five), on the dark of the night. */
+  function cover(r) {
+    const n = Math.max(1, Math.min(5, r.story.chapters.length));
+    const xs = Array.from({ length: n }, (_, i) => (n === 1 ? 160 : 70 + (180 * i) / (n - 1)));
+    const arms = xs.map((x) => `M160 34V62C160 92 ${x} 92 ${x} 124V150`).join('');
+    const c = el('span', 'cover bl-cover');
+    c.innerHTML = `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g class="glow"><path d="${arms}"/></g><g class="core"><path d="${arms}"/></g><circle cx="160" cy="28" r="7"/>${xs.map((x) => `<circle cx="${x}" cy="154" r="7.5"/>`).join('')}</svg>`;
+    return c;
+  }
+  function btnEl(cls, html, label, fn) {
+    const b = el('button', cls);
+    b.type = 'button';
+    b.innerHTML = html;
+    if (label) b.setAttribute('aria-label', label);
+    b.addEventListener('click', fn);
+    return b;
+  }
+  const playAt = (r) => { location.hash = `#/play/${r.uid}`; };
+  /** As in Troubadour: a tap anywhere on a story (not on one of its buttons) plays it. */
+  function openOnTap(card, r) {
+    card.classList.add('tappable');
+    card.addEventListener('click', (e) => { if (!e.target.closest('button, a')) playAt(r); });
+  }
+  function heroCard(r) {
+    const c = el('section', 'hero bl-hero');
+    c.style.setProperty('--c', 'var(--gold)');
+    c.append(cover(r));
+    const inner = el('div', 'hero-in');
+    const kick = el('div', 'hero-kick');
+    kick.append(el('span', 'tag', r.flow.revision ? `Revision ${r.flow.revision}` : 'Ballade'), el('span', 'kick', RECENT[r.uid] ? 'Last opened' : 'Just added'));
+    inner.append(kick, el('h2', '', r.story.title || 'Story'));
+    inner.append(el('p', 'hero-sub clamp', r.story.chapters.map((ch) => ch.title || 'Chapter').join(', ')));
+    inner.append(el('p', 'hero-meta', `${plural(r.story.chapters.length, 'chapter')}, ${plural(stepsOf(r), 'step')}, by ${r.flow.bard || r.story.bard || 'Forgotten Troubadour'}`));
+    inner.append(el('span', 'grow'));
+    const acts = el('div', 'hero-acts');
+    acts.append(btnEl('hb primary', `${ICON.play}<span>Play</span>`, null, () => playAt(r)), btnEl('hb more', ICON.more, `More: ${r.story.title}`, () => storyMenu(r)));
+    inner.append(acts);
+    c.append(inner);
+    openOnTap(c, r);
+    return c;
+  }
+  function storyRow(r) {
+    const row = el('div', 'srow');
+    row.style.setProperty('--c', 'var(--gold)');
+    const txt = el('div', 'stxt');
+    txt.append(el('b', '', r.story.title || 'Story'), el('span', 'meta', `${plural(r.story.chapters.length, 'chapter')}, ${plural(stepsOf(r), 'step')}`));
+    row.append(cover(r), txt, btnEl('more', ICON.more, `More: ${r.story.title}`, () => storyMenu(r)), btnEl('go', ICON.play, `Play ${r.story.title}`, () => playAt(r)));
+    openOnTap(row, r);
+    return row;
+  }
+  /** The ways to add a story: on the library when it is empty, and behind the + of the top bar. */
+  function addDoors(then = () => {}) {
+    const door = (kind, icon, title, text, fn) => {
+      const d = el('button', `ldoor d-${kind}`);
+      d.type = 'button';
+      d.innerHTML = `<span class="di">${icon}</span>`;
+      d.append(el('b', '', title), el('span', '', text));
+      d.addEventListener('click', () => { then(); fn(); });
+      return d;
+    };
+    return [
+      door('new', ICON.import, 'Import', 'A .troubadour-ballade, or a .troubadour', pickFile),
+      door('disc', DISC, 'Discovery', `${DISCOVERIES.length === 2 ? 'Two' : DISCOVERIES.length} tales already timed, sounds included`, openDiscovery),
+    ];
+  }
+  const DISC = window.FlowUI.svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 20);
+  function sheet(title) {
+    $('#sheet-title').textContent = title;
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = '';
+    return body;
+  }
+  function openAddStory() {
+    const doors = el('div', 'lib-doors add-doors');
+    doors.append(...addDoors(() => $('#sheet').close()));
+    sheet('Add a story').append(doors);
+    if (!$('#sheet').open) $('#sheet').showModal();
+  }
+  /** The discovery tales: one tap adds one (or plays it, when it is already on this device). */
+  async function openDiscovery() {
+    const recs = await DB.list();
+    const doors = el('div', 'lib-doors add-doors bl-disc');
+    DISCOVERIES.forEach((d) => {
+      const have = recs.find((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision);
+      const b = el('button', 'ldoor d-tale');
+      b.type = 'button';
+      b.innerHTML = `<span class="di">${have ? ICON.play : DISC}</span>`;
+      b.append(el('b', '', d.title), el('span', '', have ? 'On this device: tap to play' : d.blurb));
+      b.addEventListener('click', () => { $('#sheet').close(); if (have) playAt(have); else addDiscovery(d); });
+      doors.append(b);
     });
-    // Offered until this revision of it is on the device (a newer one replaces the old).
-    DISCOVERIES.forEach((d) => { if (!recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision)) list.append(discoveryCard(d)); });
+    sheet('Discovery tales').append(doors);
+    if (!$('#sheet').open) $('#sheet').showModal();
   }
 
   /* ================= Discovery tale ================= */
@@ -115,13 +196,6 @@
     { id: '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', revision: 2, file: 'discovery/261021_treasure-island-choices.troubadour-ballade', title: 'Treasure Island, by your choices',
       blurb: 'Two chapters where the players decide: choices within choices, three deep. A music in every scene, effects, some at random. About 17 MB.' },
   ];
-  function discoveryCard(d) {
-    const b = el('button', 'fl-discovery');
-    b.type = 'button';
-    b.innerHTML = `<span>Discovery tale</span><b>${d.title}</b><small>${d.blurb}</small>`;
-    b.addEventListener('click', () => addDiscovery(d));
-    return b;
-  }
   async function addDiscovery(d) {
     try {
       busy(`Downloading ${d.title}`, '', 0);
@@ -366,6 +440,7 @@
       show('editor');
       await window.FlowEditor.open(rec, { chapter: Number(m[3] || 0), onLeave: () => { location.hash = '#/'; }, onPlay: (ch) => { location.hash = `#/play/${rec.uid}/${ch}`; } });
     } else {
+      opened(rec.uid);
       if (screen === 'player' && window.FlowPlayer.isOpen()) return;
       show('player');
       busy('Opening the story', rec.story.title || '');
@@ -382,7 +457,8 @@
     document.querySelectorAll('.set-head .ico, [data-action="close-sheet"]').forEach((b) => { b.innerHTML = ICON.close; });
     $('[data-action="close-sheet"]').addEventListener('click', () => $('#sheet').close());
     document.querySelectorAll('.i-import').forEach((s) => { s.outerHTML = ICON.import; });
-    $('[data-action="import"]').addEventListener('click', pickFile);
+    $('[data-action="add-story"]').innerHTML = ICON.plus;
+    $('[data-action="add-story"]').addEventListener('click', openAddStory);
     document.querySelectorAll('[data-bm="new"], [data-bm="open"]').forEach((b) => b.addEventListener('click', pickFile));
     $('#pick-file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); });
     // A file dropped anywhere on the library (computer).
