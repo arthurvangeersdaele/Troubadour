@@ -93,6 +93,7 @@
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
   const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, randomMax: 5, life: false, lifeEvery: 6, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, vol: { music: 'full', ambience: 'full', events: 'full' } };
+  const SHARED = ['theme', 'mode', 'fade', 'fadeIn', 'crossfade', 'randomMax', 'life', 'lifeEvery', 'awake', 'master'];
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -102,6 +103,8 @@
     }
     const out = Object.assign({}, DEFAULTS);
     Object.keys(DEFAULTS).forEach((k) => { if (s && s[k] != null) out[k] = s[k]; });
+    // Shared with every player and builder (troubadour.settings): set in one, it holds in all.
+    try { const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {}; SHARED.forEach((k) => { if (k in DEFAULTS && b[k] != null) out[k] = b[k]; }); } catch (e) { /* none */ }
     out.vol = Object.assign({}, DEFAULTS.vol, (s && s.vol) || {});
     // Fades as in Troubadour: Off, 0.5, 1, 2 or 4 s (older Map settings had 1.5 and 3 s).
     if (![0, 500, 1000, 2000, 4000].includes(+out.fade)) out.fade = +out.fade > 2500 ? 4000 : 2000;
@@ -111,7 +114,14 @@
     return out;
   }
   const settings = loadSettings();
-  function saveSettings() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
+  function saveSettings() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(settings));
+      const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {};
+      SHARED.forEach((k) => { if (k in settings) b[k] = settings[k]; });
+      localStorage.setItem('troubadour.settings', JSON.stringify(b));
+    } catch (e) { /* private mode */ }
+  }
   function applyTheme() {
     const root = document.documentElement;
     let mode = settings.mode;

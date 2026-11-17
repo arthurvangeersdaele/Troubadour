@@ -12,17 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../play/style.css?v=261115.1">
-<link rel="stylesheet" href="troupe.css">
-<script src="../themes.js"></script>
+<link rel="stylesheet" href="troupe.css?v=261117.5">
 <script>
   (function () {
-    try {
-      var s = JSON.parse(localStorage.getItem('troubadour.settings') || '{}');
-      var mode = s.mode || 'dark';
-      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      document.documentElement.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
-      document.documentElement.dataset.mode = mode;
-    } catch (e) {}
     try {
       document.documentElement.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches);
     } catch (e) {}
@@ -54,7 +46,7 @@
     <p>The <em>Recueil</em> keeps the stories of La Troupe, each with its music, its storms and its whispers, ready for your party tonight. Lay your own <i class="ext">.troubadour</i> beside them.</p>
     <p><em>Troubadour</em> sets the scene. <em>Ballade</em> masters time, <em>Map</em> masters space. Shape them on a computer, then carry them to the table on your phone, and let the world sound around your players.</p>
   </div>
-  <p class="tools-title">The apps</p>
+  <p class="tools-title">Soundscape players and builders</p>
   <div class="apps">
     <div class="tapp-col">
     <article class="tapp core">
@@ -62,7 +54,7 @@
       <p>The sound table itself. Music, ambiances and events for every chapter, under your thumb at the table.</p>
       <div class="app-btns pc-only">
         <a class="abtn" href="../play/#/troubadour" aria-label="Troubadour online player"><svg class="portal-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path class="swirl" d="M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3"/><path d="M9 21h6M12 17v4"/><path class="spark" d="M20 1.5v2M19 2.5h2"/></svg><span>Online player</span></a>
-        <a class="abtn build" href="builder.html" aria-label="Story builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></svg><span>Builder</span></a>
+        <a class="abtn build" href="builder.html" aria-label="Story builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="wall"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/></g><path class="ink" d="M7.6 15.6q.8-1 1.6 0t1.6 0t1.6 0"/><g class="quill"><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></g></svg><span>Builder</span></a>
       </div>
     </article>
     <a class="qr-door" href="../ios/" data-name="Troubadour" data-ios="ios/" data-android="apk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/></svg><span class="qd-t"><span class="pc-only">Play on my phone</span><span class="phone-only">Play on this phone</span></span></a>
@@ -73,7 +65,7 @@
       <p>Command time. Every sound of the chapter waits on the golden wire and falls at its exact moment.</p>
       <div class="app-btns pc-only">
         <a class="abtn" href="../ballade/#/online" aria-label="Ballade online player"><svg class="portal-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path class="swirl" d="M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3"/><path d="M9 21h6M12 17v4"/><path class="spark" d="M20 1.5v2M19 2.5h2"/></svg><span>Online player</span></a>
-        <a class="abtn build" href="../ballade/" aria-label="Ballade builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></svg><span>Builder</span></a>
+        <a class="abtn build" href="../ballade/" aria-label="Ballade builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="wall"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/></g><path class="ink" d="M7.6 15.6q.8-1 1.6 0t1.6 0t1.6 0"/><g class="quill"><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></g></svg><span>Builder</span></a>
       </div>
     </article>
     <a class="qr-door" href="../ballade/" data-name="Ballade" data-ios="ballade/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/></svg><span class="qd-t"><span class="pc-only">Play on my phone</span><span class="phone-only">Play on this phone</span></span></a>
@@ -84,7 +76,7 @@
       <p>Command space. Move the party across your world and hear what it hears: closer is louder, walls muffle.</p>
       <div class="app-btns pc-only">
         <a class="abtn" href="../map/#/online" aria-label="Map online player"><svg class="portal-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path class="swirl" d="M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3"/><path d="M9 21h6M12 17v4"/><path class="spark" d="M20 1.5v2M19 2.5h2"/></svg><span>Online player</span></a>
-        <a class="abtn build" href="../map/" aria-label="Map builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></svg><span>Builder</span></a>
+        <a class="abtn build" href="../map/" aria-label="Map builder"><svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="wall"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/></g><path class="ink" d="M7.6 15.6q.8-1 1.6 0t1.6 0t1.6 0"/><g class="quill"><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></g></svg><span>Builder</span></a>
       </div>
     </article>
     <a class="qr-door" href="../map/" data-name="Map" data-ios="map/"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/></svg><span class="qd-t"><span class="pc-only">Play on my phone</span><span class="phone-only">Play on this phone</span></span></a>
@@ -117,7 +109,6 @@
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.getElementById('sigil').pauseAnimations();
 </script>
 <script src="../auth/account.js"></script>
-<script src="settings.js"></script>
 <script src="../install-now.js"></script>
 </body>
 </html>

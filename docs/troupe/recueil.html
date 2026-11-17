@@ -12,17 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../play/style.css?v=261115.1">
-<link rel="stylesheet" href="troupe.css?v=261117.4">
-<script src="../themes.js"></script>
+<link rel="stylesheet" href="troupe.css?v=261117.5">
 <script>
   (function () {
-    try {
-      var s = JSON.parse(localStorage.getItem('troubadour.settings') || '{}');
-      var mode = s.mode || 'dark';
-      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      document.documentElement.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
-      document.documentElement.dataset.mode = mode;
-    } catch (e) {}
     try {
       document.documentElement.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches);
     } catch (e) {}
@@ -65,6 +57,5 @@
 <script src="sound-credit.js?v=261107.2"></script>
 <script src="recueil.js?v=261107.1"></script>
 <script src="../auth/account.js"></script>
-<script src="settings.js"></script>
 </body>
 </html>

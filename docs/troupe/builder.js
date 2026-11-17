@@ -34,8 +34,8 @@
     reuse: svg('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>', 15),
   };
 
-  let uid = 0;
-  const id = () => `s${++uid}`;
+  let seq = 0;
+  const id = () => `s${++seq}`;
   const newChapter = (n) => ({ id: id(), title: `Chapter ${n}`, extra: {}, music: [], ambience: [], events: [] });
   // id, revision and created are the hidden versioning of the story: kept from an opened file, bumped at each forge.
   let state = { id: null, revision: 0, created: null, title: '', description: '', extra: {}, chapters: [newChapter(1)], soundbox: [] };
@@ -657,9 +657,9 @@
       const out = await pack(state, bard, (f) => { box.querySelector('.bar i').style.width = `${Math.round(f * 100)}%`; });
       lastForged = out;
       download(out);
-      // The forged file is now the story: the editor empties for the next one.
-      // To change this tale again, open its .troubadour (that keeps its revision count going).
-      await clearEditor();
+      // The story stays in the builder's history, at its new revision.
+      state.id = out.story.id; state.revision = out.story.revision; state.created = out.story.created;
+      pending = true; await flush();
       showForged(out);
     } catch (err) {
       const b = veil('<h2>The export failed</h2><p class="err"></p><div class="acts"><button class="btn" type="button" data-close>Close</button></div>');
@@ -761,22 +761,30 @@
     }
     return new Blob(chunks, { type: 'application/zip' });
   }
-  $('#open-btn').addEventListener('click', () => {
-    if (allSounds().length && !confirm('Open another story? The current one will be replaced (export it first to keep it).')) return;
-    $('#open-input').click();
-  });
+  $('#open-btn').addEventListener('click', () => { $('#open-input').click(); });
   $('#open-input').addEventListener('change', (e) => {
     const f = e.target.files[0];
     e.target.value = '';
-    if (f) load(f, f.name);
+    if (f) openFile(f, f.name);
   });
+  /** A .troubadour (or a Recueil tale) opens as a new story of the history. */
+  async function openFile(source, label) {
+    await flush();
+    await clearEditor();
+    openUid = newUid();
+    location.hash = `#/edit/${openUid}`;
+    await load(source, label);
+    pending = true; await flush();
+  }
   /* ---------- draft kept in this browser ---------- */
   const Draft = window.TroubadourDraft;
   let restoring = true, pending = false, saving = null, saveTimer = 0;
+  let openUid = null; // the story open in the editor (null: the main menu is on screen)
+  const newUid = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const isEmpty = () => !allSounds().length && !state.title.trim() && !state.description.trim() && state.chapters.length === 1 && /^Chapter 1$/.test(state.chapters[0].title.trim());
   function paintSaved(text) { const t = $('#saved'); if (t) t.textContent = text; }
   function saveSoon() {
-    if (restoring || !Draft) return;
+    if (restoring || !Draft || !openUid) return;
     pending = true;
     paintSaved('Saving…');
     clearTimeout(saveTimer);
@@ -784,10 +792,11 @@
   }
   async function flush() {
     clearTimeout(saveTimer);
-    if (!pending || !Draft) return;
+    if (!pending || !Draft || !openUid) return;
     if (saving) { await saving; if (!pending) return; }
     pending = false;
-    saving = (isEmpty() ? Draft.clear() : Draft.save(state, current))
+    const at = openUid;
+    saving = (isEmpty() ? Draft.remove(at) : Draft.save(state, current, at))
       .then(() => { if (!pending) paintSaved(isEmpty() ? '' : 'Saved in this browser'); })
       .catch(() => { paintSaved('Not saved: this browser blocks storage'); })
       .finally(() => { saving = null; });
@@ -819,47 +828,103 @@
     pending = false;
     clearTimeout(saveTimer);
     if (saving) { try { await saving; } catch (e) { /* ignore */ } }
-    try { await Draft.clear(); } catch (e) { /* nothing kept */ }
     renderAll();
     paintSaved('');
   }
-  $('#new-btn').addEventListener('click', async () => {
-    if (!isEmpty() && !confirm('Start a new story? The one in progress will be cleared from this browser (export it first to keep it).')) return;
+  async function newStory() {
+    await flush();
     await clearEditor();
-    $('#f-title').focus();
+    openUid = newUid();
+    location.hash = `#/edit/${openUid}`;
+    setTimeout(() => $('#f-title').focus(), 50);
+  }
+  $('#new-btn').addEventListener('click', newStory);
+
+  // From a story, the back button returns to the main menu (the story stays in this browser); from the menu, it leaves.
+  $('#back-link')?.addEventListener('click', async (e) => {
+    if (!openUid) return;
+    e.preventDefault();
+    await flush();
+    location.hash = '#/';
   });
 
-  // Back to La Troupe: the story in progress stays in this browser, unless the troubadour clears it.
-  $('#back-link')?.addEventListener('click', (e) => {
-    const to = e.currentTarget.href;
-    if (isEmpty()) return;
-    e.preventDefault();
-    const box = veil(`<h2>Leave the Story builder?</h2>
-      <p>Your story in progress stays in this browser and comes back next time you open the builder. You can also clear it now.</p>
-      <div class="acts"><button class="btn primary" type="button" data-keep>Keep it and leave</button><button class="btn" type="button" data-clear>Clear it and leave</button><button class="btn" type="button" data-close>Stay</button></div>`);
-    box.querySelector('[data-keep]').onclick = async () => { pending = true; await flush(); location.href = to; };
-    box.querySelector('[data-clear]').onclick = async () => { await clearEditor(); location.href = to; };
-    box.querySelector('[data-close]').onclick = closeVeil;
-  });
+  /* ---------- main menu (after the Ballade and Map builders) ---------- */
+  async function renderMenu() {
+    let recs = [];
+    try { recs = Draft ? await Draft.list() : []; } catch (e) { recs = []; }
+    const n = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    const cover = () => { const c = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); c.setAttribute('viewBox', '200 232 624 540');
+      c.innerHTML = '<rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/>'; c.classList.add('bars'); return c; };
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Story builder', lead: 'Summon your story and its chapters, drop your sounds or borrow them from the Recueil, then export a .troubadour for the table.',
+        mark: '<svg viewBox="200 232 624 540" class="bars"><rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/></svg>' },
+      create: { title: 'New story', sub: 'A blank story, then your chapters and sounds', onClick: newStory },
+      drop: { text: 'Drop a .troubadour here', onFile: (f) => openFile(f, f.name), onBrowse: () => $('#open-input').click() },
+      history: {
+        title: 'Your stories',
+        empty: 'Nothing here yet. Your stories are kept in this browser as you build them.',
+        items: recs.map((r) => ({
+          title: r.title || 'Untitled story',
+          meta: `${n(r.chapters, 'chapter')}, ${n(r.sounds, 'sound')}${r.revision ? `, revision ${r.revision}` : ''}`,
+          updated: r.savedAt ? new Date(r.savedAt).toISOString() : null,
+          cover: cover(),
+          onEdit: () => { location.hash = `#/edit/${r.uid}`; },
+          onExport: async () => { location.hash = `#/edit/${r.uid}`; await route(); $('#forge-btn').click(); },
+          exportLabel: 'Export',
+          onMore: async () => {
+            if (!confirm(`Remove "${r.title || 'Untitled story'}" from this browser? Export it first to keep it.`)) return;
+            try { await Draft.remove(r.uid); } catch (e) { /* gone */ }
+            renderMenu();
+          },
+        })),
+      },
+    });
+  }
+  function showMenu(on) {
+    document.documentElement.classList.toggle('bld-menu', on);
+    const here = document.querySelector('.sbar .here');
+    if (here) here.textContent = on ? 'Story builder' : (state.title.trim() || 'Story builder');
+  }
+  let routing = null;
+  async function route() {
+    if (routing) await routing;
+    routing = (async () => {
+      const m = /^#\/edit\/([\w-]+)$/.exec(location.hash);
+      if (!m) {
+        await flush();
+        openUid = null;
+        stopPreview();
+        showMenu(true);
+        await renderMenu();
+        return;
+      }
+      if (openUid === m[1]) { showMenu(false); return; }
+      await flush();
+      restoring = true;
+      let draft = null;
+      try { draft = Draft ? await Draft.load(m[1]) : null; } catch (e) { draft = null; }
+      openUid = m[1];
+      if (draft) {
+        adopt(draft.story, draft.current);
+        if (draft.lost) toast(`${draft.lost} sound${draft.lost > 1 ? 's were' : ' was'} missing from this browser.`);
+        paintSaved('Saved in this browser');
+      } else if (!isEmpty()) {
+        await clearEditor();
+      }
+      renderAll();
+      restoring = false;
+      showMenu(false);
+    })();
+    await routing; routing = null;
+  }
+  window.addEventListener('hashchange', route);
 
   async function start() {
     const fromUrl = new URLSearchParams(location.search).get('open');
     const wanted = fromUrl && /^[\w./%-]+\.troubadour$/i.test(fromUrl) ? fromUrl : null;
-    let draft = null;
-    try { draft = Draft ? await Draft.load() : null; } catch (e) { draft = null; }
-    const has = draft && (draft.story.title || draft.story.chapters.some((c) => ZONES.some((z) => c[z].length)) || draft.story.soundbox.length);
-    let useDraft = !!has;
-    if (has && wanted) useDraft = !confirm(`You have an unfinished story in this browser${draft.story.title ? `, "${draft.story.title}"` : ''}. Open the tale from the Recueil instead? Your unfinished story will be replaced.`);
-    if (useDraft) {
-      adopt(draft.story, draft.current);
-      renderAll();
-      toast(draft.lost
-        ? `Your unfinished story is back, but ${draft.lost} sound${draft.lost > 1 ? 's were' : ' was'} missing from this browser.`
-        : `Your unfinished story${draft.story.title ? `, "${draft.story.title}",` : ''} is back where you left it.`);
-      paintSaved('Saved in this browser');
-    }
     restoring = false;
-    if (wanted && !useDraft) load(wanted, decodeURIComponent(wanted.split('/').pop()));
+    if (wanted) { history.replaceState(null, '', location.pathname); await openFile(wanted, decodeURIComponent(wanted.split('/').pop())); return; }
+    await route();
   }
 
   paintBard();

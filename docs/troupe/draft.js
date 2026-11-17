@@ -47,12 +47,21 @@
     return o;
   };
 
-  /** Writes the story; only the sound files not written before are stored. Files no longer used are removed. */
-  async function save(state, current) {
+  /** Every sound key still used by any kept story. */
+  async function usedKeys(tx) {
+    const recs = await ask(tx.objectStore(STORY).getAll());
+    const used = new Set();
+    recs.forEach((r) => { (r.chapters || []).forEach((c) => window.Troubadour.ZONES.forEach((z) => (c[z] || []).forEach((x) => used.add(x.blob)))); (r.soundbox || []).forEach((x) => used.add(x.blob)); });
+    return used;
+  }
+
+  /** Writes the story under its uid ('current' for the one kept before stories had their own); only the sound files
+   *  not written before are stored. Files no story uses any more are removed. */
+  async function save(state, current, uid = 'current') {
     const db = await open();
     const sounds = [];
     const record = {
-      v: 1, savedAt: Date.now(), current,
+      v: 1, savedAt: Date.now(), current, uid,
       id: state.id, revision: state.revision, created: state.created,
       title: state.title || '', description: state.description || '', extra: state.extra || {},
       chapters: state.chapters.map((c) => {
@@ -72,18 +81,19 @@
       seen.forEach((k) => saved.add(k));
     }
     const tx = db.transaction([STORY, BLOBS], 'readwrite');
-    tx.objectStore(STORY).put(record, 'current');
-    const used = new Set(sounds.map((s) => keyOf(s.blob)));
+    tx.objectStore(STORY).put(record, uid);
+    const used = await usedKeys(tx);
+    sounds.forEach((x) => used.add(keyOf(x.blob)));
     const all = await ask(tx.objectStore(BLOBS).getAllKeys());
     all.forEach((k) => { if (!used.has(k)) { tx.objectStore(BLOBS).delete(k); saved.delete(k); } });
     await done(tx);
   }
 
   /** The saved story with its sound files back as blobs, or null. */
-  async function load() {
+  async function load(uid = 'current') {
     const db = await open();
     const tx = db.transaction([STORY, BLOBS], 'readonly');
-    const record = await ask(tx.objectStore(STORY).get('current'));
+    const record = await ask(tx.objectStore(STORY).get(uid));
     if (!record) return null;
     const blobs = new Map();
     const bs = tx.objectStore(BLOBS);
@@ -120,5 +130,31 @@
     saved.clear();
   }
 
-  window.TroubadourDraft = { save, load, clear };
+  /** The stories kept in this browser, newest first: { uid, title, chapters, sounds, savedAt, revision }. */
+  async function list() {
+    const db = await open();
+    const tx = db.transaction(STORY, 'readonly');
+    const st = tx.objectStore(STORY);
+    const [recs, ks] = await Promise.all([ask(st.getAll()), ask(st.getAllKeys())]);
+    return recs.map((r, i) => {
+      let n = (r.soundbox || []).length;
+      (r.chapters || []).forEach((c) => window.Troubadour.ZONES.forEach((z) => { n += (c[z] || []).length; }));
+      return { uid: ks[i], title: r.title || '', chapters: (r.chapters || []).length, sounds: n, savedAt: r.savedAt || 0, revision: r.revision || 0 };
+    }).sort((a, b) => b.savedAt - a.savedAt);
+  }
+
+  /** Removes one story, and the sound files only it used. */
+  async function remove(uid) {
+    const db = await open();
+    const tx = db.transaction([STORY, BLOBS], 'readwrite');
+    tx.objectStore(STORY).delete(uid);
+    await done(tx);
+    const t2 = db.transaction([STORY, BLOBS], 'readwrite');
+    const used = await usedKeys(t2);
+    const all = await ask(t2.objectStore(BLOBS).getAllKeys());
+    all.forEach((k) => { if (!used.has(k)) { t2.objectStore(BLOBS).delete(k); saved.delete(k); } });
+    await done(t2);
+  }
+
+  window.TroubadourDraft = { save, load, clear, list, remove };
 })();

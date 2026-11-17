@@ -31,8 +31,102 @@
 </script>
 <script src="../device.js"></script>
 <script src="../back.js"></script>
+<style>
+/* ---------- Opening animation ---------- */
+.splash {
+  position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; overflow: hidden;
+  background: #0F0F13; transition: opacity .5s ease;
+}
+.splash.sp-out { opacity: 0; pointer-events: none; }
+
+.sp-stage { position: relative; perspective: 900px; display: grid; place-items: center; }
+
+/* The word: white, raised in relief (a carved golden edge under each letter), keeping its own font. */
+.sp-word {
+  position: relative; display: block; font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 100px;
+  line-height: 1; letter-spacing: .03em; white-space: nowrap; color: #F7F3EA;
+  transform-origin: 50% 80%; opacity: 0; transform: rotateX(28deg) translateY(.12em);
+  text-shadow:
+    0 .010em 0 #E9DEC4, 0 .020em 0 #DCC79A, 0 .030em 0 #CCAE72, 0 .040em 0 #B8954F,
+    0 .050em 0 #9E7B3A, 0 .060em 0 #81622C, 0 .070em 0 #634A20,
+    0 .12em .10em rgba(0, 0, 0, .55), 0 .22em .30em rgba(0, 0, 0, .35);
+}
+/* Gold rising from below over the white face of the letters. */
+.sp-word::before, .sp-word::after {
+  content: attr(data-text); position: absolute; inset: 0; text-shadow: none; pointer-events: none;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sp-word::before {
+  background-image: linear-gradient(0deg, #F2C66A 0%, #E7B355 22%, rgba(247, 230, 190, .85) 48%, rgba(247, 243, 234, 0) 72%);
+  background-size: 100% 220%; background-position: 50% 0%; opacity: 0;
+}
+/* The golden glint that sweeps across the word. */
+.sp-word::after {
+  background-image: linear-gradient(105deg, rgba(255, 255, 255, 0) 38%, rgba(255, 236, 180, .95) 47%, #FFFFFF 50%, rgba(255, 220, 140, .9) 53%, rgba(255, 255, 255, 0) 62%);
+  background-size: 260% 100%; background-position: 130% 0; opacity: 0;
+}
+
+/* Timeline: the word rises (0 to .8 s), the gold climbs the letters (.6 s), the glint sweeps (1.1 s);
+   from 1.95 s the gold and the relief melt away, leaving a pure, bright white Troubadour on obsidian. */
+.sp-go .sp-word { animation: sp-rise .8s cubic-bezier(.2, .8, .2, 1) forwards, sp-pure .85s ease-in-out 1.95s forwards; }
+.sp-go .sp-word::before { animation: sp-gold 1.35s ease-out .6s forwards, sp-ungild .75s ease-in-out 1.95s forwards; }
+.sp-go .sp-word::after { animation: sp-glint .8s ease-in-out 1.1s forwards; }
+
+@keyframes sp-rise {
+  0% { opacity: 0; transform: rotateX(28deg) translateY(.12em); }
+  100% { opacity: 1; transform: rotateX(12deg) translateY(0); }
+}
+@keyframes sp-pure {
+  0% {
+    opacity: 1; transform: rotateX(12deg); color: #F7F3EA;
+    text-shadow:
+      0 .010em 0 #E9DEC4, 0 .020em 0 #DCC79A, 0 .030em 0 #CCAE72, 0 .040em 0 #B8954F,
+      0 .050em 0 #9E7B3A, 0 .060em 0 #81622C, 0 .070em 0 #634A20,
+      0 .12em .10em rgba(0, 0, 0, .55), 0 .22em .30em rgba(255, 255, 255, 0);
+  }
+  100% {
+    opacity: 1; transform: rotateX(0deg); color: #FFFFFF;
+    text-shadow:
+      0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0),
+      0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0),
+      0 0 .06em rgba(255, 255, 255, .55), 0 0 .35em rgba(255, 255, 255, .22);
+  }
+}
+@keyframes sp-gold {
+  0% { opacity: 0; background-position: 50% 0%; }
+  25% { opacity: 1; background-position: 50% 70%; }
+  100% { opacity: .9; background-position: 50% 45%; }
+}
+@keyframes sp-ungild {
+  0% { opacity: .9; background-position: 50% 45%; }
+  100% { opacity: 0; background-position: 50% 0%; }
+}
+@keyframes sp-glint {
+  0% { opacity: 1; background-position: 130% 0; }
+  100% { opacity: 1; background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-go .sp-word { animation: none; opacity: 1; transform: none; color: #FFFFFF; text-shadow: 0 0 .06em rgba(255, 255, 255, .55), 0 0 .35em rgba(255, 255, 255, .22); }
+  .sp-go .sp-word::before, .sp-go .sp-word::after { animation: none; opacity: 0; }
+}
+
+
+</style>
 </head>
 <body>
+<!-- The Troubadour opening, as in the app: the word rises in relief, gold climbs it and a glint sweeps it, then it turns white. Tap to skip. -->
+<div class="splash" id="splash" aria-hidden="true"><div class="sp-stage"><b class="sp-word" id="sp-word" data-text="Troubadour">Troubadour</b></div></div>
+<script>
+  (function () {
+    var sp = document.getElementById('splash'), word = document.getElementById('sp-word'), gone = false, started = false;
+    function fit() { word.style.fontSize = Math.max(28, Math.min(46, Math.min(innerWidth, innerHeight) * 0.08)) + 'px'; }
+    function hide() { if (gone) return; gone = true; sp.classList.add('sp-out'); setTimeout(function () { sp.remove(); }, 520); }
+    function go() { if (started) return; started = true; fit(); sp.classList.add('sp-go'); var quiet = matchMedia('(prefers-reduced-motion: reduce)').matches; setTimeout(hide, quiet ? 800 : 2800); }
+    try { if (document.fonts && document.fonts.load) { document.fonts.load('700 100px "Cormorant SC"').then(go, go); setTimeout(go, 800); } else go(); } catch (e) { go(); }
+    sp.addEventListener('click', hide);
+    setTimeout(hide, 4500);
+  })();
+</script>
 
 <!-- Stories -->
 <main id="stories" class="stories" hidden>

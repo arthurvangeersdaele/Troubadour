@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../play/style.css?v=261115.1">
-<link rel="stylesheet" href="troupe.css?v=261117.4">
+<link rel="stylesheet" href="troupe.css?v=261117.5">
 <script src="../themes.js"></script>
 <script>
   (function () {
@@ -30,6 +30,7 @@
 </script>
 <script src="../device.js"></script>
 <script src="../back.js"></script>
+<style>html:not(.bld-menu) .story-menu{display:none!important}html.bld-menu #bld,html.bld-menu #saved{display:none!important}html.pc.bld-menu .story-menu{display:block;flex:1;overflow:auto;min-height:0}</style>
 </head>
 <body>
 <div class="cpage fixed">
@@ -48,6 +49,7 @@
   <p>The Story builder is made for a computer, with room for every chapter and a mouse to drop your MP3s. On your phone, the Troubadour app is your builder: export your story from there as a .troubadour file.</p>
   <a class="btn primary" href="recueil.html">Browse the Recueil</a>
 </main>
+<div class="bm-host story-menu pc-only" id="bm-host"></div>
 <main class="bld pc-only" id="bld">
   <section class="bld-head">
     <div class="fields one">
@@ -74,12 +76,13 @@
 </div>
 <input type="file" id="pick" accept=".mp3,.ogg,.m4a,.wav,audio/*" multiple hidden>
 <script src="troubadour-format.js?v=261107.2"></script>
-<script src="draft.js"></script>
+<script src="draft.js?v=261117.1"></script>
 <script src="cropper.js"></script>
 <!-- library.js first: the builder shows "From the Recueil" on its very first render. -->
 <script src="sound-credit.js?v=261107.2"></script>
 <script src="library.js?v=261107.2"></script>
-<script src="builder.js?v=261107.3"></script>
+<script src="builder-menu.js?v=261117.1"></script>
+<script src="builder.js?v=261117.1"></script>
 <script src="../auth/account.js"></script>
 <script src="settings.js"></script>
 </body>

@@ -13,17 +13,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../play/style.css">
 <link rel="stylesheet" href="../troupe/troupe.css">
-<script src="../themes.js"></script>
 <script>
   (function () {
     var root = document.documentElement;
-    try {
-      var s = JSON.parse(localStorage.getItem('troubadour.settings') || '{}');
-      var mode = s.mode || 'dark';
-      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      root.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
-      root.dataset.mode = mode;
-    } catch (e) {}
     try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
     try { var ua = navigator.userAgent; root.classList.toggle('iphone', /iPhone|iPod|iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)); } catch (e) {}
   })();
@@ -134,6 +126,5 @@
   })();
 </script>
 <script src="../auth/account.js"></script>
-<script src="../troupe/settings.js"></script>
 </body>
 </html>

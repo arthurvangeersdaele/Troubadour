@@ -16,7 +16,7 @@
   const I = {
     plus: svg('<path d="M12 5v14M5 12h14"/>', 22),
     drop: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>', 26),
-    edit: '<svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></svg>',
+    edit: '<svg class="build-i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="wall"><path d="M2.5 13.5h11v8h-11z"/><path d="M2.5 17.5h11M6.5 13.5v4M10 17.5v4"/></g><path class="ink" d="M7.6 15.6q.8-1 1.6 0t1.6 0t1.6 0"/><g class="quill"><path d="M21.5 2.5c-5 .5-8.5 4-9.5 9l1.2 1.2c5-1 8.5-4.5 8.3-10.2z"/><path d="M16 8l-6.5 6.5"/></g></svg>',
     play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>',
     share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>', 16),
     more: svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', 18),
@@ -126,10 +126,10 @@
       }
       acts.append(
         button('bm-btn main', `${I.edit}<span>Edit</span>`, `Edit ${it.title}`, it.onEdit),
-        button('bm-btn', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay),
         button('bm-btn', `${I.share}<span>${it.exportLabel || 'Export'}</span>`, `${it.exportLabel || 'Export'}: ${it.title}`, it.onExport),
         button('bm-btn ico-only', I.more, `More: ${it.title}`, it.onMore),
       );
+      if (it.onPlay) acts.insertBefore(button('bm-btn', `${I.play}<span>Play</span>`, `Play ${it.title}`, it.onPlay), acts.children[1]);
       row.append(cov, txt, acts);
       row.addEventListener('click', (e) => { if (!e.target.closest('button')) it.onEdit(); });
       list.append(row);

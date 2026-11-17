@@ -50,6 +50,7 @@
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.flow.settings';
   const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, awake: true, silent: true, master: 0.8, sbVolume: 0.8, autoNext: false, clock: 10, even: true };
+  const SHARED = ['theme', 'mode', 'fade', 'fadeIn', 'crossfade', 'randomMax', 'life', 'lifeEvery', 'awake', 'master'];
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
@@ -59,10 +60,19 @@
     }
     const out = Object.assign({}, DEFAULTS);
     Object.keys(DEFAULTS).forEach((k) => { if (s && s[k] != null) out[k] = s[k]; });
+    // Shared with every player and builder (troubadour.settings): set in one, it holds in all.
+    try { const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {}; SHARED.forEach((k) => { if (k in DEFAULTS && b[k] != null) out[k] = b[k]; }); } catch (e) { /* none */ }
     return out;
   }
   const settings = loadSettings();
-  function saveSettings() { try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
+  function saveSettings() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(settings));
+      const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {};
+      SHARED.forEach((k) => { if (k in settings) b[k] = settings[k]; });
+      localStorage.setItem('troubadour.settings', JSON.stringify(b));
+    } catch (e) { /* private mode */ }
+  }
   function applyTheme() {
     const root = document.documentElement;
     let mode = settings.mode;
