@@ -115,6 +115,88 @@
   <div class="to-share" id="to-share" aria-hidden="true"><span id="to-share-label">Share</span><i></i></div>
 </main>
 
+<!-- Opening, after Troubadour's and Ballade's: the three bars of Troubadour glow up in the dark, the golden point of the
+     party lights in the middle, its sound rings out around it like the logo; the word Map rises in relief, gold climbs
+     its letters and a glint sweeps them, then it melts into a pure white Map under the mark, which keeps shining. -->
+<div class="splash mp-splash" id="splash" aria-hidden="true">
+  <div class="mps-stage" id="mps-stage">
+    <!-- The Troubadour Map logo, drawn exactly as the icon (map/icons/261031_troubadour_map_icon.svg). -->
+    <svg class="mps-mark" viewBox="196 236 632 632" aria-hidden="true">
+      <g class="mps-bars">
+        <rect x="224" y="416" width="128" height="320" rx="64" fill="#5C4627"/>
+        <rect x="448" y="256" width="128" height="512" rx="64" fill="#244E49"/>
+        <rect x="672" y="352" width="128" height="384" rx="64" fill="#5C302D"/>
+      </g>
+      <g class="mps-ring in">
+        <circle class="glow" cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/>
+        <circle cx="512" cy="560" r="150" stroke-width="26" stroke-dasharray="1 72"/>
+      </g>
+      <g class="mps-ring out">
+        <circle class="glow" cx="512" cy="560" r="290" stroke-width="30" stroke-dasharray="1 82"/>
+        <circle cx="512" cy="560" r="290" stroke-width="22" stroke-dasharray="1 82"/>
+      </g>
+      <circle class="mps-wave" cx="512" cy="560" r="290"/>
+      <g class="mps-dot">
+        <circle cx="512" cy="560" r="96" fill="#F0C24F" class="glow"/>
+        <circle cx="512" cy="560" r="70" fill="#FFE08A"/>
+        <circle cx="512" cy="560" r="26" fill="#0A0A0D"/>
+      </g>
+    </svg>
+    <b class="sp-word mps-word" id="sp-word" data-text="Map">Map</b>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word'), stage = document.getElementById('mps-stage');
+    if (!root.classList.contains('mode-app')) { sp.remove(); return; }
+    var meta = document.querySelector('meta[name="theme-color"]'), was = meta && meta.getAttribute('content');
+    if (meta) meta.setAttribute('content', '#0A0A0D');
+    var started = false, gone = false;
+    // Sized on Troubadour's own opening (ios/index.html): its word takes three fifths of the long side of the phone,
+    // at most .42 of the short side. Map's word gets the same letter size; the mark stands above it at a little over
+    // twice the height of the letters, like Ballade's lockup. Held sideways, the whole lockup stays within four fifths
+    // of the height.
+    function fit() {
+      var long = Math.max(window.innerWidth, window.innerHeight), short = Math.min(window.innerWidth, window.innerHeight);
+      var probe = document.createElement('span');
+      probe.textContent = 'Troubadour';
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:700 100px "Cormorant SC",serif;letter-spacing:.03em';
+      document.body.appendChild(probe);
+      var tw = probe.getBoundingClientRect().width || 600;
+      probe.remove();
+      var size = Math.min(100 * long * 0.6 / tw, short * 0.42);
+      size = Math.min(size, window.innerHeight * 0.8 / (2.2 + 0.28 + 1.05));
+      var logo = size * 2.2;
+      stage.style.gap = (size * 0.28) + 'px';
+      stage.querySelector('svg').style.height = logo + 'px';
+      stage.querySelector('svg').style.width = logo + 'px';
+      word.style.fontSize = size + 'px';
+    }
+    function hide() {
+      if (gone) return; gone = true;
+      sp.classList.add('sp-out');
+      if (meta && was) meta.setAttribute('content', was);
+      setTimeout(function () { sp.remove(); window.removeEventListener('resize', fit); }, 520);
+    }
+    function go() {
+      if (started) return; started = true;
+      fit();
+      sp.classList.add('sp-go');
+      var quiet = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(hide, quiet ? 900 : 3900);
+    }
+    window.addEventListener('resize', fit);
+    try {
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('700 100px "Cormorant SC"').then(go, go);
+        setTimeout(go, 800);
+      } else go();
+    } catch (e) { go(); }
+    sp.addEventListener('click', hide);
+    setTimeout(hide, 5600);
+  })();
+</script>
+
 <div class="rotate">
   <div class="phone-turn" aria-hidden="true"><i></i></div>
   <b>Turn your phone sideways</b>
