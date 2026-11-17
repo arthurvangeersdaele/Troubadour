@@ -92,7 +92,7 @@
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, musicAsk: true, musicAuto: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
   const SHARED = ['theme', 'mode', 'fade', 'fadeIn', 'crossfade', 'randomMax', 'life', 'lifeEvery', 'awake', 'master'];
   function loadSettings() {
     let s = {};

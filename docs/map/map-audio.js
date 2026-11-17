@@ -22,7 +22,7 @@
 
   let place = null, world = null, buffers = new Map(), point = [0, 0];
   const voices = new Map(); // card => voice
-  const api = { onChange: null };
+  const api = { onChange: null, onPlace: null };
   // The master pause, as in Troubadour: the voices it paused, and the random events it held between two plays.
   let pausedByAll = [], heldRandom = [];
 
@@ -602,9 +602,16 @@
     for (let i = place.elements.length - 1; i >= 0; i--) {
       const e = place.elements[i];
       const m = e.cards.find(isMusic);
-      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) return m;
+      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) { zoneEl = e; return m; }
     }
+    zoneEl = null;
     return null;
+  }
+  let zoneEl = null;
+  /** The music of the world with this file, started (the place's own card, or the whole map's, reached by its file). */
+  function startZone(file) {
+    const tv = [...voices.values()].find((o) => o.world && o.card.file === file);
+    if (tv && tv.state !== 'playing') toggleVoice(tv);
   }
   /** Called as the party moves: stopping in a place with a music crossfades to it; stopping out of it brings back the
    *  music of the whole map. Only where the party stops counts: a place it only walks through leaves the music as it
@@ -615,10 +622,18 @@
     const key = z ? z.file : 'map';
     if (key === zoneKey) return;
     zoneKey = key;
+    // Arriving on a place with music: the app may show its musics first (setting Ask before a place's music); it
+    // starts one itself, or calls back the fallback when nothing was touched.
+    if (z && api.onPlace) {
+      const el = zoneEl, cards = el.cards.filter(isMusic);
+      if (api.onPlace({ el, cards, start: () => { if (zoneKey === key && settings.musicAuto !== false) startZone(z.file); } })) return;
+    }
+    if (!z && api.onPlace) api.onPlace(null);
+    // Music starts by itself on arrival (setting, on by default); off, the music heard plays on.
+    if (settings.musicAuto === false) return;
     const target = z || place.general.find(isMusic);
     if (!target) return;
-    const tv = [...voices.values()].find((o) => o.world && o.card.file === target.file);
-    if (tv && tv.state !== 'playing') toggleVoice(tv);
+    startZone(target.file);
   }
 
   /** Everything stops: the world is left, or drawn. */

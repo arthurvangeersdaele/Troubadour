@@ -275,6 +275,7 @@
         <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
       </div>
       <div class="mp-opts" id="mw-opts" hidden></div>
+      <section class="mp-arrive" id="mw-arrive" hidden aria-live="polite" aria-label="The music of this place"></section>
       <button type="button" class="ico tl-layers" id="mw-layers-btn" title="Layers: everything on this map" aria-label="Layers" aria-pressed="false"></button>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
       <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to draw the party's trail: it walks it a second later. Double tap an element, or the map, for its sounds. Long press a sign to take its way.</div>
@@ -328,6 +329,8 @@
       <button type="button" role="radio" data-v="system">System</button>
     </div>
     <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
+    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
+    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
     <label class="row-set toggle"><span>Even out the loudness<small>Every sound at the level of its kind: music, ambiance, event</small></span><input type="checkbox" id="opt-even"><i></i></label>
     <label class="row-set toggle"><span>Names of the places<small>Shown on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
   </section>

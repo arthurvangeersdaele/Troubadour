@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.14';
+  const VERSION = '261117.15';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -624,6 +624,7 @@
 
   async function goPlace(n, first) {
     stopPreview();
+    closeArrive();
     pi = n;
     // At the table, the sound menu stays open on the whole map of the new place.
     tapped = undefined;
@@ -641,6 +642,7 @@
   }
 
   async function setMode(m, keepAudio) {
+    closeArrive();
     mode = m;
     $('#world').dataset.mode = m;
     // The player leads nowhere but the table: the editor opens from the library.
@@ -1525,7 +1527,7 @@
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input[type="range"]')) paintRange(e.target); });
 
   let liveTimer = 0;
-  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); }
+  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); arriveRows.forEach((f) => f()); }
   function liveLoop() {
     clearInterval(liveTimer);
     // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
@@ -1533,7 +1535,7 @@
     liveTimer = setInterval(() => {
       if (screen !== 'world' || mode !== 'play' || document.hidden) return;
       const w = $('#world').classList;
-      if (w.contains('panel') || w.contains('over')) refreshLive();
+      if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
       paintMaster();
     }, 100);
   }
@@ -2466,6 +2468,8 @@
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
+    $('#opt-music-ask').addEventListener('change', (e) => { settings.musicAsk = e.target.checked; saveSettings(); if (!e.target.checked) closeArrive(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); paintArriveClock(); });
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
@@ -2505,6 +2509,8 @@
     $('#opt-rings').checked = settings.rings;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
+    $('#opt-music-ask').checked = settings.musicAsk !== false;
+    $('#opt-music-auto').checked = settings.musicAuto !== false;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
@@ -2641,6 +2647,81 @@
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
   let musQueueView = false;
+  /* ================= Arriving on a place with music (setting Show a place's music on arrival) =================
+   * The party stops on a place with music: its music cards show over the map, as cards with all their controls, the
+   * party free to move on. One music, or several: each can be played or added to the queue. If nothing is touched for
+   * a few seconds, the setting Music starts on arrival decides (its music starts, or the music heard plays on). */
+  const ARRIVE_MS = 9000;
+  let arrive = null;
+  function closeArrive() {
+    if (!arrive) return;
+    clearTimeout(arrive.timer); cancelAnimationFrame(arrive.raf);
+    arrive = null;
+    const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
+    arriveRows.length = 0;
+  }
+  const arriveRows = [];
+  function paintArriveClock() {
+    if (!arrive) return;
+    const lab = $('#mw-arrive .ar-clock');
+    if (lab) lab.textContent = arrive.touched ? '' : settings.musicAuto !== false ? (arrive.cards.length > 1 ? 'The first starts by itself' : 'Starts by itself') : 'Leaves by itself';
+  }
+  function showArrive(info) {
+    closeArrive();
+    if (!info || mode !== 'play' || settings.musicAsk === false) return false;
+    const all = worldMusic();
+    // The cards of the world's musics (the voices that play them), in the order of the place.
+    const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
+    if (!cards.length) return false;
+    // Already heard: nothing to propose.
+    const cur = A.currentMusic();
+    if (cards.length === 1 && cur && cur.file === cards[0].file) return false;
+    const box = $('#mw-arrive');
+    box.textContent = '';
+    arrive = { info, cards, touched: false, t0: performance.now(), timer: 0, raf: 0 };
+    const head = el('div', 'ar-head');
+    const ttl = el('div', 'ar-ttl');
+    ttl.append(el('small', '', cards.length > 1 ? 'Musics of this place' : 'Music of this place'), el('b', '', elName(info.el)));
+    const x = el('button', 'ico small'); x.type = 'button'; x.innerHTML = ICON.close; x.setAttribute('aria-label', 'Close'); x.title = 'Close: nothing changes';
+    x.addEventListener('click', () => { closeArrive(); });
+    head.append(ttl, x);
+    box.append(head);
+    const list = el('div', 'ar-list');
+    cards.forEach((c) => {
+      const wrap = el('div', 'ar-card');
+      wrap.append(withRows(arriveRows, () => cardRow(c, all, null)));
+      const q = el('button', 'btn small ar-q'); q.type = 'button';
+      q.innerHTML = `${ICON.queueAdd}<span>Add to the queue</span>`;
+      q.addEventListener('click', () => { A.queueAdd(c); q.disabled = true; q.querySelector('span').textContent = 'In the queue'; refreshLive(); });
+      wrap.append(q);
+      list.append(wrap);
+    });
+    box.append(list);
+    if (cards.length > 1) {
+      const allQ = el('button', 'btn small ar-all'); allQ.type = 'button';
+      allQ.innerHTML = `${ICON.queueAdd}<span>Add them all to the queue</span>`;
+      allQ.addEventListener('click', () => { cards.forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); }); list.querySelectorAll('.ar-q').forEach((b) => { b.disabled = true; b.querySelector('span').textContent = 'In the queue'; }); allQ.disabled = true; refreshLive(); });
+      box.append(allQ);
+    }
+    // The time left before the fallback, as a thin gold line under the head.
+    const clock = el('div', 'ar-time'); const bar = el('i'); clock.append(bar);
+    box.append(el('small', 'ar-clock'), clock);
+    paintArriveClock();
+    // Any touch on the cards is a choice in hand: the clock stops, the cards stay until closed or the party moves on.
+    box.addEventListener('pointerdown', () => { if (!arrive || arrive.touched) return; arrive.touched = true; clearTimeout(arrive.timer); clock.hidden = true; paintArriveClock(); }, { once: true });
+    const tick = () => {
+      if (!arrive || arrive.touched) return;
+      bar.style.transform = `scaleX(${Math.max(0, 1 - (performance.now() - arrive.t0) / ARRIVE_MS)})`;
+      arrive.raf = requestAnimationFrame(tick);
+    };
+    tick();
+    arrive.timer = setTimeout(() => { if (!arrive || arrive.touched) return; const go = arrive.info.start; closeArrive(); go(); }, ARRIVE_MS);
+    box.hidden = false;
+    requestAnimationFrame(() => rollTitles(box));
+    refreshLive();
+    return true;
+  }
+
   function renderMusic() {
     musRows.length = 0;
     const now = $('#mw-mus-now'), list = $('#mw-mus-list');
@@ -3436,6 +3517,7 @@
     };
     // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
     A.onChange = () => { V.touch(); };
+    A.onPlace = (info) => { if (!info) { closeArrive(); return false; } return showArrive(info); };
     // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
     if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
 

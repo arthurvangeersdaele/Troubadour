@@ -876,3 +876,25 @@ html:not(.mode-app) .splash { display: none; }
   .sp-go .mps-ring { animation: none; opacity: var(--o, 1); transform: scale(1); }
   .sp-go .mps-wave { animation: none; }
 }
+
+/* Arriving on a place with music: its cards float over the map, top centre, the map still free under them. */
+.mp-arrive { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3; width: min(360px, calc(100% - 140px)); max-height: calc(100% - 24px); display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; border-radius: 16px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 14px 40px var(--shadow); animation: ar-in .25s ease-out; }
+.mp-arrive[hidden] { display: none; }
+@keyframes ar-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+.mp-arrive .ar-head { display: flex; align-items: flex-start; gap: 8px; }
+.mp-arrive .ar-ttl { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.mp-arrive .ar-ttl small { font-size: 12px; font-weight: 600; letter-spacing: 1.6px; text-transform: uppercase; color: var(--music); }
+.mp-arrive .ar-ttl b { font-family: 'Cormorant SC', serif; font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-arrive .ar-list { display: grid; gap: 8px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.mp-arrive .ar-card { display: grid; gap: 6px; }
+.mp-arrive .ar-q, .mp-arrive .ar-all { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.mp-arrive .ar-q svg, .mp-arrive .ar-all svg { flex: none; }
+.mp-arrive .ar-clock { color: var(--muted); font-size: 12px; }
+.mp-arrive .ar-clock:empty { display: none; }
+.mp-arrive .ar-time { height: 2px; border-radius: 2px; background: var(--line); overflow: hidden; margin-top: -4px; }
+.mp-arrive .ar-time[hidden] { display: none; }
+.mp-arrive .ar-time i { display: block; height: 100%; background: var(--music); transform-origin: left; }
+@media (max-height: 520px) { .mp-arrive { top: 8px; padding: 8px 10px 10px; gap: 6px; } .mp-arrive .ar-ttl b { font-size: 17px; } }
+@media (orientation: portrait) { .mp-arrive { width: calc(100% - 24px); } }
+@media (prefers-reduced-motion: reduce) { .mp-arrive { animation: none; } }
+.mp-arrive .ar-card > .c { width: 100%; max-width: none; min-width: 0; box-sizing: border-box; }
