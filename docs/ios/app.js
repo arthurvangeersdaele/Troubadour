@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261117.2';
+  const VERSION = '261117.3';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -692,7 +692,7 @@
     });
   }
 
-  /* ---------- Discovery stories (the web edition's three stories) ---------- */
+  /* ---------- Discovery stories (the web edition's three stories, from docs/discovery/index.json) ---------- */
   async function openDiscovery() {
     const body = openSheet('Discovery stories');
     body.append(el('p', 'muted', `The three stories of the web edition, with their sounds. Each one downloads once, then lives on your ${DEV} like any story you build, ready to edit and play offline.`));
@@ -701,10 +701,8 @@
     body.append(list);
     let stories, library;
     try {
-      [stories, library] = await Promise.all([
-        fetch('../play/stories.json', { cache: 'no-cache' }).then((r) => r.json()),
-        fetch('../play/library.json', { cache: 'no-cache' }).then((r) => r.json()),
-      ]);
+      const d = await fetch('../discovery/index.json', { cache: 'no-cache' }).then((r) => r.json());
+      stories = d; library = d.library;
     } catch (e) {
       list.textContent = '';
       list.append(el('p', 'muted', `These stories need a connection to download. Try again once your ${DEV} is online.`));
@@ -742,7 +740,7 @@
     let doneBytes = 0, n = 0;
     try {
       const fetchOne = async (s) => {
-        const blob = await download(`../play/${s.file}`, (b) => { doneBytes += b; busy(`Adding ${meta.title}`, `Sound ${n + 1} of ${total}, ${size(doneBytes)} of ${size(totalBytes)}`, doneBytes / totalBytes); });
+        const blob = await download(`../discovery/${s.file}`, (b) => { doneBytes += b; busy(`Adding ${meta.title}`, `Sound ${n + 1} of ${total}, ${size(doneBytes)} of ${size(totalBytes)}`, doneBytes / totalBytes); });
         n += 1;
         return blob;
       };

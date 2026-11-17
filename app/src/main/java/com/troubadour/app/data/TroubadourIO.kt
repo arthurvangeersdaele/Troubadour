@@ -260,7 +260,8 @@ object TroubadourIO {
             setRequestProperty("Cache-Control", "no-cache")
         }
 
-    // Discovery stories: the web edition's three stories.
+    // Discovery stories: the web edition's three stories, listed in docs/discovery/index.json (shared by every app).
+    private const val DISCOVERY = SITE + "discovery/"
     class DiscoveryFile(val name: String, val file: String, val size: Long)
     class DiscoveryChapter(val title: String, val zones: Map<Zone, List<DiscoveryFile>>)
     class DiscoveryStory(val id: String, val title: String, val blurb: String, val chapters: List<DiscoveryChapter>) {
@@ -269,8 +270,8 @@ object TroubadourIO {
     class Discovery(val stories: List<DiscoveryStory>, val soundbox: List<DiscoveryFile>)
 
     fun fetchDiscovery(): Discovery {
-        val stories = JSONObject(fetchText("${SITE}play/stories.json"))
-        val library = JSONObject(fetchText("${SITE}play/library.json"))
+        val stories = JSONObject(fetchText("${DISCOVERY}index.json"))
+        val library = stories.optJSONObject("library") ?: JSONObject()
         val chapters = library.optJSONObject("chapters") ?: JSONObject()
         fun files(a: org.json.JSONArray?): List<DiscoveryFile> =
             if (a == null) emptyList() else (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map {
@@ -305,7 +306,7 @@ object TroubadourIO {
         fun fetch(f: DiscoveryFile): Pair<String, Long> {
             val target = File(tmp, "${uid()}.${f.file.substringAfterLast('.', "mp3")}")
             val before = doneBytes
-            download("${SITE}play/${f.file}", target) { got ->
+            download("$DISCOVERY${f.file}", target) { got ->
                 doneBytes = before + got
                 progress("Sound ${n + 1} of $total, ${formatSize(doneBytes)} of ${formatSize(totalBytes)}", doneBytes.toFloat() / totalBytes)
             }

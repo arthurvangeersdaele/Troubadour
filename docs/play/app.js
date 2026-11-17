@@ -341,6 +341,8 @@
   }
 
   /* ---------------- Data ---------------- */
+  // The discovery stories and their sounds live in docs/discovery/ (index.json lists them), shared by every app.
+  const DISCOVERY = '../discovery/';
   let STORIES = [], LIBRARY = { chapters: {}, soundbox: [] };
   let story = null;          // { meta, chapters: [{ meta, key, voices: {music:[],...} }], all: [] }
   let chapterIdx = 0;
@@ -358,11 +360,8 @@
     applyTheme();
     buildSettings();
     try {
-      const [s, l] = await Promise.all([
-        fetch('stories.json', { cache: 'no-cache' }).then((r) => r.json()),
-        fetch('library.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : LIBRARY)).catch(() => LIBRARY),
-      ]);
-      STORIES = s.stories; LIBRARY = l;
+      const d = await fetch(DISCOVERY + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
+      STORIES = d.stories; LIBRARY = d.library || LIBRARY;
     } catch (e) {
       $('#story-list').innerHTML = '<p class="muted">Could not load the stories. Open this page from GitHub Pages or a local web server.</p>';
       $('#stories').hidden = false;
@@ -571,7 +570,7 @@
         const info = item.sound || item;
         let got = 0;
         try {
-          const blob = info.blob || await download(info.file, ctrl.signal, (n) => { got += n; doneBytes += n; tick(); });
+          const blob = info.blob || await download(DISCOVERY + info.file, ctrl.signal, (n) => { got += n; doneBytes += n; tick(); });
           if (info.blob) doneBytes += info.blob.size;
           if (ctrl.signal.aborted) return;
           if (item instanceof Voice) item.attach(blob);

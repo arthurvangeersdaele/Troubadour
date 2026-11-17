@@ -1,6 +1,6 @@
 # Sound credits
 
-Every sound in the Troubadour web edition comes from open-source games, used under their original licences.
+Every discovery sound of Troubadour (the web edition's stories, the Ballade tales and the Map world) comes from open-source games, used under their original licences.
 
 | Project | Licence | Source |
 | --- | --- | --- |
@@ -202,3 +202,55 @@ This tale moved to the Recueil of La Troupe (`docs/recueil/werewolf.troubadour`)
 | `16_evil-laugh.mp3` | Battle for Wesnoth: [witches-laugh.wav](https://github.com/wesnoth/wesnoth/blob/master/data/campaigns/World_Conquest/sounds/witches-laugh.wav) | unknown | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
 | `17_creaking-door.mp3` | Battle for Wesnoth: [door-close.wav](https://github.com/wesnoth/wesnoth/blob/master/data/campaigns/The_Deceivers_Gambit/sounds/door-close.wav) | (pawsound) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | `18_fanfare.mp3` | 0 A.D.: [alarmvictory_1.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/interface/alarm/alarmvictory_1.ogg) | Wildfire Games | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
+
+## Troubadour Map: The Four Lands (`maps/261117_the_four_lands.troubadour-map`)
+
+Every sound of this world is taken byte for byte from the Recueil (`docs/recueil/`), where it is credited too; each one also carries its origin inside the file. Built by `.github/scripts/map-worlds/four_lands.py`.
+
+| File | From | Author | Licence |
+| --- | --- | --- | --- |
+| `sounds/music/deep-forest.mp3` | Stendhal: [deep_forest.ogg](https://github.com/arianne/stendhal/blob/master/data/music/deep_forest.ogg) | Storyteller | GNU GPL |
+| `sounds/music/desert-bazaar.mp3` | MegaGlest: [asak-jadeflange.ogg](https://github.com/MegaGlest/megaglest-data/blob/develop/techs/megapack/factions/egypt/music/asak-jadeflange.ogg) | Asak (jadeflange) | CC BY-SA 3.0 |
+| `sounds/music/market-day.mp3` | Stendhal: [market_day.ogg](https://github.com/arianne/stendhal/blob/master/data/music/market_day.ogg) | RandomMind | CC0 |
+| `sounds/music/mirage.mp3` | 0 A.D.: [Mirage.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/music/Mirage.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/music/old-sailor-s-tavern.mp3` | Stendhal: [the_old_tavern.ogg](https://github.com/arianne/stendhal/blob/master/data/music/the_old_tavern.ogg) | Storyteller | GNU GPL |
+| `sounds/music/pleasant-creek.mp3` | Stendhal: [pleasant_creek_loop.ogg](https://github.com/arianne/stendhal/blob/master/data/music/pleasant_creek_loop.ogg) | Matthew Pablo | CC BY 3.0 |
+| `sounds/music/wanderer.mp3` | Battle for Wesnoth: [wanderer.ogg](https://github.com/wesnoth/wesnoth/blob/master/data/core/music/wanderer.ogg) | Timothy Pinkham(TimothyP) | GNU GPL v2+ |
+| `sounds/ambience/birds-in-the-oaks.mp3` | Battle for Wesnoth: [birds2.ogg](https://github.com/wesnoth/wesnoth/blob/master/data/core/sounds/ambient/birds2.ogg) | Karol Nowak(grzywacz) | GNU GPL v2+ |
+| `sounds/ambience/deep-woods.mp3` | Red Eclipse: [forest1.ogg](https://github.com/redeclipse/sounds/blob/master/ambience/forest1.ogg) | , 2007 Dob "dobroide" Roide | CC BY 3.0 |
+| `sounds/ambience/doves-on-the-rooftops.mp3` *edited* | Stendhal: [bird-pigeon-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/bird-pigeon-1.ogg), Stendhal: [bird-pigeon-flap-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/bird-pigeon-flap-1.ogg) | winsx87 | CC0 |
+| `sounds/ambience/drifting-sand.mp3` | /tg/station 13: [weak_mid1.ogg](https://github.com/tgstation/tgstation/blob/master/sound/ambience/weather/ashstorm/outside/weak_mid1.ogg) | /tg/station 13 contributors | CC BY-SA 3.0 |
+| `sounds/ambience/dripping-rocks.mp3` | Red Eclipse: [cavedrip.ogg](https://github.com/redeclipse/sounds/blob/master/ambience/cavedrip.ogg) | Mike "Acclivity" of Freesound.org, Dob "dobroide" Roide | CC BY-SA 3.0 |
+| `sounds/ambience/inn-fireplace.mp3` | Flare: [open_fire_loop.ogg](https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/open_fire_loop.ogg) | Brandon Morris, Justin Jacobs, rubberduck | CC BY-SA 3.0 |
+| `sounds/ambience/lake-shore.mp3` | 0 A.D.: [river_slow_21.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/water/river_slow_21.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/lapping-water.mp3` | Red Eclipse: [creek.ogg](https://github.com/redeclipse/sounds/blob/master/ambience/creek.ogg) | Richard "RHumphries" Humphries | CC BY-SA 3.0 |
+| `sounds/ambience/morning-breeze.mp3` | 0 A.D.: [wind_11.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/wind_11.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/oasis-spring.mp3` | 0 A.D.: [river_slow_21.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/water/river_slow_21.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/palms-in-the-wind.mp3` | 0 A.D.: [windleaves_11.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/weather/windleaves_11.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/silence-of-the-erg.mp3` | Hypersomnia: [wind_2.ogg](https://github.com/TeamHypersomnia/Hypersomnia/blob/master/hypersomnia/content/sfx/wind_2.ogg) | Hypersomnia (Patryk Czachurski and contributors) | CC0 |
+| `sounds/ambience/summer-insects.mp3` | Red Eclipse: [cycadas.ogg](https://github.com/redeclipse/sounds/blob/master/ambience/cycadas.ogg) | , 2007 Dob "dobroide" Roide | CC BY 3.0 |
+| `sounds/ambience/sunny-morning.mp3` *edited* | 0 A.D.: [day_temperate_14.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/dayscape/day_temperate_14.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/village-square.mp3` *edited* | 0 A.D.: [amb_trade_12.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/ambient/building/amb_trade_12.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/ambience/wind-in-the-canvas.mp3` | OpenClonk: [WindLoop.ogg](https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Environment.ocg/WindLoop.ogg) | OpenClonk team | CC BY 3.0 |
+| `sounds/ambience/wind-over-the-dunes.mp3` | Red Eclipse: [blowwind.ogg](https://github.com/redeclipse/sounds/blob/master/ambience/blowwind.ogg) | Quinton "quin" Reeves, Alex "blackshoe" Anguix | CC BY-SA 4.0 |
+| `sounds/events/branch-snaps.mp3` | Stendhal: [snap-branch-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/snap-branch-1.ogg) | mrjingles | CC0 |
+| `sounds/events/camel-complains.mp3` *edited* | 0 A.D.: [death_camel_10.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/fauna/death/death_camel_10.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/events/camel-groans.mp3` *edited* | 0 A.D.: [death_camel_10.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/fauna/death/death_camel_10.ogg), 0 A.D.: [camel_10.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/fauna/animal/camel_10.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/events/distant-howl.mp3` | Stendhal: [wolf-howl-02.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg) | killyourpepe | CC0 |
+| `sounds/events/dog-barks.mp3` | 0 A.D.: [civ_dog_bark.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/voice/global/civ_dog_bark.ogg) | Wildfire Games | CC BY-SA 3.0 |
+| `sounds/events/fish-jumps.mp3` | /tg/station 13: [fish_splash.ogg](https://github.com/tgstation/tgstation/blob/master/sound/effects/fish_splash.ogg) | /tg/station 13 contributors | CC BY-SA 3.0 |
+| `sounds/events/fishing-line.mp3` | Stendhal: [fishing-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/fishing-1.ogg) | vibe_crc + j1987 | CC0 |
+| `sounds/events/grunt-in-the-bushes.mp3` | Stendhal: [bear-02.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/bear-02.ogg) | U.S. Fish & Wildlife Service | Public domain |
+| `sounds/events/gust.mp3` | OpenClonk: [Gust.ogg](https://github.com/openclonk/openclonk/blob/master/planet/Sound.ocg/Objects.ocg/Windbag.ocg/Gust.ogg) | OpenClonk team | CC BY 3.0 |
+| `sounds/events/harbour-bell.mp3` | Unknown Horizons: [ships_bell.ogg](https://github.com/unknown-horizons/unknown-horizons/blob/master/content/audio/sounds/ships_bell.ogg) | Stephan (pdsounds.org) | Public domain |
+| `sounds/events/merchant-s-coins.mp3` | Stendhal: [coins-01.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/coins-01.ogg) | monotraum | CC0 |
+| `sounds/events/oars-in-the-water.mp3` | Stendhal: [water-slosh-02.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/water-slosh-02.ogg) | pawsound | CC0 |
+| `sounds/events/rattlesnake.mp3` | Stendhal: [rattlesnake-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/rattlesnake-1.ogg) | fws.gov | Public domain |
+| `sounds/events/rocks-fall.mp3` | Flare: [falling_rocks.ogg](https://github.com/flareteam/flare-game/blob/master/mods/empyrean_campaign/soundfx/environment/falling_rocks.ogg) | Brandon Morris, Justin Jacobs, rubberduck | CC BY-SA 3.0 |
+| `sounds/events/rustling-bushes.mp3` | Stendhal: [shake-leaves-1.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/shake-leaves-1.ogg) | vibe_crc | CC0 |
+| `sounds/events/woodpecker.mp3` | Stendhal: [bird-woodpecker-01.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/bird-woodpecker-01.ogg) | Benboncan | CC BY 3.0 |
+| `sounds/soundbox/thunder.mp3` | Stendhal: [thunder-05.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/weather/thunder-05.ogg) | Dave Welsh | CC0 |
+| `sounds/soundbox/owl.mp3` | Flare: [forest_owl_loop.ogg](https://github.com/flareteam/flare-game/blob/master/mods/fantasycore/soundfx/environment/forest_owl_loop.ogg) | Brandon Morris, Justin Jacobs, rubberduck | CC BY-SA 3.0 |
+| `sounds/soundbox/distant-howl.mp3` | Stendhal: [wolf-howl-02.ogg](https://github.com/arianne/stendhal/blob/master/data/sounds/wolf-howl-02.ogg) | killyourpepe | CC0 |
+| `sounds/soundbox/market-gong.mp3` | /tg/station 13: [gong.ogg](https://github.com/tgstation/tgstation/blob/master/sound/effects/gong.ogg) | /tg/station 13 contributors | CC BY-SA 3.0 |
+| `sounds/soundbox/footsteps-in-the-sand.mp3` *edited* | 0 A.D.: [fs_sand1.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand1.ogg), 0 A.D.: [fs_sand3.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand3.ogg), 0 A.D.: [fs_sand5.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand5.ogg), 0 A.D.: [fs_sand2.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand2.ogg), 0 A.D.: [fs_sand7.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand7.ogg), 0 A.D.: [fs_sand4.ogg](https://github.com/0ad/0ad/blob/main/binaries/data/mods/public/audio/actor/singlesteps/fs_sand4.ogg) | Wildfire Games | CC BY-SA 3.0 |

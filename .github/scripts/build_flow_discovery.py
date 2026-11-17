@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Builds the discovery tale of Troubadour Ballade: Underwater Adventure, timed step by step.
 
-Reads the web edition's sounds (docs/play/sounds/underwater and the soundbox) and writes
-docs/ballade/discovery/261017_underwater-adventure.troubadour-ballade (a .troubadour plus flow.json,
+Reads the web edition's sounds (docs/discovery/sounds/underwater and the soundbox) and writes
+docs/discovery/ballades/261017_underwater-adventure.troubadour-ballade (a .troubadour plus flow.json,
 see TROUBADOUR_BALLADE_FORMAT.md). Run from the repo root:
 
     python3 .github/scripts/build_flow_discovery.py
@@ -14,12 +14,12 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PLAY = ROOT / 'docs' / 'play'
-OUT = ROOT / 'docs' / 'ballade' / 'discovery' / '261017_underwater-adventure.troubadour-ballade'
+PLAY = ROOT / 'docs' / 'discovery'
+OUT = PLAY / 'ballades' / '261017_underwater-adventure.troubadour-ballade'
 STAMP = '2026-10-17T07:00:00Z'
 
-library = json.loads((PLAY / 'library.json').read_text())
-stories = json.loads((PLAY / 'stories.json').read_text())['stories']
+index = json.loads((PLAY / 'index.json').read_text())
+library, stories = index['library'], index['stories']
 meta = next(s for s in stories if s['id'] == 'underwater')
 
 
@@ -64,7 +64,7 @@ for k, name in enumerate(SOUNDBOX):
 story = {
     'format': 'troubadour', 'version': 2, 'id': '7b0e5d1c-5a43-4c0e-9f7e-2a6d1f3c9e01', 'revision': 1, 'bard': 'Troubadour',
     'title': meta['title'],
-    'description': f"{meta['blurb']} Sounds from Battle for Wesnoth and 0 A.D., credited file by file in the Troubadour repository (docs/play/sounds/CREDITS.md).",
+    'description': f"{meta['blurb']} Sounds from Battle for Wesnoth and 0 A.D., credited file by file in the Troubadour repository (docs/discovery/CREDITS.md).",
     'created': STAMP, 'forged': STAMP, 'generator': 'Troubadour Ballade discovery script', 'chapters': chapters, 'soundbox': soundbox,
 }
 

@@ -1,6 +1,6 @@
 import json
 c=json.load(open('credits.json'))
-st={s['id']:s for s in json.load(open('/home/claude/troubadour/docs/play/stories.json'))['stories']}
+st={s['id']:s for s in json.load(open('/home/claude/troubadour/docs/discovery/index.json'))['stories']}
 LIC={'GNU GPL v2+':'https://www.gnu.org/licenses/old-licenses/gpl-2.0.html','GNU GPL':'https://www.gnu.org/licenses/gpl-3.0.html','CC BY-SA 3.0':'https://creativecommons.org/licenses/by-sa/3.0/','CC BY-SA 4.0':'https://creativecommons.org/licenses/by-sa/4.0/','CC0':'https://creativecommons.org/publicdomain/zero/1.0/','CC BY 3.0':'https://creativecommons.org/licenses/by/3.0/','CC BY 4.0':'https://creativecommons.org/licenses/by/4.0/','Public domain':'','public domain':''}
 out=['# Sound credits','',
 'Every sound in the Troubadour web edition comes from open-source games, used under their original licences.','',
@@ -26,4 +26,4 @@ def sec(title, items):
 for sid,s in st.items():
     sec(s['title'], [(d,i) for d,i in c.items() if d.startswith(sid+'/')])
 sec('Soundbox', [(d,i) for d,i in c.items() if d.startswith('soundbox/')])
-open('/home/claude/troubadour/docs/play/sounds/CREDITS.md','w').write('\n'.join(out))
+open('/home/claude/troubadour/docs/discovery/CREDITS.md','w').write('\n'.join(out))

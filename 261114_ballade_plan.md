@@ -183,7 +183,7 @@ The choice flag at the end of the trunk opens **ways**: tabs above the tracks ("
 | Seams between clips | render touching clips and crossfades | no silence over 10 ms, RMS step under 1 dB |
 | Clicks | high-pass the render, find peaks over -30 dBFS at starts and stops | none |
 | Timing | schedule a chapter with cues; compare planned and rendered onsets | under 5 ms |
-| Conversion | open every v1 file in `docs/ballade/discovery`, convert, play | same sounds, same order, cues where gates were |
+| Conversion | open every v1 file in `docs/discovery/ballades`, convert, play | same sounds, same order, cues where gates were |
 | Memory | play a 90 min synthetic story; sample `performance.memory` where available | under 300 MB, no growth per chapter |
 | Format | round trip: open, forge, open again | identical JSON |
 

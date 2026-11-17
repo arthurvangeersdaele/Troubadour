@@ -3,14 +3,14 @@
 Usage: put blob-less sparse clones of wesnoth/wesnoth, 0ad/0ad, flareteam/flare-game and
 arianne/stendhal in ./src/ next to this script, plus Wesnoth's copyrights.csv as
 src/wes_copyrights.csv and Stendhal's doc/sources/audio-*.txt as src/stendhal_audio-*.txt,
-then run:  python3 build.py ../../../docs/play/sounds  [optional name filter]
+then run:  python3 build.py ../../../docs/discovery/sounds  [optional name filter]
 Needs ffmpeg with libmp3lame.
 """
 import csv, json, os, re, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = sys.argv[1]  # docs/play/sounds
+OUT = sys.argv[1]  # docs/discovery/sounds
 ns = {}
 exec(open(os.path.join(HERE, 'spec.py')).read(), ns)
 PLAN, REPEAT, MIN_LOOP, NO_XFADE = ns['PLAN'], ns['REPEAT'], ns['MIN_LOOP'], ns['NO_XFADE']

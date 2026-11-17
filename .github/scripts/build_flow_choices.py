@@ -2,7 +2,7 @@
 """Builds the second discovery tale of Troubadour Ballade: Treasure Island, a Ballade of choices.
 
 Takes its story and sounds from the Recueil (docs/recueil/261015_treasure_island.troubadour) and writes
-docs/ballade/discovery/261021_treasure-island-choices.troubadour-ballade. Choices nest three deep; every scene
+docs/discovery/ballades/261021_treasure-island-choices.troubadour-ballade. Choices nest three deep; every scene
 has a music, some have effects, some of them at random. Run from the repo root:
 
     python3 .github/scripts/build_flow_choices.py
@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'docs' / 'recueil' / '261015_treasure_island.troubadour'
-OUT = ROOT / 'docs' / 'ballade' / 'discovery' / '261021_treasure-island-choices.troubadour-ballade'
+OUT = ROOT / 'docs' / 'discovery' / 'ballades' / '261021_treasure-island-choices.troubadour-ballade'
 STAMP = '2026-10-21T21:30:00Z'
 
 zin = zipfile.ZipFile(SRC)

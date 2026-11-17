@@ -2,7 +2,7 @@
 """One-off (November 2026): gives every sound of the Recueil tales its locked identity (the "sound" block).
 
 Origins come from the credit tables: docs/recueil/CREDITS.md (tales rhythmed by Troubadour) and
-docs/play/sounds/CREDITS.md (Werewolf and the Soundbox, which came from the web edition).
+docs/discovery/CREDITS.md (Werewolf and the Soundbox, which came from the web edition).
 "brought" goes to the troubadour of the oldest tale that uses the sound. Every tale is rewritten with its
 revision raised by one; the audio entries are copied unchanged.
 
@@ -92,7 +92,7 @@ def places(story):
 def main():
     write = "--write" in sys.argv
     recueil_credits = parse_rows((RECUEIL / "CREDITS.md").read_text(encoding="utf-8"))
-    web_credits = parse_rows((ROOT / "docs" / "play" / "sounds" / "CREDITS.md").read_text(encoding="utf-8"))
+    web_credits = parse_rows((ROOT / "docs" / "discovery" / "CREDITS.md").read_text(encoding="utf-8"))
     werewolf = {web_key(p): v for p, v in web_credits.get("Werewolf", {}).items()}
     soundbox = {web_key(p): v for p, v in web_credits.get("Soundbox", {}).items()}
     by_file = {}

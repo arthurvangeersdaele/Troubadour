@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.6';
+  const VERSION = '261117.7';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -50,6 +50,7 @@
   }
 
   async function renderLibrary() {
+    await loadDiscoveries();
     const list = $('#flow-list');
     const recs = await DB.list();
     if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
@@ -155,7 +156,7 @@
     };
     return [
       door('new', ICON.import, 'Import', 'A .troubadour-ballade, or a .troubadour', pickFile),
-      door('disc', DISC, 'Discovery', `${DISCOVERIES.length === 2 ? 'Two' : DISCOVERIES.length} tales already timed, sounds included`, openDiscovery),
+      door('disc', DISC, 'Discovery', `${DISCOVERIES.length === 2 ? 'Two tales' : DISCOVERIES.length === 1 ? 'A tale' : 'Tales'} already timed, sounds included`, openDiscovery),
     ];
   }
   const DISC = window.FlowUI.svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 20);
@@ -174,6 +175,7 @@
   }
   /** The discovery tales: one tap adds one (or plays it, when it is already on this device). */
   async function openDiscovery() {
+    await loadDiscoveries();
     const recs = await DB.list();
     const doors = el('div', 'lib-doors add-doors bl-disc');
     DISCOVERIES.forEach((d) => {
@@ -185,17 +187,29 @@
       b.addEventListener('click', () => { $('#sheet').close(); if (have) playAt(have); else addDiscovery(d); });
       doors.append(b);
     });
+    if (!DISCOVERIES.length) doors.append(el('p', 'muted', 'The discovery tales need a connection to download. Try again once you are online.'));
     sheet('Discovery tales').append(doors);
     if (!$('#sheet').open) $('#sheet').showModal();
   }
 
   /* ================= Discovery tale ================= */
-  const DISCOVERIES = [
-    { id: '3c9a6e2f-81d4-4b7a-a5e2-6f0b9d4c2a17', revision: 3, file: 'discovery/261017_underwater-adventure.troubadour-ballade', title: 'Underwater Adventure',
-      blurb: 'Five chapters already timed, from a lazy beach to the Kraken. About 32 MB.' },
-    { id: '9a4d2f6e-3b81-4c57-a0e9-7f2c5b8d1e63', revision: 2, file: 'discovery/261021_treasure-island-choices.troubadour-ballade', title: 'Treasure Island, by your choices',
-      blurb: 'Two chapters where the players decide: choices within choices, three deep. A music in every scene, effects, some at random. About 17 MB.' },
-  ];
+  /* The discovery tales live in docs/discovery/ballades/, listed in docs/discovery/index.json (shared by every app). */
+  let DISCOVERIES = [];
+  let discoveryLoad = null;
+  function loadDiscoveries() {
+    if (!discoveryLoad) {
+      discoveryLoad = fetch('../discovery/index.json', { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => {
+          DISCOVERIES = (d.ballades || []).map((b) => Object.assign({}, b, {
+            file: `../discovery/${b.file}`,
+            blurb: b.size ? `${b.blurb} About ${Math.max(1, Math.round(b.size / 1e6))} MB.` : b.blurb,
+          }));
+        })
+        .catch(() => { discoveryLoad = null; });
+    }
+    return discoveryLoad;
+  }
   async function addDiscovery(d) {
     try {
       busy(`Downloading ${d.title}`, '', 0);

@@ -1,6 +1,6 @@
 // Ballade sound lab runner (261114_ballade_plan.md, phases 0 and 1).
 //   node tests/ballade/run.mjs [file.troubadour-ballade ...]
-// With no argument, every discovery tale in docs/ballade/discovery. Writes tests/ballade/report.json and
+// With no argument, every discovery tale in docs/discovery/ballades. Writes tests/ballade/report.json and
 // prints a summary: "before" is the raw files looped the old way (the baseline), "engine" is what the Ballade
 // engine plays. It fails (exit 1) when the engine leaves a hole, a click, a hard start or a hard stop.
 // CHROMIUM=/path/to/chrome to use a given browser (else Playwright's own).
@@ -21,7 +21,7 @@ const server = http.createServer((req, res) => {
 await new Promise((ok) => server.listen(0, ok));
 const base = `http://localhost:${server.address().port}`;
 
-const disc = path.join(ROOT, 'docs/ballade/discovery');
+const disc = path.join(ROOT, 'docs/discovery/ballades');
 const inputs = process.argv.slice(2).length ? process.argv.slice(2).map((f) => path.resolve(f))
   : fs.readdirSync(disc).filter((f) => f.endsWith('.troubadour-ballade')).map((f) => path.join(disc, f));
 

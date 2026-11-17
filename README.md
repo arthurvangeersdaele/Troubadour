@@ -12,7 +12,7 @@ Project page: https://arthurvangeersdaele.github.io/Troubadour/
 
 Three minutes, subtitled, no voice over: what Troubadour is, a chapter of Underwater Adventure layered sound by sound (headphones on), how to rhythm and share a story, La Troupe, and where to get Troubadour. [Watch it in English](https://arthurvangeersdaele.github.io/Troubadour/tutorial/261015_troubadour_tutorial_en.mp4), [en français](https://arthurvangeersdaele.github.io/Troubadour/tutorial/261015_troubadour_tutorial_fr.mp4), or on the [project page](https://arthurvangeersdaele.github.io/Troubadour/#tutorial). Files, subtitles (`.srt`) and sound credits are in [`docs/tutorial/`](docs/tutorial/).
 
-**Play it in your browser:** https://arthurvangeersdaele.github.io/Troubadour/play/ with three ready-made stories (The Forest Adventure, The Big War, Underwater Adventure), the mixing table and the soundbox. More tales, like Werewolf, are in La Troupe. No import and no story editing in the web edition; its sounds live in [`docs/play/sounds/`](docs/play/sounds/).
+**Play it in your browser:** https://arthurvangeersdaele.github.io/Troubadour/play/ with three ready-made stories (The Forest Adventure, The Big War, Underwater Adventure), the mixing table and the soundbox. More tales, like Werewolf, are in La Troupe. No import and no story editing in the web edition; its sounds live in [`docs/discovery/sounds/`](docs/discovery/sounds/).
 
 **On iPhone:** [Troubadour for iPhone](https://arthurvangeersdaele.github.io/Troubadour/ios/) installs from Safari on the Home Screen (Share, then Add to Home Screen). It only runs from there: opened in a browser tab it shows the install steps, and on other devices it says it is made for iPhone. The Troubadour page shows its install button only on an iPhone.
 
@@ -60,20 +60,27 @@ Engine details (`app/src/main/cpp/audio_engine.cpp`):
 
 ## Web edition
 
-`docs/play/` is a static page served by GitHub Pages (no build step):
-
-- `stories.json`: the three stories and their chapters;
-- `sounds/<story>/<chapter>/{music,ambience,events}/*.mp3` and `sounds/soundbox/*.mp3`: the audio files;
-- `library.json`: the list of sound files, rebuilt automatically by the **Update sound library** action when MP3s are pushed (or by hand with `python3 .github/scripts/build_sound_library.py`).
+`docs/play/` is a static page served by GitHub Pages (no build step). It plays the three discovery stories, read from `docs/discovery/` (see below).
 
 Opening a story downloads every MP3 of every chapter into memory, so each sound starts instantly. Events and ambiances can be set to random (their loop button cycles 1×, 2×, ∞, random): they play again after a pause of 0.5 s up to the longest pause set in Settings, Random sounds (1 to 10 s), like on Android and iPhone. Themes (Obsidian, Parchment, Blood, Divination, each dark or light), fade-out length, music crossfade and screen wake lock are in Settings.
+
+## Discovery
+
+`docs/discovery/` holds everything Troubadour offers to try at once, for every app, listed in one file, `docs/discovery/index.json` (see [docs/discovery/README.md](docs/discovery/README.md)):
+
+- `sounds/`: the three discovery stories (The Forest Adventure, Underwater Adventure, The Big War) and their soundbox, played by the web player and added by Discovery in Troubadour for iPhone and Android;
+- `ballades/`: the discovery tales of Troubadour Ballade;
+- `maps/`: the discovery worlds of Troubadour Map;
+- `CREDITS.md`: the source of every sound.
+
+The **Update discovery index** action rebuilds `index.json` when anything is pushed there (by hand: `python3 .github/scripts/build_discovery_index.py`). The Recueil (`docs/recueil/`) stays apart.
 
 ## Troubadour for iPhone
 
 `docs/ios/` is a Home Screen web app that follows the Android plan, served by GitHub Pages (no build step):
 
 - **Stories kept on the phone**: stories, chapters and sounds live in IndexedDB (`db.js`), sounds as blobs shared between stories, and the app asks iOS for persistent storage (Settings shows whether it is granted and how much room is left).
-- **Library**: new story, import a `.troubadour` from Files, add a tale of the Recueil, or add one of the three discovery stories (downloaded once from `docs/play/`).
+- **Library**: new story, import a `.troubadour` from Files, add a tale of the Recueil, or add one of the three discovery stories (downloaded once from `docs/discovery/`).
 - **Story editor**: chapters (add, rename, reorder, remove), Music, Ambiances and Events with loop mode, order and preview per sound, the story's own soundbox, a description. Sounds come from Files or are reused from any story already on the phone.
 - **Mixing table**: the same table as the web player (cards, loops, random events and ambiances, fades, crossfade, master), plus a soundbox drawer with the story's effects and the shared ones. Loop and volume changes made at the table are kept.
 - **Shared soundbox**: quick effects available on every table.
@@ -101,12 +108,12 @@ The `.troubadour` format (a ZIP with `story.json` and the audio files, signed wi
 
 Troubadour Ballade is for troubadours who prepare the exact timing of their sounds before the session, then follow it at the table. It plays vertically, on a phone held upright:
 
-- **Library**: the stories kept on the device (IndexedDB, `flow-db.js`), Import, Settings. No Recueil, no Discovery.
+- **Library**: the stories kept on the device (IndexedDB, `flow-db.js`), Import, Discovery tales, Settings. No Recueil.
 - **Player**: the story title on top, the chapters in a row that scrolls sideways, then the chapter as a cascade of steps from top to bottom. A step holds up to three sounds side by side; a golden wire runs down the screen, splits to the cards of a step and joins again below, and lights each card as its moment comes, so the coming sounds are always in sight. Steps follow on their own when the one above ends; gates wait for a tap on **Go**. At the end of a chapter, the wire waits on a golden **Next chapter** button. Pause (the whole timeline stops with the audio clock), fade out everything, master volume, the story's soundbox in a drawer, tap a playing card to fade it out, tap any step to jump there.
 - **Editor** (computer only for now): steps, gates, when the next step starts, and for each card its offset, length, trim, repeat, fades and volume; sounds dragged from the chapter, another chapter or the soundbox. Importing a `.troubadour` builds a first Ballade to start from. **Rhythm .troubadour-ballade** writes the file for the phone, **Export .troubadour** gives the story back without its Ballade.
 - Same themes and troubadour name as Troubadour. Home Screen web app on iPhone (`sw.js` keeps it offline; bump `VERSION` there and in `app.js` when shipping a change). The Android build comes next.
 
-- **Discovery tale**: Underwater Adventure, timed chapter by chapter (`docs/ballade/discovery/261017_underwater-adventure.troubadour-ballade`), offered in the library until it is added. Rebuilt from the web edition's sounds by `python3 .github/scripts/build_flow_discovery.py`.
+- **Discovery tales**: Underwater Adventure, timed chapter by chapter, and Treasure Island, by your choices (`docs/discovery/ballades/`, listed in `docs/discovery/index.json`), offered in the library until they are added. Rebuilt by `python3 .github/scripts/build_flow_discovery.py` and `build_flow_choices.py`.
 
 The `.troubadour-ballade` format (a `.troubadour` plus `flow.json`) is specified in [TROUBADOUR_BALLADE_FORMAT.md](TROUBADOUR_BALLADE_FORMAT.md).
 

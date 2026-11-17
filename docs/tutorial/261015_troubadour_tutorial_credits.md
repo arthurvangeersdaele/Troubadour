@@ -11,7 +11,7 @@ Sounds heard in this video (from Troubadour's discovery story "Underwater Advent
 - Splash (water.wav): Battle for Wesnoth, InspectorJ, CC BY-SA 4.0
 - Ship horn far away (edited from horn-5): Battle for Wesnoth, Lari Nieminen (zookeeper), GNU GPL v2+
 
-Full list: https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/play/sounds/CREDITS.md
+Full list: https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/discovery/CREDITS.md
 
 ## Français
 
@@ -22,4 +22,4 @@ Sons entendus dans cette vidéo (issus de l'histoire découverte « Underwater A
 - Splash (water.wav) : Battle for Wesnoth, InspectorJ, CC BY-SA 4.0
 - Ship horn far away (retouché depuis horn-5) : Battle for Wesnoth, Lari Nieminen (zookeeper), GNU GPL v2+
 
-Liste complète : https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/play/sounds/CREDITS.md
+Liste complète : https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/discovery/CREDITS.md

@@ -1,6 +1,6 @@
 [
   {
-    "file": "docs/ballade/discovery/261017_underwater-adventure.troubadour-ballade",
+    "file": "docs/discovery/ballades/261017_underwater-adventure.troubadour-ballade",
     "story": "Underwater Adventure",
     "cards": 47,
     "sounds": 49,
@@ -463,7 +463,7 @@
     ]
   },
   {
-    "file": "docs/ballade/discovery/261021_treasure-island-choices.troubadour-ballade",
+    "file": "docs/discovery/ballades/261021_treasure-island-choices.troubadour-ballade",
     "story": "Treasure Island, by your choices",
     "cards": 26,
     "sounds": 29,

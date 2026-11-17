@@ -9,7 +9,7 @@ on:
       - ".github/workflows/auth-worker.yml"
       - "**.md"
       - ".github/scripts/**"
-      - ".github/workflows/sound-library.yml"
+      - ".github/workflows/discovery.yml"
       - ".github/workflows/recueil.yml"
       - "TROUBADOUR_FORMAT.md"
   workflow_dispatch:

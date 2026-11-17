@@ -1,5 +1,5 @@
 # Sound plan for the Troubadour web edition.
-# Each entry: destination (relative to docs/play/sounds) -> recipe
+# Each entry: destination (relative to docs/discovery/sounds) -> recipe
 #   ("one", source, filter)            single source, optional ffmpeg -af filter
 #   ("mix", [sources], filter_complex) several sources mixed into one (output label [out])
 # Sources: "W:" Wesnoth data/core/, "WC:" Wesnoth data/campaigns/, "Z:" 0 A.D. public/audio/, "F:" Flare mods/fantasycore/

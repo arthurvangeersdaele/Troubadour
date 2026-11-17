@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.05';
+  const VERSION = '261117.06';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -39,7 +39,73 @@
     return [
       door('new', ICON.plus, 'New world', 'A blank map, with your own sounds', go(newWorld)),
       door('import', ICON.import, 'Import', 'A .troubadour or .troubadour-map file', go(pickFile)),
+      door('disc', DISC, 'Discovery', 'A world ready to walk, sounds included', go(openDiscovery)),
     ];
+  }
+
+  /* ================= Discovery worlds ================= */
+  /* They live in docs/discovery/maps/, listed in docs/discovery/index.json (shared by every app). */
+  const DISC = svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 20);
+  let DISCOVERIES = [];
+  let discoveryLoad = null;
+  function loadDiscoveries() {
+    if (!discoveryLoad) {
+      discoveryLoad = fetch('../discovery/index.json', { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => {
+          DISCOVERIES = (d.maps || []).map((m) => Object.assign({}, m, {
+            file: `../discovery/${m.file}`,
+            blurb: m.size ? `${m.blurb} About ${Math.max(1, Math.round(m.size / 1e6))} MB.` : m.blurb,
+          }));
+        })
+        .catch(() => { discoveryLoad = null; });
+    }
+    return discoveryLoad;
+  }
+  const hasDiscovery = (recs, d) => recs.find((r) => r.world.id === d.id && (r.world.revision || 0) >= d.revision);
+  /** The discovery worlds: one tap adds one (or plays it, when it is already on this device). */
+  async function openDiscovery() {
+    await loadDiscoveries();
+    const recs = await DB.list();
+    $('#sheet-title').textContent = 'Discovery worlds';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = '';
+    const doors = el('div', 'lib-doors add-doors disc-doors');
+    DISCOVERIES.forEach((d) => {
+      const have = hasDiscovery(recs, d);
+      const b = el('button', 'ldoor d-disc');
+      b.type = 'button';
+      b.innerHTML = `<span class="di">${have ? ICON.play : DISC}</span>`;
+      b.append(el('b', '', d.title), el('span', '', have ? 'On this device: tap to play' : d.blurb));
+      b.addEventListener('click', () => { $('#sheet').close(); if (have) playAt(have); else addDiscovery(d); });
+      doors.append(b);
+    });
+    if (!DISCOVERIES.length) doors.append(el('p', 'muted', 'The discovery worlds need a connection to download. Try again once you are online.'));
+    body.append(doors);
+    if (!$('#sheet').open) $('#sheet').showModal();
+  }
+  async function addDiscovery(d) {
+    try {
+      busy(`Downloading ${d.title}`, '', 0);
+      const res = await fetch(d.file);
+      if (!res.ok) throw new Error(`the server answered ${res.status}`);
+      const total = Number(res.headers.get('content-length')) || d.size || 0;
+      const reader = res.body.getReader();
+      const parts = [];
+      let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value);
+        got += value.length;
+        busy(`Downloading ${d.title}`, total ? `${window.Troubadour.formatSize(got)} of ${window.Troubadour.formatSize(total)}` : window.Troubadour.formatSize(got), total ? got / total : null);
+      }
+      await importFile(new File(parts, d.file.split('/').pop()));
+    } catch (e) {
+      idle();
+      toast(`${d.title} could not be downloaded: ${e.message || e}. Check your connection.`, 5200);
+    }
   }
   function openAddWorld() {
     $('#sheet-title').textContent = 'Add a world';
@@ -148,6 +214,8 @@
       hero: { title: 'Map builder', lead: 'Command space: draw the places of your world, bind your sounds to them, and the party hears them as it walks.',
         mark: '<svg viewBox="182 230 660 660" class="ring"><g><circle cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/><circle cx="512" cy="560" r="290" stroke-width="26" stroke-dasharray="1 82" opacity=".7"/></g><circle class="core" cx="512" cy="560" r="80"/><circle class="eye" cx="512" cy="560" r="28"/></svg>' },
       create: { title: 'New world', sub: 'A blank map, then your own sounds', onClick: newWorld },
+      more: DISCOVERIES.filter((d) => !hasDiscovery(recs, d))
+        .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
       history: {
         title: 'Your worlds',
@@ -165,13 +233,14 @@
 
   async function renderLibrary() {
     const grid = $('#world-list');
+    await loadDiscoveries();
     const recs = await DB.list();
     if (pc() && window.TroupeBuilderMenu) { renderMenu(recs); return; }
     grid.textContent = '';
     if (!recs.length) {
       const hello = el('div', 'hello');
       hello.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
-      hello.append(el('h1', '', 'Your world awaits'), el('p', 'lead', 'Draw the maps of your world, lay your sounds on the map, and hear what the party hears as it walks. Start a blank world, or import a .troubadour story.'));
+      hello.append(el('h1', '', 'Your world awaits'), el('p', 'lead', 'Draw the maps of your world, lay your sounds on the map, and hear what the party hears as it walks. Start a blank world, import a .troubadour story, or walk a discovery world.'));
       grid.append(hello, el('h3', 'lib-h', 'Add a world'));
       const doors = el('div', 'lib-doors');
       doors.append(...addDoors());
@@ -188,7 +257,7 @@
     add.type = 'button';
     add.innerHTML = `<span class="add-i">${ICON.plus}</span>`;
     const at = el('span', 'stxt');
-    at.append(el('b', '', 'Add a world'), el('span', 'meta', 'New, or a .troubadour or .troubadour-map file'));
+    at.append(el('b', '', 'Add a world'), el('span', 'meta', 'New, a discovery world, or a .troubadour or .troubadour-map file'));
     add.append(at);
     add.addEventListener('click', openAddWorld);
     list.append(add);
