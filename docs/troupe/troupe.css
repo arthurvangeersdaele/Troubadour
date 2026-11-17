@@ -379,7 +379,6 @@ html.room .torch-glow{background:radial-gradient(circle,rgba(255,196,96,.34),rgb
    Where the browser animates between pages (Chrome, Edge, Safari 18.2+), the home page's honey light is carried over
    and dissolves straight into the room: no veil, no waiting. Elsewhere the page opens on the same light (.gold-veil)
    and it fades the same way. Either way the content is already in place: only the light moves. */
-@view-transition{navigation:auto}
 ::view-transition-group(root){animation-duration:.5s}
 ::view-transition-old(root){animation:troupe-light-out .55s cubic-bezier(.4,0,.2,1) both}
 ::view-transition-new(root){animation:none}
@@ -444,15 +443,15 @@ html.pc .doors.two{grid-template-columns:repeat(2,minmax(0,320px))}
    Zone colours mean sounds only, so no card wears one; the only colours are the apps' own marks.
    Each app: its player and its builder, two secondary buttons side by side. Expansions' names in italics. */
 .oath em{color:var(--text);font-style:normal}
-.oath i.ext,.app i.ext{font-style:italic}
+.oath i.ext,.tapp i.ext{font-style:italic}
 .tools-title{margin:40px 0 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--muted)}
 .apps{display:grid;grid-template-columns:minmax(0,360px);gap:16px;margin-top:14px;justify-content:center;width:100%}
 html.pc .apps{grid-template-columns:repeat(3,minmax(0,296px))}
-.app{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;transition:border-color .15s,box-shadow .15s,transform .15s}
-.app:hover{border-color:var(--muted);box-shadow:0 12px 30px var(--shadow);transform:translateY(-2px)}
+.tapp{display:flex;flex-direction:column;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.tapp:hover{border-color:var(--muted);box-shadow:0 12px 30px var(--shadow);transform:translateY(-2px)}
 .app-head{display:flex;align-items:center;gap:14px}
-.app h2{margin:0;font-family:'Cormorant SC',serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:.4px;color:var(--text)}
-.app p{margin:0;color:var(--muted);font-size:15px;line-height:1.4;flex:1}
+.tapp h2{margin:0;font-family:'Cormorant SC',serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:.4px;color:var(--text)}
+.tapp p{margin:0;color:var(--muted);font-size:15px;line-height:1.4;flex:1}
 .app-mark{width:44px;height:44px;flex:none;padding:6px;border-radius:10px;background:#15151B;box-sizing:border-box}
 .app-mark.wire path{fill:none;stroke:#F0C24F;stroke-width:34;stroke-linecap:round}
 .app-mark.wire circle{fill:#FFE08A}
@@ -474,15 +473,15 @@ html.pc .lore{width:min(100%,920px)}
 .lore>span>span{color:var(--muted);font-size:15px}
 .lore .go{color:var(--accent);flex:none}
 html.pc .discord-bar{width:min(100%,920px)}
-@media (prefers-reduced-motion:reduce){.app,.lore{transition:none}.app:hover,.lore:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){.tapp,.lore{transition:none}.tapp:hover,.lore:hover{transform:none}}
 html.pc .apps{grid-template-columns:repeat(3,minmax(0,300px))}
 html.pc .abtn{font-size:14px;gap:6px;padding:0 8px}
-html.pc .app{padding:18px}
+html.pc .tapp{padding:18px}
 html.pc .apps{grid-template-columns:repeat(3,minmax(0,306px))}
-html.pc .app{padding:16px}
+html.pc .tapp{padding:16px}
 .abtn{min-width:0}.abtn span{overflow:hidden;text-overflow:ellipsis}
 /* Prettier app buttons: a soft top light on every button; the Player, the next action, carries a light accent wash */
-.app{background:linear-gradient(180deg,color-mix(in srgb,var(--text) 3%,var(--card)),var(--card) 40%)}
+.tapp{background:linear-gradient(180deg,color-mix(in srgb,var(--text) 3%,var(--card)),var(--card) 40%)}
 .abtn{background:linear-gradient(180deg,color-mix(in srgb,var(--text) 6%,var(--bar)),var(--bar));
   box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 8%,transparent),0 1px 2px rgba(0,0,0,.25);transition:border-color .15s,background .15s,box-shadow .15s}
 .abtn:not(.build){border-color:color-mix(in srgb,var(--accent) 35%,var(--line));

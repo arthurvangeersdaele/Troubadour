@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261115.04';
+  const VERSION = '261117.01';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
