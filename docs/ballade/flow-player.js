@@ -1134,7 +1134,8 @@
         setCls(x.hand, 'hold', forced && on && !!c.hold);
       }
       setCls(x.card, 'hand', forced);
-      const txt = forced && done && !on ? 'played' : c.hold ? (on ? (x.lastRun ? '∞' : '') : '') : on ? (x.cont && left <= 0 ? '' : F.clock(left)) : F.clock(c.duration);
+      // A looping card shows no time: its ∞ mode symbol already says it loops until the gate (or The end).
+      const txt = forced && done && !on ? 'played' : c.hold ? '' : on ? (x.cont && left <= 0 ? '' : F.clock(left)) : F.clock(c.duration);
       if (x.time.textContent !== txt) x.time.textContent = txt;
     });
     // The time line and its dot: wherever the gold runs, hidden only inside a gate, a choice or Next chapter.
