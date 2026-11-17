@@ -12,7 +12,8 @@ input[type="text"], input[type="number"], input:not([type]), select { font-size:
 
 /* ---------- Shared bits (as in Troubadour for iPhone) ---------- */
 .btn.slim { height: 38px; padding: 0 12px; font-size: 15px; gap: 6px; flex: none; }
-.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
 .ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 .btn svg { flex: none; }
 .ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
@@ -909,3 +910,31 @@ html.pc .fe-step:not(:hover):not(:focus-within) .fe-acts .ico { opacity: .35; }
   #library .lib-b > .hero { position: relative; top: auto; height: auto; min-height: 0; margin-bottom: max(14px, env(safe-area-inset-bottom)); }
   #library .lib-list { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 }
+
+/* A question with a field (rename) */
+.ask-fields { display: grid; gap: 10px; margin: 0 0 14px; }
+.ask-f { display: grid; gap: 4px; min-width: 0; }
+#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0; }
+.ask-field { display: block; width: 100%; box-sizing: border-box; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; }
+.ask-field:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- Adding sounds (computer), as in the Story builder ---------- */
+.fe-name { width: 100%; box-sizing: border-box; margin: 2px 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 21px; }
+.fe-name:focus { outline: none; border-color: var(--accent); }
+.fe-addch { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; padding: 9px 12px; border-radius: 12px; border: 1px dashed var(--line); background: none; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+.fe-addch:hover { color: var(--text); border-color: var(--muted); }
+.fe-tools { display: grid; gap: 6px; }
+.fe-add { display: grid; gap: 8px; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--card) 60%, transparent); }
+.fe-into { width: 100%; box-sizing: border-box; display: flex; }
+.fe-into button { flex: 1; min-width: 0; padding-left: 4px; padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fe-into button[aria-checked="true"] { box-shadow: inset 0 -2px 0 var(--z); }
+.fe-drop { display: flex; align-items: center; gap: 10px; padding: 14px 12px; border-radius: 12px; border: 1.5px dashed color-mix(in srgb, var(--z) 55%, var(--line)); background: color-mix(in srgb, var(--z) 7%, transparent); color: var(--muted); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.fe-drop svg { flex: none; color: var(--z); }
+.fe-drop b { color: var(--accent); }
+.fe-drop:hover { border-color: var(--z); color: var(--text); }
+.fe-adds { display: flex; flex-wrap: wrap; gap: 6px; }
+.fe-link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.fe-link:hover { border-color: var(--muted); }
+.fe-link svg { flex: none; color: var(--muted); }
+.fe-sounds.over { outline: 2px dashed var(--accent); outline-offset: -6px; border-radius: 14px; }
+.fe-into button { font-size: 13px; letter-spacing: 0; }

@@ -103,22 +103,37 @@
   function idle() { $('#busy').hidden = true; }
 
   /** A small question: resolves with the value of the button tapped (null when dismissed). */
-  function ask(title, text, buttons) {
+  /** A question; with field ({ label, placeholder, value, max }) it holds a text input and answers { value, text }. */
+  function ask(title, text, buttons, field) {
     const dlg = $('#ask');
     $('#ask-title').textContent = title;
     $('#ask-text').textContent = text || '';
     $('#ask-text').hidden = !text;
     const acts = $('#ask-acts');
     acts.textContent = '';
+    dlg.querySelectorAll('.ask-fields').forEach((o) => o.remove());
+    let input = null;
+    if (field) {
+      const box = el('div', 'ask-fields');
+      const w = el('label', 'ask-f');
+      if (field.label) w.append(el('span', 'ask-label', field.label));
+      input = el('input', 'ask-field');
+      input.type = 'text'; input.placeholder = field.placeholder || ''; input.maxLength = field.max || 120; input.value = field.value || '';
+      w.append(input); box.append(w); acts.before(box);
+    }
     return new Promise((resolve) => {
       let answered = false;
-      const finish = (v) => { if (answered) return; answered = true; if (dlg.open) dlg.close(); resolve(v); };
+      const finish = (v) => { if (answered) return; answered = true; if (dlg.open) dlg.close(); resolve(field ? (v == null ? null : { value: v, text: input.value.trim() }) : v); };
       buttons.forEach((b) => {
         const x = el('button', `btn ${b.cls || ''}`, b.label);
         x.type = 'button';
         x.onclick = () => finish(b.value);
         acts.append(x);
       });
+      if (input) {
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(buttons[buttons.length - 1].value); } });
+        setTimeout(() => { input.focus(); input.select(); }, 30);
+      }
       dlg.addEventListener('close', () => finish(null), { once: true });
       dlg.showModal();
     });

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.15';
+  const VERSION = '261117.16';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -57,7 +57,7 @@
     window.TroupeBuilderMenu.render($('#bm-host'), {
       hero: { title: 'Ballade builder', lead: 'Command time: set the exact moment of every sound of your story, and the golden wire plays it for you at the table.',
         mark: '<svg viewBox="290 120 444 770" class="wire"><path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/></svg>' },
-      create: { title: 'New Ballade', sub: 'From a .troubadour story: its sounds become the first steps', onClick: pickFile },
+      create: { title: 'New Ballade', sub: 'A blank Ballade, then your chapters, sounds and steps', onClick: newBallade },
       more: DISCOVERIES.filter((d) => !recs.some((r) => r.flow.id === d.id && (r.flow.revision || 0) >= d.revision))
         .map((d) => ({ tag: 'Discovery tale', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
       drop: { text: 'Drop a .troubadour or a .troubadour-ballade here', onFile: importFile, onBrowse: pickFile },
@@ -331,6 +331,16 @@
     input.click();
   }
 
+  /** A blank Ballade: one empty chapter, opened in the Ballade builder, as New story in the Story builder. */
+  async function newBallade() {
+    const bard = window.Troubadour.bardName();
+    const stamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+    const story = { format: 'troubadour', version: 2, id: window.Troubadour.uuid(), revision: 1, bard, title: '', created: stamp,
+      chapters: [{ title: 'Chapter 1', music: [], ambience: [], events: [] }], soundbox: [] };
+    const rec = await DB.put({ uid: DB.uid(), story, flow: F.defaultFlow(story, {}, bard), files: {}, lengths: {} });
+    location.hash = `#/edit/${rec.uid}`;
+  }
+
   async function importFile(file) {
     const isFlow = /\.(troubadour-ballade|bardic-flow)$/i.test(file.name);
     try {
@@ -499,9 +509,13 @@
       opened(rec.uid);
       if (screen === 'player' && window.FlowPlayer.isOpen()) return;
       show('player');
-      busy('Opening the story', rec.story.title || '');
+      const title = rec.story.title || 'Story';
+      const t0 = Date.now();
+      busy('Opening the story', title, 0);
       try {
-        await window.FlowPlayer.open(rec, Number(m[3] || 0), { onLeave: () => { location.hash = '#/'; } });
+        await window.FlowPlayer.open(rec, Number(m[3] || 0), { onLeave: () => { location.hash = '#/'; },
+          onProgress: (n, t) => busy('Opening the story', t ? `${title}, ${n} of ${t} sounds` : title, t ? n / t : 1) });
+        await new Promise((res) => setTimeout(res, Math.max(0, 700 - (Date.now() - t0))));
       } finally { idle(); }
     }
   }

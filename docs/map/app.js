@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.13';
+  const VERSION = '261117.14';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -538,9 +538,9 @@
         } else if (rec === r) buffers.set(f, await decode(blob));
       } catch (e) { /* unreadable: stays silent */ }
       n += 1;
-      if (show && rec === r) busy(label || 'Getting the world ready', `${n} of ${need.length} sounds`, n / need.length);
+      if (show && rec === r) busy(label || 'Opening the story', `${r.story.title || 'World'}, ${n} of ${need.length} sounds`, n / need.length);
     };
-    if (show) busy(label || 'Getting the world ready', `0 of ${need.length} sounds`, 0);
+    if (show) busy(label || 'Opening the story', `${r.story.title || 'World'}, 0 of ${need.length} sounds`, 0);
     const todo = need.slice();
     await Promise.all([0, 1, 2, 3].map(async () => { while (todo.length && rec === r) await one(todo.shift()); }));
     if (show) idle();
@@ -664,7 +664,13 @@
     renderLayers();
     if (m === 'play') {
       const r0 = rec, music = worldMusic();
+      // The opening popup of every online player, shown long enough to be read.
+      const t0 = Date.now();
+      busy('Opening the story', `${rec.story.title || 'World'}`, 0);
       await prepare(worldFiles(rec));
+      busy('Opening the story', `${r0.story.title || 'World'}`, 1);
+      await new Promise((res) => setTimeout(res, Math.max(0, 700 - (Date.now() - t0))));
+      idle();
       if (rec !== r0 || mode !== 'play') return;
       A.setMusic(music);
       A.open(place(), rec.world, sounds);
@@ -2558,6 +2564,15 @@
       playing ? 'Its sounds fade out and you go back to your worlds.' : 'Your drawing is saved. You go back to your worlds.',
       [{ label: 'Stay', value: false }, { label: 'Leave', value: true, cls: 'danger' }]);
     if (!ok) return;
+    if (playing && rec) {
+      // As every online player: the sounds fade out under the same popup before the table closes.
+      const r0 = rec;
+      A.close();
+      busy('Leaving the story', r0.story.title || '');
+      await new Promise((res) => setTimeout(res, A.isSounding && !A.isSounding() ? 700 : settings.fade + 60));
+      idle();
+      if (rec !== r0) return;
+    }
     leaveOk = true;
     location.hash = '#/';
   }

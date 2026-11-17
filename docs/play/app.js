@@ -330,7 +330,7 @@
       const total = this.loop === 1 ? 2 * d : d;
       return Math.max(0, total - (this.plays * d + this.el.currentTime));
     }
-    set(state) { this.state = state; this.paint(); }
+    set(state) { this.state = state; this.paint(); if (opening) paintLoad(); }
     paint() { if (this.card) paintCard(this); }
     destroy() {
       clearTimeout(this.timer);
@@ -422,7 +422,10 @@
       pausedByAll = []; heldRandom = [];
       stopSoundbox();
       paintMaster();
-      if (sounding) await new Promise((r) => setTimeout(r, settings.fade + 60));
+      // The same popup in every online player: the sounds fade out under it (or it shows a moment).
+      busy('Leaving the story', s.meta.title, null);
+      await new Promise((r) => setTimeout(r, sounding ? settings.fade + 60 : 700));
+      idle();
       if (story !== s) return;
       const custom = s.meta.custom;
       if (custom) CUSTOM = null;
@@ -539,7 +542,11 @@
     renderRail();
     setChapter(idx);
     setSoundbox(settings.sbOpen ?? WIDE.matches);
+    // The opening popup, as in every online player: it stays until the sounds of this chapter are ready.
+    opening = story; openedAt = Date.now();
+    busy('Opening the story', meta.title, 0);
     preload(idx);
+    paintLoad(0);
     acquireWake();
   }
 
@@ -615,8 +622,17 @@
     renderPads();
   }
 
+  let opening = null, lastFrac = 0, openedAt = 0;
   function paintLoad(frac) {
     if (!story) return;
+    if (frac == null) frac = lastFrac; else lastFrac = frac;
+    if (opening === story) {
+      const vs = story.chapters[chapterIdx] ? ZONES.flatMap((z) => story.chapters[chapterIdx].voices[z.id]) : [];
+      const ok = vs.filter((v) => v.state !== 'loading').length;
+      // Shown long enough to be read, even when the sounds are already in this browser.
+      if (ok >= vs.length) { const s0 = story; opening = null; busy('Opening the story', story.meta.title, 1); setTimeout(() => { if (!opening && story === s0) idle(); }, Math.max(0, 700 - (Date.now() - openedAt))); }
+      else busy('Opening the story', `${story.meta.title}, ${ok} of ${vs.length} sounds`, ok / vs.length);
+    }
     const ready = story.all.filter((v) => v.state !== 'loading').length;
     const total = story.all.length;
     $('#load-count').textContent = `${ready}/${total}`;
@@ -653,7 +669,7 @@
     v.querySelector('.lbl').textContent = sub || '';
     v.querySelector('.bar i').style.width = `${Math.round((frac == null ? 0.5 : frac) * 100)}%`;
   }
-  const idle = () => { $('#od-veil')?.remove(); };
+  function idle() { $('#od-veil')?.remove(); }
   const BARS = '<svg viewBox="200 232 624 540" class="bars"><rect x="224" y="416" width="128" height="320" rx="64" fill="#E0A84B"/><rect x="448" y="256" width="128" height="512" rx="64" fill="#4FB3A5"/><rect x="672" y="352" width="128" height="384" rx="64" fill="#E06A63"/></svg>';
   async function renderOnline() {
     const host = $('#od-host');

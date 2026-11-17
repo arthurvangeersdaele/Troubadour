@@ -12,7 +12,7 @@
   const ZCOL = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
   const ZNAME = { music: 'Music', ambience: 'Ambiances', events: 'Events', soundbox: 'Soundbox' };
 
-  const E = { rec: null, ch: 0, path: [], sel: null, tab: 'chapter', buffers: new Map(), blobs: null, preview: null, onLeave: null, onPlay: null, saveT: 0 };
+  const E = { rec: null, ch: 0, path: [], sel: null, tab: 'chapter', zone: 'music', buffers: new Map(), blobs: null, preview: null, onLeave: null, onPlay: null, saveT: 0 };
 
   async function open(rec, opts = {}) {
     E.rec = rec;
@@ -22,7 +22,7 @@
     E.onLeave = opts.onLeave; E.onPlay = opts.onPlay;
     E.blobs = await global.FlowDB.filesOf(rec);
     E.rec.lengths = E.rec.lengths || {};
-    $('#fe-title').textContent = rec.story.title || 'Story';
+    $('#fe-title').textContent = rec.story.title || 'New Ballade';
     $('#fe-sub').textContent = `Ballade builder, revision ${rec.flow.revision || 0}, ${rec.flow.bard || ''}`;
     renderAll();
   }
@@ -308,7 +308,13 @@
   function renderChapters() {
     const nav = $('#fe-chapters');
     nav.textContent = '';
-    nav.append(el('h3', '', 'Chapters'));
+    // The story's title, as in the Story builder.
+    const st = E.rec.story;
+    const name = el('input', 'fe-name');
+    name.value = st.title || ''; name.placeholder = 'Title of the story'; name.maxLength = 120;
+    name.setAttribute('aria-label', 'Title of the story');
+    name.addEventListener('input', () => { st.title = name.value; $('#fe-title').textContent = name.value.trim() || 'New Ballade'; changed(false); });
+    nav.append(name, el('h3', '', 'Chapters'));
     E.rec.story.chapters.forEach((c, i) => {
       const b = el('button', 'chap');
       b.type = 'button';
@@ -318,9 +324,38 @@
       b.addEventListener('click', () => { E.ch = i; E.path = []; E.sel = null; stopPreview(); closeHelp(); renderAll(); $('#fe-main').scrollTop = 0; });
       nav.append(b);
     });
+    const addc = el('button', 'fe-addch'); addc.type = 'button';
+    addc.innerHTML = `${ICON.plus}<span>Add a chapter</span>`;
+    addc.addEventListener('click', () => {
+      const ch = { title: `Chapter ${st.chapters.length + 1}`, music: [], ambience: [], events: [] };
+      st.chapters.push(ch);
+      E.rec.flow.chapters.push(F.defaultChapter(ch, E.rec.lengths));
+      E.ch = st.chapters.length - 1; E.path = []; E.sel = null;
+      changed();
+    });
+    nav.append(addc);
     const tree = waysTree();
     if (tree) nav.append(tree);
     const tools = el('div', 'fe-tools');
+    const ren = el('button', 'btn small', 'Rename this chapter'); ren.type = 'button';
+    ren.addEventListener('click', async () => {
+      const a = await ask('Rename this chapter', '', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: 'Chapter name', value: st.chapters[E.ch].title, max: 120 });
+      if (!a || !a.text) return;
+      st.chapters[E.ch].title = a.text;
+      changed();
+    });
+    tools.append(ren);
+    if (st.chapters.length > 1) {
+      const rm = el('button', 'btn small', 'Remove this chapter'); rm.type = 'button';
+      rm.addEventListener('click', async () => {
+        const ok = await ask(`Remove ${st.chapters[E.ch].title || 'this chapter'}?`, 'Its steps leave the Ballade, with its sounds.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
+        if (!ok) return;
+        st.chapters.splice(E.ch, 1); E.rec.flow.chapters.splice(E.ch, 1);
+        E.ch = Math.max(0, E.ch - 1); E.path = []; E.sel = null;
+        changed();
+      });
+      tools.append(rm);
+    }
     const reset = el('button', 'btn small', 'Rebuild this chapter');
     reset.type = 'button';
     reset.title = 'Replace its steps with a first Ballade made from its sounds';
@@ -794,6 +829,7 @@
       return;
     }
     box.textContent = '';
+    box.append(addPanel());
     const tabs = el('div', 'seg small fe-tabs');
     [['chapter', 'This chapter'], ['others', 'Others'], ['soundbox', 'Soundbox']].forEach(([v, t]) => {
       const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(E.tab === v));
@@ -837,6 +873,110 @@
     box.append(list);
   }
 
+  /* ---------- Adding sounds, as in the Story builder: files, a link or YouTube, the Recueil, a .troubadour ---------- */
+  const ADD_ZONES = [['music', 'Music'], ['ambience', 'Ambiances'], ['events', 'Events'], ['soundbox', 'Soundbox']];
+  const LINK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>';
+  const BOOK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7"/></svg>';
+  const TALE = '<svg width="16" height="16" viewBox="200 232 624 540" aria-hidden="true"><rect x="224" y="416" width="128" height="320" rx="64" fill="currentColor" opacity=".75"/><rect x="448" y="256" width="128" height="512" rx="64" fill="currentColor"/><rect x="672" y="352" width="128" height="384" rx="64" fill="currentColor" opacity=".75"/></svg>';
+  function addPanel() {
+    const wrap = el('div', 'fe-add');
+    wrap.append(el('h4', '', 'Add sounds'));
+    const seg = el('div', 'seg small fe-into');
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Add into');
+    ADD_ZONES.forEach(([v, t]) => {
+      const b = el('button', '', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(E.zone === v));
+      b.style.setProperty('--z', ZCOL[v]);
+      b.addEventListener('click', () => { E.zone = v; renderSounds(); });
+      seg.append(b);
+    });
+    const where = E.zone === 'soundbox' ? 'the Soundbox' : `${ZNAME[E.zone]}, ${E.rec.story.chapters[E.ch].title || `Chapter ${E.ch + 1}`}`;
+    const drop = el('button', 'fe-drop'); drop.type = 'button';
+    drop.style.setProperty('--z', ZCOL[E.zone]);
+    drop.innerHTML = `${ICON.import}<span>Drop sounds into ${escapeHtml(where)}, or <b>browse</b></span>`;
+    drop.addEventListener('click', () => pickSounds('audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.opus,.troubadour'));
+    const row = el('div', 'fe-adds');
+    const mk = (icon, t, fn) => { const b = el('button', 'fe-link'); b.type = 'button'; b.innerHTML = `${icon}<span>${t}</span>`; b.addEventListener('click', fn); row.append(b); };
+    if (global.TroubadourCrop) mk(LINK, 'From a link or YouTube', () => global.TroubadourCrop.open({ zone: E.zone, onSave: (file, info) => addBlobs([{ blob: file, name: info.name, duration: info.duration }], E.zone) }));
+    if (global.TroubadourLibrary) mk(BOOK, 'From the Recueil', () => global.TroubadourLibrary.open(E.zone));
+    mk(TALE, 'From a .troubadour', () => pickSounds('.troubadour,.bardic,application/zip'));
+    wrap.append(seg, drop, row);
+    return wrap;
+  }
+  function pickSounds(accept) {
+    let input = $('#fe-pick');
+    if (!input) {
+      input = el('input'); input.type = 'file'; input.id = 'fe-pick'; input.multiple = true; input.hidden = true;
+      input.addEventListener('change', () => { const fs = [...input.files]; input.value = ''; addFiles(fs); });
+      document.body.append(input);
+    }
+    input.accept = accept;
+    input.click();
+  }
+  const nameFrom = (f) => f.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/^\d+\s+/, '').trim() || 'Sound';
+  /** Audio files join the row picked under Add sounds; a .troubadour gives every sound of its tale. */
+  async function addFiles(files) {
+    const B = global.Troubadour;
+    const audioFiles = files.filter((f) => B.isAudio(f));
+    const tales = files.filter((f) => /\.(troubadour|bardic)$/i.test(f.name));
+    const skipped = files.length - audioFiles.length - tales.length;
+    if (audioFiles.length) await addBlobs(audioFiles.map((f) => ({ blob: f, name: nameFrom(f.name) })), E.zone);
+    for (const t of tales) {
+      try {
+        busy('Reading the tale', t.name, 0);
+        const d = await B.unpack(t, (n, tot) => busy('Reading the tale', `Sound ${n} of ${tot}`, n / tot));
+        idle();
+        const items = [];
+        const seen = new Set();
+        d.chapters.forEach((c) => F.ZONES.forEach((z) => c[z].forEach((x) => { if (!seen.has(x.blob)) { seen.add(x.blob); items.push({ blob: x.blob, name: x.name, duration: x.duration, zone: z, loop: x.loop, volume: x.volume, credit: x.extra && x.extra.sound }); } })));
+        d.soundbox.forEach((x) => { if (!seen.has(x.blob)) { seen.add(x.blob); items.push({ blob: x.blob, name: x.name, duration: x.duration, zone: 'soundbox', volume: x.volume, credit: x.extra && x.extra.sound }); } });
+        if (!items.length) { toast(`${t.name} holds no sound.`); continue; }
+        await addBlobs(items, null, `from ${d.title || t.name}`);
+      } catch (e) { idle(); toast(`${t.name} could not be read: ${e.message || e}`, 4200); }
+    }
+    if (skipped) toast(`${skipped} file${skipped > 1 ? 's were' : ' was'} not audio and stayed out.`);
+  }
+  /** Keeps the sounds in this browser and lays them in the story: in the row of zone (or each in its own, zone null). */
+  async function addBlobs(items, zone, from) {
+    const st = E.rec.story;
+    let n = 0;
+    try {
+      for (const it of items) {
+        n += 1;
+        busy('Adding sounds', `${n} of ${items.length}`, n / items.length);
+        const z = zone || it.zone || 'events';
+        const ext = ((it.blob.name || '').match(/\.([a-z0-9]+)$/i) || [0, 'mp3'])[1].toLowerCase();
+        const path = `sounds/added/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}-${global.Troubadour.slug(it.name, 'sound')}.${ext}`;
+        const key = await global.FlowDB.putBlob(it.blob);
+        E.rec.files[path] = key;
+        E.blobs.set(path, it.blob);
+        let d = it.duration;
+        if (!d) { try { d = (await decode(it.blob)).duration; } catch (e) { d = 0; } }
+        if (d) E.rec.lengths[path] = Math.round(d * 10) / 10;
+        const snd = { name: it.name || 'Sound', file: path, loop: it.loop || (z === 'music' || z === 'ambience' ? 'infinite' : 'once'), volume: typeof it.volume === 'number' ? it.volume : 0.75 };
+        if (d) snd.duration = Math.round(d * 10) / 10;
+        if (it.credit) snd.sound = it.credit;
+        if (z === 'soundbox') (st.soundbox = st.soundbox || []).push(snd);
+        else st.chapters[E.ch][z].push(snd);
+      }
+      idle();
+    } catch (e) { idle(); toast(`Could not add the sounds: ${e.message || e}`, 4200); }
+    E.tab = zone === 'soundbox' ? 'soundbox' : 'chapter';
+    changed();
+    if (n) toast(`${n} sound${n > 1 ? 's' : ''} added${from ? ` ${from}` : ''}. Drag one into the chapter, or tap + to make it a step.`, 4200);
+  }
+  // The Recueil panel (troupe/library.js) adds through the builder of the page.
+  global.TroubadourBuilder = {
+    addFromLibrary: async (libId, zone) => {
+      if (!E.rec) return;
+      try {
+        busy('Fetching the sound from the Recueil', '', null);
+        const { file, item } = await global.TroubadourLibrary.fileOf(libId);
+        idle();
+        await addBlobs([{ blob: file, name: item.name, duration: item.duration, credit: global.TroubadourCredit ? global.TroubadourCredit.blockOf(item) : undefined }], zone === 'soundbox' || F.ZONES.includes(zone) ? zone : E.zone);
+      } catch (e) { idle(); toast(e.message || 'This sound could not be fetched.'); }
+    },
+  };
+
   /* ---------- Export ---------- */
   async function forge() {
     await flush();
@@ -871,6 +1011,16 @@
     $('#fe-forge').addEventListener('click', forge);
     $('#fe-troubadour').addEventListener('click', exportTroubadour);
     document.addEventListener('click', closeHelp);
+    // Files or a sound of the Recueil dropped on the sounds panel join the story.
+    const side = $('#fe-sounds');
+    side.addEventListener('dragover', (e) => { const t = e.dataTransfer.types; if (t.includes('Files') || t.includes('text/x-troubadour-library')) { e.preventDefault(); side.classList.add('over'); } });
+    side.addEventListener('dragleave', (e) => { if (!side.contains(e.relatedTarget)) side.classList.remove('over'); });
+    side.addEventListener('drop', (e) => {
+      side.classList.remove('over');
+      const lib = e.dataTransfer.getData('text/x-troubadour-library');
+      if (lib) { e.preventDefault(); global.TroubadourBuilder.addFromLibrary(lib, E.zone); return; }
+      if (e.dataTransfer.files.length) { e.preventDefault(); e.stopPropagation(); addFiles([...e.dataTransfer.files]); }
+    });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHelp(); });
     $('#fe-main').addEventListener('scroll', closeHelp, { passive: true });
     document.addEventListener('keydown', (e) => {

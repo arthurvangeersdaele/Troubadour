@@ -494,7 +494,7 @@ input[type="range"].living { background: radial-gradient(circle at calc(8px + (1
 .leave p { margin: 0 0 18px; color: var(--muted); }
 .leave-acts { display: flex; gap: 10px; justify-content: flex-end; }
 .lb { height: 42px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
-.lb.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.lb.danger { background: var(--danger); color: var(--on-danger); border-color: var(--danger); }
 
 /* The Troubadour logo beside the name in the top bar: the three bars, in the theme's colours, no frame. */
 .brand { display: inline-flex; align-items: flex-end; gap: 3px; height: 22px; flex: none; margin-right: -2px; }

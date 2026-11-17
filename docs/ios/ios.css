@@ -47,10 +47,10 @@ html.mode-app input[type="text"], html.mode-app input[type="search"], html.mode-
 .app .table { height: 100%; }
 
 .btn.slim { height: 38px; padding: 0 12px; font-size: 15px; gap: 6px; flex: none; }
-.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
 .ico.danger { color: var(--danger); }
 .ico.danger:hover { border-color: var(--danger); }
-.btn.danger:hover { border-color: var(--danger); }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
 .ask .btn.danger, .btn.danger.solid { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 .btn svg { flex: none; }
 .ico svg { flex: none; }

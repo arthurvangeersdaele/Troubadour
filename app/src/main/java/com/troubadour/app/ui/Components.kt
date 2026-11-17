@@ -129,16 +129,18 @@ fun Btn(
     // Same as the web and iPhone editions: a primary button is the accent colour with dark ink.
     val bg = when (kind) {
         BtnKind.PRIMARY, BtnKind.ACCENT -> C.accent
+        // Solid red with white ink: red text alone vanishes on the red themes' cards (Blood, Dragonfire).
+        BtnKind.DANGER -> dangerRed()
         else -> C.card
     }
     val fg = when (kind) {
         BtnKind.PRIMARY, BtnKind.ACCENT -> C.onZ
-        BtnKind.DANGER -> dangerRed()
+        BtnKind.DANGER -> androidx.compose.ui.graphics.Color.White
         BtnKind.NORMAL -> C.text
     }
     val border = when (kind) {
         BtnKind.PRIMARY, BtnKind.ACCENT -> C.accent
-        BtnKind.DANGER -> dangerRed().copy(alpha = 0.5f)
+        BtnKind.DANGER -> dangerRed()
         BtnKind.NORMAL -> C.line
     }
     Row(

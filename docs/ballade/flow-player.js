@@ -65,8 +65,12 @@
     master.gain.value = settings.master;
     buildChrome();
     // The cascade shows at once; the sounds decode behind it, the dock says how many are left.
-    openChapter(Math.min(Math.max(0, chapter || 0), rec.story.chapters.length - 1), false).catch((e) => toast(`Could not open this chapter: ${e.message || e}`));
+    // The first chapter decodes under the opening popup (opts.onProgress), as in every online player.
+    P.onProgress = opts.onProgress || null;
+    const first = openChapter(Math.min(Math.max(0, chapter || 0), rec.story.chapters.length - 1), false).catch((e) => toast(`Could not open this chapter: ${e.message || e}`));
     loop();
+    await first;
+    P.onProgress = null;
   }
 
   function close() {
@@ -99,11 +103,15 @@
     const missing = [...want].filter((f) => !P.buffers.has(f));
     P.loading = missing.length;
     paintDock();
+    let decoded = 0;
+    if (P.onProgress) P.onProgress(0, missing.length);
     for (const f of missing) {
       if (token !== P.chapterToken) return;
       const blob = P.blobs.get(f);
       try { if (blob) { const b = await decode(blob); E.analyse(b); P.buffers.set(f, b); } } catch (e) { console.warn('Could not decode', f, e); }
       P.loading -= 1;
+      decoded += 1;
+      if (P.onProgress) P.onProgress(decoded, missing.length);
       paintDock();
     }
     // Drop sounds no longer needed (the soundbox stays).
@@ -1289,12 +1297,11 @@
     const t = now();
     const sounding = P.voices.some((x) => !x.done && x.cut == null && (x.end > t || x.hold));
     stopAll();
-    if (sounding) {
-      busy('Leaving the story', rec.story.title || '');
-      await new Promise((r) => setTimeout(r, settings.fade + 60));
-      idle();
-      if (P.rec !== rec) return;
-    }
+    // The same popup in every online player: the sounds fade out under it (or it shows a moment).
+    busy('Leaving the story', rec.story.title || '');
+    await new Promise((r) => setTimeout(r, sounding ? settings.fade + 60 : 700));
+    idle();
+    if (P.rec !== rec) return;
     if (P.onLeave) P.onLeave();
   }
 
