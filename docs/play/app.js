@@ -37,7 +37,7 @@
 
   /* ---------------- Settings ---------------- */
   // vol: volume control on the cards of each row: 'hidden' (narrowest cards), 'simple' (two buttons, 25 % steps over 2 s) or 'full' (a slider).
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, fadeIn: 1000, crossfade: true, silence: false, awake: false, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 5, life: false, lifeEvery: 6, vol: { music: 'hidden', ambience: 'hidden', events: 'hidden' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, silence: true, awake: true, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
   const settings = Object.assign({}, DEFAULTS, readJSON('troubadour.settings'));
   settings.vol = Object.assign({}, DEFAULTS.vol, settings.vol || {});
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }
@@ -59,7 +59,7 @@
   let ctx = null, masterGain = null, sbGain = null;
   const curve = (v) => v * v;
   const RANDOM_TOP = 30;
-  const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 5)));
+  const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 17)));
   /** A sound's own longest pause (the "randomMax" of its card, 1 to 30 s), else the one of the settings. */
   const ownPause = (sound) => {
     const n = Number(sound && (sound.randomMax ?? (sound.extra && sound.extra.randomMax)));
@@ -73,7 +73,7 @@
     const k = Math.min(1, Math.max(0, (performance.now() - v.lifeT0) / Math.max(1, v.lifeMs)));
     return v.lifeFromV + (v.lifeToV - v.lifeFromV) * k;
   }
-  const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 6)));
+  const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 13)));
   setInterval(() => {
     if (!story || !ctx) return;
     const now = performance.now();

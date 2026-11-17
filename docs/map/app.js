@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.12';
+  const VERSION = '261117.13';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -912,7 +912,7 @@
     const row = el('div', 'c');
     row.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
     const zoneKey = c.zone === 'soundbox' ? 'events' : c.zone;
-    const vm = mode === 'edit' ? 'simple' : ((settings.vol && settings.vol[zoneKey]) || 'full');
+    const vm = mode === 'edit' ? 'simple' : ((settings.vol && settings.vol[zoneKey]) || 'simple');
     row.classList.add(`vm-${vm}`);
 
     const head = el('div', 'ch');

@@ -30,7 +30,7 @@ enum class VolumeMode(val id: String, val label: String) {
     HIDDEN("hidden", "Hidden"), SIMPLE("simple", "Simple"), FULL("full", "Full");
 
     companion object {
-        fun from(id: String?) = values().firstOrNull { it.id == id } ?: HIDDEN
+        fun from(id: String?) = values().firstOrNull { it.id == id } ?: SIMPLE
     }
 }
 
@@ -69,16 +69,16 @@ class AppSettings(context: Context) {
     var appearance by mutableStateOf(Appearance.from(prefs.getString("mode", null)))
         private set
     /** Fade-in of music and ambiances started with Play (0: off). Replays and events start at once. */
-    var fadeInMs by mutableIntStateOf(prefs.getInt("fadeIn", 1000))
+    var fadeInMs by mutableIntStateOf(prefs.getInt("fadeIn", 2000))
         private set
-    var fadeMs by mutableIntStateOf(prefs.getInt("fade", 2000))
+    var fadeMs by mutableIntStateOf(prefs.getInt("fade", 4000))
         private set
     var crossfade by mutableStateOf(prefs.getBoolean("crossfade", true))
         private set
     var keepAwake by mutableStateOf(prefs.getBoolean("awake", true))
         private set
     /** Opening another chapter fades out the sounds of the previous one over 4 s. */
-    var silenceChapters by mutableStateOf(prefs.getBoolean("silence", false))
+    var silenceChapters by mutableStateOf(prefs.getBoolean("silence", true))
         private set
     var master by mutableFloatStateOf(prefs.getFloat("master", 0.8f))
         private set
@@ -86,15 +86,15 @@ class AppSettings(context: Context) {
         private set
     var soundboxOpen by mutableStateOf(prefs.getBoolean("sbOpen", false))
         private set
-    /** Random events: longest pause before a sound plays again, in seconds (1 to 10). The shortest is 0.5 s. */
-    var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 5).coerceIn(1, com.troubadour.app.data.Sound.RANDOM_TOP))
+    /** Random events: longest pause before a sound plays again, in seconds (1 to 30, 17 by default). The shortest is 0.5 s. */
+    var randomMax by mutableIntStateOf(prefs.getInt("randomMax", 17).coerceIn(1, com.troubadour.app.data.Sound.RANDOM_TOP))
         private set
-    /** Living ambiances: ambiances drift up to 10 points around their volume, a new drift about every [lifeEvery] s. Off by default. */
-    var lifeEvents by mutableStateOf(prefs.getBoolean("life", false))
+    /** Living ambiances: ambiances drift up to 10 points around their volume, a new drift about every [lifeEvery] s. On by default, every 13 s. */
+    var lifeEvents by mutableStateOf(prefs.getBoolean("life", true))
         private set
-    var lifeEvery by mutableIntStateOf(prefs.getInt("lifeEvery", 6).coerceIn(2, 30))
+    var lifeEvery by mutableIntStateOf(prefs.getInt("lifeEvery", 13).coerceIn(2, 30))
         private set
-    /** Volume on the cards, per row (music, ambience, events): hidden by default. */
+    /** Volume on the cards, per row (music, ambience, events): simple by default. */
     var volMusic by mutableStateOf(VolumeMode.from(prefs.getString("volMusic", null)))
         private set
     var volAmbience by mutableStateOf(VolumeMode.from(prefs.getString("volAmbience", null)))

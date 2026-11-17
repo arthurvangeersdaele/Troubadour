@@ -49,7 +49,7 @@
 
   /* ---------- Settings, kept on this device ---------- */
   const KEY = 'troubadour.flow.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 2000, awake: true, silent: true, master: 0.8, sbVolume: 0.8, autoNext: false, clock: 10, even: true };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, awake: true, silent: true, master: 0.8, sbVolume: 0.8, autoNext: false, clock: 10, even: true };
   const SHARED = ['theme', 'mode', 'fade', 'fadeIn', 'crossfade', 'randomMax', 'life', 'lifeEvery', 'awake', 'master'];
   function loadSettings() {
     let s = {};

@@ -35,14 +35,14 @@
   /** The master play, pause and stop buttons fade over 3 s. */
   const MASTER_FADE = 3000;
   const RANDOM_TOP = 30;
-  const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 5)));
+  const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 17)));
   /** A card's own longest pause (1 to 30 s), else the one of the settings. */
   const ownPause = (card) => { const n = Number(card && card.randomMax); return n >= 1 && n <= RANDOM_TOP ? n : null; };
   /** A random event plays again after 0.5 s to its longest pause. */
   const randomPause = (v) => 500 + Math.floor(Math.random() * Math.max(1, (ownPause(v.card) || randomMax()) * 1000 - 500));
   /** Fade-in of a sound started with Play, in seconds (Off: a click-free 30 ms). */
   const startFade = () => Math.max(0.03, (+settings.fadeIn || 0) / 1000);
-  const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 6)));
+  const lifeEvery = () => Math.min(30, Math.max(2, Math.round(+settings.lifeEvery || 13)));
 
   function ramp(param, target, secs) {
     const t = now();
