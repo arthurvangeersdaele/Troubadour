@@ -321,20 +321,12 @@
 
 <section>
   <h3>Screen</h3>
-    <label class="row-set toggle"><span>Keep screen awake<small>While a story plays, so the wire never stops with the screen</small></span><input type="checkbox" id="opt-awake"><i></i></label>
+    <div data-t-rows="awake"></div>
 </section>
 
   <section>
     <h3>Playback</h3>
-    <div class="row-set">
-      <span>Fade-out on stop<small>Also when you tap a playing card</small></span>
-      <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
-        <button type="button" role="radio" data-v="500">0.5 s</button>
-        <button type="button" role="radio" data-v="1000">1 s</button>
-        <button type="button" role="radio" data-v="2000">2 s</button>
-        <button type="button" role="radio" data-v="4000">4 s</button>
-      </div>
-    </div>
+    <div data-t-rows="fade even silent.iphone-only"></div>
     <div class="row-set">
       <span>Wire speed<small>How fast the gold runs down the screen, the same for every sound: one minute of music is this tall</small></span>
       <div class="seg small" id="clock-pick" role="radiogroup" aria-label="Wire speed">
@@ -343,9 +335,7 @@
         <button type="button" role="radio" data-v="16">Fast</button>
       </div>
     </div>
-    <label class="row-set toggle"><span>Even out the loudness<small>Every music, ambiance and event sits at the same level, so no sound jumps out or gets lost</small></span><input type="checkbox" id="opt-even"><i></i></label>
     <label class="row-set toggle"><span>Next chapter starts at once<small>Off: Next chapter opens the chapter and waits for your Begin. On: its first sounds start right away</small></span><input type="checkbox" id="opt-autonext"><i></i></label>
-    <label class="row-set toggle iphone-only"><span>Ignore silent mode<small>Sounds still play when your iPhone is set to silent (the side switch or Control Center)</small></span><input type="checkbox" id="opt-silent"><i></i></label>
   </section>
 
   <section>
@@ -391,6 +381,7 @@
 <input type="file" id="pick-file" hidden>
 <video id="awake-video" playsinline muted loop hidden></video>
 
+<script src="../shared/troubadour-settings.js"></script>
 <script src="../shared/install.js"></script>
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../troupe/cropper.js"></script>

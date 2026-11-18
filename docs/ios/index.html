@@ -301,77 +301,17 @@
     <section>
       <h3>Screen</h3>
       <label class="row-set toggle"><span>Lock landscape<small>Off: Troubadour also works with the phone upright</small></span><input type="checkbox" id="opt-landscape"><i></i></label>
-      <label class="row-set toggle"><span>Keep screen awake<small>While a story is open, so the music never stops with the screen</small></span><input type="checkbox" id="opt-awake"><i></i></label>
+      <div data-t-rows="awake"></div>
 </section>
 
     <section>
       <h3>Player interface</h3>
-      <p class="muted small set-note">Hidden keeps the cards narrow. Simple adds two buttons that move the volume by 25&nbsp;% steps, smoothly over 2&nbsp;s. Full adds a slider. Each sound starts at the volume set in the story editor.</p>
-      <div class="row-set">
-        <span>Music</span>
-        <div class="seg small" id="vol-music" data-zone="music" role="radiogroup" aria-label="Volume on the Music cards">
-          <button type="button" role="radio" data-v="hidden">Hidden</button>
-          <button type="button" role="radio" data-v="simple">Simple</button>
-          <button type="button" role="radio" data-v="full">Full</button>
-        </div>
-      </div>
-      <div class="row-set">
-        <span>Ambiances</span>
-        <div class="seg small" id="vol-ambience" data-zone="ambience" role="radiogroup" aria-label="Volume on the Ambiances cards">
-          <button type="button" role="radio" data-v="hidden">Hidden</button>
-          <button type="button" role="radio" data-v="simple">Simple</button>
-          <button type="button" role="radio" data-v="full">Full</button>
-        </div>
-      </div>
-      <div class="row-set">
-        <span>Events</span>
-        <div class="seg small" id="vol-events" data-zone="events" role="radiogroup" aria-label="Volume on the Events cards">
-          <button type="button" role="radio" data-v="hidden">Hidden</button>
-          <button type="button" role="radio" data-v="simple">Simple</button>
-          <button type="button" role="radio" data-v="full">Full</button>
-        </div>
-      </div>
+      <div data-t-rows="cardvolume"></div>
     </section>
 
     <section>
       <h3>Playback</h3>
-      <div class="row-set">
-        <span>Fade-in on Play<small>Music and ambiances rise over this time when you start them; replays and events start at once</small></span>
-        <div class="seg small" id="fadein-pick" role="radiogroup" aria-label="Fade-in duration">
-          <button type="button" role="radio" data-v="0">Off</button>
-          <button type="button" role="radio" data-v="500">0.5 s</button>
-          <button type="button" role="radio" data-v="1000">1 s</button>
-          <button type="button" role="radio" data-v="2000">2 s</button>
-          <button type="button" role="radio" data-v="4000">4 s</button>
-        </div>
-      </div>
-      <div class="row-set">
-        <span>Fade-out on stop</span>
-        <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
-          <button type="button" role="radio" data-v="0">Off</button>
-          <button type="button" role="radio" data-v="500">0.5 s</button>
-          <button type="button" role="radio" data-v="1000">1 s</button>
-          <button type="button" role="radio" data-v="2000">2 s</button>
-          <button type="button" role="radio" data-v="4000">4 s</button>
-        </div>
-      </div>
-      <div class="row-set">
-        <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
-        <div class="stepper" role="group" aria-label="Longest pause of random sounds">
-          <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
-        </div>
-      </div>
-      <label class="row-set toggle"><span>Living ambiances<small>Each ambiance drifts up to 10 above or below its volume, now and then, so it feels alive</small></span><input type="checkbox" id="opt-life"><i></i></label>
-      <div class="row-set" id="life-row">
-        <span>Drift every<small id="life-note">A new volume about every 6&nbsp;s</small></span>
-        <div class="stepper" role="group" aria-label="Time between two drifts">
-          <button type="button" id="life-less" aria-label="Shorter">‹</button><b id="life-val">6 s</b><button type="button" id="life-more" aria-label="Longer">›</button>
-        </div>
-      </div>
-      <label class="row-set toggle"><span>Ignore silent mode<small>Sounds still play when your iPhone or iPad is set to silent (the side switch or Control Center)</small></span><input type="checkbox" id="opt-silent"><i></i></label>
-      <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
-      <label class="row-set toggle"><span>Even out the loudness<small>Every music, ambiance and event sits at the level of its kind, so no sound jumps out or gets lost</small></span><input type="checkbox" id="opt-even"><i></i></label>
-      <label class="row-set toggle"><span>Silence between chapters<small>Opening another chapter fades out the sounds of the previous one over 4 s</small></span><input type="checkbox" id="opt-silence"><i></i></label>
+      <div data-t-rows="fadein fade random life crossfade silence even silent"></div>
     </section>
 
     <section>
@@ -423,6 +363,7 @@
   <video id="awake-video" playsinline muted loop hidden></video>
 </div>
 
+<script src="../shared/troubadour-settings.js"></script>
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../auth/account.js"></script>
 <script src="../shared/install.js"></script>

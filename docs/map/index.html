@@ -330,10 +330,6 @@
       <button type="button" role="radio" data-v="light">Light</button>
       <button type="button" role="radio" data-v="system">System</button>
     </div>
-    <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
-    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
-    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
-    <label class="row-set toggle"><span>Even out the loudness<small>Every sound at the level of its kind: music, ambiance, event</small></span><input type="checkbox" id="opt-even"><i></i></label>
     <label class="row-set toggle"><span>Names of the places<small>Shown on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
   </section>
   <section>
@@ -341,35 +337,18 @@
     <div class="troubadour-account" id="troubadour-account"></div>
   </section>
   <section>
+    <h3>Screen</h3>
+    <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
+    <div data-t-rows="awake"></div>
+  </section>
+  <section>
     <h3>Player interface</h3>
-    <p class="muted small set-note">Hidden keeps the cards small. Simple adds two buttons that move the volume by 25&nbsp;% steps, smoothly over 2&nbsp;s. Full adds a slider. Each sound starts at the volume set in the editor.</p>
-    <div class="row-set">
-      <span>Music</span>
-      <div class="seg small" id="vol-music" data-zone="music" role="radiogroup" aria-label="Volume on the Music cards">
-        <button type="button" role="radio" data-v="hidden">Hidden</button>
-        <button type="button" role="radio" data-v="simple">Simple</button>
-        <button type="button" role="radio" data-v="full">Full</button>
-      </div>
-    </div>
-    <div class="row-set">
-      <span>Ambiances</span>
-      <div class="seg small" id="vol-ambience" data-zone="ambience" role="radiogroup" aria-label="Volume on the Ambiances cards">
-        <button type="button" role="radio" data-v="hidden">Hidden</button>
-        <button type="button" role="radio" data-v="simple">Simple</button>
-        <button type="button" role="radio" data-v="full">Full</button>
-      </div>
-    </div>
-    <div class="row-set">
-      <span>Events</span>
-      <div class="seg small" id="vol-events" data-zone="events" role="radiogroup" aria-label="Volume on the Events cards">
-        <button type="button" role="radio" data-v="hidden">Hidden</button>
-        <button type="button" role="radio" data-v="simple">Simple</button>
-        <button type="button" role="radio" data-v="full">Full</button>
-      </div>
-    </div>
+    <div data-t-rows="cardvolume"></div>
   </section>
   <section>
     <h3>At the table</h3>
+    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
+    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
     <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
     <div class="row-set" id="trail-speed-row">
@@ -382,45 +361,10 @@
       </div>
     </div>
     <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
-    <label class="row-set toggle"><span>Keep screen awake<small>While a world plays</small></span><input type="checkbox" id="opt-awake"><i></i></label>
   </section>
   <section>
     <h3>Playback</h3>
-    <div class="row-set">
-      <span>Fade-in on Play<small>Music and ambiances rise over this time when you start them; replays and events start at once</small></span>
-      <div class="seg small" id="fadein-pick" role="radiogroup" aria-label="Fade-in duration">
-        <button type="button" role="radio" data-v="0">Off</button>
-        <button type="button" role="radio" data-v="500">0.5 s</button>
-        <button type="button" role="radio" data-v="1000">1 s</button>
-        <button type="button" role="radio" data-v="2000">2 s</button>
-        <button type="button" role="radio" data-v="4000">4 s</button>
-      </div>
-    </div>
-    <div class="row-set">
-      <span>Fade-out on stop<small>When a sound pauses or stops, or you leave a map</small></span>
-      <div class="seg small" id="fade-pick" role="radiogroup" aria-label="Fade-out duration">
-        <button type="button" role="radio" data-v="0">Off</button>
-        <button type="button" role="radio" data-v="500">0.5 s</button>
-        <button type="button" role="radio" data-v="1000">1 s</button>
-        <button type="button" role="radio" data-v="2000">2 s</button>
-        <button type="button" role="radio" data-v="4000">4 s</button>
-      </div>
-    </div>
-    <div class="row-set">
-      <span>Random sounds<small id="random-note">Plays again after a pause of 0.5&nbsp;s to 5&nbsp;s</small></span>
-      <div class="stepper" role="group" aria-label="Longest pause of random sounds">
-        <button type="button" id="random-less" aria-label="Shorter">‹</button><b id="random-val">5 s</b><button type="button" id="random-more" aria-label="Longer">›</button>
-      </div>
-    </div>
-    <label class="row-set toggle"><span>Living ambiances<small>Each ambiance drifts up to 10 above or below its volume, now and then, so it feels alive</small></span><input type="checkbox" id="opt-life"><i></i></label>
-    <div class="row-set" id="life-row">
-      <span>Drift every<small id="life-note">A new volume about every 6&nbsp;s</small></span>
-      <div class="stepper" role="group" aria-label="Time between two drifts">
-        <button type="button" id="life-less" aria-label="Shorter">‹</button><b id="life-val">6 s</b><button type="button" id="life-more" aria-label="Longer">›</button>
-      </div>
-    </div>
-    <label class="row-set toggle"><span>Crossfade music tracks<small>Starting a track fades out the one playing</small></span><input type="checkbox" id="opt-crossfade"><i></i></label>
-    <label class="row-set toggle ios-only"><span>Ignore silent mode<small>Sounds still play when your iPhone is set to silent (the side switch or Control Center)</small></span><input type="checkbox" id="opt-silent"><i></i></label>
+    <div data-t-rows="fadein fade random life crossfade even silent.ios-only"></div>
   </section>
   <section>
     <h3>Storage</h3>
@@ -466,6 +410,7 @@
 <input type="file" id="pick-file" hidden>
 <video id="awake-video" playsinline muted loop hidden></video>
 
+<script src="../shared/troubadour-settings.js"></script>
 <script src="../troupe/troubadour-format.js"></script>
 <script src="../auth/account.js"></script>
 <script src="../troupe/sound-credit.js"></script>
