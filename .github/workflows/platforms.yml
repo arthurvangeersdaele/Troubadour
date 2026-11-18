@@ -16,3 +16,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: python3 .github/scripts/check_platforms.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # The statecharts of the unifier (section 4) as tests: every event in every state.
+      - run: node tests/statecharts/run.mjs

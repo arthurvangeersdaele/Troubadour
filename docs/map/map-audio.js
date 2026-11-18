@@ -536,10 +536,9 @@
       let g = 1, near = true;
       if (v.el) {
         if (!memo.has(v.el)) {
-          const heard = M.hearing(point, v.el, place.walls, world.wallLoss).gain;
-          // The pre-roll ring: within one and a half times its reach, a resting loop is already running, silent.
-          const wide = heard > 0 || M.hearing(point, Object.assign({}, v.el, { radius: v.el.radius * 1.5 + 80 }), [], 0).gain > 0;
-          memo.set(v.el, [heard, wide]);
+          // Heard, pre-roll (a resting loop already runs, silent) or asleep: map-format.js, placeState.
+          const st = M.placeState(point, v.el, place.walls, world.wallLoss);
+          memo.set(v.el, [st.gain, st.state !== 'asleep']);
         }
         [g, near] = memo.get(v.el);
       }

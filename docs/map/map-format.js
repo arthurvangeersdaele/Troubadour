@@ -295,6 +295,17 @@
     return { gain: Math.max(0, Math.min(1, near)) * Math.pow(1 - wallLoss, n), d, walls: n };
   }
 
+  /** The state of a place's sounds for the party at p (the statechart of 261118_troubadour_unifier.md, 4.3):
+   *  'heard' within its reach (gain from distance and walls), 'preroll' within one and a half times its reach plus
+   *  80 (a resting loop already runs, silent, so it never has to start late), else 'asleep'. */
+  const PREROLL = 1.5, PREROLL_PAD = 80;
+  function placeState(p, el, walls, wallLoss) {
+    const h = hearing(p, el, walls, wallLoss);
+    if (h.gain > 0) return { state: 'heard', gain: h.gain };
+    const wide = hearing(p, Object.assign({}, el, { radius: el.radius * PREROLL + PREROLL_PAD }), [], 0).gain > 0;
+    return { state: wide ? 'preroll' : 'asleep', gain: 0 };
+  }
+
   /** Bounding box of a shape: [x0, y0, x1, y1]. */
   function bounds(shape) {
     if (shape.type === 'stamp') { const r = shape.size / 2; return [shape.x - r, shape.y - r, shape.x + r, shape.y + r]; }
@@ -396,7 +407,7 @@
 
   global.TroubadourMap = {
     MAP_VERSION, ZONES, PLAYS, STAMPS, OWN, soundsOf, ownChapter, blankStory, blankWorld, cleanCard, cleanElement, cleanPlace, normalize, newPlace, card, defaultWorld,
-    reach, crosses, wallsBetween, hearing, bounds, centre, simplify, inside, nearestOnSegment, shortId,
+    reach, crosses, wallsBetween, hearing, placeState, bounds, centre, simplify, inside, nearestOnSegment, shortId,
     read, pack, packTroubadour, yymmdd,
   };
-})(window);
+})(typeof window !== 'undefined' ? window : globalThis);
