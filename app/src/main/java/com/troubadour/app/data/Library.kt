@@ -110,6 +110,9 @@ object Library {
     }
 
     fun blobFile(key: String): File = File(blobsDir, key)
+    /** The measured loudness of a sound (audio/Loudness.kt), kept apart from the sounds themselves. */
+    private val loudnessDir: File get() = File(root, "loudness")
+    fun loudnessFile(key: String): File = File(loudnessDir, key)
 
     /** Bytes used by distinct audio files. */
     fun bytesOf(sounds: List<Sound>): Long {
@@ -185,11 +188,13 @@ object Library {
             val partial = f.name.endsWith(".part")
             if ((!partial && f.name !in used) || (partial && f.lastModified() < oldParts)) f.delete()
         }
+        loudnessDir.listFiles().orEmpty().forEach { f -> if (f.name !in used) f.delete() }
     }
 
     fun wipe() = synchronized(lock) {
         storiesDir.deleteRecursively()
         blobsDir.deleteRecursively()
+        loudnessDir.deleteRecursively()
         sharedFile.delete()
         storiesDir.mkdirs()
         blobsDir.mkdirs()

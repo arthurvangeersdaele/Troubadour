@@ -51,6 +51,8 @@ class Card(val chapterIndex: Int, val zone: Zone, sound: Sound) {
     var lifeStart = 0L
     var lifeDur = 1L
     var lifeAt = 0L
+    /** Even out the loudness: the measured loudness of the sound (LUFS), null until known (audio/Loudness.kt). */
+    @Volatile var lufs: Float? = null
 
     /** A random event between two plays. */
     val waiting: Boolean get() = randomOn && nextAt > 0L
@@ -147,6 +149,7 @@ class TableSession(
             }
             withContext(Dispatchers.IO) { NativeEngine.clearPads() }
             engine.close()
+            measurer.close()
         }
     }
 
@@ -339,7 +342,7 @@ class TableSession(
             val slot = c.slot ?: return@forEach
             if (owner[slot] !== c || c.volumeJob?.isActive == true) return@forEach
             if (!settings.lifeEvents || stateOf(c) != NativeEngine.PLAYING) {
-                if (c.lifeOn) { c.lifeOn = false; c.heard = -1f; NativeEngine.setVolume(slot, curve(c.sound.volume)) }
+                if (c.lifeOn) { c.lifeOn = false; c.heard = -1f; NativeEngine.setVolume(slot, heard(c, c.sound.volume)) }
                 return@forEach
             }
             val every = settings.lifeEvery * 1000L
@@ -356,14 +359,14 @@ class TableSession(
             val off = c.lifeFrom + (c.lifeTo - c.lifeFrom) * f
             val h = (c.sound.volume + off).coerceIn(0f, 1f)
             c.heard = h
-            NativeEngine.setVolume(slot, curve(h))
+            NativeEngine.setVolume(slot, heard(c, h))
         }
     }
 
     fun setVolume(card: Card, v: Float) {
         card.volumeJob?.cancel(); card.shownVolume = -1f
         card.sound = card.sound.copy(volume = (v * 100).toInt() / 100f)
-        card.slot?.let { if (owner[it] === card) NativeEngine.setVolume(it, curve(v)) }
+        card.slot?.let { if (owner[it] === card) NativeEngine.setVolume(it, heard(card, v)) }
         saveSoon()
     }
 
@@ -384,7 +387,7 @@ class TableSession(
                 val f = ((SystemClock.uptimeMillis() - start).toFloat() / ms).coerceIn(0f, 1f)
                 val v = from + (target - from) * f
                 card.shownVolume = v
-                card.slot?.let { if (owner[it] === card) NativeEngine.setVolume(it, curve(v)) }
+                card.slot?.let { if (owner[it] === card) NativeEngine.setVolume(it, heard(card, v)) }
                 if (f >= 1f) break
                 delay(30)
             }
@@ -504,8 +507,43 @@ class TableSession(
             scope.launch(Dispatchers.Main) { card.failed = true }
             return false
         }
-        NativeEngine.setVolume(slot, curve(card.sound.volume))
+        NativeEngine.setVolume(slot, heard(card, card.sound.volume))
+        measureSoon(card)
         return true
+    }
+
+    // ------------------------------------------------------------------ even out the loudness
+
+    /** What the engine plays for a card volume [v]: the shared curve, times the card's evening-out gain. */
+    private fun heard(card: Card, v: Float): Float =
+        curve(v) * (if (settings.evenLoudness) Loudness.gain(card.lufs, card.zone) else 1f)
+
+    /** Sounds are measured one at a time, on a quiet thread of their own, never on the table's. */
+    private val measurer = Executors.newSingleThreadExecutor { r -> Thread(r, "troubadour-loudness").apply { priority = Thread.MIN_PRIORITY } }
+        .asCoroutineDispatcher()
+
+    private fun measureSoon(card: Card) {
+        if (card.lufs != null) return
+        scope.launch(measurer) {
+            val l = Loudness.lufsOf(card.sound.blob) ?: return@launch
+            card.lufs = l
+            if (closed) return@launch
+            runCatching { withContext(engine) { applyHeard(card) } } // the table may close meanwhile
+        }
+    }
+
+    /** The card's volume again, once its loudness is known or the setting changed (a drift or a step in progress
+     *  takes it at its next tick). */
+    private fun applyHeard(card: Card) {
+        val slot = card.slot ?: return
+        if (owner[slot] !== card || card.volumeJob?.isActive == true || card.lifeOn) return
+        NativeEngine.setVolume(slot, heard(card, card.sound.volume))
+    }
+
+    /** Settings: "Even out the loudness" was turned on or off. */
+    fun evenLoudnessChanged() {
+        if (closed) return
+        scope.launch(engine) { cards.forEach { applyHeard(it) } }
     }
 
     // ------------------------------------------------------------------ saving loop and volume changes

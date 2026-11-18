@@ -174,14 +174,14 @@ The interruption is the clearest case: one event, three behaviours. Proposal: th
 | Volume heard as v² | · | ✓ | ✓ | ✓ | **✓ now** (was linear) | ✓ |
 | Soundbox volume shared | · | ✓ | ✓ | · | **✓ now** | **✓ now** |
 | Gapless loops, encoder silence trimmed | · | **✓ now** (measured, seam at the trimmed points) | **✓ now** | own native loops (not measured by the lab) | ✓ engine | ✓ engine |
-| Even out the loudness | · | **✓ now** | **✓ now** | ✗ | ✓ | ✓ |
+| Even out the loudness | · | **✓ now** | **✓ now** | **✓ now** | ✓ | ✓ |
 | Limiter on the master | · | **✓ now** | **✓ now** | **✓ now** (was hard clipping) | ✓ | ✓ |
 | Comes back after a call or lock | · | **✓ now** | **✓ now** | **✓ now** (after a call) | ✓ | ✓ |
 | Discovery | ✓ links | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Recueil | ✓ La Troupe | ✓ | ✓ | ✓ | · | · |
 | Builder | · | Story builder (computer) | story editor | story editor | builder (computer, iPad) | builder (computer, iPad, phone panels) |
 | Troubadour name (GitHub) | · | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Toast 2.8 s, one sentence | · | **✓ now** (was 3.2) | **✓ now** (was 2.6) | snackbar (to check) | ✓ | ✓ |
+| Toast 2.8 s, one sentence | · | **✓ now** (was 3.2) | **✓ now** (was 2.6) | **✓ now** (was 2.6 and 3.2) | ✓ | ✓ |
 | Context sheet, danger row | · | **✓ now** | n/a | own sheet | **✓ now** | **✓ now** |
 | Offline after install | · | · | ✓ (service worker) | ✓ | ✓ | ✓ |
 | Orientation | any | landscape | landscape | landscape | portrait | landscape |
@@ -232,7 +232,7 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 | 20 | words | `silence` and `silent` settings side by side on iPhone | 1 | open: relabel |
 | 21 | tokens | the privacy page carries its own palette inline | 2 | open (a standalone legal page, harmless) |
 | 22 | Android | `forgeTip`, `bard` names in code and stored preferences | 1 | open: rename with a migration |
-| 23 | Android | no "Even out the loudness", no limiter (it clipped at full scale) | 5 | **limiter done** (-2 dBFS in the native mixer); evening and trims open (P2b) |
+| 23 | Android | no "Even out the loudness", no limiter (it clipped at full scale) | 5 | **done**: limiter (-2 dBFS in the native mixer) and evening (P2b); loop trims open |
 | 24 | parity | Ballade on Android is the browser web app; Map disabled on Android (decided) | 5 | by decision, to show plainly on the Android Library |
 
 ## 8. Rules from now on
@@ -279,4 +279,6 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 - Android: the native mixer's hard clip at full scale becomes the same limiter at -2 dBFS (instant attack, 200 ms release, one gain for both channels).
 - Checked: the Forest theme (216 s) measured, sent near its turn, its next round started on a second element at its loop start while the first faded, no error; a 5 min music measured in about 1 s on a computer, kept and read back from the iPhone app's database; every page loads without an error. Not checked: a real iPhone (memory with long musics), an Android device.
 
-**Left:** P1 (the web player and Troubadour for iPhone still keep their own toast, ask, busy and icons: code only, nothing a troubadour sees), P2b (Android: evening and trims, measured by the native decoder), P3, P4.
+**P2b, 18 November, evening: Android evens out the loudness.** `audio/Loudness.kt` measures each sound once with the same gated measure as the web (decoded as a stream and only summed, so almost no memory), one at a time on a low-priority thread, and keeps the result in `library/loudness/` (cleaned with the sounds); the table multiplies each card's volume by the gain of its kind. "Even out the loudness" in Settings, Playback, on by default. Android toasts last 2.8 s. Not checked on a device (the pull request build compiles it).
+
+**Left:** Android loop trims (the native decoder would need loop points), P1 (the web player and Troubadour for iPhone still keep their own toast, ask, busy and icons: code only, nothing a troubadour sees), P2b (Android: evening and trims, measured by the native decoder), P3, P4.

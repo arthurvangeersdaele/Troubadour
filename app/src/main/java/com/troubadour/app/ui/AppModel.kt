@@ -196,7 +196,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
 
     // ------------------------------------------------------------------ feedback
 
-    fun toast(message: String, ms: Long = 2600) {
+    fun toast(message: String, ms: Long = 2800) {
         toast = message
         toastJob?.cancel()
         toastJob = scope.launch {
@@ -866,7 +866,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         val from = screen
         table?.let { closing = it.close() }
         closing?.join()
-        val session = TableSession(app, story, settings, scope) { toast(it, 3200) }
+        val session = TableSession(app, story, settings, scope) { toast(it, 2800) }
         table = session
         session.open(chapter.coerceIn(0, story.chapters.lastIndex))
         screen = Screen.Table(if (from is Screen.Table) from.from else from)

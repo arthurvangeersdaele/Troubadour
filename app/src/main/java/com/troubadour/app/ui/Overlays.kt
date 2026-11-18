@@ -417,6 +417,9 @@ private fun SettingsPanel(m: AppModel) {
         SetRow("Crossfade music tracks", "Starting a track fades out the one playing") {
             Toggle(st.crossfade) { st.changeCrossfade(it) }
         }
+        SetRow("Even out the loudness", "Every music, ambiance and event sits at the level of its kind, so no sound jumps out or gets lost") {
+            Toggle(st.evenLoudness) { st.changeEvenLoudness(it); m.table?.evenLoudnessChanged() }
+        }
         SetRow("Silence between chapters", "Opening another chapter fades out the sounds of the previous one over 4 s") {
             Toggle(st.silenceChapters) { st.changeSilenceChapters(it) }
         }

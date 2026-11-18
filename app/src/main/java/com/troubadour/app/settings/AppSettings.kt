@@ -75,6 +75,9 @@ class AppSettings(context: Context) {
         private set
     var crossfade by mutableStateOf(prefs.getBoolean("crossfade", true))
         private set
+    /** Even out the loudness: every sound at the level of its kind (audio/Loudness.kt), as on the web. On by default. */
+    var evenLoudness by mutableStateOf(prefs.getBoolean("even", true))
+        private set
     var keepAwake by mutableStateOf(prefs.getBoolean("awake", true))
         private set
     /** Opening another chapter fades out the sounds of the previous one over 4 s. */
@@ -124,6 +127,7 @@ class AppSettings(context: Context) {
     fun changeFade(ms: Int) { fadeMs = ms; prefs.edit().putInt("fade", ms).apply() }
     fun changeFadeIn(ms: Int) { fadeInMs = ms; prefs.edit().putInt("fadeIn", ms).apply() }
     fun changeCrossfade(v: Boolean) { crossfade = v; prefs.edit().putBoolean("crossfade", v).apply() }
+    fun changeEvenLoudness(v: Boolean) { evenLoudness = v; prefs.edit().putBoolean("even", v).apply() }
     fun changeSilenceChapters(v: Boolean) { silenceChapters = v; prefs.edit().putBoolean("silence", v).apply() }
     fun changeKeepAwake(v: Boolean) { keepAwake = v; prefs.edit().putBoolean("awake", v).apply() }
     fun changeMaster(v: Float) { master = v; prefs.edit().putFloat("master", v).apply() }
