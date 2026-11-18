@@ -242,3 +242,11 @@ Work happens on weekends and weekday evenings (project rule). One phase can take
 The lab now plays every card of both discovery tales through the engine and fails on any hole, click, hard start or hard stop: both tales pass.
 
 **Left in P1:** the look-ahead scheduler and the clock of 4.1 (they come with the v2 timeline, P2 and P3); crossfades between clips (v2); the decode window and streamed long sounds (4.4); loudness measured in the builder and stored in the file instead of on the phone.
+
+**P2, 18 November 2026 (evening): format version 2.** `docs/ballade/ballade-timeline.js`: one timeline per chapter (tracks, clips at absolute times, cue and section markers, choices whose ways continue the clock), `fromV1()` (every card a clip where version 1 started it, gates after the first become cues, titles become sections, held loops and random cards loop to their cue, one track per kind and more where clips would overlap), `clean()`. `TROUBADOUR_BALLADE_FORMAT.md` describes version 2. Tests (`tests/ballade/timeline.mjs`, 514 checks, run on every push): both discovery tales convert with every relative time kept, round trip, no overlap on a track, held clips ending at their cue. The player and builder still read and write version 1 until P3 and P4.
+
+**P1, the clock of 4.1: done.** `BalladeTimeline.Clock` runs from Begin, stops at cues and choices, holds on Pause and plans every sound 2 s ahead on the audio clock, from a tick that keeps running with the screen locked. Tested on both tales with random jitter: every sound starts within 5 ms of its place counted from the tap that released it; a 10 ms shift fails the test.
+
+**P1, loudness measured in the builder: done.** At export the builder measures every sound once (true ends, loop points, loudness) into `flow.json` `sounds` (`{ path: { a, b, la, lb, lufs, size } }`, kept while the file does not change); the player takes those numbers instead of measuring on the phone. Found on the way: the shared engine's own decoder ran at 22.05 kHz, where a sound made of highs (coins, hiss) read up to 16 dB too quiet; it now runs at 44.1 kHz, which matches the player's own measure exactly.
+
+**Left in P1:** the decode window and streamed long sounds (4.4). **Next: P3**, the player on the clock (Parade reads version 2 and draws from `Clock.position()`).
