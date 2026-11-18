@@ -109,8 +109,11 @@
       sbGain = ctx.createGain();
       sbGain.gain.value = curve(settings.sbVol);
       sbGain.connect(masterGain);
+      // After a call, a lock or a switch of app, the table comes back as it was (paused cards stay paused),
+      // like Ballade, Map and Android (261118_troubadour_unifier.md, decision 1).
+      if (window.TroubadourEngine) TroubadourEngine.guard(ctx, () => !!story);
     }
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {});
     return ctx;
   }
   /** The master play, pause and stop buttons fade over 3 s. */

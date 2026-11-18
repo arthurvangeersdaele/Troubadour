@@ -394,6 +394,7 @@ class TableSession(
 
     /** Master pause and resume, faded over 3 s (an interruption pauses at once). */
     fun pauseAll(fadeMs: Int = MASTER_FADE_MS) {
+        interrupted = false
         if (pausedByAll.isNotEmpty() || heldRandom.isNotEmpty()) {
             pausedByAll.forEach { if (stateOf(it) == NativeEngine.PAUSED || stateOf(it) == NativeEngine.PAUSING) play(it, fadeMs) }
             pausedByAll = emptyList()
@@ -414,15 +415,30 @@ class TableSession(
     /** True while "Resume all" is offered. */
     val holding: Boolean get() = pausedByAll.isNotEmpty() || heldRandom.isNotEmpty()
 
-    /** Pauses what plays (calls, unplugged headphones). Does nothing when all is already quiet. */
-    fun pauseForInterruption() {
-        if (!holding && (anyPlaying() || cards.any { it.waiting })) pauseAll(150)
+    /** True while the table was paused by a call (or another app taking the sound), not by the troubadour. */
+    private var interrupted = false
+
+    /** Pauses what plays (calls, unplugged headphones). Does nothing when all is already quiet.
+     *  With [resumable] (a call), [resumeAfterInterruption] brings the table back as it was. */
+    fun pauseForInterruption(resumable: Boolean = false) {
+        if (!holding && (anyPlaying() || cards.any { it.waiting })) {
+            pauseAll(150)
+            interrupted = resumable
+        }
+    }
+
+    /** After a call: the table comes back as it was, like on the web, iPhone, Ballade and Map
+     *  (261118_troubadour_unifier.md, decision 1). Nothing happens if the troubadour paused or resumed meanwhile. */
+    fun resumeAfterInterruption() {
+        if (interrupted && holding) pauseAll()
+        interrupted = false
     }
 
     /** Leaving the table: every sound fades out over [ms]. Returns whether anything was heard. */
     fun fadeAll(ms: Int): Boolean {
         val sounding = cards.any { isActive(it) || it.waiting }
         cards.forEach { end(it, ms) }
+        interrupted = false
         pausedByAll = emptyList()
         heldRandom = emptyList()
         NativeEngine.stopPads()

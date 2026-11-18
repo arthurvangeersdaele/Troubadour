@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261118.1';
+  const VERSION = '261118.2';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1561,6 +1561,9 @@
       sbGain = ctx.createGain();
       sbGain.gain.value = curve(settings.sbVol);
       sbGain.connect(masterGain);
+      // After a call, a lock or a switch of app, the table comes back as it was (paused cards stay paused),
+      // like Ballade, Map and Android (261118_troubadour_unifier.md, decision 1).
+      if (window.TroubadourEngine) TroubadourEngine.guard(ctx, () => !!tbl);
     }
     if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {});
     return ctx;

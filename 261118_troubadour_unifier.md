@@ -11,7 +11,7 @@ The question asked: which tools do teams building complex apps use to keep many 
 | | |
 | --- | --- |
 | **Tools** | 1. Ubiquitous language and bounded contexts (DDD) · 2. Design tokens (W3C DTCG 2025.10) · 3. Interface inventory and atomic design · 4. Statecharts (Harel) · 5. Platform parity matrix with the consistency heuristic (Nielsen 4) |
-| **Found** | 24 incoherences (section 7): 11 fixed in this branch, 1 now guarded by a check, 12 open with a proposal |
+| **Found** | 24 incoherences (section 7): 12 fixed in this branch, 1 decided, 1 now guarded by a check, 10 open with a proposal |
 | **Worst ones** | Ballade heard its master and soundbox sliders on a straight line while every other player squares them (same slider, about 6 dB louder at half); the soundbox volume had two names and was never shared; three copies of the context menu with three different danger styles; two forked helper files (Ballade, Map) drifting apart; Android still saying "rhythm" in 9 texts; the sound rules (limiter, even loudness, gapless trims, coming back after a call) exist in Ballade and Map but not in the Troubadour players |
 | **Built** | `docs/shared/`: the token source and its builds for the web and Android, the shared kernel (settings, volume curve, theme, toast, question dialog, delivery, audio context, menu rows), shared components (context sheet, toast), the shared sound engine and install guide moved out of the app folders; a platform contract checked on every push |
 | **Not touched** | Nothing a troubadour sees changes, except: Ballade's volume now matches the other apps (a bit softer at the same slider), the soundbox volume follows from app to app, danger rows in menus look the same everywhere, toasts last 2.8 s everywhere, fixed words |
@@ -154,7 +154,7 @@ stateDiagram-v2
 
 | Arrow or state | Troubadour web | Troubadour iPhone | Troubadour Android | Ballade | Map |
 | --- | --- | --- | --- | --- | --- |
-| Interrupted → Playing (after a call or a lock) | wake lock only | on coming back to the screen | **pauses, waits for a tap** | by itself unless paused (engine guard) | by itself on the table (engine guard) |
+| Interrupted → Playing (after a call or a lock) | was: wake lock only; **now engine guard** | was: on coming back to the screen; **now engine guard** | was: **pauses, waits for a tap**; **now back after the call** | by itself unless paused (engine guard) | by itself on the table (engine guard) |
 | FadingOut length | Settings | Settings | Settings | Settings | Settings (old 1.5 and 3 s mapped to 2 and 4) |
 | Playing, master change | glides | glides | glides | was **linear**, now curved | curved |
 | A sound limited at the master | no | no | no (native mixer) | yes, -2 dBFS | yes, -2 dBFS |
@@ -176,7 +176,7 @@ The interruption is the clearest case: one event, three behaviours. Proposal: th
 | Gapless loops, encoder silence trimmed | · | ✗ | ✗ | own native loops (not measured by the lab) | ✓ engine | ✓ engine |
 | Even out the loudness | · | ✗ | ✗ | ✗ | ✓ | ✓ |
 | Limiter on the master | · | ✗ | ✗ | ✗ | ✓ | ✓ |
-| Comes back after a call or lock | · | partly | partly | ✗ (waits) | ✓ | ✓ |
+| Comes back after a call or lock | · | **✓ now** | **✓ now** | **✓ now** (after a call) | ✓ | ✓ |
 | Discovery | ✓ links | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Recueil | ✓ La Troupe | ✓ | ✓ | ✓ | · | · |
 | Builder | · | Story builder (computer) | story editor | story editor | builder (computer, iPad) | builder (computer, iPad, phone panels) |
@@ -201,7 +201,7 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 | Shared components | `docs/shared/components.css`: context sheet (`.t-menu`, aliases `.bm-`, `.fl-`, `.mp-`) and toast; the three copies removed |
 | Shared files out of app folders | `ballade/ballade-engine.js` → `shared/troubadour-engine.js` (global `TroubadourEngine`, `BalladeEngine` kept); `ios/install.js` → `shared/install.js`; `ballade/flow-install.css` → `shared/install.css`; pages, service workers, labs and the lab workflow follow |
 | Words | Map: 4 "forge" texts; Android: 9 "rhythm" texts |
-| Versions | iPhone, Ballade and Map 261118.1 (app and service worker); cache keys of the web player and La Troupe pages |
+| Versions | iPhone 261118.2, Ballade and Map 261118.1 (app and service worker); cache keys of the web player and La Troupe pages |
 | Platform contract (CI) | `.github/scripts/check_platforms.py` and `.github/workflows/platforms.yml`, on every push and pull request; the APK build also runs on pull requests that touch the app (nothing published) |
 
 **Checked:** the 11 pages of the site, La Troupe, the web player, iPhone, Ballade and Map, loaded in Chrome from `main` and from this branch in five looks (Obsidian dark, Parchment light, Pride, Excalibur light, Blood dark): **55 screens of 55 identical pixel for pixel**, no new script error, no theme value changed (pages only gain the tokens they lacked). In Ballade and Map: the master at 0.7 is heard at 0.49, the soundbox volume set in Troubadour is read, the toast and the danger row of a menu take the shared look. The old and new Ballade and Map helpers give the same API, the same 30 and 70 icons and the same settings. The contract was run against broken copies to see it fail. The Android build runs on the pull request (no Android SDK here).
@@ -224,8 +224,8 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 | 12 | offline | service worker lists kept by hand: a new shared file could be forgotten | 5 | **guarded** by the contract |
 | 13 | sound | Troubadour players (web, iPhone) do not use the engine: no trims, no evening, no limiter | 4, 5 | open: P2 below |
 | 14 | sound | Android native engine not measured by the sound lab | 5 | open: export its render to the lab |
-| 15 | logic | interruption: three behaviours (section 4) | 4 | open: decision 1 |
-| 16 | settings | iPhone Home Screen apps cannot share settings, the texts say they do | 5 | open: decision 2 |
+| 15 | logic | interruption: three behaviours (section 4) | 4 | **fixed** (decision 1): every platform comes back as it was after a call or a lock; Android after a call (unplugged headphones stay paused, the Android convention) |
+| 16 | settings | iPhone Home Screen apps cannot share settings | 5 | **decided** (decision 2): the line is said only where it is true. Checked: no text a troubadour reads promises it today (only code comments); any future one must be hidden on iPhone |
 | 17 | code | sound card written three times (web, iPhone, Android) | 3 | open: P3 |
 | 18 | code | settings dialog written five times | 3 | open: P3 |
 | 19 | code | iPhone `app.js` (2613 lines) and the web player keep their own toast, ask, settings, icons | 3 | open: P1 |
@@ -253,11 +253,11 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 | **P3 One card, one settings dialog** | the sound card and the settings dialog as shared components (one markup builder, one sheet); Android mirrors them in Compose from the same tokens | one file per component on the web |
 | **P4 Charts as tests** | the three statecharts written as small tables the labs walk through (each event in each state) | an impossible state fails a test |
 
-## 10. Decisions for Arthur
+## 10. Decisions (18 November 2026, 8:40)
 
-1. **Interruption:** should every platform come back by itself after a call or a lock (unless the troubadour had paused), Android included? Proposed: yes.
-2. **Settings on iPhone:** say in Settings, on iPhone only, that each app keeps its own settings, or drop the "set in one, holds in all" line there? Proposed: the line only where it is true.
-3. **Ballade's volume:** it now sounds like the other apps, a little softer at the same slider than before (about 2 dB at 0.8). Fine as is, or raise Ballade's default master to 0.9?
+1. **Interruption: yes.** Every platform comes back by itself after a call or a lock, unless the troubadour had paused. Done: the web player and Troubadour for iPhone use the shared engine's guard; Android resumes when the call gives the sound back (`resumeAfterInterruption`).
+2. **Settings on iPhone: yes**, the "set in one, holds in all" promise only where it is true. No visible text makes it today; rule kept for future texts.
+3. **Ballade's volume: fine as is** (the same curve as the other apps, default 0.8).
 
 ## Sources
 

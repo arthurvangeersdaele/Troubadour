@@ -25,7 +25,7 @@ import com.troubadour.app.R
 
 /**
  * Glue between the open table and Android: the foreground service that keeps the sound going
- * with the screen off, audio focus (pause on a phone call) and unplugged headphones.
+ * with the screen off, audio focus (pause on a phone call, back by itself after it) and unplugged headphones.
  */
 object PlaybackController {
     var session: TableSession? = null
@@ -43,7 +43,9 @@ object PlaybackController {
 
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
-            AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> session?.pauseForInterruption()
+            AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> session?.pauseForInterruption(resumable = true)
+            // The call is over: the table comes back as it was (unplugged headphones stay paused).
+            AudioManager.AUDIOFOCUS_GAIN -> session?.resumeAfterInterruption()
         }
     }
 
