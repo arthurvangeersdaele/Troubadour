@@ -659,14 +659,9 @@ dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; 
 .settings .storage .small { font-size: 13px; color: var(--muted); }
 .settings .storage p { margin: 6px 0 0; }
 
-/* La Troupe on a phone: what lives here, what lives on a computer */
-.pc-info { display: flex; gap: 14px; text-align: left; margin: 0 0 18px; padding: 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
-.pc-info-i { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.pc-info b { display: block; font-size: 15px; color: var(--text); margin-top: 10px; }
-.pc-info b:first-child { margin-top: 0; }
-.pc-info span { display: block; font-size: 14px; line-height: 1.45; color: var(--muted); margin-top: 2px; }
-.pc-info em { font-style: normal; color: var(--accent); font-weight: 600; }
-.pc-hint { display: flex; align-items: center; gap: 7px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+/* La Troupe on a phone: one quiet line on what lives here and what lives on a computer, under the section title */
+.pc-info { max-width: 330px; margin: 10px auto 18px; font-size: 14px; line-height: 1.5; color: var(--muted); text-align: center; }
+.pc-hint { display: flex; align-items: center; gap: 7px; margin: 2px 0 0; font-size: 13px; color: var(--muted); opacity: .8; }
 .pc-hint svg { flex: none; }
 html:not(.phone) .pc-info, html:not(.phone) .pc-hint { display: none !important; }
 
