@@ -1,4 +1,6 @@
-# The `.troubadour-ballade` file format (version 1)
+# The `.troubadour-ballade` file format (versions 1 and 2)
+
+Version 1 (below) is what the Ballade player and builder read and write today. Version 2, one timeline per chapter, is described at the end: the new player and builder will use it (261114_ballade_plan.md); `docs/ballade/ballade-timeline.js` already converts every version 1 file to it.
 
 A `.troubadour-ballade` file is a story **and its timing**: a `.troubadour` file (see [TROUBADOUR_FORMAT.md](TROUBADOUR_FORMAT.md)) with one more entry, `flow.json`. The Ballade editor writes it on a computer; Troubadour Ballade plays it on a phone, chapter by chapter, as a cascade of timed sound cards joined by a golden wire.
 
@@ -63,10 +65,10 @@ sounds/1/music/01-tavern-hearth.mp3
 | --- | --- | --- |
 | `format` | string | Always `"troubadour-ballade"`. |
 | `version` | integer | `1`. A reader refuses versions it does not know. |
-| `id` | string | UUID of the Ballade, created the first time it is rhythmed, kept by every later revision. |
+| `id` | string | UUID of the Ballade, created the first time it is exported, kept by every later revision. |
 | `story` | string | `id` of the story in `story.json`. |
-| `revision` | integer | Hidden counter, +1 every time the Ballade is rhythmed. |
-| `bard` | string | Troubadour name of whoever rhythmed this revision (registered name, or `"Forgotten Troubadour"`). |
+| `revision` | integer | Hidden counter, +1 every time the Ballade is exported. |
+| `bard` | string | Troubadour name of whoever exported this revision (registered name, or `"Forgotten Troubadour"`). |
 | `created`, `forged`, `generator` | string | As in `story.json`. |
 | `chapters` | array | One entry per chapter of `story.json`, in the same order. |
 | `chapters[].steps` | array of steps | Played from top to bottom. |
@@ -125,3 +127,35 @@ Importing a plain `.troubadour` builds a first Ballade for each chapter: the fir
 ## In the editor
 
 Between two steps, the editor shows one link: **On my tap (gate)** sets `gate` on the lower step; **When the sounds end** clears it and sets `next` to `null`; **After a set time** clears it and sets `next`. Under every link, a sentence names the sounds the tap fades out, or those that carry on under the next step. The inspector of a card says the same for that card: when it starts, under which steps it carries on, and what stops it.
+
+## Version 2: one timeline per chapter
+
+Status: defined, converted from version 1 and tested (`tests/ballade/timeline.mjs`); the player and builder move to it in phases P3 and P4 of `261114_ballade_plan.md`. A version 2 `flow.json` has `"version": 2`; everything outside `chapters` is as in version 1.
+
+Each chapter is a **timeline**: absolute times in seconds from Begin.
+
+```json
+{
+  "tracks": [ { "id": "t1", "name": "Music", "kind": "music", "volume": 1, "mute": false } ],
+  "clips": [
+    { "id": "c1", "track": "t1", "name": "Tavern hearth", "file": "sounds/1/music/01-tavern-hearth.mp3", "kind": "music",
+      "at": 0, "in": 0, "length": 182.4, "loop": "once", "fadeIn": 2, "fadeOut": 4, "fadeCurve": "equal-power",
+      "volume": 0.75, "holdToCue": false }
+  ],
+  "markers": [ { "id": "q1", "type": "cue", "at": 182.4, "name": "The doors open" },
+               { "id": "s1", "type": "section", "at": 60, "name": "The bells" } ],
+  "choice": { "question": "Do they open the crypt?", "at": 240,
+              "answers": [ { "label": "Yes", "timeline": { "tracks": [], "clips": [], "markers": [] } } ] }
+}
+```
+
+| Object | Fields | Notes |
+| --- | --- | --- |
+| track | `id`, `name`, `kind` (`music`, `ambience`, `events`), `volume` (0 to 1), `mute` | Any number, any name; the kind sets the default colour and loudness target. |
+| clip | `id`, `track`, `name`, `file`, `kind`, `at`, `in`, `length`, `loop` (`once`, `loop`, `random`), `fadeIn`, `fadeOut`, `fadeCurve` (`linear`, `equal-power`, `s`), `volume` (0 to 1, heard on Troubadour's curve like every other volume), `holdToCue` | Sounds from `at` to `at + length`, starting `in` seconds into its file. `random`: `each` (seconds of each play), `gapMin`, `gapMax`. Two clips overlapping on one track crossfade. |
+| marker | `id`, `type` (`cue` or `section`), `at`, `name` | A **cue** stops the clock until the troubadour taps Go; a **section** only names a moment. |
+| choice | `question`, `at`, `answers[]` of `{ label, timeline }` | Waits like a cue at `at`. The chosen answer's timeline continues the clock from 0, and may end on a choice of its own (24 deep at most). |
+
+Rules: the clock runs from Begin. At a cue it stops: clips that `holdToCue` and cross the cue keep looping, the others end as written. Go releases the clock and what comes next starts exactly when it would have, counted from the cue; held clips end with their fade out (1.5 s at least). The chapter ends when its last clip ends.
+
+**From version 1**: every card becomes one clip at the time version 1 would have started it (a run's steps one after another, by `next` or by their last card that ends, from the gate that opens the run); every gate after a chapter's first becomes a cue where the wire reached it (a run of held loops alone reaches its gate after 6 s, as the version 1 player drew it); step titles become sections; held loops and random cards loop until their cue or the choice; cards land on one track per kind, and on another of that kind wherever two would overlap. A converted file carries `"converted": 1`. One difference: in version 1 a gate tapped late cut a sound still playing; in version 2 a sound that does not hold ends as written.

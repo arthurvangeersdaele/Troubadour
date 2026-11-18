@@ -21,3 +21,5 @@ jobs:
           node-version: "22"
       # The statecharts of the unifier (section 4) as tests: every event in every state.
       - run: node tests/statecharts/run.mjs
+      # Ballade format version 2: conversion of every discovery tale, round trip, the chapter clock's timing.
+      - run: node tests/ballade/timeline.mjs
