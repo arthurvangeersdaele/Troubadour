@@ -13,12 +13,7 @@ input[type="text"], input[type="number"], input:not([type]), select { font-size:
 .btn.slim { height: 38px; padding: 0 12px; font-size: 15px; gap: 6px; flex: none; }
 .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
-.ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 .btn svg { flex: none; }
-.ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
-.ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
-.ask p { margin: 0 0 14px; color: var(--muted); }
-.ask-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .set-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .small { font-size: 13px; }
 .fatal { padding: 24px; color: var(--evt); }
@@ -396,7 +391,6 @@ html.pc .fl-player { border-left: 1px solid var(--line); border-right: 1px solid
 dialog.settings { position: fixed; inset: calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 10px); margin: auto;
   height: fit-content; max-height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px); width: min(520px, calc(100vw - 20px));
   overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-dialog.ask { height: fit-content; }
 .settings .row-set { flex-wrap: wrap; }
 .settings .row-set > span { flex: 1 1 180px; min-width: 0; }
 .settings .themes { max-width: 100%; }
@@ -901,11 +895,6 @@ html.pc .fe-step:not(:hover):not(:focus-within) .fe-acts .ico { opacity: .35; }
 }
 
 /* A question with a field (rename) */
-.ask-fields { display: grid; gap: 10px; margin: 0 0 14px; }
-.ask-f { display: grid; gap: 4px; min-width: 0; }
-#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0; }
-.ask-field { display: block; width: 100%; box-sizing: border-box; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; }
-.ask-field:focus { outline: none; border-color: var(--accent); }
 
 /* ---------- Adding sounds (computer), as in the Story builder ---------- */
 .fe-name { width: 100%; box-sizing: border-box; margin: 2px 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-family: 'Cormorant SC', serif; font-weight: 700; font-size: 21px; }

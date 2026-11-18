@@ -19,6 +19,7 @@ const FILES = [
   '../shared/tokens.css',
   '../shared/troubadour-settings.js',
   '../shared/components.css',
+  '../shared/troubadour-ui.js',
   '../shared/troubadour-engine.js',
   '../shared/troubadour-voice.js',
   '../play/style.css',

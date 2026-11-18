@@ -33,37 +33,26 @@
 
   const svg = (d, size = 18, fill = false) =>
     `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" ${fill ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'}>${d}</svg>`;
+  // The icons every app shares (../shared/troubadour-ui.js), then this app's own and its own sizes.
   const ICON = {
-    back: svg('<path d="M15 18l-6-6 6-6"/>', 20),
-    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 19),
-    close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 18),
+    ...window.TroubadourUI.ICON,
     play: svg('<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>', 16, true),
     pause: svg('<rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/>', 16, true),
     stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
-    random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 14),
     // Play after: a queue of tracks, the next one ready to play.
     after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
     volDown: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5"/>', 15),
     volUp: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5M18.5 9.5v5"/>', 15),
-    star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16),
     starFill: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16, true),
-    plus: svg('<path d="M12 5v14M5 12h14"/>', 16),
     // Saved on this device: a phone with a check. Not saved: a save disk.
     // Saved: a phone without its home bar; the check sits on its bottom right corner, the outline open around it.
     savedOk: svg('<path d="M16.5 13.5V5A2.5 2.5 0 0 0 14 2.5H8A2.5 2.5 0 0 0 5.5 5v14A2.5 2.5 0 0 0 8 21.5h3.2"/><path d="M13.6 18l2.7 2.7 5.4-6.2" stroke-width="2.1"/>', 21),
     saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
     // The story's own soundbox: a yellow star over an open book.
     bookStar: '<svg width="23" height="23" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.4c-2-1.4-5.5-1.9-9-1.2v12.6c3.5-.7 7-.2 9 1.2 2-1.4 5.5-1.9 9-1.2V5.2c-3.5-.7-7-.2-9 1.2z"/><path d="M12.00 9.40L12.79 11.51L15.04 11.61L13.28 13.02L13.88 15.19L12.00 13.95L10.12 15.19L10.72 13.02L8.96 11.61L11.21 11.51Z" fill="var(--music)" stroke="var(--music)" stroke-width="0.6"/></svg>',
-    import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
-    share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 18),
-    edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
     more: svg('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>', 18, true),
-    trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
-    x: svg('<path d="M18 6L6 18M6 6l12 12"/>', 14),
     left: svg('<path d="M15 18l-6-6 6-6"/>', 14),
     right: svg('<path d="M9 18l6-6-6-6"/>', 14),
-    up: svg('<path d="M18 15l-6-6-6 6"/>', 14),
-    down: svg('<path d="M6 9l6 6 6-6"/>', 14),
     info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>', 18),
     book: svg('<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7"/>', 22),
     compass: svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 22),
@@ -97,12 +86,10 @@
   lightQuery.addEventListener?.('change', () => settings.mode === 'system' && applyTheme());
 
   /* ================= Small helpers ================= */
-  function el(tag, cls, text) {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
+  /* Shared helpers (../shared/troubadour-ui.js): the same element maker, toast, busy veil and question dialog
+   * as Ballade, Map and the web player. */
+  function el(tag, cls, text) { return TroubadourUI.el(tag, cls, text); }
+
   function btn(cls, html, label, onClick) {
     const b = el('button', cls);
     b.type = 'button';
@@ -121,64 +108,18 @@
   const debounce = (fn, ms) => { let t = 0; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; d.flush = () => { clearTimeout(t); fn(); }; return d; };
 
   let toastTimer = 0;
-  function toast(msg, ms = 2800) {
-    const t = $('#toast');
-    t.textContent = msg;
-    t.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, ms);
-  }
+  function toast(msg, ms = 2800) { TroubadourUI.toast(msg, ms); }
 
-  function busy(title, step = '', frac = null) {
-    $('#busy').hidden = false;
-    $('#busy-title').textContent = title;
-    $('#busy-step').textContent = step;
-    const bar = $('#busy-bar');
-    bar.parentNode.hidden = frac == null;
-    if (frac != null) bar.style.width = `${Math.round(frac * 100)}%`;
-  }
-  function idle() { $('#busy').hidden = true; }
+
+  function busy(title, step = '', frac = null) { TroubadourUI.busy(title, step, frac); }
+
+  function idle() { TroubadourUI.idle(); }
 
   /** A small question: resolves with the value of the button tapped (null when dismissed).
    *  With `input`, resolves with { value, text }. */
-  function ask(title, text, buttons, input) {
-    const dlg = $('#ask');
-    $('#ask-title').textContent = title;
-    $('#ask-text').textContent = text || '';
-    $('#ask-text').hidden = !text;
-    const acts = $('#ask-acts');
-    acts.textContent = '';
-    let field = null;
-    if (input) {
-      field = el('input', 'ask-input');
-      field.type = 'text';
-      field.value = input.value || '';
-      field.placeholder = input.placeholder || '';
-      field.maxLength = input.max || 120;
-      field.setAttribute('enterkeyhint', 'done');
-      acts.before(field);
-    }
-    return new Promise((resolve) => {
-      let answered = false;
-      const finish = (v) => {
-        if (answered) return;
-        answered = true;
-        if (field) field.remove();
-        if (dlg.open) dlg.close();
-        resolve(input ? (v == null ? null : { value: v, text: field.value.trim() }) : v);
-      };
-      buttons.forEach((b) => {
-        const x = el('button', `btn ${b.cls || ''}`, b.label);
-        x.type = 'button';
-        x.onclick = () => finish(b.value);
-        acts.append(x);
-      });
-      if (field) field.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(buttons[buttons.length - 1].value); } });
-      dlg.addEventListener('close', () => finish(null), { once: true });
-      dlg.showModal();
-      if (field) setTimeout(() => field.focus(), 50);
-    });
-  }
+  /** A small question (with `input` { value, placeholder, max }: a line of text too, resolves with { value, text }). */
+  function ask(title, text, buttons, input) { return TroubadourUI.ask(title, text, buttons, input); }
+
 
   function openSheet(title) {
     $('#sheet-title').textContent = title;

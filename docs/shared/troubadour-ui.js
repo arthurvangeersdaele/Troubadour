@@ -263,5 +263,5 @@
     };
   }
 
-  global.TroubadourUI = { make, $, el, svg, ICON, SHARED, FADES, curve, toast, ask, deliver, menuRows, applyTheme, createSettings };
+  global.TroubadourUI = { make, $, el, svg, ICON, SHARED, FADES, curve, toast, busy, idle, ask, deliver, menuRows, applyTheme, createSettings };
 })(window);

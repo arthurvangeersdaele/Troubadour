@@ -213,12 +213,6 @@ html.mode-app input[type="text"], html.mode-app input[type="search"], html.mode-
 .pt small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pick-bar { position: sticky; bottom: -18px; display: flex; justify-content: flex-end; padding: 10px 0 0; background: var(--bar); }
 
-.ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
-.ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
-.ask p { margin: 0 0 14px; color: var(--muted); }
-.ask-input { width: 100%; font: inherit; font-size: 17px !important; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; margin: 0 0 14px; }
-.ask-input:focus { outline: none; border-color: var(--accent); }
-.ask-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .ask-acts .btn { height: 42px; }
 
 .app .veil { z-index: 60; }

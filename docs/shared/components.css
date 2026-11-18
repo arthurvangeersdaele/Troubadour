@@ -25,3 +25,17 @@
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-button); padding: var(--sp-10) var(--sp-16);
   z-index: 30; box-shadow: 0 12px 30px var(--shadow);
 }
+
+/* ---------- Question dialog (TroubadourUI.ask): a title, a sentence, fields, buttons (charter 6.5) ---------- */
+.ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
+dialog.ask { height: fit-content; }
+.ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
+.ask p { margin: 0 0 14px; color: var(--muted); }
+.ask-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
+.ask-fields { display: grid; gap: 10px; margin: 0 0 14px; }
+.ask-f { display: grid; gap: 4px; min-width: 0; }
+#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0; }
+/* At least 16 px, so iOS never zooms into it (charter 4.4). */
+.ask-field { display: block; width: 100%; box-sizing: border-box; height: 42px; border-radius: var(--r-button); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; }
+.ask-field:focus { outline: none; border-color: var(--accent); }

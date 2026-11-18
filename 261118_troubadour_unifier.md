@@ -11,7 +11,7 @@ The question asked: which tools do teams building complex apps use to keep many 
 | | |
 | --- | --- |
 | **Tools** | 1. Ubiquitous language and bounded contexts (DDD) · 2. Design tokens (W3C DTCG 2025.10) · 3. Interface inventory and atomic design · 4. Statecharts (Harel) · 5. Platform parity matrix with the consistency heuristic (Nielsen 4) |
-| **Found** | 24 incoherences (section 7): 13 fixed, 1 partly fixed, 1 decided, 1 guarded by a check, 8 open with a proposal |
+| **Found** | 24 incoherences (section 7), plus 3 found on the way (Map settings sections, an unreadable card turning ready, the question dialog's styles written three times): 19 fixed, 1 decided, 1 guarded by a check, 3 open |
 | **Worst ones** | Ballade heard its master and soundbox sliders on a straight line while every other player squares them (same slider, about 6 dB louder at half); the soundbox volume had two names and was never shared; three copies of the context menu with three different danger styles; two forked helper files (Ballade, Map) drifting apart; Android still saying "rhythm" in 9 texts; the sound rules (limiter, even loudness, gapless trims, coming back after a call) exist in Ballade and Map but not in the Troubadour players |
 | **Built** | `docs/shared/`: the token source and its builds for the web and Android, the shared kernel (settings, volume curve, theme, toast, question dialog, delivery, audio context, menu rows), shared components (context sheet, toast), the shared sound engine and install guide moved out of the app folders; a platform contract checked on every push |
 | **Not touched** | Nothing a troubadour sees changes, except: Ballade's volume now matches the other apps (a bit softer at the same slider), the soundbox volume follows from app to app, danger rows in menus look the same everywhere, toasts last 2.8 s everywhere, fixed words |
@@ -226,12 +226,12 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 | 14 | sound | Android native engine not measured by the sound lab | 5 | open: export its render to the lab |
 | 15 | logic | interruption: three behaviours (section 4) | 4 | **fixed** (decision 1): every platform comes back as it was after a call or a lock; Android after a call (unplugged headphones stay paused, the Android convention) |
 | 16 | settings | iPhone Home Screen apps cannot share settings | 5 | **decided** (decision 2): the line is said only where it is true. Checked: no text a troubadour reads promises it today (only code comments); any future one must be hidden on iPhone |
-| 17 | code | sound card written three times (web, iPhone, Android) | 3 | open: P3 |
-| 18 | code | settings dialog written five times | 3 | open: P3 |
-| 19 | code | iPhone `app.js` (2613 lines) and the web player keep their own toast, ask, settings, icons | 3 | open: P1 |
-| 20 | words | `silence` and `silent` settings side by side on iPhone | 1 | open: relabel |
+| 17 | code | sound card written three times (web, iPhone, Android) | 3 | **fixed on the web** (P3): one card, `shared/troubadour-voice.js`; Android keeps its native card |
+| 18 | code | settings dialog written five times | 3 | **fixed** (P3): the shared rows in `shared/troubadour-settings.js`, one wording and one order; Map's misplaced rows moved |
+| 19 | code | iPhone `app.js` (2613 lines) and the web player keep their own toast, ask, settings, icons | 3 | **fixed** (P1): kernel toast, ask, busy, element maker and icons; the question dialog's styles in `components.css` |
+| 20 | words | `silence` and `silent` settings side by side on iPhone | 1 | **fixed**: "Ignore silent mode", apart from "Silence between chapters" |
 | 21 | tokens | the privacy page carries its own palette inline | 2 | open (a standalone legal page, harmless) |
-| 22 | Android | `forgeTip`, `bard` names in code and stored preferences | 1 | open: rename with a migration |
+| 22 | Android | `forgeTip`, `bard` names in code and stored preferences | 1 | **fixed**: Kotlin names renamed, `forgeTip` carried over to `exportTip`; the format keys `bard` and `forged` stay (shared with the web) |
 | 23 | Android | no "Even out the loudness", no limiter (it clipped at full scale) | 5 | **done**: limiter (-2 dBFS in the native mixer) and evening (P2b); loop trims open |
 | 24 | parity | Ballade on Android is the browser web app; Map disabled on Android (decided) | 5 | by decision, to show plainly on the Android Library |
 
@@ -281,4 +281,13 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 
 **P2b, 18 November, evening: Android evens out the loudness.** `audio/Loudness.kt` measures each sound once with the same gated measure as the web (decoded as a stream and only summed, so almost no memory), one at a time on a low-priority thread, and keeps the result in `library/loudness/` (cleaned with the sounds); the table multiplies each card's volume by the gain of its kind. "Even out the loudness" in Settings, Playback, on by default. Android toasts last 2.8 s. Not checked on a device (the pull request build compiles it).
 
-**Left:** Android loop trims (the native decoder would need loop points), P1 (the web player and Troubadour for iPhone still keep their own toast, ask, busy and icons: code only, nothing a troubadour sees), P2b (Android: evening and trims, measured by the native decoder), P3, P4.
+**Evening, second round (items 2 to 6 of the next steps):**
+
+- **One sound card** (P3): `shared/troubadour-voice.js`, built from the iPhone card; the web player and Troubadour for iPhone define their card from it with a few hooks (paint, play after, save, measurement store).
+- **One settings dialog** (P3): `shared/troubadour-settings.js` writes the shared rows (Keep screen awake, card volume, fades, random sounds, living ambiances, crossfade, silence between chapters, even out the loudness, ignore silent mode) in one order and one wording, into placeholders, with the ids the apps already read. Every app's sections now read Theme, Appearance, Troubadour name, Screen, Player interface, (its own), Playback, Storage, About. Map: a Screen section; the music of a place moved to At the table; Even out the loudness moved from Appearance to Playback.
+- **The kernel in the web player and on iPhone** (P1): toast, question dialog, busy veil, element maker and the 13 shared icons come from `troubadour-ui.js`; the question dialog's styles (three copies) and its button row live in `components.css`. The web player's loading veil stays its own (a different screen, the download of a whole story).
+- **Statecharts as tests** (P4): `tests/statecharts/run.mjs`, 70 checks on the real code with fake audio, in the Platform contract: the card's every event in every state, the interruption guard, Map's place (`placeState`, now one pure function in `map-format.js`). Found and fixed: a card whose sound could not be read turned ready on a stray end event. The Ballade chapter waits for its v2 timeline.
+- **Words** (5): "Ignore silent mode", away from "Silence between chapters". **Android names** (6): BardSettings, BardAccount, BardSlider, bardName, forgeTip, forge() renamed; the stored preference carries over.
+- Checked: every page loads without an error; every settings row appears once on every app and saves; the web player's real sounds still measure and seam; the question dialog on iPhone and Map, the toast on the web, by screenshot.
+
+**Left:** Android loop trims (the native decoder would need loop points), the Ballade chapter's statechart test (with the v2 timeline).

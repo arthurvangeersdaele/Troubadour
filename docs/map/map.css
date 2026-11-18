@@ -9,10 +9,6 @@ html:not(.ios) .ios-only { display: none !important; }
 .btn.danger, .ask .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }
 .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
 .btn.danger:disabled { opacity: .45; }
-.ask { width: min(440px, calc(100vw - 32px)) !important; padding: 18px 20px 16px !important; }
-.ask h2 { margin: 0 0 6px; font-size: 26px; line-height: 1.1; }
-.ask p { margin: 0 0 14px; color: var(--muted); }
-.ask-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .set-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .logo em { font-style: normal; color: var(--accent); }
 .btn-link { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
@@ -110,8 +106,6 @@ html:not(.ios) .ios-only { display: none !important; }
   .mp-side-head b { font-size: 20px; }
   .mp-dock { padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
 }
-.ask-field { display: block; width: 100%; height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; margin: 0 0 14px; }
-.ask-field:focus { outline: none; border-color: var(--accent); }
 
 /* ---------- Landscape only, like Troubadour (a computer turns nothing) ---------- */
 .rotate { display: none; }
@@ -380,9 +374,6 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 
 /* The fields of a question: side by side when there is room (a name, a first map, a size). */
 .ask-fields { display: grid; gap: 10px 12px; margin: 0 0 14px; grid-template-columns: minmax(0, 1fr); }
-.ask-f { display: grid; gap: 4px; min-width: 0; }
-#ask .ask-label { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0; }
-#ask .ask-field { margin: 0; }
 .ask-size .seg { width: max-content; max-width: 100%; }
 .ask:has(.ask-size) { width: min(560px, calc(100vw - 32px)) !important; }
 @media (min-width: 600px) {
@@ -478,7 +469,6 @@ dialog.settings, dialog.ask {
   max-height: calc(100dvh - max(24px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 16px));
 }
 dialog.settings:not(.wide) { height: fit-content; }
-dialog.ask { height: fit-content; }
 
 /* ---------- The editor: the world's soundbox and music, card order ---------- */
 .pn-note { margin: 0; color: var(--muted); font-size: 14px; }

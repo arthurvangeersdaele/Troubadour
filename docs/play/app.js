@@ -18,18 +18,15 @@
 
   const svg = (d, size = 18, fill = false) =>
     `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" ${fill ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'}>${d}</svg>`;
+  // The icons every app shares (../shared/troubadour-ui.js), then this app's own and its own sizes.
   const ICON = {
-    back: svg('<path d="M15 18l-6-6 6-6"/>', 20),
-    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 19),
-    close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 18),
+    ...window.TroubadourUI.ICON,
     tales: svg('<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>', 18),
     play: svg('<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>', 16, true),
     pause: svg('<rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/>', 16, true),
     stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
-    random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 14),
     // Play after: a queue of tracks, the next one ready to play.
     after: svg('<path d="M4 6h12M4 11h9M4 16h6M15 13v7l6-3.5z"/>', 15),
-    star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16),
     volDown: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5"/>', 15),
     volUp: svg('<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 12h5M18.5 9.5v5"/>', 15),
     starFill: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 16, true),
@@ -457,7 +454,7 @@
      this browser (the Story builder's, troupe/draft.js) without opening; Play opens it on the mixing table. */
   const Draft = window.TroubadourDraft;
   const BM = window.TroupeBuilderMenu;
-  function toast(msg) { const t = el('div', 'toast', msg); document.body.append(t); setTimeout(() => t.remove(), 2800); }
+  function toast(msg) { TroubadourUI.toast(msg); } // shared (../shared/troubadour-ui.js), 2.8 s
   function busy(title, sub, frac) {
     let v = $('#od-veil');
     if (!v) { v = el('div', 'veil'); v.id = 'od-veil'; v.innerHTML = '<div class="forge loading"><div class="eq" aria-hidden="true"><i></i><i></i><i></i></div><h2></h2><p class="lbl"></p><div class="bar"><i></i></div></div>'; document.body.append(v); }
@@ -1046,12 +1043,8 @@
   }, 50);
 
   /* ---------------- Helpers ---------------- */
-  function el(tag, cls, text) {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
+  function el(tag, cls, text) { return TroubadourUI.el(tag, cls, text); } // shared (../shared/troubadour-ui.js)
+
   function setP(input) { input.style.setProperty('--p', `${(input.value - input.min) / (input.max - input.min) * 100}%`); }
   function fmt(s) { s = Math.ceil(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 
