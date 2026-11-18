@@ -102,8 +102,7 @@
       ctx = new AC({ latencyHint: 'interactive' });
       masterGain = ctx.createGain();
       masterGain.gain.value = curve(settings.master);
-      // The shared engine's limiter after the master, as in Ballade and Map: stacked sounds never clip.
-      if (window.TroubadourEngine) { const lim = TroubadourEngine.limiter(ctx); masterGain.connect(lim); lim.connect(ctx.destination); } else masterGain.connect(ctx.destination);
+      masterGain.connect(ctx.destination);
       sbGain = ctx.createGain();
       sbGain.gain.value = curve(settings.sbVol);
       sbGain.connect(masterGain);
@@ -129,7 +128,6 @@
     audio: () => audio(), ctx: () => ctx, master: () => masterGain, settings, curve: (v) => curve(v),
     paintCard: (v) => paintCard(v), playAfter: (v) => playAfter(v),
     onState: () => { if (opening) paintLoad(); },
-    measureKey: (v, blob) => (v.sound.file ? `web:${v.sound.file}:${blob.size}` : null),
   });
 
 
@@ -912,10 +910,6 @@
     $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
-    $('#opt-even').addEventListener('change', (e) => {
-      settings.even = e.target.checked; save();
-      if (story && ctx) story.all.forEach((v) => { if (v.nm) v.nm.gain.setTargetAtTime(v.norm, ctx.currentTime, 0.3); });
-    });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       settings.vol[g.dataset.zone] = b.dataset.v; save(); syncSettings();
@@ -950,7 +944,6 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
-    $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;
     applyTheme();

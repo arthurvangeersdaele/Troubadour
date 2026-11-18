@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261118.6';
+  const VERSION = '261118.7';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1498,8 +1498,7 @@
       ctx = new AC({ latencyHint: 'interactive' });
       masterGain = ctx.createGain();
       masterGain.gain.value = curve(settings.master);
-      // The shared engine's limiter after the master, as in Ballade and Map: stacked sounds never clip.
-      if (window.TroubadourEngine) { const lim = TroubadourEngine.limiter(ctx); masterGain.connect(lim); lim.connect(ctx.destination); } else masterGain.connect(ctx.destination);
+      masterGain.connect(ctx.destination);
       sbGain = ctx.createGain();
       sbGain.gain.value = curve(settings.sbVol);
       sbGain.connect(masterGain);
@@ -1551,8 +1550,6 @@
   const Voice = TroubadourVoice.define({
     audio: () => audio(), ctx: () => ctx, master: () => masterGain, settings, curve: (v) => curve(v),
     paintCard: (v) => paintCard(v), playAfter: (v) => playAfter(v), dirty: () => tableDirty(),
-    // The engine's measurements are kept on the device with the sound (the same key as Map's).
-    measureKey: (v) => v.sound.blob, store: { get: (k) => DB.getKV(k, null), set: (k, v) => DB.setKV(k, v) },
   });
 
 
@@ -2013,10 +2010,6 @@
     $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
-    $('#opt-even').addEventListener('change', (e) => {
-      settings.even = e.target.checked; save();
-      if (tbl && ctx) tbl.all.forEach((v) => { if (v.nm) v.nm.gain.setTargetAtTime(v.norm, ctx.currentTime, 0.3); });
-    });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; save(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; save(); applyAudioSession(); });
@@ -2055,7 +2048,6 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
-    $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;

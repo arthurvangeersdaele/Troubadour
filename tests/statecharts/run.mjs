@@ -115,13 +115,8 @@ async function card() {
     ok(ramps.length === 1, 'fade-in: the safety net does not rise twice');
     ctx.state = 'running';
   }
-  // Measured sound: starts where it really starts, evens out, seams at the trimmed points.
-  { const v = await STATES.ready(); v.info = { a: 0.2, b: 9.5, la: 0.4, lb: 9.4, lufs: -30, d: 10 }; v.play(); ok(Math.abs(v.el.currentTime - 0.2) < 1e-9, 'measured: plays from its true start');
-    ok(Math.abs(v.norm - Math.pow(10, 6 / 20)) < 1e-6, 'measured music at -30 LUFS: +6 dB at most'); }
-  { const v = new Voice({ loop: 'infinite', volume: 1 }, zone('ambience', 0), {}); v.attach({}); v.info = { a: 0, b: 10, la: 0.4, lb: 9.4, lufs: -22, d: 10 }; v.play();
-    ok(v.seam > 0, 'measured forever loop: has a seam'); v.el.currentTime = 9.2; v.blendTick();
-    ok(!!v.twin && v.el.currentTime === 0.4, 'seam: the next round starts at the loop start on a second element');
-    ok(v.el.loop === true, 'seam: the native loop stays beneath'); }
+  // One media element per card and its own loop: nothing is measured, no second element at the turn.
+  { const v = new Voice({ loop: 'infinite', volume: 1 }, zone('ambience', 0), {}); v.attach({}); v.play(); for (let k = 0; k < 5; k++) v.blendTick(); ok(!v.twin && v.el.loop === true, 'forever loop: the element loops by itself'); }
 }
 
 /* ---------- Interrupted: the engine's guard (every platform comes back by itself, unless paused) ---------- */

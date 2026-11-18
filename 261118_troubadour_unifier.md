@@ -173,9 +173,9 @@ The interruption is the clearest case: one event, three behaviours. Proposal: th
 | Shared settings (set in one, hold in all) | · | ✓ | ✓ (own storage on iPhone) | · (own app) | ✓ | ✓ |
 | Volume heard as v² | · | ✓ | ✓ | ✓ | **✓ now** (was linear) | ✓ |
 | Soundbox volume shared | · | ✓ | ✓ | · | **✓ now** | **✓ now** |
-| Gapless loops, encoder silence trimmed | · | **✓ now** (measured, seam at the trimmed points) | **✓ now** | **✓ now** (silence left out as it decodes) | ✓ engine | ✓ engine |
-| Even out the loudness | · | **✓ now** | **✓ now** | **✓ now** | ✓ | ✓ |
-| Limiter on the master | · | **✓ now** | **✓ now** | **✓ now** (was hard clipping) | ✓ | ✓ |
+| Gapless loops, encoder silence trimmed | · | · (its own media element, by choice: see section 11, 18 November late) | · (same) | **✓ now** (silence left out as it decodes) | ✓ engine | ✓ engine |
+| Even out the loudness | · | · (by choice, same reason) | · (same) | **✓ now** | ✓ | ✓ |
+| Limiter on the master | · | · (same) | · (same) | **✓ now** (was hard clipping) | ✓ | ✓ |
 | Comes back after a call or lock | · | **✓ now** | **✓ now** | **✓ now** (after a call) | ✓ | ✓ |
 | Discovery | ✓ links | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Recueil | ✓ La Troupe | ✓ | ✓ | ✓ | · | · |
@@ -298,3 +298,5 @@ On iPhone each Home Screen web app keeps its own storage, so "set in one, it hol
 - **Privacy page**: its colours come from the tokens.
 
 **Still to do on real devices** (nothing left in code): open a long story on an iPhone (memory while sounds are measured); on Android, listen to a loop's turn and to "Even out the loudness" on and off.
+
+**18 November, late: smoothness first on the web players.** Measuring every sound in the background while the table played froze the page's main thread (9 times in the first 15 s of play, up to a third of a second each, CPU slowed 4 times like a phone), and the second element at each loop turn started late on Safari: the sound and the buttons of the web player and Troubadour for iPhone became rough. Both now play as they did before the update: one media element per card and its own loop, no measuring, no change of level while a sound plays, the master straight to the speakers. Measured again the same way: no freeze at all, as before the update. "Even out the loudness" leaves their settings (it stays in Ballade and Map). Kept: the fade-in fix (the rise starts when the sound really comes out), the return after a call or a lock, the shared card's code and its tests. Rule from now on: nothing heavy runs on a phone while the table plays; anything that must be measured is measured where it is built (as the Ballade builder now does) or before the table opens.
