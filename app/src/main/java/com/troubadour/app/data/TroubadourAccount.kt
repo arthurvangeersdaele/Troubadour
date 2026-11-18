@@ -11,7 +11,7 @@ import java.net.URL
  * GitHub's device sign-in: the bard types a short code on github.com, no permission is asked,
  * Troubadour only learns the public username. The helper keeps the registry of bard names.
  */
-object BardAccount {
+object TroubadourAccount {
     class Reply(val status: Int, val body: JSONObject)
     class DeviceCode(val deviceCode: String, val userCode: String, val uri: String, val interval: Int, val expiresIn: Int)
 

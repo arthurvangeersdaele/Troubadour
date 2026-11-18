@@ -11,7 +11,7 @@ import androidx.compose.runtime.setValue
 import com.troubadour.app.audio.TableSession
 import com.troubadour.app.troubadour.LoopMode
 import com.troubadour.app.troubadour.UnpackedStory
-import com.troubadour.app.data.BardAccount
+import com.troubadour.app.data.TroubadourAccount
 import com.troubadour.app.data.TroubadourIO
 import com.troubadour.app.data.Chapter
 import com.troubadour.app.data.Library
@@ -423,8 +423,8 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
 
     // ------------------------------------------------------------------ export
 
-    /** Signs exports: the bard name registered with GitHub in the settings, else Forgotten Barde. */
-    private fun ensureBard(): String = settings.bardName
+    /** Signs exports: the troubadour name registered with GitHub in the settings, else Forgotten Troubadour. */
+    private fun troubadourNameForExport(): String = settings.troubadourName
 
     // ------------------------------------------------------------------ GitHub connection (optional)
 
@@ -446,11 +446,11 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
 
     /** When the settings open: is the connection open, and is the saved one still valid (or named elsewhere)? */
     fun checkGitHub() = scope.launch {
-        val open = withContext(Dispatchers.IO) { runCatching { BardAccount.worker().isNotBlank() }.getOrNull() }
+        val open = withContext(Dispatchers.IO) { runCatching { TroubadourAccount.worker().isNotBlank() }.getOrNull() }
         if (open != null) ghOpen = open
         val token = settings.ghToken
         if (open != true || token.isBlank()) return@launch
-        val r = withContext(Dispatchers.IO) { runCatching { BardAccount.whoAmI(token) }.getOrNull() } ?: return@launch
+        val r = withContext(Dispatchers.IO) { runCatching { TroubadourAccount.whoAmI(token) }.getOrNull() } ?: return@launch
         if (settings.ghToken != token) return@launch
         when (r.status) {
             401 -> settings.clearAccount()
@@ -464,7 +464,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         ghBusy = true
         ghJob = scope.launch {
             val dc = try {
-                withContext(Dispatchers.IO) { BardAccount.deviceCode() }
+                withContext(Dispatchers.IO) { TroubadourAccount.deviceCode() }
             } catch (e: Exception) {
                 ghBusy = false
                 ghError = "${e.message ?: "GitHub did not answer."} Check your connection and try again."
@@ -482,7 +482,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
                     flow.error = "The code has expired. Cancel and connect again."
                     return@launch
                 }
-                val d = withContext(Dispatchers.IO) { runCatching { BardAccount.deviceToken(dc.deviceCode) }.getOrNull() } ?: continue
+                val d = withContext(Dispatchers.IO) { runCatching { TroubadourAccount.deviceToken(dc.deviceCode) }.getOrNull() } ?: continue
                 when (d.optString("status")) {
                     "ok" -> {
                         settings.setAccount(d.getString("token"), d.optString("login"), if (d.isNull("name")) "" else d.optString("name"))
@@ -524,7 +524,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         if (v.value != "go") return@launch
         val token = settings.ghToken
         ghBusy = true
-        val r = withContext(Dispatchers.IO) { runCatching { BardAccount.register(token, name) }.getOrNull() }
+        val r = withContext(Dispatchers.IO) { runCatching { TroubadourAccount.register(token, name) }.getOrNull() }
         ghBusy = false
         when {
             r == null -> ghError = "Troubadour could not reach GitHub. Check your connection and try again."
@@ -553,7 +553,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
             return@launch
         }
         flushEditor()
-        val bard = ensureBard()
+        val bard = troubadourNameForExport()
         val files = ArrayList<File>()
         try {
             list.forEachIndexed { i, s0 ->
@@ -567,7 +567,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
                 }
                 busy("Exporting the .troubadour", label)
                 val (file, updated) = withContext(Dispatchers.IO) {
-                    val r = TroubadourIO.forge(app, s, bard)
+                    val r = TroubadourIO.exportStory(app, s, bard)
                     Library.putStory(r.second, touch = false)
                     r
                 }
@@ -639,7 +639,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         if (ed?.story?.uid != storyUid) {
             stopPreview()
             ed = EditorState(s, chapter.coerceIn(-1, s.chapters.lastIndex))
-            forgeTip(storyUid)
+            exportTip(storyUid)
         } else {
             ed!!.chapter = chapter.coerceIn(-1, ed!!.story.chapters.lastIndex)
         }
@@ -649,15 +649,15 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
     /** On a phone, building a story is easier in the website's Story builder: say so on entering the editor
      *  (once per story each time the app opens, until turned off). */
     private val tipShown = mutableSetOf<String>()
-    private fun forgeTip(storyUid: String) {
-        if (!settings.forgeTip || !tipShown.add(storyUid)) return
+    private fun exportTip(storyUid: String) {
+        if (!settings.exportTip || !tipShown.add(storyUid)) return
         scope.launch {
             val r = ask(
                 "Building a story?",
                 "For creating a story, the Story builder of the Troubadour website, on a computer, is the most comfortable: room for every chapter and your MP3s dropped in with the mouse. Build it there, then import the .troubadour here. The editor of this app is made for quick changes.",
                 listOf(AskButton("Do not show again", "never"), AskButton("Got it", "ok", BtnKind.PRIMARY)),
             )
-            if (r?.value == "never") settings.hideForgeTip()
+            if (r?.value == "never") settings.hideExportTip()
         }
     }
 

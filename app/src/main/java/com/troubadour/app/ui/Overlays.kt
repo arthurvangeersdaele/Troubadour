@@ -390,7 +390,7 @@ private fun SettingsPanel(m: AppModel) {
         Segmented(Appearance.values().map { it to it.label }, st.appearance) { st.changeAppearance(it) }
 
         SetSection("Troubadour name")
-        BardAccountBlock(m)
+        TroubadourNameBlock(m)
 
         SetSection("Screen")
         SetRow("Lock landscape", "Off: Troubadour turns with the phone, upright too") {
@@ -474,16 +474,16 @@ private fun SettingsPanel(m: AppModel) {
     }
 }
 
-/** The bard name: Forgotten Barde, or the name registered with a GitHub account. Same wording as the web and iPhone editions. */
+/** The troubadour name: Forgotten Troubadour, or the name registered with a GitHub account. Same wording as the web and iPhone editions. */
 @Composable
-private fun BardAccountBlock(m: AppModel) {
+private fun TroubadourNameBlock(m: AppModel) {
     val st = m.settings
     val clipboard = LocalClipboardManager.current
     LaunchedEffect(Unit) { m.checkGitHub() }
     val flow = m.ghFlow
     val registered = st.ghToken.isNotBlank() && st.ghName.isNotBlank()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Title(st.bardName, 24)
+        Title(st.troubadourName, 24)
         val (tag, on) = when {
             registered -> "REGISTERED" to true
             else -> "SIGNS YOUR STORIES" to false

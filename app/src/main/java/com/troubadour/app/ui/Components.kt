@@ -190,7 +190,7 @@ fun Bar(content: @Composable RowScope.() -> Unit) {
  * and follows it, and the row around it does not scroll (same feel as the iPhone app).
  */
 @Composable
-fun BardSlider(
+fun TroubadourSlider(
     value: Float,
     onChange: (Float) -> Unit,
     color: Color,

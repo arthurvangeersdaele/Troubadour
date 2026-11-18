@@ -166,8 +166,8 @@ object TroubadourIO {
         return out
     }
 
-    /** Forges the next revision of [story] as a .troubadour file in the cache. Returns the file and the updated story. */
-    fun forge(context: Context, story: Story, bard: String): Pair<File, Story> {
+    /** Exports the next revision of [story] as a .troubadour file in the cache. Returns the file and the updated story. */
+    fun exportStory(context: Context, story: Story, bard: String): Pair<File, Story> {
         val pathOf = HashMap<String, String>() // blob -> path in the archive
         val blobOf = HashMap<String, String>() // path -> blob
         fun conv(s: Sound, folder: String, index: Int): TroubadourSound {
@@ -206,7 +206,7 @@ object TroubadourIO {
             soundbox = soundbox,
             extra = JSONObject(story.extra),
         )
-        val forged = base.forgedBy(bard)
+        val forged = base.exportedBy(bard)
         val dir = File(context.cacheDir, "exports").apply { mkdirs() }
         val out = File(dir, "${yymmdd()}_${slug(story.title, "story")}.troubadour")
         out.outputStream().use { stream ->

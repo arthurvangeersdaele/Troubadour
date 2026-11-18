@@ -70,7 +70,7 @@ data class TroubadourStory(
         chapters.flatMap { it.music + it.ambience + it.events } + soundbox
 
     /** The next revision of this story, signed by [bard]. Used for every export. */
-    fun forgedBy(bard: String): TroubadourStory {
+    fun exportedBy(bard: String): TroubadourStory {
         val now = nowIso()
         return copy(revision = revision + 1, bard = bard.trim(), created = created ?: now, forged = now)
     }

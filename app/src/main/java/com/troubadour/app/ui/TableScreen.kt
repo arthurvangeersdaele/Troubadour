@@ -164,7 +164,7 @@ private fun MasterChip(m: AppModel, s: TableSession) {
             s.stopAll()
         }
         if (!narrow()) T("Master", color = C.muted, size = 13.sp, modifier = Modifier.padding(start = 4.dp))
-        BardSlider(
+        TroubadourSlider(
             m.settings.master, { v -> m.settings.changeMaster(v); s.applyMaster() }, C.text,
             Modifier.width(if (narrow()) 72.dp else 112.dp), label = "Master volume",
         )
@@ -272,7 +272,7 @@ private fun PlayCard(m: AppModel, s: TableSession, c: Card, z: Color) {
                 ) { s.end(c) }
                 when (mode) {
                     VolumeMode.FULL -> Box(Modifier.weight(1f).height(btn)) {
-                        BardSlider(c.sound.volume, { v -> s.setVolume(c, v) }, z, Modifier.fillMaxSize(), label = "${c.sound.name} volume")
+                        TroubadourSlider(c.sound.volume, { v -> s.setVolume(c, v) }, z, Modifier.fillMaxSize(), label = "${c.sound.name} volume")
                         // Living ambiances: a discreet dot under the track marks the volume heard right now.
                         if (c.heard >= 0f) androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
                             val x = 10.dp + (maxWidth - 20.dp) * c.heard
@@ -329,7 +329,7 @@ private fun SoundboxDrawer(m: AppModel, s: TableSession) {
         }
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             T("Volume", color = C.muted, size = 13.sp)
-            BardSlider(
+            TroubadourSlider(
                 m.settings.soundboxVolume, { v -> m.settings.changeSoundboxVolume(v); s.applySoundboxVolume() }, C.accent,
                 Modifier.weight(1f), label = "Soundbox volume",
             )

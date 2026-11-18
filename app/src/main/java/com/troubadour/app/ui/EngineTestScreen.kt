@@ -57,7 +57,7 @@ import com.troubadour.app.audio.NativeEngine
 import com.troubadour.app.troubadour.TroubadourArchive
 import com.troubadour.app.troubadour.LoopMode
 import com.troubadour.app.troubadour.UnpackedStory
-import com.troubadour.app.settings.BardSettings
+import com.troubadour.app.settings.TroubadourNameSettings
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -141,12 +141,12 @@ fun EngineTestScreen() {
         }
     }
 
-    // Exports the open story as its next revision, signed with the bard name from the settings.
+    // Exports the open story as its next revision, signed with the troubadour name from the settings.
     val exportTroubadour = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         val current = story
         if (uri == null || current == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val forged = current.story.forgedBy(BardSettings.bardName(context))
+            val forged = current.story.exportedBy(TroubadourNameSettings.troubadourName(context))
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     val output = context.contentResolver.openOutputStream(uri) ?: error("Cannot write this file.")

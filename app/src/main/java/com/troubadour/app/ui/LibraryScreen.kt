@@ -431,7 +431,7 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
         // Default volume: the level the sound starts at on the table.
         Row(Modifier.height(28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             T("Volume", color = C.muted, size = 12.sp)
-            BardSlider(
+            TroubadourSlider(
                 s.volume, { v -> m.updateSound(t, s.uid) { x -> x.copy(volume = (v * 20f).roundToInt() / 20f) } }, z,
                 Modifier.weight(1f).height(28.dp), label = "Default volume of ${s.name}",
             )

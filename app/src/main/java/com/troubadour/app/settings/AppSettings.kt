@@ -108,19 +108,19 @@ class AppSettings(context: Context) {
     var landscape by mutableStateOf(prefs.getBoolean("landscape", true))
         private set
     /** The tip about the website's Story builder, shown on entering the editor until turned off. */
-    var forgeTip by mutableStateOf(prefs.getBoolean("forgeTip", true))
+    var exportTip by mutableStateOf(prefs.getBoolean("exportTip", prefs.getBoolean("forgeTip", true))) // "forgeTip" before 18 Nov 2026
         private set
     var pins by mutableStateOf(prefs.getString("pins", "").orEmpty().split(',').filter { it.isNotBlank() })
         private set
-    /** GitHub connection (optional): the sign-in token, the GitHub username and the registered bard name. */
-    var ghToken by mutableStateOf(prefs.getString(BardSettings.KEY_TOKEN, "").orEmpty())
+    /** GitHub connection (optional): the sign-in token, the GitHub username and the registered troubadour name. */
+    var ghToken by mutableStateOf(prefs.getString(TroubadourNameSettings.KEY_TOKEN, "").orEmpty())
         private set
-    var ghLogin by mutableStateOf(prefs.getString(BardSettings.KEY_LOGIN, "").orEmpty())
+    var ghLogin by mutableStateOf(prefs.getString(TroubadourNameSettings.KEY_LOGIN, "").orEmpty())
         private set
-    var ghName by mutableStateOf(prefs.getString(BardSettings.KEY_NAME, "").orEmpty().trim())
+    var ghName by mutableStateOf(prefs.getString(TroubadourNameSettings.KEY_NAME, "").orEmpty().trim())
         private set
-    /** Signs every exported .troubadour file: the registered bard name, else Forgotten Barde. */
-    val bardName: String get() = ghName.ifBlank { BardSettings.FORGOTTEN }
+    /** Signs every exported .troubadour file: the registered troubadour name, else Forgotten Troubadour. */
+    val troubadourName: String get() = ghName.ifBlank { TroubadourNameSettings.FORGOTTEN }
 
     fun changeTheme(v: ThemeName) { collect(v); theme = v; prefs.edit().putString("theme", v.id).apply() }
     fun changeAppearance(v: Appearance) { appearance = v; prefs.edit().putString("mode", v.id).apply() }
@@ -139,14 +139,14 @@ class AppSettings(context: Context) {
     fun changeVolAmbience(v: VolumeMode) { volAmbience = v; prefs.edit().putString("volAmbience", v.id).apply() }
     fun changeVolEvents(v: VolumeMode) { volEvents = v; prefs.edit().putString("volEvents", v.id).apply() }
     fun changeLandscape(v: Boolean) { landscape = v; prefs.edit().putBoolean("landscape", v).apply() }
-    fun hideForgeTip() { forgeTip = false; prefs.edit().putBoolean("forgeTip", false).apply() }
+    fun hideExportTip() { exportTip = false; prefs.edit().putBoolean("exportTip", false).remove("forgeTip").apply() }
     fun changeSoundboxOpen(v: Boolean) { soundboxOpen = v; prefs.edit().putBoolean("sbOpen", v).apply() }
     fun setAccount(token: String, login: String, name: String) {
         ghToken = token
         ghLogin = login
         ghName = name.trim()
-        prefs.edit().putString(BardSettings.KEY_TOKEN, token).putString(BardSettings.KEY_LOGIN, login)
-            .putString(BardSettings.KEY_NAME, ghName).apply()
+        prefs.edit().putString(TroubadourNameSettings.KEY_TOKEN, token).putString(TroubadourNameSettings.KEY_LOGIN, login)
+            .putString(TroubadourNameSettings.KEY_NAME, ghName).apply()
     }
 
     fun clearAccount() = setAccount("", "", "")
