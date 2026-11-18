@@ -109,7 +109,16 @@
     for (const f of missing) {
       if (token !== P.chapterToken) return;
       const blob = P.blobs.get(f);
-      try { if (blob) { const b = await decode(blob); E.analyse(b); P.buffers.set(f, b); } } catch (e) { console.warn('Could not decode', f, e); }
+      try {
+        if (blob) {
+          const b = await decode(blob);
+          // Measured by the builder (flow.json `sounds`): the phone takes its numbers instead of measuring.
+          const m = P.rec.flow.sounds && P.rec.flow.sounds[f];
+          if (m && m.size === blob.size && m.b > m.a) b._ballade = { a: m.a, b: m.b, la: m.la, lb: m.lb, lufs: m.lufs, loops: new Map() };
+          E.analyse(b);
+          P.buffers.set(f, b);
+        }
+      } catch (e) { console.warn('Could not decode', f, e); }
       P.loading -= 1;
       decoded += 1;
       if (P.onProgress) P.onProgress(decoded, missing.length);

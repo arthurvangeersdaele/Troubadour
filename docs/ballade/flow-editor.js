@@ -983,7 +983,7 @@
     const bard = global.Troubadour.bardName();
     try {
       busy('Exporting the .troubadour-ballade', '', 0);
-      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Exporting the .troubadour-ballade', '', f), 'Troubadour Ballade builder (web)');
+      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Exporting the .troubadour-ballade', '', f), 'Troubadour Ballade builder (web)', { measure: true });
       E.rec.flow = out.flow;
       await global.FlowDB.put(E.rec);
       idle();

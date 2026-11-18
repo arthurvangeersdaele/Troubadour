@@ -206,10 +206,10 @@
    *  ctx: a context to decode with (null: the engine's own). key: a stable id of the sound, cached in memory and in
    *  `store`, an object with async get(k) and set(k, v) (TroubadourDB's getKV and setKV). */
   let decoder = null;
-  /** A quiet decoder of its own (22.05 kHz: half the memory, the same ends and loudness), so measuring never wakes
-   *  or burdens the table's audio. */
+  /** A quiet decoder of its own, so measuring never wakes or burdens the table's audio. At 44.1 kHz: a lower rate
+   *  drops the highs, and a sound made mostly of them (hiss, coins, rain) would read up to 16 dB too quiet. */
   function decoderCtx() {
-    if (!decoder) { const O = global.OfflineAudioContext || global.webkitOfflineAudioContext; decoder = O ? new O(1, 1, 22050) : null; }
+    if (!decoder) { const O = global.OfflineAudioContext || global.webkitOfflineAudioContext; decoder = O ? new O(1, 1, 44100) : null; }
     return decoder;
   }
   function measure(ctx, blob, key, store) {
@@ -217,7 +217,7 @@
     if (!ctx) return Promise.resolve(null);
     if (key && measured.has(key)) return measured.get(key);
     const p = (async () => {
-      if (key && store) { try { const v = await store.get(`an:${key}`); if (v && v.b > 0) return v; } catch (e) { /* none */ } }
+      if (key && store) { try { const v = await store.get(`an2:${key}`); if (v && v.b > 0) return v; } catch (e) { /* none */ } }
       const r = await (measuring = measuring.then(async () => {
         try {
           const data = await blob.arrayBuffer();
@@ -226,7 +226,7 @@
           return { a: i.a, b: i.b, la: i.la, lb: i.lb, lufs: i.lufs, d: buf.duration };
         } catch (e) { return null; }
       }));
-      if (r && key && store) { try { const w = store.set(`an:${key}`, r); if (w && w.catch) w.catch(() => {}); } catch (e) { /* full */ } }
+      if (r && key && store) { try { const w = store.set(`an2:${key}`, r); if (w && w.catch) w.catch(() => {}); } catch (e) { /* full */ } }
       return r;
     })();
     if (key) measured.set(key, p);

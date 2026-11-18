@@ -226,8 +226,33 @@
   /* ---------- Writing ---------- */
 
   /** Forges the next revision of the Flow. `files` maps each path to its Blob. Resolves with { blob, flow, fileName }. */
-  async function pack(story, flow, files, bard, onProgress, generator) {
+  /** Every sound of the Ballade measured once, on the computer that builds it (261114_ballade_plan.md, 4.3):
+   *  where it really starts and ends, where its loop turns, how loud it is. Kept in flow.json as `sounds`
+   *  ({ path: { a, b, la, lb, lufs, size } }), so a phone never has to measure them. A sound already measured
+   *  (same path, same size) is not measured again. */
+  async function measureSounds(files, known, onProgress) {
+    const E = global.TroubadourEngine;
+    const out = {};
+    const audio = [...files.keys()].filter((p) => /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|webm)$/i.test(p)).sort();
+    for (let i = 0; i < audio.length; i++) {
+      const p = audio[i], data = files.get(p);
+      const size = data.size != null ? data.size : data.byteLength;
+      const k = known && known[p];
+      if (k && k.size === size) { out[p] = k; continue; }
+      if (!E || !E.measure) continue;
+      const info = await E.measure(null, data instanceof Blob ? data : new Blob([data]), `${p}:${size}`);
+      if (info) out[p] = { a: r3(info.a), b: r3(info.b), la: r3(info.la), lb: r3(info.lb), lufs: r2(info.lufs), size };
+      if (onProgress) onProgress((i + 1) / audio.length);
+    }
+    return out;
+  }
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+
+  async function pack(story, flow, files, bard, onProgress, generator, opts = {}) {
     const stamp = now();
+    // Measured in the builder (opts.measure); elsewhere what was measured before is kept as it is.
+    const sounds = opts.measure ? await measureSounds(files, flow.sounds, (f) => onProgress && onProgress(f * 0.5)) : flow.sounds;
+    const zipProgress = opts.measure && onProgress ? (f) => onProgress(0.5 + f * 0.5) : onProgress;
     const out = Object.assign({}, flow, {
       format: 'troubadour-ballade',
       version: FLOW_VERSION,
@@ -239,12 +264,13 @@
       forged: stamp,
       generator: generator || 'Troubadour Ballade (web)',
     });
+    if (sounds && Object.keys(sounds).length) out.sounds = sounds; else delete out.sounds;
     const entries = [
       { name: 'story.json', data: new TextEncoder().encode(JSON.stringify(story, null, 2) + '\n') },
       { name: 'flow.json', data: new TextEncoder().encode(JSON.stringify(out, null, 2) + '\n') },
     ];
     [...files.keys()].sort().forEach((p) => entries.push({ name: p, data: files.get(p) }));
-    const blob = await B.writeZip(entries, onProgress);
+    const blob = await B.writeZip(entries, zipProgress);
     return { blob, flow: out, fileName: `${yymmdd()}_${B.slug(story.title, 'story')}.troubadour-ballade` };
   }
 
@@ -270,6 +296,6 @@
   global.TroubadourBallade = {
     MAX_ANSWERS, cleanChoice, allSteps, allLists, PLAYS, playOf, holds, card,
     FLOW_VERSION, LANES, ZONES, soundsOf, cleanCard, cleanStep, stepLength, runOffsets,
-    defaultFlow, defaultChapter, normalize, read, pack, packTroubadour, yymmdd, clock,
+    defaultFlow, defaultChapter, normalize, read, pack, packTroubadour, measureSounds, yymmdd, clock,
   };
 })(window);

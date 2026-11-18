@@ -99,6 +99,22 @@ async function card() {
   { const v = new Voice({ loop: 'random', volume: 1 }, zone('events', 0), {}); v.attach({}); v.play(); ok(v.rnd === true, 'random: playing keeps the sound coming back'); }
   { const v = new Voice({ loop: 'random', volume: 1 }, zone('music', 0), {}); ok(v.loop === 0, 'random is not offered on music (falls back to once)'); }
   { const v = new Voice({ loop: 'after', volume: 1 }, zone('events', 0), {}); ok(v.loop === 0, 'play after is music only (falls back to once)'); }
+  // Fade-in on Play (the iPhone case): silent until the sound really comes out and the context runs, then the rise.
+  {
+    const ramps = [];
+    const g2 = { value: 1, cancelScheduledValues() {}, setValueAtTime(v) { this.value = v; }, linearRampToValueAtTime(v, at) { ramps.push([v, at]); this.value = v; }, setTargetAtTime(v) { this.value = v; } };
+    let resumed = 0;
+    ctx.state = 'suspended'; ctx.resume = () => { resumed++; ctx.state = 'running'; ctx.currentTime = 50; return Promise.resolve(); };
+    const v = await STATES.ready(); v.graph(); v.env.gain = g2;
+    v.play(2);
+    ok(g2.value === 0 && ramps.length === 0, 'fade-in: silent until the sound comes out (no rise planned yet)');
+    v.el.fire('playing'); await sleep(5);
+    ok(resumed === 1, 'fade-in: a suspended context is woken first');
+    ok(ramps.length === 1 && ramps[0][0] === 1 && Math.abs(ramps[0][1] - 52) < 1e-9, `fade-in: rises over 2 s from when it really plays (${JSON.stringify(ramps)})`);
+    await sleep(1600);
+    ok(ramps.length === 1, 'fade-in: the safety net does not rise twice');
+    ctx.state = 'running';
+  }
   // Measured sound: starts where it really starts, evens out, seams at the trimmed points.
   { const v = await STATES.ready(); v.info = { a: 0.2, b: 9.5, la: 0.4, lb: 9.4, lufs: -30, d: 10 }; v.play(); ok(Math.abs(v.el.currentTime - 0.2) < 1e-9, 'measured: plays from its true start');
     ok(Math.abs(v.norm - Math.pow(10, 6 / 20)) < 1e-6, 'measured music at -30 LUFS: +6 dB at most'); }

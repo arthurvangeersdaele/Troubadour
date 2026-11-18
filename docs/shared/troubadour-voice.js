@@ -106,13 +106,29 @@
           return;
         }
         if (this.state === 'ready') { this.el.currentTime = this.head; this.plays = 0; }
-        // From silence, rise over fadeIn. ramp() would start from gain.value, which Safari still reports
-        // as the old level (1 after a sound ended), so the fade-in was lost there.
-        const t = ctxOf().currentTime;
-        this.env.gain.cancelScheduledValues(t);
-        this.env.gain.setValueAtTime(0, t);
-        this.env.gain.linearRampToValueAtTime(1, t + Math.max(fadeIn, 0.012));
-        const p = this.el.play();
+        // From silence, rise over fadeIn. Set from 0 on purpose: ramp() would start from gain.value, which Safari
+        // still reports as the old level (1 after a sound ended).
+        const g = this.env.gain, el = this.el, c = ctxOf();
+        const t = c.currentTime;
+        g.cancelScheduledValues(t);
+        g.setValueAtTime(0, t);
+        // The rise starts when the sound really comes out. On iPhone the context is often still waking (after a
+        // lock, a call or another app: its clock jumps ahead when it runs again, so a rise planned now would
+        // already be over), and Safari starts a media element a few hundred ms after play(): the fade-in was lost.
+        const token = this.riseToken = (this.riseToken || 0) + 1;
+        let risen = false;
+        const rise = () => {
+          if (risen || token !== this.riseToken || this.state !== 'playing' || this.el !== el) return;
+          risen = true;
+          const now = c.currentTime;
+          g.cancelScheduledValues(now);
+          g.setValueAtTime(0, now);
+          g.linearRampToValueAtTime(1, now + Math.max(fadeIn, 0.012));
+        };
+        const whenRunning = () => (c.state === 'running' ? rise() : Promise.resolve(c.resume && c.resume()).then(rise, rise));
+        if (el.paused) el.addEventListener('playing', whenRunning, { once: true }); else whenRunning();
+        setTimeout(whenRunning, 1500); // never silent for long, whatever the browser reports
+        const p = el.play();
         if (p) p.catch(() => this.set('ready'));
         this.set('playing');
       }
