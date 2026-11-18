@@ -668,4 +668,24 @@ dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; 
 .pc-info em { font-style: normal; color: var(--accent); font-weight: 600; }
 .pc-hint { display: flex; align-items: center; gap: 7px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 .pc-hint svg { flex: none; }
-html:not(.phone):not(.tablet) .pc-info, html:not(.phone):not(.tablet) .pc-hint { display: none; }
+html:not(.phone) .pc-info, html:not(.phone) .pc-hint { display: none !important; }
+
+/* La Troupe on a tablet: the computer and the phone together. The online players and the builders open here,
+   and each app installs on the tablet too. */
+html.tablet .pc-only.tab-too { display: grid !important; }
+.tab-only { display: none; }
+html.tablet .qd-t .phone-only { display: none !important; }
+html.tablet .qd-t .tab-only { display: inline; }
+html.tablet .apps { grid-template-columns: minmax(0, 600px); gap: 18px; }
+html.tablet .app-btns { grid-template-columns: 1fr 1fr; }
+html.tablet .tapp { padding: 20px; }
+html.tablet .lore, html.tablet .discord-bar { width: min(100%, 600px); }
+html.tablet .oath { max-width: 640px; }
+@media (min-width: 1000px) {
+  html.tablet .apps { grid-template-columns: repeat(3, minmax(0, 306px)); }
+  html.tablet .tapp { padding: 16px; }
+  html.tablet .tapp .app-btns { margin-top: auto; }
+  html.tablet .abtn { font-size: 14px; gap: 6px; padding: 0 8px; }
+  html.tablet .lore, html.tablet .discord-bar { width: min(100%, 950px); }
+}
+@media (max-width: 999px) { html.tablet .hall h1 { padding: 0 72px; font-size: 52px; line-height: 1.05; } }
