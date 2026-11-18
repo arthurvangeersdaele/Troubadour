@@ -202,7 +202,7 @@
   const STREAM_SEAM = 0.35; // s: two rounds of a streamed loop cross over this long, at least
   let measuring = Promise.resolve();
   const measured = new Map();
-  /** measure(ctx, blob, key, store): { a, b, la, lb, lufs, d } of a blob (s, LUFS), or null if it cannot be read.
+  /** measure(ctx, blob, key, store, busy): { a, b, la, lb, lufs, d } of a blob (s, LUFS), or null if it cannot be read.
    *  ctx: a context to decode with (null: the engine's own). key: a stable id of the sound, cached in memory and in
    *  `store`, an object with async get(k) and set(k, v) (TroubadourDB's getKV and setKV). */
   let decoder = null;
@@ -212,7 +212,7 @@
     if (!decoder) { const O = global.OfflineAudioContext || global.webkitOfflineAudioContext; decoder = O ? new O(1, 1, 44100) : null; }
     return decoder;
   }
-  function measure(ctx, blob, key, store) {
+  function measure(ctx, blob, key, store, busy) {
     ctx = ctx || decoderCtx();
     if (!ctx) return Promise.resolve(null);
     if (key && measured.has(key)) return measured.get(key);
@@ -220,8 +220,15 @@
       if (key && store) { try { const v = await store.get(`an2:${key}`); if (v && v.b > 0) return v; } catch (e) { /* none */ } }
       const r = await (measuring = measuring.then(async () => {
         try {
+          // busy(): a table plays. Decoding hands a whole sound back to the page, and analysing reads it all: both
+          // take the page's attention, so neither starts while a table plays, and a sound decoded meanwhile is not
+          // analysed. It keeps its own level.
+          if (busy && busy()) return null;
           const data = await blob.arrayBuffer();
           const buf = await new Promise((ok, ko) => { const x = ctx.decodeAudioData(data, ok, ko); if (x && x.catch) x.catch(ko); });
+          // busy(): a table started playing while this sound decoded: the analysis (the part that takes the page's
+          // attention) is left out, the sound keeps its own level.
+          if (busy && busy()) return null;
           const i = analyse(buf);
           return { a: i.a, b: i.b, la: i.la, lb: i.lb, lufs: i.lufs, d: buf.duration };
         } catch (e) { return null; }
@@ -229,7 +236,7 @@
       if (r && key && store) { try { const w = store.set(`an2:${key}`, r); if (w && w.catch) w.catch(() => {}); } catch (e) { /* full */ } }
       return r;
     })();
-    if (key) measured.set(key, p);
+    if (key) { measured.set(key, p); p.then((r) => { if (!r) measured.delete(key); }); }
     return p;
   }
   /** The evening-out gain of measured numbers (1 when off or unknown), as norm() for a decoded buffer. */

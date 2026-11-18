@@ -115,6 +115,14 @@ async function card() {
     ok(ramps.length === 1, 'fade-in: the safety net does not rise twice');
     ctx.state = 'running';
   }
+  // Numbers measured before the table opened: the true start, the level of its kind, set from silence only.
+  {
+    const v = new Voice({ loop: 'once', volume: 1 }, zone('music', 0), {}); v.info = { a: 0.2, b: 9.5, la: 0.4, lb: 9.4, lufs: -30 }; v.attach({});
+    v.play(); ok(Math.abs(v.el.currentTime - 0.2) < 1e-9, 'measured: plays from its true start');
+    ok(Math.abs(v.nm.gain.value - Math.pow(10, 6 / 20)) < 1e-6, 'measured music at -30 LUFS: +6 dB at most, set at the start');
+    const heard = v.nm.gain.value; v.info = { a: 0, b: 9, la: 0, lb: 9, lufs: -10 };
+    ok(v.nm.gain.value === heard, 'no change of level while it is heard');
+  }
   // One media element per card and its own loop: nothing is measured, no second element at the turn.
   { const v = new Voice({ loop: 'infinite', volume: 1 }, zone('ambience', 0), {}); v.attach({}); v.play(); for (let k = 0; k < 5; k++) v.blendTick(); ok(!v.twin && v.el.loop === true, 'forever loop: the element loops by itself'); }
 }

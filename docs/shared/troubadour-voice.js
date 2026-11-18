@@ -10,7 +10,8 @@
  *         onState(v) (optional) }
  *
  * The sound plays as the web players always played it (18 November: back to it, for smoothness): one media
- * element per card, its own loop, no measuring and no change of level while it plays.
+ * element per card, its own loop, nothing measured while the table plays and no change of level while a sound
+ * is heard. The apps measure before the table opens and hand each card its numbers (v.info).
  *
  * States: loading, ready, playing, paused, ending, error (see paint() and the statechart). */
 (function (global) {
@@ -85,7 +86,9 @@
         this.life = ctxOf().createGain(); this.life.gain.value = 1;
         // xf: this round's share of a blended loop (1 outside a blend).
         this.xf = ctxOf().createGain(); this.xf.gain.value = 1;
-        src.connect(this.xf).connect(this.vg).connect(this.life).connect(this.env).connect(host.master());
+        // nm: the evening-out gain, from numbers measured before the table opened (1 without them).
+        this.nm = ctxOf().createGain(); this.nm.gain.value = this.norm;
+        src.connect(this.xf).connect(this.vg).connect(this.life).connect(this.env).connect(this.nm).connect(host.master());
       }
       get active() { return this.state === 'playing' || this.state === 'ending'; }
       get usable() { return this.el && this.state !== 'loading' && this.state !== 'error'; }
@@ -105,13 +108,15 @@
           this.set('playing');
           return;
         }
-        if (this.state === 'ready') { this.el.currentTime = 0; this.plays = 0; }
+        if (this.state === 'ready') { this.el.currentTime = this.head; this.plays = 0; }
         // From silence, rise over fadeIn. ramp() would start from gain.value, which Safari still reports
         // as the old level (1 after a sound ended), so the fade-in was lost there.
         const g = this.env.gain, el = this.el, c = ctxOf();
         const t = c.currentTime;
         g.cancelScheduledValues(t);
         g.setValueAtTime(0, t);
+        // Its level is set here, from silence, and never while it is heard.
+        if (this.nm) { this.nm.gain.cancelScheduledValues(t); this.nm.gain.setValueAtTime(this.norm, t); }
         // The rise starts when the sound really comes out. On iPhone the context is often still waking (after a
         // lock, a call or another app: its clock jumps ahead when it runs again, so a rise planned now would
         // already be over), and Safari starts a media element a few hundred ms after play(): the fade-in was lost.
@@ -170,6 +175,11 @@
         this.timer = setTimeout(() => this.reset(), ms + 40);
       }
       /** Blend (sound.blend s, forever loops only): the length of the crossfade between two rounds, at most a third of the sound. */
+      /* Numbers measured before the table opened (TroubadourEngine.measure): `info` { a, b, la, lb, lufs }. */
+      /** Where the sound really starts (s in the file): the silence an encoder adds is left out. */
+      get head() { return this.info && this.info.b > this.info.a ? this.info.a : 0; }
+      /** The gain that brings it to the level of its kind (Even out the loudness), 1 without numbers or when off. */
+      get norm() { const E = global.TroubadourEngine; return E && E.gainOf ? E.gainOf(this.info, this.zone.id, host.settings.even !== false) : 1; }
       get blend() {
         const b = Number(this.sound.blend ?? (this.sound.extra && this.sound.extra.blend) ?? 0);
         const d = this.el && isFinite(this.el.duration) ? this.el.duration : 0;
@@ -217,7 +227,7 @@
       ended() {
         if (this.state === 'error') return; // an unreadable sound stays unreadable (statechart)
         this.plays += 1;
-        if (this.loop === 1 && this.plays < 2 && this.active) { this.el.currentTime = 0; this.el.play().catch(() => {}); return; }
+        if (this.loop === 1 && this.plays < 2 && this.active) { this.el.currentTime = this.head; this.el.play().catch(() => {}); return; }
         const natural = this.state === 'playing';
         this.reset();
         // A music that played through on its own hands over to the next one set to play after it.

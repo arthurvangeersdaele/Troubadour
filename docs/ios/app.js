@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261118.7';
+  const VERSION = '261118.8';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -1563,10 +1563,39 @@
   const tableSave = debounce(() => { if (tbl) DB.putStory(tbl.story, false).catch(() => {}); }, 800);
   function tableDirty() { tableSave(); }
 
+  /** Every sound of a story measured once, before its table opens (never while it plays): where it really
+   *  starts, how loud it is. Kept on the phone with the sound (TroubadourEngine.measure, key an2:<sound>), so a
+   *  story is prepared only the first time it is opened. Returns { sound key: numbers }. */
+  async function prepareSounds(story) {
+    const E = window.TroubadourEngine;
+    const out = {};
+    if (!E || !E.measure) return out;
+    const store = { get: (k) => DB.getKV(k, null), set: (k, v) => DB.setKV(k, v) };
+    const keys = [...new Set(story.chapters.flatMap((c) => ZONES.flatMap((z) => (c[z.id] || []).map((x) => x.blob))).filter(Boolean))];
+    const todo = [];
+    for (const k of keys) { const v = await DB.getKV(`an2:${k}`, null); if (v && v.b > 0) out[k] = v; else todo.push(k); }
+    if (!todo.length) return out;
+    try {
+      for (let i = 0; i < todo.length; i++) {
+        busy('Preparing the sounds', `Once for this story: sound ${i + 1} of ${todo.length}`, i / todo.length);
+        const blob = await DB.getBlob(todo[i]);
+        if (!blob) continue;
+        const info = await E.measure(null, blob, todo[i], store);
+        if (info) out[todo[i]] = info;
+      }
+    } finally { idle(); }
+    return out;
+  }
+
+  let preparing = null;
   async function openTable(story, idx) {
     if (tbl && tbl.story.uid === story.uid) { setChapter(Math.min(idx, tbl.chapters.length - 1)); show('table'); return; }
+    if (preparing === story.uid) return; // a second tap while its sounds are being prepared
     closeTable();
     audio();
+    preparing = story.uid;
+    let measured = {};
+    try { measured = await prepareSounds(story); } finally { preparing = null; }
     tbl = { story, chapters: [], all: [] };
     story.chapters.forEach((c, i) => {
       const ch = { meta: c, index: i, voices: {} };
@@ -1597,7 +1626,7 @@
       try {
         const blob = await DB.getBlob(v.sound.blob);
         if (tbl !== t) return;
-        if (blob) v.attach(blob); else v.set('error');
+        if (blob) { v.info = measured[v.sound.blob] || null; v.attach(blob); } else v.set('error');
       } catch (e) { v.set('error'); }
       if (v.wanted) { v.wanted = false; if (v.state === 'ready') toggleVoice(v); else v.paint(); }
     }
@@ -2010,6 +2039,8 @@
     $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
+    // Even out the loudness: each sound takes it at its next start (never a change of level while it is heard).
+    $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; save(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; save(); applyAudioSession(); });
@@ -2048,6 +2079,7 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
+    $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;

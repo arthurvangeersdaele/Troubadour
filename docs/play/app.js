@@ -373,6 +373,12 @@
           const blob = info.blob || await download(DISCOVERY + info.file, ctrl.signal, (n) => { got += n; doneBytes += n; tick(); });
           if (info.blob) doneBytes += info.blob.size;
           if (ctrl.signal.aborted) return;
+          // Measured before it can play (where it really starts, how loud it is): under the opening popup, or
+          // later only while nothing plays; never while the table plays (it would stall the sound and the buttons).
+          if (item instanceof Voice && window.TroubadourEngine && TroubadourEngine.measure && (opening === s || !s.all.some((v) => v.active))) {
+            item.info = await TroubadourEngine.measure(null, blob, `web:${info.file || info.name}:${blob.size}`, null, () => opening !== s && s.all.some((v) => v.active)).catch(() => null);
+            if (ctrl.signal.aborted) return;
+          }
           if (item instanceof Voice) item.attach(blob);
           else await decodePad(item, blob);
         } catch (e) {
@@ -910,6 +916,8 @@
     $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
+    // Even out the loudness: each sound takes it at its next start (never a change of level while it is heard).
+    $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       settings.vol[g.dataset.zone] = b.dataset.v; save(); syncSettings();
@@ -944,6 +952,7 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
+    $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;
     applyTheme();
