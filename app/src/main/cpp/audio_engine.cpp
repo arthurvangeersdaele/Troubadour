@@ -21,6 +21,11 @@ namespace {
 constexpr size_t kRingFloats = 48000 * 2 * 2;
 // Keep decoding while at least this much room is free.
 constexpr size_t kChunkFloats = 16384;
+// Under -60 dBFS is silence (encoder padding, empty tails), as in the web engine (troubadour-engine.js, SILENT).
+constexpr float kSilent = 0.001f;
+// At most this much tail silence is held back (floats, stereo): about 0.1 s, more than any encoder's padding,
+// and small enough that a held tail always fits in the ring with the next decoded buffer.
+constexpr size_t kHoldMax = 8192;
 constexpr float kGainSmoothing = 0.002f;  // per-sample volume smoothing, avoids clicks
 constexpr int kPauseFadeMs = 40;
 constexpr int kMaxPadSeconds = 90;        // longer effects are cut, to keep memory in check
@@ -228,6 +233,9 @@ void AudioEngine::setLoop(int slot, int loopMode) {
     if (loopMode != kOnce && v.decodeFinished.load() && v.state.load() != kEmpty && v.extractor && v.codec) {
         // The decoder had already stopped: let it go round once more.
         AMediaExtractor_seekTo(v.extractor, 0, AMEDIAEXTRACTOR_SEEK_CLOSEST_SYNC);
+        v.held.clear();
+        v.headTrim = true;
+        v.headSkipped = 0;
         AMediaCodec_flush(v.codec);
         v.inputEos = false;
         v.decodedPasses = 1;
@@ -476,6 +484,9 @@ void AudioEngine::resetPlayback(Voice &v) {
     v.inputEos = false;
     v.decodedPasses = 0;
     v.decodeFinished.store(false);
+    v.headTrim = true;
+    v.headSkipped = 0;
+    v.held.clear();
     v.framesConsumed.store(0);
     v.passBase.store(0);
     v.prevL = v.prevR = v.curL = v.curR = 0.f;
@@ -572,7 +583,12 @@ bool AudioEngine::decodeSome(Voice &v) {
                     AMediaExtractor_seekTo(v.extractor, 0, AMEDIAEXTRACTOR_SEEK_CLOSEST_SYNC);
                     AMediaCodec_flush(v.codec);
                     v.inputEos = false;
+                    // The tail's silence is dropped and the next pass starts where its sound does: no hole.
+                    v.held.clear();
+                    v.headTrim = true;
+                    v.headSkipped = 0;
                 } else {
+                    v.held.clear();
                     v.decodeFinished.store(true);
                 }
             }
@@ -604,13 +620,23 @@ void AudioEngine::readOutputFormat(Voice &v) {
     AMediaFormat_delete(format);
 }
 
+// Silence that turned out to be inside the sound: it goes to the scratch after all, before what follows.
+size_t AudioEngine::flushHeld(Voice &v, size_t out) {
+    const size_t n = std::min(v.held.size(), mScratch.size() - out);
+    std::copy(v.held.begin(), v.held.begin() + static_cast<std::ptrdiff_t>(n), mScratch.begin() + static_cast<std::ptrdiff_t>(out));
+    v.held.clear();
+    return out + n;
+}
+
 void AudioEngine::pushPcm(Voice &v, const uint8_t *data, size_t bytes) {
     const int channels = std::max(1, v.srcChannels);
     const size_t sampleBytes = v.floatPcm ? sizeof(float) : sizeof(int16_t);
     const size_t frames = bytes / (sampleBytes * channels);
     size_t frame = 0;
     while (frame < frames) {
-        const size_t batch = std::min(frames - frame, mScratch.size() / 2);
+        // Room for a held tail (kHoldMax) plus this batch.
+        const size_t batch = std::min(frames - frame, (mScratch.size() - kHoldMax) / 2);
+        size_t out = 0;
         for (size_t i = 0; i < batch; ++i) {
             const size_t base = (frame + i) * channels;
             float l, r;
@@ -623,10 +649,26 @@ void AudioEngine::pushPcm(Voice &v, const uint8_t *data, size_t bytes) {
                 l = s[base] * (1.0f / 32768.0f);
                 r = channels > 1 ? s[base + 1] * (1.0f / 32768.0f) : l;
             }
-            mScratch[2 * i] = l;
-            mScratch[2 * i + 1] = r;
+            const bool silent = std::fabs(l) < kSilent && std::fabs(r) < kSilent;
+            // Head of a pass: skip the silence before the sound (3 s at most, a quiet intro stays).
+            if (v.headTrim) {
+                if (silent && v.headSkipped < 3LL * std::max(8000, v.srcRate.load())) { ++v.headSkipped; continue; }
+                v.headTrim = false;
+            }
+            if (silent) {
+                // Maybe the tail: held back until sound follows. A long silence inside the sound passes through.
+                if (v.held.size() >= kHoldMax) {
+                    out = flushHeld(v, out);
+                }
+                v.held.push_back(l);
+                v.held.push_back(r);
+                continue;
+            }
+            if (!v.held.empty()) out = flushHeld(v, out);
+            mScratch[out++] = l;
+            mScratch[out++] = r;
         }
-        v.ring.write(mScratch.data(), batch * 2);
+        if (out) v.ring.write(mScratch.data(), out);
         frame += batch;
     }
 }

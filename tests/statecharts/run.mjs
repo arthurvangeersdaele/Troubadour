@@ -153,7 +153,7 @@ function place() {
 
 /* ---------- 4.2 A Ballade chapter ---------- */
 function ballade() {
-  console.log('Ballade chapter: waits for the v2 timeline (261114_ballade_plan.md, P2 and P3); chart in the unifier, 4.2');
+  console.log('Ballade chapter: in a browser, tests/ballade/statechart.mjs (Ballade sound lab workflow)');
 }
 
 await card();

@@ -456,6 +456,13 @@ private fun SettingsPanel(m: AppModel) {
         }
         Muted("Your stories live on this phone only. Export them now and then as .troubadour files: it is your backup, and the way to share a story with another troubadour.", 13)
 
+        SetSection("La Troupe")
+        Muted("Troubadour Ballade gives you control over time: it plays in your phone's browser. Troubadour Map gives you control over space: it runs on a computer, an iPhone or an iPad.", 13)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Btn("Troubadour Ballade") { m.openLink("${TroubadourIO.SITE}troubadour-ballade/") }
+            Btn("Troubadour Map") { m.openLink("${TroubadourIO.SITE}troubadour-map/") }
+        }
+
         SetSection("About")
         val version = remember {
             runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()

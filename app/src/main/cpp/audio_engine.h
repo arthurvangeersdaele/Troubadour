@@ -94,6 +94,10 @@ struct Voice {
     int64_t durationUs = 0;
     bool inputEos = false;
     int decodedPasses = 0;
+    // Gapless loops (as on the web): the silence an encoder adds at the head and tail of each pass is left out.
+    bool headTrim = true;          // still skipping the silence at the head of this pass
+    int64_t headSkipped = 0;       // frames skipped so far in this pass
+    std::vector<float> held;       // silent frames at the tail, held back until sound follows (dropped at the end)
 
     std::atomic<int> srcRate{44100};
     std::atomic<int64_t> framesPerPass{0};
@@ -170,6 +174,7 @@ private:
     bool openStream();
     void decoderLoop();
     bool decodeSome(Voice &v);
+    size_t flushHeld(Voice &v, size_t out);
     void pushPcm(Voice &v, const uint8_t *data, size_t bytes);
     void readOutputFormat(Voice &v);
     void rewind(Voice &v);
