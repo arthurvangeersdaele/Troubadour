@@ -2545,15 +2545,17 @@
     },
     "fade_out": {
       "$value": {
-        "value": 2000,
+        "value": 4000,
         "unit": "ms"
-      }
+      },
+      "$description": "Default stop fade (Settings: Off, 0.5, 1, 2, 4 s), since 17 November 2026"
     },
     "fade_in": {
       "$value": {
         "value": 2000,
         "unit": "ms"
-      }
+      },
+      "$description": "Default start fade, since 17 November 2026"
     },
     "master_glide": {
       "$value": {

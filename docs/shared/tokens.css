@@ -25,4 +25,4 @@
 :root { --r-cta:12px; --r-button:10px; --r-icon:10px; --r-icon-small:9px; --r-chip:10px; --r-segment:7px; --r-card:12px; --r-dialog:16px; --r-play:10px; --r-input:9px; --r-badge:999px; --r-track:2px; }
 :root { --sp-4:4px; --sp-6:6px; --sp-8:8px; --sp-10:10px; --sp-12:12px; --sp-16:16px; --sp-20:20px; --sp-24:24px; --sp-28:28px; --sp-36:36px; --sp-48:48px; --sp-72:72px; }
 :root { --sz-bar:56px; --sz-bar-short:50px; --sz-icon:40px; --sz-icon-small:34px; --sz-button:44px; --sz-button-small:34px; --sz-cta:48px; --sz-cta-big:56px; --sz-play:38px; --sz-play-short:32px; --sz-touch-min:34px; --sz-touch-play:44px; }
-:root { --t-hover:150ms; --t-state:200ms; --t-theme:300ms; --t-panel:250ms; --t-toast:2800ms; --t-toast-error:5000ms; --t-fade-out:2000ms; --t-fade-in:2000ms; --t-master-glide:3000ms; --t-volume-glide:2000ms; --t-micro-fade:6ms; }
+:root { --t-hover:150ms; --t-state:200ms; --t-theme:300ms; --t-panel:250ms; --t-toast:2800ms; --t-toast-error:5000ms; --t-fade-out:4000ms; --t-fade-in:2000ms; --t-master-glide:3000ms; --t-volume-glide:2000ms; --t-micro-fade:6ms; }
