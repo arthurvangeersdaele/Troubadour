@@ -663,11 +663,10 @@ dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; 
 .pc-info { max-width: 330px; margin: 10px auto 18px; font-size: 14px; line-height: 1.5; color: var(--muted); text-align: center; }
 .pc-hint { display: flex; align-items: center; gap: 7px; margin: 2px 0 0; font-size: 13px; color: var(--muted); opacity: .8; }
 .pc-hint svg { flex: none; }
-html:not(.phone) .pc-info, html:not(.phone) .pc-hint { display: none !important; }
+html.pc .pc-info, html.pc .pc-hint { display: none !important; }
 
 /* La Troupe on a tablet: the computer and the phone together. The online players and the builders open here,
    and each app installs on the tablet too. */
-html.tablet .pc-only.tab-too { display: grid !important; }
 .tab-only { display: none; }
 html.tablet .qd-t .phone-only { display: none !important; }
 html.tablet .qd-t .tab-only { display: inline; }
@@ -684,3 +683,6 @@ html.tablet .oath { max-width: 640px; }
   html.tablet .lore, html.tablet .discord-bar { width: min(100%, 950px); }
 }
 @media (max-width: 999px) { html.tablet .hall h1 { padding: 0 72px; font-size: 52px; line-height: 1.05; } }
+/* Until the builders and the online players work in a tablet's browser, a tablet shows the apps to install and the
+   same quiet line as a phone, never a door to a page that only asks to install. */
+html.tablet .pc-info { max-width: 520px; }
