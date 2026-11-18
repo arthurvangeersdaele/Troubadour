@@ -117,22 +117,32 @@
         g.setValueAtTime(0, t);
         // Its level is set here, from silence, and never while it is heard.
         if (this.nm) { this.nm.gain.cancelScheduledValues(t); this.nm.gain.setValueAtTime(this.norm, t); }
-        // The rise starts when the sound really comes out. On iPhone the context is often still waking (after a
-        // lock, a call or another app: its clock jumps ahead when it runs again, so a rise planned now would
-        // already be over), and Safari starts a media element a few hundred ms after play(): the fade-in was lost.
+        // The rise starts when the sound really comes out: when its position moves and the context runs. On
+        // iPhone the context is often still waking (its clock jumps ahead when it runs again) and Safari starts a
+        // media element late, sometimes without telling: watching the position is the one sure sign.
         const token = this.riseToken = (this.riseToken || 0) + 1;
+        const from = el.currentTime, began = Date.now();
         let risen = false;
         const rise = () => {
           if (risen || token !== this.riseToken || this.state !== 'playing' || this.el !== el) return;
           risen = true;
-          const now = c.currentTime;
+          const now = c.currentTime, T = Math.max(fadeIn, 0.012);
           g.cancelScheduledValues(now);
           g.setValueAtTime(0, now);
-          g.linearRampToValueAtTime(1, now + Math.max(fadeIn, 0.012));
+          // Along Troubadour's volume curve (v * v): heard as a steady rise, like moving the volume slider evenly.
+          // A straight line in amplitude is heard as a jump at the start and nothing after.
+          const n = T < 0.1 ? 1 : 12;
+          for (let k = 1; k <= n; k++) { const q = k / n; g.linearRampToValueAtTime(n === 1 ? 1 : q * q, now + T * q); }
         };
-        const whenRunning = () => (c.state === 'running' ? rise() : Promise.resolve(c.resume && c.resume()).then(rise, rise));
-        if (el.paused) el.addEventListener('playing', whenRunning, { once: true }); else whenRunning();
-        setTimeout(whenRunning, 1500); // never silent for long, whatever the browser reports
+        let woke = false;
+        const watch = () => {
+          if (risen || token !== this.riseToken || this.state !== 'playing' || this.el !== el) return;
+          if (c.state !== 'running' && !woke && c.resume) { woke = true; c.resume().catch(() => {}); }
+          const moving = !el.paused && el.currentTime > from + 0.01;
+          if ((moving && c.state === 'running') || Date.now() - began > 1500) rise(); // never silent for long
+          else setTimeout(watch, 16);
+        };
+        setTimeout(watch, 0); // once the card is playing (set below)
         const p = el.play();
         if (p) p.catch(() => this.set('ready'));
         this.set('playing');

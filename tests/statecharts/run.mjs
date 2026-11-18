@@ -99,20 +99,23 @@ async function card() {
   { const v = new Voice({ loop: 'random', volume: 1 }, zone('events', 0), {}); v.attach({}); v.play(); ok(v.rnd === true, 'random: playing keeps the sound coming back'); }
   { const v = new Voice({ loop: 'random', volume: 1 }, zone('music', 0), {}); ok(v.loop === 0, 'random is not offered on music (falls back to once)'); }
   { const v = new Voice({ loop: 'after', volume: 1 }, zone('events', 0), {}); ok(v.loop === 0, 'play after is music only (falls back to once)'); }
-  // Fade-in on Play (the iPhone case): silent until the sound really comes out and the context runs, then the rise.
+  // Fade-in on Play (the iPhone case): silent until the sound really moves and the context runs, then the rise,
+  // along the volume curve (v * v), ending at 1 after the fade-in time.
   {
     const ramps = [];
-    const g2 = { value: 1, cancelScheduledValues() {}, setValueAtTime(v) { this.value = v; }, linearRampToValueAtTime(v, at) { ramps.push([v, at]); this.value = v; }, setTargetAtTime(v) { this.value = v; } };
+    const g2 = { value: 1, cancelScheduledValues() { ramps.length = 0; }, setValueAtTime(v) { this.value = v; }, linearRampToValueAtTime(v, at) { ramps.push([v, at]); this.value = v; }, setTargetAtTime(v) { this.value = v; } };
     let resumed = 0;
-    ctx.state = 'suspended'; ctx.resume = () => { resumed++; ctx.state = 'running'; ctx.currentTime = 50; return Promise.resolve(); };
+    ctx.currentTime = 10; ctx.state = 'suspended'; ctx.resume = () => { resumed++; ctx.state = 'running'; ctx.currentTime = 50; return Promise.resolve(); };
     const v = await STATES.ready(); v.graph(); v.env.gain = g2;
-    v.play(2);
-    ok(g2.value === 0 && ramps.length === 0, 'fade-in: silent until the sound comes out (no rise planned yet)');
-    v.el.fire('playing'); await sleep(5);
+    v.play(2); await sleep(40);
     ok(resumed === 1, 'fade-in: a suspended context is woken first');
-    ok(ramps.length === 1 && ramps[0][0] === 1 && Math.abs(ramps[0][1] - 52) < 1e-9, `fade-in: rises over 2 s from when it really plays (${JSON.stringify(ramps)})`);
-    await sleep(1600);
-    ok(ramps.length === 1, 'fade-in: the safety net does not rise twice');
+    ok(g2.value === 0 && ramps.length === 0, 'fade-in: silent while the sound does not move yet (no rise planned)');
+    v.el.currentTime += 0.1; await sleep(40);
+    const last = ramps[ramps.length - 1];
+    ok(ramps.length === 12 && last[0] === 1 && Math.abs(last[1] - 52) < 1e-9, `fade-in: rises over 2 s from when it really plays (${ramps.length} steps, ends ${last && last[1]})`);
+    ok(Math.abs(ramps[5][0] - 0.25) < 1e-9 && Math.abs(ramps[5][1] - 51) < 1e-9, 'fade-in: half way in time, a quarter in amplitude (the volume curve)');
+    const n = ramps.length; await sleep(1600);
+    ok(ramps.length === n, 'fade-in: the safety net does not rise twice');
     ctx.state = 'running';
   }
   // Numbers measured before the table opened: the true start, the level of its kind, set from silence only.
