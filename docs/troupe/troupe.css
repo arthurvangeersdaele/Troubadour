@@ -146,7 +146,6 @@ html.pc .doors { grid-template-columns: repeat(3, minmax(0, 290px)); }
 .forge .step { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; margin: 4px 0 0; }
 @media (prefers-reduced-motion: reduce) { .eq i { animation: none; } }
 .errors { margin: 0 0 4px; padding-left: 18px; color: var(--evt); }
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; z-index: 30; box-shadow: 0 12px 30px var(--shadow); }
 
 /* ---------- Recueil ---------- */
 .rec { max-width: 860px; width: 100%; margin: 0 auto; padding: 48px 20px 64px; }
@@ -652,12 +651,6 @@ html:not(.pc) .tapp .app-btns{display:none}
 
 /* The contextual sheet of a story (Story builder, Troubadour online player): the same as the Ballade and Map ones. */
 dialog.bm-sheet { position: fixed; inset: 0; margin: auto; height: fit-content; max-height: calc(100% - 20px); width: min(520px, calc(100vw - 20px)); overflow-x: hidden; overflow-y: auto; }
-.bm-menu { display: grid; gap: 6px; padding: 4px 0 6px; }
-.bm-menu-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; }
-.bm-menu-item:hover { border-color: var(--muted); }
-.bm-menu-item b { display: block; font-weight: 600; }
-.bm-menu-item small { display: block; color: var(--muted); font-size: 13px; }
-.bm-menu-item.danger { color: var(--danger); }
 .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger, #fff); }
 .forge .name-in { width: 100%; box-sizing: border-box; margin: 6px 0 4px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; }
 .forge .name-in:focus { outline: none; border-color: var(--accent); }

@@ -1,32 +1,9 @@
-/* Troubadour Map: small helpers shared by the library, the map and its panels. */
+/* Troubadour Map: its helpers, made by the shared kernel (../shared/troubadour-ui.js) so the library, the map
+ * and its panels behave like every other Troubadour app. Only what is Map's own is written here. */
 (function (global) {
   'use strict';
-
-  const $ = (s, root = document) => root.querySelector(s);
-  function el(tag, cls, text) {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text != null) e.textContent = text;
-    return e;
-  }
-  function svg(body, size = 18, fill = false) {
-    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill ? 'currentColor' : 'none'}" stroke="${fill ? 'none' : 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-  }
+  const { svg } = global.TroubadourUI;
   const ICON = {
-    back: svg('<path d="M15 18l-6-6 6-6"/>', 20),
-    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 19),
-    close: svg('<path d="M18 6L6 18M6 6l12 12"/>', 18),
-    play: svg('<path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/>', 16, true),
-    // A play glyph centred by eye in its circle (a triangle centred by its box looks pushed to the right).
-    go: svg('<path d="M7.2 5.3v13.4a1 1 0 0 0 1.5.86l10.7-6.7a1 1 0 0 0 0-1.72L8.7 4.44a1 1 0 0 0-1.5.86z"/>', 16, true),
-    // A gate on the wire: an arch with two closed doors.
-    fork: svg('<circle cx="12" cy="3.6" r="1.4" fill="currentColor"/><path d="M12 4.6v5.4"/><path d="M12 10c0 3.6-5.5 4.2-5.5 8.4"/><path d="M12 10c0 3.6 5.5 4.2 5.5 8.4"/><circle cx="6.5" cy="19.4" r="1.6" fill="currentColor"/><circle cx="17.5" cy="19.4" r="1.6" fill="currentColor"/>', 20),
-    gate: svg('<path d="M5 20.5V10a7 7 0 0 1 14 0v10.5"/><path d="M12 3.6v16.9"/><path d="M3.5 20.5h17"/><path d="M9.6 12.6v1.6M14.4 12.6v1.6"/>', 20),
-    next: svg('<path d="M5.5 5.6v12.8a1 1 0 0 0 1.55.83l9.2-6.4a1 1 0 0 0 0-1.66l-9.2-6.4a1 1 0 0 0-1.55.83z"/><rect x="17.2" y="5" width="2.6" height="14" rx="1.1"/>', 16, true),
-    pause: svg('<rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/>', 16, true),
-    stop: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="2"/>', 14, true),
-    star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>', 18),
-    plus: svg('<path d="M12 5v14M5 12h14"/>', 16),
     // The save state of the editor, as in Troubadour: a phone with a check, or a disk when saving failed.
     savedOk: svg('<path d="M16.5 13.5V5A2.5 2.5 0 0 0 14 2.5H8A2.5 2.5 0 0 0 5.5 5v14A2.5 2.5 0 0 0 8 21.5h3.2"/><path d="M13.6 18l2.7 2.7 5.4-6.2" stroke-width="2.1"/>', 21),
     saveDisk: svg('<path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z"/><path d="M8 3.5v5h7.5v-5M7.5 20.5v-6.5h9v6.5"/>', 19),
@@ -42,22 +19,6 @@
     copy: svg('<rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>', 16),
     turn: svg('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/>', 16),
     grow: svg('<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>', 16),
-    import: svg('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>', 16),
-    share: svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>', 16),
-    edit: svg('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>', 16),
-    trash: svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 16),
-    up: svg('<path d="M18 15l-6-6-6 6"/>', 14),
-    down: svg('<path d="M6 9l6 6 6-6"/>', 14),
-    skip: svg('<path d="M5 5l9 7-9 7z" fill="currentColor" stroke="none"/><path d="M18 5v14"/>', 16),
-    more: svg('<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>', 18),
-    x: svg('<path d="M18 6L6 18M6 6l12 12"/>', 14),
-    repeat: svg('<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>', 13),
-    infinity: svg('<path d="M6.5 8.5c-2 0-3.5 1.6-3.5 3.5s1.5 3.5 3.5 3.5c3.5 0 7.5-7 11-7 2 0 3.5 1.6 3.5 3.5s-1.5 3.5-3.5 3.5c-3.5 0-7.5-7-11-7z"/>', 14),
-    random: svg('<path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>', 13),
-    help: svg('<circle cx="12" cy="12" r="9.5"/><path d="M9.4 9.3a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.3-2.6 3.9"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>', 16),
-    once: svg('<path d="M5 12h11M13 8l4 4-4 4"/><path d="M20 6v12"/>', 13),
-    tap: svg('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.3 14a1.5 1.5 0 0 1 2.4-1.8L8 15"/>', 15),
-    clock: svg('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/>', 15),
     hand: svg('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3.3 14a1.5 1.5 0 0 1 2.4-1.8L8 15"/>', 18),
     select: svg('<path d="M5 3.5l13 7.2-5.6 1.5 3.4 6.3-2.4 1.3-3.4-6.3L5.6 17z"/>', 18),
     wall: svg('<path d="M3 6h18v12H3z"/><path d="M3 12h18M9 6v6M15 6v6M6 12v6M12 12v6M18 12v6"/>', 18),
@@ -87,178 +48,15 @@
     queue: svg('<path d="M4 6h16M4 11h16M4 16h9"/><path d="M16.5 14v6l5-3z"/>', 17),
     queueAdd: svg('<path d="M4 6h12M4 11h12M4 16h7"/><path d="M18 13v7M14.5 16.5h7"/>', 17),
     music: svg('<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', 17),
-    follow: svg('<path d="M12 4v13M7 12l5 5 5-5"/><path d="M5 20.5h14"/>', 15),
   };
-
-  /* ---------- Settings, kept on this device ---------- */
-  const KEY = 'troubadour.map.settings';
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, musicAsk: true, musicAuto: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
-  const SHARED = ['theme', 'mode', 'fade', 'fadeIn', 'crossfade', 'randomMax', 'life', 'lifeEvery', 'awake', 'master'];
-  function loadSettings() {
-    let s = {};
-    try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
-    if (!s) {
-      // First run: start from the theme chosen in Troubadour, if any.
-      try { const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}'); s = { theme: b.theme, mode: b.mode }; } catch (e) { s = {}; }
-    }
-    const out = Object.assign({}, DEFAULTS);
-    Object.keys(DEFAULTS).forEach((k) => { if (s && s[k] != null) out[k] = s[k]; });
-    // Shared with every player and builder (troubadour.settings): set in one, it holds in all.
-    try { const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {}; SHARED.forEach((k) => { if (k in DEFAULTS && b[k] != null) out[k] = b[k]; }); } catch (e) { /* none */ }
-    out.vol = Object.assign({}, DEFAULTS.vol, (s && s.vol) || {});
-    // Fades as in Troubadour: Off, 0.5, 1, 2 or 4 s (older Map settings had 1.5 and 3 s).
-    if (![0, 500, 1000, 2000, 4000].includes(+out.fade)) out.fade = +out.fade > 2500 ? 4000 : 2000;
-    // Walking speeds were halved (Nov 2026): a speed kept from before walks at half its old pace.
-    if (s && s.trailSpeed != null && s.speeds !== 2) out.trailSpeed = (+s.trailSpeed || 0.2) / 2;
-    out.speeds = 2;
-    return out;
-  }
-  const settings = loadSettings();
-  function saveSettings() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(settings));
-      const b = JSON.parse(localStorage.getItem('troubadour.settings') || '{}') || {};
-      SHARED.forEach((k) => { if (k in settings) b[k] = settings[k]; });
-      localStorage.setItem('troubadour.settings', JSON.stringify(b));
-    } catch (e) { /* private mode */ }
-  }
-  function applyTheme() {
-    const root = document.documentElement;
-    let mode = settings.mode;
-    if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    root.dataset.theme = global.TroubadourThemes ? TroubadourThemes.resolve(settings.theme) : settings.theme;
-    root.dataset.mode = mode;
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = getComputedStyle(document.body || root).getPropertyValue('--bar').trim() || '#15151B';
-  }
-
-  /* ---------- Feedback ---------- */
-  let toastTimer = 0;
-  function toast(msg, ms = 2800) {
-    const t = $('#toast');
-    t.textContent = msg;
-    t.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, ms);
-  }
-  function busy(title, step = '', frac = null) {
-    $('#busy').hidden = false;
-    $('#busy-title').textContent = title;
-    $('#busy-step').textContent = step;
-    const bar = $('#busy-bar');
-    bar.parentNode.hidden = frac == null;
-    if (frac != null) bar.style.width = `${Math.round(frac * 100)}%`;
-  }
-  function idle() { $('#busy').hidden = true; }
-
-  /** A small question: resolves with the value of the button tapped (null when dismissed).
-   *  With `field` ({ placeholder, max, value }), it also asks for a line of text: resolves with { value, text }. */
-  function ask(title, text, buttons, field) {
-    const dlg = $('#ask');
-    $('#ask-title').textContent = title;
-    $('#ask-text').textContent = text || '';
-    $('#ask-text').hidden = !text;
-    const acts = $('#ask-acts');
-    acts.textContent = '';
-    dlg.querySelectorAll('.ask-fields').forEach((o) => o.remove());
-    let input = null, input2 = null, size = null;
-    const box = el('div', 'ask-fields');
-    const make = (f) => {
-      const w = el('label', 'ask-f');
-      if (f.label) w.append(el('span', 'ask-label', f.label));
-      const i = el('input', 'ask-field');
-      i.type = 'text';
-      i.placeholder = f.placeholder || '';
-      i.maxLength = f.max || 120;
-      i.value = f.value || '';
-      w.append(i);
-      box.append(w);
-      return i;
-    };
-    if (field) { input = make(field); acts.before(box); }
-    // A second field (a new world: its name, then the name of its first map).
-    if (field && field.second) input2 = make(field.second);
-    // A choice of map size: [[label, value], ...] with the one picked.
-    if (field && field.sizes) {
-      size = field.sizes.value;
-      const w = el('div', 'ask-f ask-size');
-      w.append(el('span', 'ask-label', field.sizes.label || 'Map size'));
-      const seg = el('div', 'seg small');
-      seg.setAttribute('role', 'radiogroup');
-      const paint = () => seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === size)));
-      field.sizes.options.forEach(([label, v]) => {
-        const b = el('button', '', label); b.type = 'button'; b.dataset.v = v; b.setAttribute('role', 'radio');
-        b.addEventListener('click', () => { size = v; paint(); });
-        seg.append(b);
-      });
-      paint();
-      w.append(seg);
-      box.append(w);
-    }
-    return new Promise((resolve) => {
-      let answered = false;
-      const finish = (v) => {
-        if (answered) return; answered = true;
-        if (dlg.open) dlg.close();
-        resolve(field ? (v == null ? null : { value: v, text: input.value.trim(), text2: input2 ? input2.value.trim() : '', size }) : v);
-      };
-      buttons.forEach((b) => {
-        const x = el('button', `btn ${b.cls || ''}`, b.label);
-        x.type = 'button';
-        x.onclick = () => finish(b.value);
-        acts.append(x);
-      });
-      if (input) {
-        const main = buttons[buttons.length - 1];
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(main.value); } });
-      }
-      dlg.addEventListener('close', () => finish(null), { once: true });
-      dlg.showModal();
-      if (input) input.focus();
-    });
-  }
-
-  /** Hands a file over: the share sheet on a phone (Files, AirDrop), a download elsewhere. */
-  async function deliver(blob, fileName) {
-    const file = new File([blob], fileName, { type: 'application/octet-stream' });
-    const phone = !document.documentElement.classList.contains('pc');
-    if (phone && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: fileName }); return true; } catch (e) { if (e && e.name === 'AbortError') return false; }
-    }
-    const a = el('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-    return true;
-  }
-
-  /* ---------- One audio context for the whole app ---------- */
-  let ctx = null, master = null;
-  /** The audio context. `wake` resumes it (from a tap): reading the clock must never resume a paused table. */
-  function audio(wake) {
-    if (!ctx) {
-      const AC = global.AudioContext || global.webkitAudioContext;
-      ctx = new AC({ latencyHint: 'playback' });
-      master = ctx.createGain();
-      master.gain.value = settings.master * settings.master; // heard on Troubadour's curve
-      // A limiter on the master (the shared engine's): many evened-out sounds together never clip.
-      const lim = global.BalladeEngine ? global.BalladeEngine.limiter(ctx) : null;
-      if (lim) master.connect(lim).connect(ctx.destination); else master.connect(ctx.destination);
-    }
-    if (wake && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume().catch(() => {});
-    return { ctx, master };
-  }
-  function applyAudioSession() {
-    try { if (navigator.audioSession) navigator.audioSession.type = settings.silent ? 'playback' : 'auto'; } catch (e) { /* older iOS */ }
-  }
-  async function decode(blob) {
-    const { ctx: c } = audio();
-    const data = await blob.arrayBuffer();
-    return new Promise((ok, ko) => { const r = c.decodeAudioData(data, ok, ko); if (r && r.catch) r.catch(ko); });
-  }
-
-  global.MapUI = { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession };
+  global.MapUI = global.TroubadourUI.make({
+    key: 'troubadour.map.settings',
+    defaults: { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, musicAsk: true, musicAuto: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } },
+    icons: ICON,
+    migrate(out, saved) {
+      // Walking speeds were halved (Nov 2026): a speed kept from before walks at half its old pace.
+      if (saved.trailSpeed != null && saved.speeds !== 2) out.trailSpeed = (+saved.trailSpeed || 0.2) / 2;
+      out.speeds = 2;
+    },
+  });
 })(window);

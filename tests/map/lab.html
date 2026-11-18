@@ -4,11 +4,11 @@
 <body>
 <!-- Map sound lab (261114_map_plan.md, M0 and M1), offline part. Opened by run.mjs in headless Chromium.
      Reads a .troubadour-map, decodes every sound its cards use, and renders each looping card through the shared
-     engine (docs/ballade/ballade-engine.js) with OfflineAudioContext: a hole or a click at a loop turn fails.
+     engine (docs/shared/troubadour-engine.js) with OfflineAudioContext: a hole or a click at a loop turn fails.
      "before" is the same loop the way Map played it until 261114.01 (the whole file, turned at its end). -->
 <script src="../../docs/troupe/troubadour-format.js"></script>
 <script src="../../docs/map/map-format.js"></script>
-<script src="../../docs/ballade/ballade-engine.js"></script>
+<script src="../../docs/shared/troubadour-engine.js"></script>
 <script>
 (function () {
   'use strict';

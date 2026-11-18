@@ -270,7 +270,7 @@
   function toast(msg) {
     const t = el('div', 'toast', msg);
     document.body.append(t);
-    setTimeout(() => t.remove(), 3200);
+    setTimeout(() => t.remove(), 2800);
   }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !$('#veil') && !$('#credit-dlg')) close(); });

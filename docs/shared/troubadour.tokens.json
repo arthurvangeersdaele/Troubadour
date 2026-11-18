@@ -1,0 +1,2608 @@
+{
+  "$description": "Troubadour design tokens, the one source for every surface: website, La Troupe, Troubadour (web, iPhone, Android), Ballade, Map. Format: W3C Design Tokens Community Group 2025.10. Build: python3 .github/scripts/build_tokens.py",
+  "zone": {
+    "$type": "color",
+    "$description": "The three sound kinds: yellow music, teal ambiance, red event (charter 3.6). Blue is the loop-forever badge only.",
+    "dark": {
+      "music": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8784,
+            0.6588,
+            0.2941
+          ],
+          "hex": "#E0A84B"
+        }
+      },
+      "amb": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.3098,
+            0.702,
+            0.6471
+          ],
+          "hex": "#4FB3A5"
+        }
+      },
+      "evt": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8784,
+            0.4157,
+            0.3882
+          ],
+          "hex": "#E06A63"
+        }
+      },
+      "blue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.1843,
+            0.5451,
+            1.0
+          ],
+          "hex": "#2F8BFF"
+        }
+      },
+      "shadow": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "alpha": 0.45,
+          "hex": "#000000"
+        }
+      }
+    },
+    "light": {
+      "music": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.702,
+            0.4667,
+            0.0784
+          ],
+          "hex": "#B37714"
+        }
+      },
+      "amb": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.1216,
+            0.5216,
+            0.4784
+          ],
+          "hex": "#1F857A"
+        }
+      },
+      "evt": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.7608,
+            0.2667,
+            0.2392
+          ],
+          "hex": "#C2443D"
+        }
+      },
+      "blue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.1216,
+            0.4353,
+            0.8784
+          ],
+          "hex": "#1F6FE0"
+        }
+      },
+      "on_z": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      },
+      "shadow": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.1569,
+            0.1176,
+            0.0784
+          ],
+          "alpha": 0.16,
+          "hex": "#281E14"
+        }
+      }
+    }
+  },
+  "theme": {
+    "$type": "color",
+    "obsidian": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Obsidian",
+          "special": false
+        }
+      },
+      "dark": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0588,
+              0.0588,
+              0.0745
+            ],
+            "hex": "#0F0F13"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0824,
+              0.0824,
+              0.1059
+            ],
+            "hex": "#15151B"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1098,
+              0.1098,
+              0.1412
+            ],
+            "hex": "#1C1C24"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1804,
+              0.1804,
+              0.2235
+            ],
+            "hex": "#2E2E39"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9255,
+              0.9098,
+              0.8706
+            ],
+            "hex": "#ECE8DE"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6353,
+              0.6235,
+              0.6824
+            ],
+            "hex": "#A29FAE"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8784,
+              0.6588,
+              0.2941
+            ],
+            "hex": "#E0A84B"
+          }
+        },
+        "music": {
+          "$value": "{zone.dark.music}"
+        },
+        "amb": {
+          "$value": "{zone.dark.amb}"
+        },
+        "evt": {
+          "$value": "{zone.dark.evt}"
+        },
+        "blue": {
+          "$value": "{zone.dark.blue}"
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0588,
+              0.0588,
+              0.0745
+            ],
+            "hex": "#0F0F13"
+          }
+        },
+        "shadow": {
+          "$value": "{zone.dark.shadow}"
+        }
+      },
+      "light": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.949,
+              0.9451,
+              0.9569
+            ],
+            "hex": "#F2F1F4"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9843,
+              0.9843,
+              0.9882
+            ],
+            "hex": "#FBFBFC"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "hex": "#FFFFFF"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8549,
+              0.8471,
+              0.8784
+            ],
+            "hex": "#DAD8E0"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.102,
+              0.102,
+              0.1333
+            ],
+            "hex": "#1A1A22"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4196,
+              0.4078,
+              0.4706
+            ],
+            "hex": "#6B6878"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.702,
+              0.4667,
+              0.0784
+            ],
+            "hex": "#B37714"
+          }
+        },
+        "music": {
+          "$value": "{zone.light.music}"
+        },
+        "amb": {
+          "$value": "{zone.light.amb}"
+        },
+        "evt": {
+          "$value": "{zone.light.evt}"
+        },
+        "blue": {
+          "$value": "{zone.light.blue}"
+        },
+        "on_z": {
+          "$value": "{zone.light.on_z}"
+        },
+        "shadow": {
+          "$value": "{zone.light.shadow}"
+        }
+      }
+    },
+    "parchment": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Parchment",
+          "special": false
+        }
+      },
+      "dark": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1176,
+              0.098,
+              0.0706
+            ],
+            "hex": "#1E1912"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1451,
+              0.1216,
+              0.0863
+            ],
+            "hex": "#251F16"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1882,
+              0.1569,
+              0.1137
+            ],
+            "hex": "#30281D"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.2902,
+              0.2392,
+              0.1686
+            ],
+            "hex": "#4A3D2B"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9451,
+              0.902,
+              0.8118
+            ],
+            "hex": "#F1E6CF"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7333,
+              0.6627,
+              0.5294
+            ],
+            "hex": "#BBA987"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8784,
+              0.6902,
+              0.3843
+            ],
+            "hex": "#E0B062"
+          }
+        },
+        "music": {
+          "$value": "{zone.dark.music}"
+        },
+        "amb": {
+          "$value": "{zone.dark.amb}"
+        },
+        "evt": {
+          "$value": "{zone.dark.evt}"
+        },
+        "blue": {
+          "$value": "{zone.dark.blue}"
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1176,
+              0.098,
+              0.0706
+            ],
+            "hex": "#1E1912"
+          }
+        },
+        "shadow": {
+          "$value": "{zone.dark.shadow}"
+        }
+      },
+      "light": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9529,
+              0.9176,
+              0.8431
+            ],
+            "hex": "#F3EAD7"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9294,
+              0.8824,
+              0.7843
+            ],
+            "hex": "#EDE1C8"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9843,
+              0.9608,
+              0.9098
+            ],
+            "hex": "#FBF5E8"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.851,
+              0.7804,
+              0.6392
+            ],
+            "hex": "#D9C7A3"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1804,
+              0.1412,
+              0.0863
+            ],
+            "hex": "#2E2416"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4784,
+              0.4157,
+              0.3059
+            ],
+            "hex": "#7A6A4E"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6275,
+              0.4157,
+              0.0863
+            ],
+            "hex": "#A06A16"
+          }
+        },
+        "music": {
+          "$value": "{zone.light.music}"
+        },
+        "amb": {
+          "$value": "{zone.light.amb}"
+        },
+        "evt": {
+          "$value": "{zone.light.evt}"
+        },
+        "blue": {
+          "$value": "{zone.light.blue}"
+        },
+        "on_z": {
+          "$value": "{zone.light.on_z}"
+        },
+        "shadow": {
+          "$value": "{zone.light.shadow}"
+        }
+      }
+    },
+    "blood": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Blood",
+          "special": false
+        }
+      },
+      "dark": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0784,
+              0.0431,
+              0.0471
+            ],
+            "hex": "#140B0C"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.102,
+              0.0549,
+              0.0627
+            ],
+            "hex": "#1A0E10"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.149,
+              0.0824,
+              0.0902
+            ],
+            "hex": "#261517"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.2627,
+              0.1412,
+              0.1647
+            ],
+            "hex": "#43242A"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.949,
+              0.8941,
+              0.8863
+            ],
+            "hex": "#F2E4E2"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7176,
+              0.6039,
+              0.6157
+            ],
+            "hex": "#B79A9D"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9412,
+              0.3765,
+              0.4157
+            ],
+            "hex": "#F0606A"
+          }
+        },
+        "music": {
+          "$value": "{zone.dark.music}"
+        },
+        "amb": {
+          "$value": "{zone.dark.amb}"
+        },
+        "evt": {
+          "$value": "{zone.dark.evt}"
+        },
+        "blue": {
+          "$value": "{zone.dark.blue}"
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0784,
+              0.0431,
+              0.0471
+            ],
+            "hex": "#140B0C"
+          }
+        },
+        "shadow": {
+          "$value": "{zone.dark.shadow}"
+        }
+      },
+      "light": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9686,
+              0.9294,
+              0.9294
+            ],
+            "hex": "#F7EDED"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9412,
+              0.8824,
+              0.8824
+            ],
+            "hex": "#F0E1E1"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.9765,
+              0.9765
+            ],
+            "hex": "#FFF9F9"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8863,
+              0.7765,
+              0.7922
+            ],
+            "hex": "#E2C6CA"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1647,
+              0.0784,
+              0.0863
+            ],
+            "hex": "#2A1416"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.5176,
+              0.3882,
+              0.4157
+            ],
+            "hex": "#84636A"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.702,
+              0.1882,
+              0.2314
+            ],
+            "hex": "#B3303B"
+          }
+        },
+        "music": {
+          "$value": "{zone.light.music}"
+        },
+        "amb": {
+          "$value": "{zone.light.amb}"
+        },
+        "evt": {
+          "$value": "{zone.light.evt}"
+        },
+        "blue": {
+          "$value": "{zone.light.blue}"
+        },
+        "on_z": {
+          "$value": "{zone.light.on_z}"
+        },
+        "shadow": {
+          "$value": "{zone.light.shadow}"
+        }
+      }
+    },
+    "divination": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Divination",
+          "special": false
+        }
+      },
+      "dark": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0431,
+              0.0627,
+              0.1255
+            ],
+            "hex": "#0B1020"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0588,
+              0.0824,
+              0.1608
+            ],
+            "hex": "#0F1529"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0941,
+              0.1294,
+              0.2392
+            ],
+            "hex": "#18213D"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1686,
+              0.2157,
+              0.3843
+            ],
+            "hex": "#2B3762"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.902,
+              0.9137,
+              0.9725
+            ],
+            "hex": "#E6E9F8"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6196,
+              0.651,
+              0.7843
+            ],
+            "hex": "#9EA6C8"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7882,
+              0.6549,
+              0.9608
+            ],
+            "hex": "#C9A7F5"
+          }
+        },
+        "music": {
+          "$value": "{zone.dark.music}"
+        },
+        "amb": {
+          "$value": "{zone.dark.amb}"
+        },
+        "evt": {
+          "$value": "{zone.dark.evt}"
+        },
+        "blue": {
+          "$value": "{zone.dark.blue}"
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0431,
+              0.0627,
+              0.1255
+            ],
+            "hex": "#0B1020"
+          }
+        },
+        "shadow": {
+          "$value": "{zone.dark.shadow}"
+        }
+      },
+      "light": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9255,
+              0.9373,
+              0.9804
+            ],
+            "hex": "#ECEFFA"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8902,
+              0.9098,
+              0.9686
+            ],
+            "hex": "#E3E8F7"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9804,
+              0.9843,
+              1.0
+            ],
+            "hex": "#FAFBFF"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7961,
+              0.8235,
+              0.9333
+            ],
+            "hex": "#CBD2EE"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0784,
+              0.102,
+              0.2
+            ],
+            "hex": "#141A33"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.3647,
+              0.3961,
+              0.5647
+            ],
+            "hex": "#5D6590"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4549,
+              0.3137,
+              0.7608
+            ],
+            "hex": "#7450C2"
+          }
+        },
+        "music": {
+          "$value": "{zone.light.music}"
+        },
+        "amb": {
+          "$value": "{zone.light.amb}"
+        },
+        "evt": {
+          "$value": "{zone.light.evt}"
+        },
+        "blue": {
+          "$value": "{zone.light.blue}"
+        },
+        "on_z": {
+          "$value": "{zone.light.on_z}"
+        },
+        "shadow": {
+          "$value": "{zone.light.shadow}"
+        }
+      }
+    },
+    "pumpkin": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Pumpkin",
+          "special": true,
+          "scheme": "dark"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0706,
+              0.0471,
+              0.0314
+            ],
+            "hex": "#120C08"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.102,
+              0.0667,
+              0.0431
+            ],
+            "hex": "#1A110B"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1412,
+              0.0902,
+              0.0588
+            ],
+            "hex": "#24170F"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.2745,
+              0.1882,
+              0.1176
+            ],
+            "hex": "#46301E"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9647,
+              0.9059,
+              0.8314
+            ],
+            "hex": "#F6E7D4"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7373,
+              0.6235,
+              0.5176
+            ],
+            "hex": "#BC9F84"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.5412,
+              0.1176
+            ],
+            "hex": "#FF8A1E"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.5412,
+              0.1176
+            ],
+            "hex": "#FF8A1E"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.5451,
+              0.8314,
+              0.3137
+            ],
+            "hex": "#8BD450"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7137,
+              0.4196,
+              0.9412
+            ],
+            "hex": "#B66BF0"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.702,
+              0.2784
+            ],
+            "hex": "#FFB347"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0706,
+              0.0471,
+              0.0314
+            ],
+            "hex": "#120C08"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "alpha": 0.5,
+            "hex": "#000000"
+          }
+        }
+      }
+    },
+    "santa": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Santa",
+          "special": true,
+          "scheme": "dark"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0431,
+              0.0941,
+              0.0667
+            ],
+            "hex": "#0B1811"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0588,
+              0.1216,
+              0.0863
+            ],
+            "hex": "#0F1F16"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0863,
+              0.1608,
+              0.1176
+            ],
+            "hex": "#16291E"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1647,
+              0.2745,
+              0.2039
+            ],
+            "hex": "#2A4634"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9608,
+              0.949,
+              0.9176
+            ],
+            "hex": "#F5F2EA"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6627,
+              0.7373,
+              0.6824
+            ],
+            "hex": "#A9BCAE"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.902,
+              0.7216,
+              0.3059
+            ],
+            "hex": "#E6B84E"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.902,
+              0.7216,
+              0.3059
+            ],
+            "hex": "#E6B84E"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6627,
+              0.8627,
+              0.9412
+            ],
+            "hex": "#A9DCF0"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.898,
+              0.2824,
+              0.302
+            ],
+            "hex": "#E5484D"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6627,
+              0.8627,
+              0.9412
+            ],
+            "hex": "#A9DCF0"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0431,
+              0.0941,
+              0.0667
+            ],
+            "hex": "#0B1811"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "alpha": 0.5,
+            "hex": "#000000"
+          }
+        }
+      }
+    },
+    "pride": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Pride",
+          "special": true,
+          "scheme": "light"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.851,
+              0.9373,
+              0.9843
+            ],
+            "hex": "#D9EFFB"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9137,
+              0.9647,
+              0.9922
+            ],
+            "hex": "#E9F6FD"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "hex": "#FFFFFF"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7098,
+              0.8549,
+              0.9412
+            ],
+            "hex": "#B5DAF0"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0745,
+              0.1373,
+              0.2275
+            ],
+            "hex": "#13233A"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.302,
+              0.4118,
+              0.5216
+            ],
+            "hex": "#4D6985"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4784,
+              0.2078,
+              0.8471
+            ],
+            "hex": "#7A35D8"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9098,
+              0.349,
+              0.0471
+            ],
+            "hex": "#E8590C"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0431,
+              0.5608,
+              0.2431
+            ],
+            "hex": "#0B8F3E"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8392,
+              0.1216,
+              0.4118
+            ],
+            "hex": "#D61F69"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1216,
+              0.3725,
+              0.8784
+            ],
+            "hex": "#1F5FE0"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "hex": "#FFFFFF"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1176,
+              0.2353,
+              0.3529
+            ],
+            "alpha": 0.16,
+            "hex": "#1E3C5A"
+          }
+        }
+      }
+    },
+    "dragonfire": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Dragonfire",
+          "special": true,
+          "scheme": "dark"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0745,
+              0.0275,
+              0.0196
+            ],
+            "hex": "#130705"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1059,
+              0.0392,
+              0.0275
+            ],
+            "hex": "#1B0A07"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1569,
+              0.0667,
+              0.0431
+            ],
+            "hex": "#28110B"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.3059,
+              0.1373,
+              0.0824
+            ],
+            "hex": "#4E2315"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9765,
+              0.9059,
+              0.851
+            ],
+            "hex": "#F9E7D9"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7686,
+              0.6118,
+              0.5294
+            ],
+            "hex": "#C49C87"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.3529,
+              0.1216
+            ],
+            "hex": "#FF5A1F"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.698,
+              0.2196
+            ],
+            "hex": "#FFB238"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7255,
+              0.6392,
+              0.5922
+            ],
+            "hex": "#B9A397"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.2314,
+              0.1843
+            ],
+            "hex": "#FF3B2F"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1.0,
+              0.8196,
+              0.4
+            ],
+            "hex": "#FFD166"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0745,
+              0.0275,
+              0.0196
+            ],
+            "hex": "#130705"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "alpha": 0.55,
+            "hex": "#000000"
+          }
+        }
+      }
+    },
+    "abyss": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Abyss",
+          "special": true,
+          "scheme": "dark"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0078,
+              0.0392,
+              0.0745
+            ],
+            "hex": "#020A13"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0196,
+              0.0627,
+              0.1098
+            ],
+            "hex": "#05101C"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0392,
+              0.098,
+              0.1647
+            ],
+            "hex": "#0A192A"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0863,
+              0.1882,
+              0.2863
+            ],
+            "hex": "#163049"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8627,
+              0.9569,
+              0.9725
+            ],
+            "hex": "#DCF4F8"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4941,
+              0.6392,
+              0.7137
+            ],
+            "hex": "#7EA3B6"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1804,
+              0.902,
+              0.8392
+            ],
+            "hex": "#2EE6D6"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1804,
+              0.902,
+              0.8392
+            ],
+            "hex": "#2EE6D6"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.298,
+              0.5255,
+              1.0
+            ],
+            "hex": "#4C86FF"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7804,
+              0.4196,
+              1.0
+            ],
+            "hex": "#C76BFF"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.298,
+              0.5255,
+              1.0
+            ],
+            "hex": "#4C86FF"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0078,
+              0.0392,
+              0.0745
+            ],
+            "hex": "#020A13"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "alpha": 0.55,
+            "hex": "#000000"
+          }
+        }
+      }
+    },
+    "excalibur": {
+      "$extensions": {
+        "com.troubadour": {
+          "label": "Excalibur",
+          "special": true,
+          "scheme": "dark"
+        }
+      },
+      "any": {
+        "bg": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.051,
+              0.0745,
+              0.0627
+            ],
+            "hex": "#0D1310"
+          }
+        },
+        "bar": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0706,
+              0.102,
+              0.0824
+            ],
+            "hex": "#121A15"
+          }
+        },
+        "card": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.102,
+              0.1412,
+              0.1137
+            ],
+            "hex": "#1A241D"
+          }
+        },
+        "line": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.1843,
+              0.2431,
+              0.2
+            ],
+            "hex": "#2F3E33"
+          }
+        },
+        "text": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.9333,
+              0.949,
+              0.9255
+            ],
+            "hex": "#EEF2EC"
+          }
+        },
+        "muted": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.6392,
+              0.6863,
+              0.6431
+            ],
+            "hex": "#A3AFA4"
+          }
+        },
+        "accent": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.7843,
+              0.8431,
+              0.8863
+            ],
+            "hex": "#C8D7E2"
+          }
+        },
+        "music": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.8627,
+              0.7647,
+              0.4784
+            ],
+            "hex": "#DCC37A"
+          }
+        },
+        "amb": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.498,
+              0.749,
+              0.5569
+            ],
+            "hex": "#7FBF8E"
+          }
+        },
+        "evt": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4471,
+              0.6627,
+              0.8706
+            ],
+            "hex": "#72A9DE"
+          }
+        },
+        "blue": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.4471,
+              0.6627,
+              0.8706
+            ],
+            "hex": "#72A9DE"
+          }
+        },
+        "on_z": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.051,
+              0.0745,
+              0.0627
+            ],
+            "hex": "#0D1310"
+          }
+        },
+        "shadow": {
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "alpha": 0.5,
+            "hex": "#000000"
+          }
+        }
+      }
+    }
+  },
+  "fixed": {
+    "$type": "color",
+    "$description": "Never themed (charter 3.5).",
+    "danger": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.898,
+            0.3255,
+            0.2941
+          ],
+          "hex": "#E5534B"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8118,
+            0.2314,
+            0.1961
+          ],
+          "hex": "#CF3B32"
+        }
+      }
+    },
+    "on_danger": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      }
+    },
+    "gold": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.9412,
+            0.7608,
+            0.3098
+          ],
+          "hex": "#F0C24F"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.7686,
+            0.5412,
+            0.0549
+          ],
+          "hex": "#C48A0E"
+        }
+      }
+    },
+    "gold_hot": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            0.8784,
+            0.5412
+          ],
+          "hex": "#FFE08A"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8784,
+            0.651,
+            0.1647
+          ],
+          "hex": "#E0A62A"
+        }
+      }
+    },
+    "gold_glow": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.9412,
+            0.7608,
+            0.3098
+          ],
+          "alpha": 0.55,
+          "hex": "#F0C24F"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.7686,
+            0.5412,
+            0.0549
+          ],
+          "alpha": 0.35,
+          "hex": "#C48A0E"
+        }
+      }
+    },
+    "gold_ink": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.102,
+            0.0706,
+            0.0235
+          ],
+          "hex": "#1A1206"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.102,
+            0.0706,
+            0.0235
+          ],
+          "hex": "#1A1206"
+        }
+      }
+    },
+    "gold_muted_themes": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.851,
+          0.6471,
+          0.1255
+        ],
+        "hex": "#D9A520"
+      },
+      "$description": "Ballade gold in Pride and Excalibur",
+      "$extensions": {
+        "com.troubadour": {
+          "themes": [
+            "pride",
+            "excalibur"
+          ]
+        }
+      }
+    },
+    "silver": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8627,
+            0.8902,
+            0.9255
+          ],
+          "hex": "#DCE3EC"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.4941,
+            0.5412,
+            0.6
+          ],
+          "hex": "#7E8A99"
+        }
+      }
+    },
+    "silver_hot": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.7255,
+            0.7647,
+            0.8118
+          ],
+          "hex": "#B9C3CF"
+        }
+      }
+    },
+    "silver_glow": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8392,
+            0.8863,
+            0.9412
+          ],
+          "alpha": 0.5,
+          "hex": "#D6E2F0"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.4314,
+            0.4902,
+            0.5686
+          ],
+          "alpha": 0.35,
+          "hex": "#6E7D91"
+        }
+      }
+    },
+    "silver_ink": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.0863,
+            0.102,
+            0.1255
+          ],
+          "hex": "#161A20"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      }
+    },
+    "splash": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.0588,
+          0.0588,
+          0.0745
+        ],
+        "hex": "#0F0F13"
+      }
+    },
+    "splash_ballade": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.0392,
+          0.0392,
+          0.051
+        ],
+        "hex": "#0A0A0D"
+      }
+    },
+    "sv_hi": {
+      "$description": "Choice portal sheen (Ballade player): brightest",
+      "dark": {
+        "$value": "{fixed.silver_hot.dark}"
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "hex": "#FFFFFF"
+        }
+      }
+    },
+    "sv_mid": {
+      "$description": "Choice portal sheen: body",
+      "dark": {
+        "$value": "{fixed.silver.dark}"
+      },
+      "light": {
+        "$value": "{fixed.silver_hot.light}"
+      }
+    },
+    "sv_lo": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.5569,
+            0.6,
+            0.6588
+          ],
+          "hex": "#8E99A8"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.4314,
+            0.4784,
+            0.5412
+          ],
+          "hex": "#6E7A8A"
+        }
+      }
+    },
+    "sv_deep": {
+      "dark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.3686,
+            0.4078,
+            0.4627
+          ],
+          "hex": "#5E6876"
+        }
+      },
+      "light": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.2902,
+            0.3294,
+            0.3843
+          ],
+          "hex": "#4A5462"
+        }
+      }
+    },
+    "sv_text": {
+      "dark": {
+        "$value": "{fixed.silver_ink.dark}"
+      },
+      "light": {
+        "$value": "{fixed.silver_ink.light}"
+      }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Charter 5.2",
+    "cta": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "button": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "icon": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "icon_small": {
+      "$value": {
+        "value": 9,
+        "unit": "px"
+      }
+    },
+    "chip": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "segment": {
+      "$value": {
+        "value": 7,
+        "unit": "px"
+      }
+    },
+    "card": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "dialog": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "play": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "input": {
+      "$value": {
+        "value": 9,
+        "unit": "px"
+      }
+    },
+    "badge": {
+      "$value": {
+        "value": 999,
+        "unit": "px"
+      }
+    },
+    "track": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      }
+    }
+  },
+  "space": {
+    "$type": "dimension",
+    "$description": "Charter 5.1: the only steps used",
+    "s4": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "s6": {
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "s8": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "s10": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "s12": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "s16": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "s20": {
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      }
+    },
+    "s24": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "s28": {
+      "$value": {
+        "value": 28,
+        "unit": "px"
+      }
+    },
+    "s36": {
+      "$value": {
+        "value": 36,
+        "unit": "px"
+      }
+    },
+    "s48": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "s72": {
+      "$value": {
+        "value": 72,
+        "unit": "px"
+      }
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "$description": "Charter 5.3",
+    "bar": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      }
+    },
+    "bar_short": {
+      "$value": {
+        "value": 50,
+        "unit": "px"
+      }
+    },
+    "icon": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      }
+    },
+    "icon_small": {
+      "$value": {
+        "value": 34,
+        "unit": "px"
+      }
+    },
+    "button": {
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      }
+    },
+    "button_small": {
+      "$value": {
+        "value": 34,
+        "unit": "px"
+      }
+    },
+    "cta": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "cta_big": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      }
+    },
+    "play": {
+      "$value": {
+        "value": 38,
+        "unit": "px"
+      }
+    },
+    "play_short": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "touch_min": {
+      "$value": {
+        "value": 34,
+        "unit": "px"
+      }
+    },
+    "touch_play": {
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      }
+    }
+  },
+  "motion": {
+    "$type": "duration",
+    "$description": "Charter 7",
+    "hover": {
+      "$value": {
+        "value": 150,
+        "unit": "ms"
+      }
+    },
+    "state": {
+      "$value": {
+        "value": 200,
+        "unit": "ms"
+      }
+    },
+    "theme": {
+      "$value": {
+        "value": 300,
+        "unit": "ms"
+      }
+    },
+    "panel": {
+      "$value": {
+        "value": 250,
+        "unit": "ms"
+      }
+    },
+    "toast": {
+      "$value": {
+        "value": 2800,
+        "unit": "ms"
+      }
+    },
+    "toast_error": {
+      "$value": {
+        "value": 5000,
+        "unit": "ms"
+      }
+    },
+    "fade_out": {
+      "$value": {
+        "value": 2000,
+        "unit": "ms"
+      }
+    },
+    "fade_in": {
+      "$value": {
+        "value": 2000,
+        "unit": "ms"
+      }
+    },
+    "master_glide": {
+      "$value": {
+        "value": 3000,
+        "unit": "ms"
+      }
+    },
+    "volume_glide": {
+      "$value": {
+        "value": 2000,
+        "unit": "ms"
+      }
+    },
+    "micro_fade": {
+      "$value": {
+        "value": 6,
+        "unit": "ms"
+      }
+    }
+  },
+  "audio": {
+    "$type": "number",
+    "$description": "Shared sound rules: every player, every platform",
+    "volume_curve_exponent": {
+      "$value": 2,
+      "$description": "A slider value v is heard as v^2 (master, soundbox, cards)"
+    },
+    "loudness_music_lufs": {
+      "$value": -18
+    },
+    "loudness_ambiance_lufs": {
+      "$value": -22
+    },
+    "loudness_events_lufs": {
+      "$value": -16
+    },
+    "limiter_dbfs": {
+      "$value": -2
+    },
+    "$extensions": {
+      "com.troubadour": {
+        "fade_choices_ms": [
+          0,
+          500,
+          1000,
+          2000,
+          4000
+        ]
+      }
+    }
+  }
+}

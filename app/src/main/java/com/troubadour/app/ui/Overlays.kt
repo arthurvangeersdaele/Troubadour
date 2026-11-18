@@ -145,7 +145,7 @@ private fun SheetHost(m: AppModel, sheet: Sheet) {
         is Sheet.AddStory -> Panel("Add a story", close) { AddStoryBody(m) }
         is Sheet.StoryMenu -> Panel(Library.story(sheet.uid)?.title?.ifBlank { "Untitled story" } ?: "Story", close) { StoryMenuBody(m, sheet.uid) }
         is Sheet.Picker -> Panel("Add to ${sheet.target.label}", close) { PickerBody(m, sheet.target) }
-        is Sheet.Exported -> Panel(if (sheet.files.size > 1) "${sheet.files.size} stories rhythmed" else "Your .troubadour is ready", close) {
+        is Sheet.Exported -> Panel(if (sheet.files.size > 1) "${sheet.files.size} stories exported" else "Your .troubadour is ready", close) {
             ExportedBody(m, sheet)
         }
     }
@@ -178,7 +178,7 @@ private fun ListRow(title: String, meta: String, blurb: String?, action: @Compos
 @Composable
 private fun DiscoveryBody(m: AppModel, s: Sheet.Discovery) {
     val stories by Library.stories.collectAsState()
-    Muted("The three stories of the web edition, with their sounds. Each one downloads once, then lives on your phone like any story you rhythm, ready to edit and play offline.")
+    Muted("The three stories of the web edition, with their sounds. Each one downloads once, then lives on your phone like any story you build, ready to edit and play offline.")
     val data = s.data
     when {
         s.error != null -> Muted(s.error!!)
@@ -200,7 +200,7 @@ private fun DiscoveryBody(m: AppModel, s: Sheet.Discovery) {
 @Composable
 private fun RecueilBody(m: AppModel, s: Sheet.Recueil) {
     val stories by Library.stories.collectAsState()
-    Muted("Tales rhythmed by La Troupe. Adding one downloads it to your phone, sounds included: it then plays without a connection.")
+    Muted("Tales shared by La Troupe. Adding one downloads it to your phone, sounds included: it then plays without a connection.")
     val tales = s.tales
     when {
         s.error != null -> Muted(s.error!!)
@@ -254,7 +254,7 @@ private fun StoryInfoBody(m: AppModel) {
         },
     )
     val facts = buildList {
-        add(if (s.revision > 0) "Exported as revision ${s.revision}${if (s.bard.isNotBlank()) ", signed by ${s.bard}" else ""}." else "Not exported yet: the first export rhythms revision 1.")
+        add(if (s.revision > 0) "Exported as revision ${s.revision}${if (s.bard.isNotBlank()) ", signed by ${s.bard}" else ""}." else "Not exported yet: the first export makes revision 1.")
         if (s.source.startsWith("discovery")) add("A discovery story of the web edition.")
         add("${plural(s.chapters.size, "chapter")}, ${plural(s.allSounds().size, "sound")}, ${formatSize(Library.bytesOf(s.allSounds()))} on this phone.")
     }
@@ -494,7 +494,7 @@ private fun BardAccountBlock(m: AppModel) {
     }
     when {
         m.ghOpen == false -> {
-            Muted("Every story rhythmed here is signed Forgotten Troubadour.", 14)
+            Muted("Every story exported here is signed Forgotten Troubadour.", 14)
             Muted("Connecting a GitHub account to register your own troubadour name opens soon.", 13)
         }
         registered -> {

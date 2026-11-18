@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261117.4';
+  const VERSION = '261118.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -121,7 +121,7 @@
   const debounce = (fn, ms) => { let t = 0; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; d.flush = () => { clearTimeout(t); fn(); }; return d; };
 
   let toastTimer = 0;
-  function toast(msg, ms = 2600) {
+  function toast(msg, ms = 2800) {
     const t = $('#toast');
     t.textContent = msg;
     t.hidden = false;

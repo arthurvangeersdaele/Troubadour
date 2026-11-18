@@ -2,7 +2,7 @@
 
 Version 1, 14 November 2026. Applies to every Troubadour surface: the website, La Troupe (web player, Story builder, Recueil), Troubadour for iPhone and tablets, the Android app, Troubadour Ballade and its builder, Troubadour Map.
 
-This charter writes down what the code already does (sources: `docs/play/style.css`, `docs/site.css`, `docs/troupe/troupe.css`, `docs/ballade/flow.css`, `docs/themes.js`, `branding/`). Where the code disagrees with itself, the charter picks one value and marks the other as **to align**. A new screen follows this charter; a change to it is a decision, made on purpose.
+This charter writes down what the code already does (sources: `docs/shared/troubadour.tokens.json`, built into `docs/shared/tokens.css` and Android's `TroubadourTokens.kt`; `docs/shared/components.css`, `docs/play/style.css`, `docs/site.css`, `docs/troupe/troupe.css`, `docs/ballade/flow.css`, `docs/themes.js`, `branding/`). Where the code disagrees with itself, the charter picks one value and marks the other as **to align**. A new screen follows this charter; a change to it is a decision, made on purpose.
 
 ---
 
@@ -65,7 +65,7 @@ Play mode symbols on Ballade cards: **→|** stops by itself, **∞** loops unti
 
 ### 3.1 Tokens
 
-Every surface reads these CSS custom properties (the Android app mirrors them in `Theme.kt`). Never hard-code a theme colour in a component.
+Every surface reads these CSS custom properties, built from the one token source `docs/shared/troubadour.tokens.json` (the Android app reads the same build, `TroubadourTokens.kt`). Never hard-code a theme colour in a component: the platform contract fails the push.
 
 | Token | Role |
 | --- | --- |
@@ -373,3 +373,7 @@ What the review of the Ballade app and its builder against this charter changed:
 | Ink on gold | hard-coded `#1A1206` | token `--gold-ink` |
 
 Also fixed while testing: the shared install script (`ios/install.js`) stopped at its first lines on the Ballade install page, so the steps never adapted to the browser; it now skips the line the Ballade page does not have.
+
+## 13. One source (18 November 2026)
+
+From `261118_troubadour_unifier.md`: colours, radii, spacing, sizes, timings and the sound numbers (volume curve, loudness targets, limiter, fade choices) are design tokens in `docs/shared/troubadour.tokens.json` (W3C DTCG 2025.10), built by `python3 .github/scripts/build_tokens.py` into `docs/shared/tokens.css` and `app/.../ui/TroubadourTokens.kt`. New CSS names for the steps of section 5: `--r-*` (radius), `--sp-*` (spacing), `--sz-*` (sizes), `--t-*` (motion). The context sheet and the toast are drawn once, in `docs/shared/components.css`; danger rows follow 6.1 (text and border in `--danger`). Toasts last 2.8 s in every app.

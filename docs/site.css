@@ -1,8 +1,5 @@
 /* Troubadour website: home page and How to use. */
-:root{
-  --bg:#0F0F13; --bar:#15151B; --card:#1C1C24; --line:#2E2E39; --text:#ECE8DE; --muted:#A29FAE; --accent:#E0A84B;
-  --music:#E0A84B; --amb:#4FB3A5; --evt:#E06A63; --blue:#2F8BFF;
-}
+/* Colours come from shared/tokens.css (Obsidian, dark), linked before this sheet. */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Barlow Semi Condensed',system-ui,sans-serif;font-size:18px;line-height:1.5}

@@ -1,5 +1,6 @@
-/* Troubadour Ballade engine (phase 1 of 261114_ballade_plan.md).
- * The one place where a card becomes sound: the player and the sound lab (tests/ballade) both go through it,
+/* Troubadour sound engine, shared by Ballade and Map (phase 1 of 261114_ballade_plan.md, M1 of the Map plan).
+ * Was docs/ballade/ballade-engine.js. The one place where a card becomes sound: the players and the sound labs
+ * (tests/ballade, tests/map) all go through it,
  * so what the lab measures is what the table hears. Nothing in here draws.
  *
  *  analyse(buf)        once per decoded sound: where the sound really starts and ends (encoder silence trimmed)
@@ -194,5 +195,6 @@
     return kick;
   }
 
-  global.BalladeEngine = { analyse, norm, loopOf, loopPos, voice, shot, fadeOut, limiter, guard, RAMP, SEAM, TARGET, SILENT };
+  // TroubadourEngine is the name to use from now on; BalladeEngine stays for the code written before.
+  global.TroubadourEngine = global.BalladeEngine = { analyse, norm, loopOf, loopPos, voice, shot, fadeOut, limiter, guard, RAMP, SEAM, TARGET, SILENT };
 })(typeof window !== 'undefined' ? window : globalThis);

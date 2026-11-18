@@ -12,13 +12,19 @@ on:
       - ".github/workflows/discovery.yml"
       - ".github/workflows/recueil.yml"
       - "TROUBADOUR_FORMAT.md"
+  # A pull request that touches the app is compiled too (nothing is published).
+  pull_request:
+    paths:
+      - "app/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-apk
+  group: build-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -60,6 +66,7 @@ jobs:
           path: ${{ steps.apk.outputs.name }}
 
       - name: Publish as the latest dev build
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

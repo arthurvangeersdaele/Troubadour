@@ -1,9 +1,8 @@
 /* Troubadour Ballade. Themes and dialogs come from ../play/style.css and ../troupe/troupe.css; this sheet
  * draws the vertical app, the golden wire and the editor. The wire stays gold in every theme. */
 
-:root { --gold-ink: #1A1206; --gold: #F0C24F; --gold-hot: #FFE08A; --gold-glow: rgba(240, 194, 79, .55); --wire: color-mix(in srgb, var(--muted) 38%, var(--line)); }
-[data-mode="light"] { --gold: #C48A0E; --gold-hot: #E0A62A; --gold-glow: rgba(196, 138, 14, .35); }
-[data-theme="pride"], [data-theme="excalibur"] { --gold: #D9A520; }
+/* Gold, silver and their glows are tokens (../shared/tokens.css). The bare wire is mixed from the theme. */
+:root { --wire: color-mix(in srgb, var(--muted) 38%, var(--line)); }
 
 html, body { overscroll-behavior: none; }
 body { -webkit-user-select: none; user-select: none; }
@@ -70,12 +69,6 @@ html[data-screen="library"] .toast, html[data-screen="editor"] .toast { bottom: 
 .fl-wire-art path { fill: none; stroke: var(--gold); stroke-width: 26; stroke-linecap: round; }
 .fl-wire-art circle { fill: var(--gold-hot); }
 [data-mode="light"] .fl-wire-art circle { fill: var(--gold); }
-.fl-menu { display: grid; gap: 6px; padding: 4px 0 6px; }
-.fl-menu-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
-.fl-menu-item:hover { border-color: var(--muted); }
-.fl-menu-item b { display: block; font-weight: 600; }
-.fl-menu-item small { display: block; color: var(--muted); font-size: 13px; }
-.fl-menu-item.danger { color: var(--danger); }
 
 /* ---------- Player ---------- */
 .fl-player { height: 100dvh; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 620px; margin: 0 auto; position: relative; overflow: hidden; }
@@ -410,8 +403,6 @@ dialog.ask { height: fit-content; }
 a.ico { color: var(--text); text-decoration: none; }
 
 /* ---------- A choice: the silver gate ---------- */
-:root { --silver: #DCE3EC; --silver-hot: #FFFFFF; --silver-glow: rgba(214, 226, 240, .5); --silver-ink: #161A20; }
-[data-mode="light"] { --silver: #7E8A99; --silver-hot: #B9C3CF; --silver-glow: rgba(110, 125, 145, .35); --silver-ink: #FFFFFF; }
 .fl-run + .fl-choice, .fl-choice + .fl-run, .fl-choice + .fl-end, .fl-empty + .fl-choice { margin-top: 10px; }
 .fl-choice { position: relative; text-align: center; }
 .fl-choice .fl-node-row { flex-direction: row; align-items: center; gap: 12px; padding-left: calc(50% - 23px); text-align: left; }
@@ -615,8 +606,6 @@ a.ico { color: var(--text); text-decoration: none; }
  * A choice is a portal on the wire: an arch of silver whose rim glitters as light runs round it, a polished
  * silver seal where the wire enters, the question in brushed silver, and answers like silver coins. */
 @property --sv-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-:root { --sv-hi: #FFFFFF; --sv-mid: #DCE3EC; --sv-lo: #8E99A8; --sv-deep: #5E6876; --sv-text: #161A20; }
-[data-mode="light"] { --sv-hi: #FFFFFF; --sv-mid: #B9C3CF; --sv-lo: #6E7A8A; --sv-deep: #4A5462; --sv-text: #FFFFFF; }
 
 .fl-choice { position: relative; z-index: 2; isolation: isolate; max-width: 520px; margin-left: auto; margin-right: auto;
   padding: 20px 14px 18px; border-radius: 130px 130px 24px 24px / 84px 84px 24px 24px;

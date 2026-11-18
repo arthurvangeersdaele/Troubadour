@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261117.15';
+  const VERSION = '261118.1';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -371,15 +371,15 @@
   async function exportWorld(r) {
     try {
       flush();
-      busy('Forging the .troubadour-map', '', 0);
+      busy('Exporting the .troubadour-map', '', 0);
       const files = await DB.filesOf(r);
-      const out = await M.pack(r.story, r.world, files, window.Troubadour.bardName(), (f) => busy('Forging the .troubadour-map', '', f), `Troubadour Map ${VERSION}`);
+      const out = await M.pack(r.story, r.world, files, window.Troubadour.bardName(), (f) => busy('Exporting the .troubadour-map', '', f), `Troubadour Map ${VERSION}`);
       // Keep the forged revision, but not a copy: the record holds the live world.
       Object.assign(r.world, { id: out.world.id, revision: out.world.revision, bard: out.world.bard, created: out.world.created, forged: out.world.forged, generator: out.world.generator });
       await DB.put(r);
       idle();
       await deliver(out.blob, out.fileName);
-    } catch (e) { idle(); toast(`Could not forge: ${e.message || e}`, 4200); }
+    } catch (e) { idle(); toast(`Could not export: ${e.message || e}`, 4200); }
   }
 
 
@@ -405,7 +405,7 @@
         const newer = world && (wd.revision || 0) > (twin.world.revision || 0);
         const answer = await ask(`${story.title} is already here`, world
           ? `This device holds revision ${twin.world.revision || 0} of this world; the file is revision ${wd.revision || 0}.${newer ? ' The file is newer.' : ''}`
-          : 'A world of this story, never forged yet, is already on this device.', [
+          : 'A world of this story, never exported yet, is already on this device.', [
           { label: 'Cancel', value: null },
           { label: 'Keep both', value: 'both' },
           { label: 'Replace', value: 'replace', cls: 'primary' },

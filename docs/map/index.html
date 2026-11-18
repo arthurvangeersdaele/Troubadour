@@ -19,9 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/components.css">
 <link rel="stylesheet" href="../play/style.css">
 <link rel="stylesheet" href="../troupe/troupe.css">
-<link rel="stylesheet" href="../ballade/flow-install.css">
+<link rel="stylesheet" href="../shared/install.css">
 <link rel="stylesheet" href="map.css">
 <script src="../themes.js"></script>
 <script>
@@ -426,7 +428,7 @@
     <div class="set-acts">
       <button class="btn danger" type="button" data-action="wipe">Erase everything</button>
     </div>
-    <p class="muted small">Your worlds live on this device only. Keep the .troubadour-map files you forge: they are your backup.</p>
+    <p class="muted small">Your worlds live on this device only. Keep the <i>.troubadour-map</i> files you export: they are your backup.</p>
   </section>
   <section class="about">
     <h3>About</h3>
@@ -469,15 +471,16 @@
 <script src="../troupe/sound-credit.js"></script>
 <script src="map-format.js"></script>
 <script src="map-db.js"></script>
+<script src="../shared/troubadour-ui.js"></script>
 <script src="map-ui.js"></script>
 <script src="map-stamps.js"></script>
-<script src="../ballade/ballade-engine.js"></script>
+<script src="../shared/troubadour-engine.js"></script>
 <script src="map-audio.js"></script>
 <script src="map-view.js"></script>
 <script src="../troupe/builder-menu.js"></script>
 <script src="../back.js"></script>
 <script src="app.js"></script>
 <script src="../install-now.js"></script>
-<script src="../ios/install.js"></script>
+<script src="../shared/install.js"></script>
 </body>
 </html>

@@ -1,0 +1,27 @@
+/* Troubadour shared components: the pieces every app draws the same way (261118_troubadour_unifier.md).
+ * Values come from tokens.css; an app sheet may place a component (where a toast sits) but never restyle it.
+ * Legacy class names (.bm-, .fl-, .mp-) are kept as aliases until each app uses the .t- names. */
+
+/* ---------- Contextual sheet: the menu of a story, a tale, a world (charter 6.5, 6.1) ---------- */
+.t-menu, .bm-menu, .fl-menu, .mp-menu { display: grid; gap: var(--sp-6); padding: var(--sp-4) 0 var(--sp-6); }
+.t-menu-item, .bm-menu-item, .fl-menu-item, .mp-menu-item {
+  display: flex; align-items: center; gap: var(--sp-12); text-align: left; padding: var(--sp-12);
+  border-radius: var(--r-card); background: var(--card); border: 1px solid var(--line); color: var(--text);
+  font: inherit; cursor: pointer; transition: border-color var(--t-hover) ease;
+}
+.t-menu-item:hover, .bm-menu-item:hover, .fl-menu-item:hover, .mp-menu-item:hover { border-color: var(--muted); }
+.t-menu-item b, .bm-menu-item b, .fl-menu-item b, .mp-menu-item b { display: block; font-weight: 600; }
+.t-menu-item small, .bm-menu-item small, .fl-menu-item small, .mp-menu-item small { display: block; color: var(--muted); font-size: 13px; }
+.t-menu-ico { display: inline-flex; flex: none; color: var(--muted); }
+/* Danger: text and border in danger red, never a theme colour (charter 6.1). */
+.t-menu-item.danger, .bm-menu-item.danger, .fl-menu-item.danger, .mp-menu-item.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); }
+.t-menu-item.danger b, .t-menu-item.danger small, .bm-menu-item.danger b, .bm-menu-item.danger small,
+.fl-menu-item.danger b, .fl-menu-item.danger small, .mp-menu-item.danger b, .mp-menu-item.danger small { color: var(--danger); }
+
+/* ---------- Toast: one sentence, bottom centre, above the safe area (charter 6.7) ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  max-width: calc(100vw - 40px); text-align: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-button); padding: var(--sp-10) var(--sp-16);
+  z-index: 30; box-shadow: 0 12px 30px var(--shadow);
+}

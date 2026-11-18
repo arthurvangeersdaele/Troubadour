@@ -661,7 +661,7 @@
      this browser (the Story builder's, troupe/draft.js) without opening; Play opens it on the mixing table. */
   const Draft = window.TroubadourDraft;
   const BM = window.TroupeBuilderMenu;
-  function toast(msg) { const t = el('div', 'toast', msg); document.body.append(t); setTimeout(() => t.remove(), 3200); }
+  function toast(msg) { const t = el('div', 'toast', msg); document.body.append(t); setTimeout(() => t.remove(), 2800); }
   function busy(title, sub, frac) {
     let v = $('#od-veil');
     if (!v) { v = el('div', 'veil'); v.id = 'od-veil'; v.innerHTML = '<div class="forge loading"><div class="eq" aria-hidden="true"><i></i><i></i><i></i></div><h2></h2><p class="lbl"></p><div class="bar"><i></i></div></div>'; document.body.append(v); }

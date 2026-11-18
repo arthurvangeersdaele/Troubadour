@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/tokens.css?v=261118.1">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -334,7 +335,7 @@
     var flood=null,rays=null,busy=false,warmed=false;
     function warm(){ // fetch La Troupe and its styles ahead, so the page change is instant
       if(warmed)return;warmed=true;
-      ['troupe/','troupe/troupe.css','play/style.css','troupe/settings.js'].forEach(function(u){try{fetch(u,{credentials:'same-origin'}).catch(function(){});}catch(e){}});
+      ['troupe/','shared/tokens.css','shared/components.css','troupe/troupe.css','play/style.css','troupe/settings.js'].forEach(function(u){try{fetch(u,{credentials:'same-origin'}).catch(function(){});}catch(e){}});
     }
     if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){if(es.some(function(x){return x.isIntersecting;})){warm();io.disconnect();}},{rootMargin:'400px'});io.observe(d);}else warm();
     d.addEventListener('click',function(e){

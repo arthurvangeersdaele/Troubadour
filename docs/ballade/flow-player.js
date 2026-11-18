@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  const { $, el, ICON, settings, saveSettings, toast, audio, decode, ask, busy, idle } = global.FlowUI;
+  const { $, el, ICON, settings, saveSettings, toast, audio, decode, ask, busy, idle, curve } = global.FlowUI;
   const E = global.BalladeEngine;
   const F = global.TroubadourBallade;
   const LEAD = 0.06; // seconds between a tap and the sound
@@ -61,8 +61,9 @@
     P.blobs = opts.blobs || await global.FlowDB.filesOf(rec);
     const { ctx, master } = audio(true);
     if (!P.bus) { P.bus = ctx.createGain(); P.bus.connect(master); P.sbBus = ctx.createGain(); P.sbBus.connect(master); }
-    P.sbBus.gain.value = settings.sbVolume;
-    master.gain.value = settings.master;
+    // Heard on Troubadour's curve (v * v), like every other player: the same slider sounds the same everywhere.
+    P.sbBus.gain.value = curve(settings.sbVolume);
+    master.gain.value = curve(settings.master);
     buildChrome();
     // The cascade shows at once; the sounds decode behind it, the dock says how many are left.
     // The first chapter decodes under the opening popup (opts.onProgress), as in every online player.
@@ -1329,13 +1330,13 @@
       settings.master = Number(e.target.value);
       paintRange(e.target);
       const { ctx, master } = audio();
-      master.gain.setTargetAtTime(settings.master, ctx.currentTime, 0.03);
+      master.gain.setTargetAtTime(curve(settings.master), ctx.currentTime, 0.03);
       saveSettings();
     });
     $('#fl-sbvol').addEventListener('input', (e) => {
       settings.sbVolume = Number(e.target.value);
       paintRange(e.target);
-      if (P.sbBus) P.sbBus.gain.value = settings.sbVolume;
+      if (P.sbBus) P.sbBus.gain.value = curve(settings.sbVolume);
       saveSettings();
     });
     // The soundbox opens above the dock: Go and the soundbox button stay in reach.

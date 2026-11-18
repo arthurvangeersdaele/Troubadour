@@ -4,7 +4,7 @@ name: Ballade sound lab
 # engine and fails on a loop hole, a seam click, a hard start or a hard stop. The report is kept as an artifact.
 on:
   push:
-    paths: ['docs/ballade/**', 'docs/discovery/ballades/**', 'tests/ballade/**', '.github/workflows/ballade-lab.yml']
+    paths: ['docs/ballade/**', 'docs/shared/**', 'docs/discovery/ballades/**', 'tests/ballade/**', '.github/workflows/ballade-lab.yml']
   workflow_dispatch:
 
 jobs:

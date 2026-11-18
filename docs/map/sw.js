@@ -1,6 +1,6 @@
 /* Troubadour Map: keeps the app itself on the device so it opens without a connection.
  * Worlds and sounds live in IndexedDB, not here. Bump VERSION (and VERSION in app.js) to ship an update. */
-const VERSION = '261117.15';
+const VERSION = '261118.1';
 const SHELL = `troubadour-map-${VERSION}`;
 const FONTS = 'troubadour-map-fonts';
 const FILES = [
@@ -20,6 +20,9 @@ const FILES = [
   'icons/261031_troubadour_map_192.png',
   'icons/261031_troubadour_map_512.png',
   '../ios/261014_keep_awake.mp4',
+  '../shared/tokens.css',
+  '../shared/troubadour-ui.js',
+  '../shared/components.css',
   '../play/style.css',
   '../troupe/troupe.css',
   '../troupe/builder-menu.js',
@@ -29,9 +32,9 @@ const FILES = [
   '../troupe/sound-credit.js',
   '../auth/account.js',
   '../themes.js',
-  '../ballade/flow-install.css',
-  '../ballade/ballade-engine.js',
-  '../ios/install.js',
+  '../shared/install.css',
+  '../shared/troubadour-engine.js',
+  '../shared/install.js',
 ];
 
 self.addEventListener('install', (e) => {

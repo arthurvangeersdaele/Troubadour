@@ -232,7 +232,7 @@ Work happens on weekends and weekday evenings (project rule). One phase can take
 
 **P0, 14 November 2026: done.** `tests/ballade` (sound lab, runner, GitHub workflow). Baseline: 15 loops with a hole at each turn (44 to 873 ms), 7 seam clicks, 1 hard start. The debug overlay waits for the engine clock of P3.
 
-**P1, first part, 14 November 2026: shipped (Ballade 261114.1).** `docs/ballade/ballade-engine.js`, used by the player and the lab:
+**P1, first part, 14 November 2026: shipped (Ballade 261114.1).** `docs/ballade/ballade-engine.js` (since 18 November `docs/shared/troubadour-engine.js`, shared with Map), used by the player and the lab:
 - trims the silence at both ends of every sound, and for loops also a fade baked into the file (where the sound stays 30 dB under its own loudness, 2 s at most);
 - gapless loops: the last 80 ms before the loop end is the tail crossfaded (equal power) into the head, and the turn jumps just past it; written into the buffer itself, in a copy only when the sound is also played once;
 - at least 6 ms of glide on every start and stop (cards, random cards, soundbox);

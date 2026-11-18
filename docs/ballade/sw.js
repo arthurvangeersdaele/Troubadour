@@ -1,6 +1,6 @@
 /* Troubadour Ballade: keeps the app itself on the device so it opens without a connection.
  * Flows and sounds live in IndexedDB, not here. Bump VERSION (and VERSION in app.js) to ship an update. */
-const VERSION = '261117.16';
+const VERSION = '261118.1';
 const SHELL = `troubadour-ballade-${VERSION}`;
 const FONTS = 'troubadour-ballade-fonts';
 const FILES = [
@@ -8,12 +8,12 @@ const FILES = [
   'index.html',
   'app.js',
   'flow.css',
-  'flow-install.css',
-  '../ios/install.js',
+  '../shared/install.css',
+  '../shared/install.js',
   'flow-format.js',
   'flow-db.js',
   'flow-ui.js',
-  'ballade-engine.js',
+  '../shared/troubadour-engine.js',
   'flow-player.js',
   'flow-editor.js',
   '261017_troubadour_ballade.webmanifest',
@@ -22,6 +22,9 @@ const FILES = [
   'icons/261017_troubadour_ballade_192.png',
   'icons/261017_troubadour_ballade_512.png',
   '../ios/261014_keep_awake.mp4',
+  '../shared/tokens.css',
+  '../shared/troubadour-ui.js',
+  '../shared/components.css',
   '../play/style.css',
   '../troupe/troupe.css',
   '../troupe/builder-menu.js',

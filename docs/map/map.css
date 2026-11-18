@@ -20,13 +20,6 @@ html:not(.ios) .ios-only { display: none !important; }
 /* ---------- Library ---------- */
 .mp-screen { min-height: 100dvh; }
 .mp-hint { font-size: 14px; color: var(--muted); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0 0 14px; background: var(--card); }
-.mp-menu { display: grid; gap: 6px; padding: 4px 0 6px; }
-.mp-menu-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--text); }
-.mp-menu-item:hover { border-color: var(--muted); }
-.mp-menu-item b { display: block; font-weight: 600; }
-.mp-menu-item small { display: block; color: var(--muted); font-size: 13px; }
-.mp-menu-item.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: color-mix(in srgb, var(--danger) 12%, var(--card)); }
-.mp-menu-item.danger b, .mp-menu-item.danger small { color: var(--danger); }
 
 /* ---------- A world ---------- */
 .mp-world { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
