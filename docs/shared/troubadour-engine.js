@@ -195,6 +195,50 @@
     return kick;
   }
 
+  /* ---------- Streamed sounds (media elements): Troubadour's tables, Map's long sounds ----------
+   * A media element cannot be trimmed or turned on a sample, so a streamed sound is measured once instead: decoded
+   * whole, one at a time (memory stays low), analysed, then let go. The numbers say where to start it, where its
+   * loop turns and how loud it is; the app keeps them (store) so a sound is measured once per device. */
+  const STREAM_SEAM = 0.35; // s: two rounds of a streamed loop cross over this long, at least
+  let measuring = Promise.resolve();
+  const measured = new Map();
+  /** measure(ctx, blob, key, store): { a, b, la, lb, lufs, d } of a blob (s, LUFS), or null if it cannot be read.
+   *  ctx: a context to decode with (null: the engine's own). key: a stable id of the sound, cached in memory and in
+   *  `store`, an object with async get(k) and set(k, v) (TroubadourDB's getKV and setKV). */
+  let decoder = null;
+  /** A quiet decoder of its own (22.05 kHz: half the memory, the same ends and loudness), so measuring never wakes
+   *  or burdens the table's audio. */
+  function decoderCtx() {
+    if (!decoder) { const O = global.OfflineAudioContext || global.webkitOfflineAudioContext; decoder = O ? new O(1, 1, 22050) : null; }
+    return decoder;
+  }
+  function measure(ctx, blob, key, store) {
+    ctx = ctx || decoderCtx();
+    if (!ctx) return Promise.resolve(null);
+    if (key && measured.has(key)) return measured.get(key);
+    const p = (async () => {
+      if (key && store) { try { const v = await store.get(`an:${key}`); if (v && v.b > 0) return v; } catch (e) { /* none */ } }
+      const r = await (measuring = measuring.then(async () => {
+        try {
+          const data = await blob.arrayBuffer();
+          const buf = await new Promise((ok, ko) => { const x = ctx.decodeAudioData(data, ok, ko); if (x && x.catch) x.catch(ko); });
+          const i = analyse(buf);
+          return { a: i.a, b: i.b, la: i.la, lb: i.lb, lufs: i.lufs, d: buf.duration };
+        } catch (e) { return null; }
+      }));
+      if (r && key && store) { try { const w = store.set(`an:${key}`, r); if (w && w.catch) w.catch(() => {}); } catch (e) { /* full */ } }
+      return r;
+    })();
+    if (key) measured.set(key, p);
+    return p;
+  }
+  /** The evening-out gain of measured numbers (1 when off or unknown), as norm() for a decoded buffer. */
+  function gainOf(info, zone, even) {
+    if (!even || !info || !(info.lufs > -60)) return 1;
+    const t = TARGET[zone] != null ? TARGET[zone] : -18;
+    return Math.min(NORM_MAX, Math.max(NORM_MIN, Math.pow(10, (t - info.lufs) / 20)));
+  }
+
   // TroubadourEngine is the name to use from now on; BalladeEngine stays for the code written before.
-  global.TroubadourEngine = global.BalladeEngine = { analyse, norm, loopOf, loopPos, voice, shot, fadeOut, limiter, guard, RAMP, SEAM, TARGET, SILENT };
+  global.TroubadourEngine = global.BalladeEngine = { measure, gainOf, STREAM_SEAM, analyse, norm, loopOf, loopPos, voice, shot, fadeOut, limiter, guard, RAMP, SEAM, TARGET, SILENT };
 })(typeof window !== 'undefined' ? window : globalThis);

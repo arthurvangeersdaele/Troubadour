@@ -1,5 +1,7 @@
 #include "audio_engine.h"
 
+#include <cmath>
+
 #include <android/log.h>
 #include <unistd.h>
 
@@ -773,10 +775,19 @@ oboe::DataCallbackResult AudioEngine::onAudioReady(oboe::AudioStream *stream, vo
 
     mixShots(out, numFrames, channels, outRate);
 
+    // Master, then a limiter at -2 dBFS, the same as the web's (troubadour.tokens.json, audio.limiter_dbfs):
+    // sounds stacked together are held under the ceiling instead of clipping. Instant attack, 200 ms release,
+    // one gain for both channels so the image never moves.
     const float master = mMaster.load(std::memory_order_relaxed);
-    const size_t samples = static_cast<size_t>(numFrames) * channels;
-    for (size_t k = 0; k < samples; ++k) {
-        out[k] = std::clamp(out[k] * master, -1.f, 1.f);
+    const float release = static_cast<float>(1.0 - std::exp(-1.0 / (0.2 * outRate)));
+    for (int i = 0; i < numFrames; ++i) {
+        float *frame = out + static_cast<size_t>(i) * channels;
+        float peak = 0.f;
+        for (int c = 0; c < channels; ++c) peak = std::max(peak, std::fabs(frame[c] * master));
+        const float need = peak > kLimiterCeiling ? kLimiterCeiling / peak : 1.f;
+        mLimiterGain = std::min(need, mLimiterGain + (1.f - mLimiterGain) * release);
+        const float g = master * mLimiterGain;
+        for (int c = 0; c < channels; ++c) frame[c] = std::clamp(frame[c] * g, -1.f, 1.f);
     }
 
     const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();

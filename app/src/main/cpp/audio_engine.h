@@ -78,6 +78,9 @@ private:
     std::atomic<size_t> mRead{0};
 };
 
+// The master limiter's ceiling: -2 dBFS, as on the web (troubadour.tokens.json, audio.limiter_dbfs).
+constexpr float kLimiterCeiling = 0.7943282f;
+
 struct Voice {
     std::mutex decodeMutex;  // held by the decoder thread and by load/unload/setLoop, never by audio
     std::atomic<int> state{kEmpty};
@@ -183,6 +186,7 @@ private:
     std::atomic<int> mOutRate{48000};
     std::atomic<bool> mRunning{false};
     std::thread mDecoder;
+    float mLimiterGain = 1.f;     // audio thread only: the limiter's gain (1: not limiting)
     std::vector<float> mScratch;  // decoder thread only
 
     // Soundbox. Pads are only freed while the audio thread is told to ignore them.

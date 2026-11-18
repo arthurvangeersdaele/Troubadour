@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261118.1';
+  const VERSION = '261118.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -502,17 +502,7 @@
   }
   /** A long sound is listened to once, whole, to learn where it really starts and ends (the encoder's silence), where
    *  it loops and how loud it is. Kept on the device with the sound; one at a time, so the memory stays low. */
-  let measuring = Promise.resolve();
-  function measure(blob) {
-    measuring = measuring.then(async () => {
-      try {
-        const buf = await decode(blob);
-        const i = window.BalladeEngine.analyse(buf);
-        return { a: i.a, b: i.b, la: i.la, lb: i.lb, lufs: i.lufs, d: buf.duration };
-      } catch (e) { return null; }
-    });
-    return measuring;
-  }
+  function measure(blob) { return window.TroubadourEngine.measure(audio().ctx, blob); }
   function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
   async function prepare(fileList, label) {
     const r = rec;

@@ -37,7 +37,7 @@
 
   /* ---------------- Settings ---------------- */
   // vol: volume control on the cards of each row: 'hidden' (narrowest cards), 'simple' (two buttons, 25 % steps over 2 s) or 'full' (a slider).
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, silence: true, awake: true, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, silence: true, awake: true, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, even: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
   const settings = Object.assign({}, DEFAULTS, readJSON('troubadour.settings'));
   settings.vol = Object.assign({}, DEFAULTS.vol, settings.vol || {});
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }
@@ -105,7 +105,8 @@
       ctx = new AC({ latencyHint: 'interactive' });
       masterGain = ctx.createGain();
       masterGain.gain.value = curve(settings.master);
-      masterGain.connect(ctx.destination);
+      // The shared engine's limiter after the master, as in Ballade and Map: stacked sounds never clip.
+      if (window.TroubadourEngine) { const lim = TroubadourEngine.limiter(ctx); masterGain.connect(lim); lim.connect(ctx.destination); } else masterGain.connect(ctx.destination);
       sbGain = ctx.createGain();
       sbGain.gain.value = curve(settings.sbVol);
       sbGain.connect(masterGain);
@@ -137,6 +138,7 @@
     }
     attach(blob) {
       this.url = URL.createObjectURL(blob);
+      this.measure(blob);
       const el = (this.el = new Audio());
       el.preload = 'auto';
       el.loop = this.loop === 2;
@@ -159,7 +161,9 @@
       this.life = ctx.createGain(); this.life.gain.value = 1;
       // xf: this round's share of a blended loop (1 outside a blend).
       this.xf = ctx.createGain(); this.xf.gain.value = 1;
-      src.connect(this.xf).connect(this.vg).connect(this.life).connect(this.env).connect(masterGain);
+      // nm: the evening-out gain (the level of the sound's kind, 1 until it is measured or when off).
+      this.nm = ctx.createGain(); this.nm.gain.value = this.norm;
+      src.connect(this.xf).connect(this.vg).connect(this.life).connect(this.env).connect(this.nm).connect(masterGain);
     }
     get active() { return this.state === 'playing' || this.state === 'ending'; }
     get usable() { return this.el && this.state !== 'loading' && this.state !== 'error'; }
@@ -179,7 +183,7 @@
         this.set('playing');
         return;
       }
-      if (this.state === 'ready') { this.el.currentTime = 0; this.plays = 0; }
+      if (this.state === 'ready') { this.el.currentTime = this.head; this.plays = 0; }
       // From silence, rise over fadeIn. ramp() would start from gain.value, which Safari still reports
       // as the old level (1 after a sound ended), so the fade-in was lost there.
       const t = ctx.currentTime;
@@ -233,24 +237,65 @@
       const d = this.el && isFinite(this.el.duration) ? this.el.duration : 0;
       return this.loop === 2 && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
     }
-    /** A blended loop: near the end of a round, the next round starts on a second element and the two cross over. */
+    /* ---------- The shared engine's numbers (../shared/troubadour-engine.js), as in Ballade and Map ----------
+     * Measured once per sound in the background: where it really starts (no encoder silence), where a round of its
+     * loop starts and turns, how loud it is. Until then, and if it cannot be read, the sound plays as it always did. */
+    measure(blob) {
+      const E = window.TroubadourEngine;
+      if (!E || !E.measure) return;
+      E.measure(null, blob, this.sound.file ? `web:${this.sound.file}:${blob.size}` : null, null).then((info) => {
+        if (!info || !(info.b > 0)) return;
+        this.info = info;
+        if (this.nm && ctx) this.nm.gain.setTargetAtTime(this.norm, ctx.currentTime, 0.3);
+      }).catch(() => {});
+    }
+    /** Where the sound really starts (s in the file). */
+    get head() { return this.info ? this.info.a : 0; }
+    /** The gain that brings it to the level of its kind (music -18, ambiance -22, events -16 LUFS). */
+    get norm() { const E = window.TroubadourEngine; return E && E.gainOf ? E.gainOf(this.info, this.zone.id, settings.even !== false) : 1; }
+    /** A measured forever loop crosses its rounds at its trimmed points (the engine's seam for streamed sounds),
+     *  unless the troubadour set a blend of their own. In seconds, 0 when none. */
+    get seam() {
+      const i = this.info, E = window.TroubadourEngine;
+      if (this.loop !== 2 || !i || this.blend || !E) return 0;
+      const d = i.lb - i.la;
+      return d > 1.5 ? Math.min(E.STREAM_SEAM, d / 3) : 0;
+    }
+    /** A blended loop: near the end of a round, the next round starts on a second element and the two cross over.
+     *  The engine's seam keeps the native loop beneath, so a round still turns if the timers ever sleep. */
     blendTick() {
       if (!this.el || !this.xf) return;
-      const b = this.blend;
-      if (!b) { if (this.loop === 2 && !this.el.loop && !this.twin) this.el.loop = true; return; }
-      if (this.el.loop) this.el.loop = false;
+      const b = this.blend, sm = this.seam;
+      if (!b) { if (this.loop === 2 && !this.el.loop) this.el.loop = true; if (!sm) return; } else if (this.el.loop) this.el.loop = false;
       if (this.state !== 'playing' || this.twin) return;
-      const left = this.el.duration - this.el.currentTime;
-      if (!(left <= b)) return;
+      const turn = b ? this.el.duration : this.info.lb;
+      const left = turn - this.el.currentTime;
+      if (!(left <= (b || sm + 0.06)) || left < 0) return;
       const old = this.el, oldXf = this.xf;
-      const nu = new Audio(this.url);
+      const nu = new Audio();
       nu.preload = 'auto';
+      nu.loop = !b;
       nu.addEventListener('ended', () => { if (nu === this.el) this.ended(); });
+      nu.src = this.url;
+      // A new round starts where the loop does (set before it loads: the browser starts there).
+      const at = b ? 0 : this.info.la;
+      if (at > 0.02) { try { nu.currentTime = at; } catch (e) { /* set at load */ } }
       const xf = ctx.createGain();
       ctx.createMediaElementSource(nu).connect(xf).connect(this.vg);
       const t = ctx.currentTime, span = Math.max(0.05, left);
-      xf.gain.setValueAtTime(0, t); xf.gain.linearRampToValueAtTime(1, t + span);
-      oldXf.gain.cancelScheduledValues(t); oldXf.gain.setValueAtTime(1, t); oldXf.gain.linearRampToValueAtTime(0, t + span);
+      if (b) {
+        xf.gain.setValueAtTime(0, t); xf.gain.linearRampToValueAtTime(1, t + span);
+        oldXf.gain.cancelScheduledValues(t); oldXf.gain.setValueAtTime(1, t); oldXf.gain.linearRampToValueAtTime(0, t + span);
+      } else {
+        // Equal power, so the level holds through the seam (straight steps: a pause may cut in at any time).
+        xf.gain.cancelScheduledValues(t); xf.gain.setValueAtTime(0, t);
+        oldXf.gain.cancelScheduledValues(t); oldXf.gain.setValueAtTime(1, t);
+        for (let k = 1; k <= 8; k++) {
+          const q = k / 8, at2 = t + span * q;
+          xf.gain.linearRampToValueAtTime(Math.sin(q * Math.PI / 2), at2);
+          oldXf.gain.linearRampToValueAtTime(Math.cos(q * Math.PI / 2), at2);
+        }
+      }
       nu.play().catch(() => {});
       this.el = nu; this.xf = xf;
       this.twin = { el: old, xf: oldXf };
@@ -274,7 +319,7 @@
     }
     ended() {
       this.plays += 1;
-      if (this.loop === 1 && this.plays < 2 && this.active) { this.el.currentTime = 0; this.el.play().catch(() => {}); return; }
+      if (this.loop === 1 && this.plays < 2 && this.active) { this.el.currentTime = this.head; this.el.play().catch(() => {}); return; }
       const natural = this.state === 'playing';
       this.reset();
       // A music that played through on its own hands over to the next one set to play after it.
@@ -1122,6 +1167,10 @@
     $('#life-more').addEventListener('click', () => stepLife(lifeEvery() >= 10 ? 2 : 1));
     $('#random-more').addEventListener('click', () => stepRandom(1));
     $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; save(); });
+    $('#opt-even').addEventListener('change', (e) => {
+      settings.even = e.target.checked; save();
+      if (story && ctx) story.all.forEach((v) => { if (v.nm) v.nm.gain.setTargetAtTime(v.norm, ctx.currentTime, 0.3); });
+    });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       settings.vol[g.dataset.zone] = b.dataset.v; save(); syncSettings();
@@ -1156,6 +1205,7 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#random-more').disabled = randomMax() >= RANDOM_TOP;
     $('#opt-crossfade').checked = settings.crossfade;
+    $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
     $('#opt-awake').checked = settings.awake;
     applyTheme();
