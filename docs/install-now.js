@@ -77,7 +77,7 @@
   function showDoor(a) {
     if (!veil) build();
     var name = a.getAttribute('data-name') || 'Troubadour', ios = ROOT + a.getAttribute('data-ios'), andr = a.getAttribute('data-android');
-    veil.querySelector('#in-title').textContent = 'Play ' + name + ' on your phone';
+    veil.querySelector('#in-title').textContent = a.classList.contains('install') ? 'Install ' + name : 'Play ' + name + ' on your phone';
     var A = veil.querySelector('[data-for="android"]'), I = veil.querySelector('[data-for="ios"]');
     draw(I, ios);
     I.nextElementSibling.nextElementSibling.textContent = 'Open the page in Safari, then add ' + name + ' to your Home Screen.';
@@ -96,11 +96,18 @@
       withQr(function () { showDoor(a); });
     });
   });
+  /* An a.install with data-name (Ballade, Map builders and players) installs that app, as a.qr-door does. */
   links.forEach(function (a) {
+    var app = a.getAttribute('data-name');
+    if (app) {
+      var andr = a.getAttribute('data-android');
+      if (h.classList.contains('android')) { if (andr !== 'apk') { a.removeAttribute('href'); a.textContent = 'Coming soon on Android'; a.classList.add('off'); } }
+      else if (h.classList.contains('touch')) a.href = ROOT + a.getAttribute('data-ios');
+    }
     a.addEventListener('click', function (e) {
-      if (!h.classList.contains('pc')) return;
+      if (!h.classList.contains('pc')) { if (a.classList.contains('off')) e.preventDefault(); return; }
       e.preventDefault();
-      withQr(function () { show(a); });
+      withQr(function () { if (app) showDoor(a); else show(a); });
     });
   });
 })();
