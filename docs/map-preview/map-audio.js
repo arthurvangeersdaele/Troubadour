@@ -324,7 +324,10 @@
       v.state = 'playing'; changed();
       return;
     }
-    if (v.state === 'idle') { v.offset = 0; v.plays = 0; }
+    if (v.state === 'idle') {
+      if (v.keep && v.card.zone === 'music' && v.keep.offset < duration(v) - 2) { v.offset = v.keep.offset; v.plays = v.keep.plays; } else { v.offset = 0; v.plays = 0; }
+      v.keep = null;
+    }
     const t = now();
     g.cancelScheduledValues(t); g.setValueAtTime(0, t);
     g.linearRampToValueAtTime(1, t + Math.max(fadeIn, 0.012));
@@ -374,6 +377,8 @@
   }
   function reset(v) {
     clearTimeout(v.timer);
+    // A music let go for another one keeps where it was, for when the party comes back (S6).
+    if (v.keepOnReset) { v.keep = { offset: position(v), plays: v.plays }; v.keepOnReset = false; }
     v.fadingOut = null;
     dropTwin(v, true);
     stopSource(v);
@@ -427,7 +432,7 @@
     if (v.card.zone === 'music') {
       const others = musicsOf(v).filter((o) => o !== v && (o.active || o.state === 'paused'));
       const crossing = others.some((o) => o.active);
-      others.forEach((o) => end(o, settings.crossfade ? settings.fade : 150));
+      others.forEach((o) => { o.keepOnReset = true; end(o, settings.crossfade ? settings.fade : 150); });
       play(v, crossing && settings.crossfade && v.state !== 'paused' ? settings.fade / 1000 : startFade());
     } else {
       // A tap on Play rises over the fade-in (music, ambiances); events strike at once. Replays never come here.
@@ -692,7 +697,7 @@
   /* ---------- Cards ---------- */
   const voiceOf = (card) => voices.get(card) || null;
   function toggle(card) { const v = voices.get(card); if (v) toggleVoice(v); }
-  function stop(card) { const v = voices.get(card); if (v) end(v, settings.fade); }
+  function stop(card) { const v = voices.get(card); if (v) { v.keepOnReset = false; v.keep = null; end(v, settings.fade); } }
   /** How far a card is, as Troubadour shows it: { p } from 0 to 1 (-1 for an endless loop), { left } in seconds
    *  (null for an endless loop; a 2× counts both plays), and { next } in seconds while a random card waits. */
   function progress(card) {
@@ -759,7 +764,7 @@
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
-    isOpen: () => !!place, point: () => point, lockMusic: (on) => { musicLocked = !!on; changed(); }, musicLocked: () => musicLocked, heardNow, meter, meterOff,
+    isOpen: () => !!place, point: () => point, position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, lockMusic: (on) => { musicLocked = !!on; changed(); }, musicLocked: () => musicLocked, heardNow, meter, meterOff,
   });
   global.MapAudio = api;
 })(window);

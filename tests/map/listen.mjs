@@ -150,6 +150,24 @@ try {
     ok(kept.locked.length > 0 && kept.locked.every((n) => n === m0), `locked: walking into places with their own music keeps ${m0} (${kept.locked.length} places)`);
     ok(kept.free.some((n) => n !== m0), `unlocked: a place with its own music changes it (${kept.free.join(', ')})`);
   }
+  // A music let go for another keeps where it was, for when the party comes back (S6).
+  const s6 = await page.evaluate(async () => {
+    const A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    window.MapUI.settings.fade = 600; // quicker crossfades for the test
+    const ms = A.voices().filter((v) => v.world && v.card.zone === 'music').map((v) => v.card);
+    if (ms.length < 2) return null;
+    const [a, b] = ms;
+    if (A.voice(a).state !== 'playing') A.toggle(a);
+    await wait(3500);
+    const at = A.position(a);
+    A.toggle(b); await wait(1500);
+    const bPlays = A.voice(b).state === 'playing';
+    A.toggle(a); await wait(300);
+    return { at, back: A.position(a), bPlays };
+  });
+  if (s6) ok(s6.bPlays && s6.back >= s6.at - 0.2, `a music let go for another plays on from where it was when it comes back (${s6.at.toFixed(1)} s, back at ${s6.back.toFixed(1)} s)`);
+  await page.evaluate(() => { window.MapUI.settings.fade = 4000; });
+
   // A long press on the map sends the party there, the shortest way around the walls (M6).
   const way = await page.evaluate(() => {
     const V = window.MapView, p = V.__place(), M = window.TroubadourMap;
