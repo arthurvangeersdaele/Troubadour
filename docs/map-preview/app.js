@@ -585,6 +585,7 @@
   function soundGate() {
     const g = $('#mw-gate');
     const { ctx } = audio(true);
+    if (!soundGate.noted && ctx.addEventListener) { soundGate.noted = true; ctx.addEventListener('statechange', () => noteDbg(`audio ${ctx.state}`)); }
     const check = () => {
       const off = screen === 'world' && mode === 'play' && ctx.state !== 'running';
       g.hidden = !off;
@@ -687,6 +688,44 @@
       releaseWake();
     }
     renderPanel();
+  }
+
+  /* ================= The debug overlay (261114_map_plan.md, 5): five taps on the world's name ================= */
+  // What a troubadour can copy and send when the sound misbehaves: the audio clock, the voices and the streams,
+  // the sounds in memory, the last interruptions.
+  const DBG = { taps: [], box: null, timer: 0, events: [] };
+  function noteDbg(what) { DBG.events.push(`${new Date().toLocaleTimeString()} ${what}`); if (DBG.events.length > 30) DBG.events.shift(); }
+  function debugText() {
+    const { ctx } = audio();
+    let mem = 0; buffers.forEach((b) => { if (b && b.length) mem += b.length * b.numberOfChannels * 4; });
+    const vs = A.isOpen() ? A.list() : [];
+    const playing = vs.filter((v) => v.state === 'playing');
+    return [
+      `Map ${rec ? rec.story.title : ''}, ${mode === 'play' ? 'at the table' : 'drawing'}${rec ? `, map ${pi + 1}` : ''}`,
+      `audio clock ${ctx.currentTime.toFixed(2)} s, ${ctx.state}, ${ctx.sampleRate} Hz`,
+      `voices ${vs.length}, playing ${playing.length}, heard ${playing.filter((v) => v.heard > 0.01).length}; streamed ${A.isOpen() ? A.streams().length : 0}`,
+      `in memory ${buffers.size} sounds decoded (about ${Math.round(mem / 1048576)} MB of samples), ${streams.size} streamed`,
+      ...playing.slice(0, 8).map((v) => `  ${v.name}: heard ${Math.round(v.heard * 100)} %`),
+      `device ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 120)}`,
+      ...DBG.events.slice(-8),
+    ].join('\n');
+  }
+  function toggleDebug() {
+    if (DBG.box) { DBG.box.remove(); DBG.box = null; clearInterval(DBG.timer); return; }
+    const box = el('div', 'mp-debug');
+    const pre = el('pre');
+    const row = el('div', 'mp-debug-acts');
+    const copy = el('button', 'btn slim', 'Copy'); copy.type = 'button';
+    copy.addEventListener('click', () => { if (navigator.clipboard) navigator.clipboard.writeText(debugText()).then(() => toast('Copied: paste it in a message.', 1800), () => toast('Could not copy.')); });
+    const shut = el('button', 'btn slim', 'Close'); shut.type = 'button';
+    shut.addEventListener('click', toggleDebug);
+    row.append(copy, shut);
+    box.append(pre, row);
+    document.body.append(box);
+    DBG.box = box;
+    const paint = () => { pre.textContent = debugText(); };
+    paint();
+    DBG.timer = setInterval(paint, 500);
   }
 
   /* ================= Listening in the editor: Heard now ================= */
@@ -3530,6 +3569,12 @@
     $('#mw-back').addEventListener('click', () => leaveWorld());
     $('#mw-more').innerHTML = ICON.share;
     $('#mw-switch').innerHTML = ICON.go;
+    $('#mw-title').addEventListener('click', () => {
+      const t = Date.now();
+      DBG.taps = DBG.taps.filter((x) => t - x < 2000).concat(t);
+      if (DBG.taps.length >= 5) { DBG.taps = []; toggleDebug(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (rec) noteDbg(document.hidden ? 'hidden' : 'shown'); });
     $('#mw-listen').innerHTML = ICON.listen;
     $('#mw-listen').addEventListener('click', () => listen(!listening));
     $('#mw-heard-x').innerHTML = ICON.close;

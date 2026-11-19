@@ -921,3 +921,8 @@ html:not(.mode-app) .splash { display: none; }
 .mp-many h3 { margin: 0; }
 .mp-many .hint { margin: 4px 0 8px; color: var(--muted); font-size: 14px; }
 .mp-many-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* The debug overlay (five taps on the world's name). */
+.mp-debug { position: fixed; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 60; padding: 10px 12px; border-radius: 12px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 14px 40px var(--shadow); }
+.mp-debug pre { margin: 0 0 8px; max-height: 40vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: pre-wrap; }
+.mp-debug-acts { display: flex; gap: 8px; justify-content: flex-end; }

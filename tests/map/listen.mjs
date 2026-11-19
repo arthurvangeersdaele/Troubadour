@@ -128,6 +128,10 @@ try {
   await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'play');
   await page.waitForFunction(() => window.MapAudio.isOpen(), null, { timeout: 60000 });
   ok(await page.isHidden('#mw-heard') && await page.isHidden('#mw-listen'), 'at the table: no Listen button, no panel');
+  for (let i = 0; i < 5; i++) await page.click('#mw-title');
+  await page.waitForTimeout(700);
+  const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');
+  ok(/audio clock [\d.]+ s/.test(dbg) && /voices \d+, playing \d+/.test(dbg), 'five taps on the name of the world: the debug overlay');
   ok(!errors.length, `no page error${errors.length ? `: ${errors.join(' | ')}` : ''}`);
 } finally {
   await browser.close();
