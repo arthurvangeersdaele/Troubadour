@@ -67,7 +67,7 @@ try {
     if (card && action !== 'skip') {
       if (spot.file) expected = spot.file;
       else expected = spots.mapMusic || null;
-    } else if (!card) expected = cur; // nothing proposed: the music heard plays on
+    } else expected = cur; // skipped, or nothing proposed: the music heard plays on
     await page.waitForTimeout((action === 'wait' ? 5200 : 300) + 1500 + 900);
     const st = await page.evaluate(() => {
       const A = window.MapAudio;
