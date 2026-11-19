@@ -129,9 +129,10 @@ try {
       const arriveAt = async () => { await page.evaluate((p) => { window.MapAudio.hear([1, 1], true); }, zoneAt); await page.waitForTimeout(400); await page.evaluate((p) => window.MapAudio.hear(p, true), zoneAt); await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 4000 }).catch(() => {}); };
       await page.evaluate(() => { window.MapUI.settings.musicAuto = true; });
       await arriveAt();
+      if (process.env.SHOT) { await page.waitForTimeout(2200); await page.screenshot({ path: process.env.SHOT }); }
       ok(/Plays in [1-5] s/.test(await page.textContent('#mw-arrive')), `automatic: the place's music plays in a few seconds (${(await page.textContent('#mw-arrive .ar-clock')) || 'no card'})`);
       const before = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
-      await page.click('#mw-arrive .ar-acts .btn:not(.primary)');
+      await page.click('#mw-arrive .ar-skip');
       await page.waitForTimeout(6000);
       ok(await page.isHidden('#mw-arrive') && (await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; })) === before, 'Skip keeps the music heard');
       await arriveAt();
@@ -151,7 +152,7 @@ try {
       ok(/Move to th(is|ese) musics?\?/.test(await page.textContent('#mw-arrive')), 'not automatic: the card asks (Play or Skip)');
       await page.waitForTimeout(6000);
       ok(!(await page.isHidden('#mw-arrive')), 'not automatic: nothing plays by itself');
-      await page.click('#mw-arrive .ar-acts .btn.primary');
+      await page.click('#mw-arrive .ar-go');
       await page.waitForTimeout(800);
       ok((await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; })) !== other, 'Play moves to the music of the place');
       await page.evaluate(() => { window.MapUI.settings.musicAuto = true; });

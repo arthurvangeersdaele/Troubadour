@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261119.2';
+  const VERSION = '261119.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2810,7 +2810,7 @@
   let arrive = null;
   function closeArrive() {
     if (!arrive) return;
-    clearInterval(arrive.timer);
+    clearInterval(arrive.timer); clearTimeout(arrive.done);
     arrive = null;
     const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
   }
@@ -2827,18 +2827,21 @@
     const box = $('#mw-arrive');
     box.textContent = '';
     arrive = { info, cards, left: ARRIVE_S, timer: 0 };
-    const head = el('div', 'ar-head');
-    const ttl = el('div', 'ar-ttl');
-    ttl.append(el('small', '', cards.length > 1 ? 'Musics of this place' : 'Music of this place'), el('b', '', elName(info.el)));
-    head.append(ttl);
-    const names = el('p', 'ar-names', cards.map((c) => c.name).join(', '));
-    const ask = el('p', 'ar-clock');
-    const bar = el('div', 'ar-time'); const fill = el('i'); bar.append(fill);
-    bar.hidden = !auto;
-    const acts = el('div', 'ar-acts');
-    const play = el('button', 'btn small primary'); play.type = 'button';
-    play.innerHTML = `${ICON.play}<span>${auto ? 'Play now' : 'Play'}</span>`;
-    const skip = el('button', 'btn small'); skip.type = 'button';
+    // Waze style: a round play button whose gold ring fills while the music waits (it plays when the ring closes),
+    // the place and its music beside it, and a plain Skip under them.
+    const R = 27, C = 2 * Math.PI * R;
+    const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
+    play.style.setProperty('--ar-s', `${ARRIVE_S}s`);
+    play.style.setProperty('--ar-c', C.toFixed(1));
+    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>`;
+    play.setAttribute('aria-label', `Play ${cards[0].name} now`);
+    play.title = auto ? 'Play it now' : 'Play it';
+    const txt = el('div', 'ar-txt');
+    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${elName(info.el)}</span>`;
+    const names = el('b', 'ar-names', cards.map((c) => c.name).join(', '));
+    const ask = el('span', 'ar-clock');
+    txt.append(where, names, ask);
+    const skip = el('button', 'ar-skip'); skip.type = 'button';
     skip.textContent = 'Skip';
     skip.title = 'Keep the music heard';
     const go = () => {
@@ -2851,17 +2854,19 @@
     };
     play.addEventListener('click', go);
     skip.addEventListener('click', closeArrive);
-    acts.append(play, skip);
-    box.append(head, names, ask, bar, acts);
+    const row = el('div', 'ar-row');
+    row.append(play, txt);
+    box.append(row, skip);
     const paint = () => {
       if (!arrive) return;
-      if (auto) {
-        ask.textContent = `Plays in ${arrive.left} s`;
-        fill.style.transform = `scaleX(${arrive.left / ARRIVE_S})`;
-      } else ask.textContent = cards.length > 1 ? 'Move to these musics?' : 'Move to this music?';
+      ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Move to these musics?' : 'Move to this music?');
     };
     paint();
-    if (auto) arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left <= 0) go(); else paint(); }, 1000);
+    if (auto) {
+      arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left > 0) paint(); }, 1000);
+      // The ring is drawn by the browser (one smooth fill); the music starts when it closes.
+      arrive.done = setTimeout(go, ARRIVE_S * 1000);
+    }
     box.hidden = false;
     requestAnimationFrame(() => rollTitles(box));
     return true;
