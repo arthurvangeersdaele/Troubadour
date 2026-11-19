@@ -8,7 +8,7 @@
 (function (global) {
   'use strict';
 
-  const NAME = 'troubadour-map';
+  const NAME = 'troubadour-map-preview'; // its own worlds: the Map played at the table is never touched
   const VERSION = 1;
   let dbp = null;
 

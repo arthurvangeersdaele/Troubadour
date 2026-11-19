@@ -8,7 +8,7 @@
 (function (global) {
   'use strict';
 
-  const NAME = 'troubadour-ballade';
+  const NAME = 'troubadour-ballade-preview'; // its own stories: the Ballade played at the table is never touched
   const VERSION = 1;
   let dbp = null;
 

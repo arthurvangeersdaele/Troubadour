@@ -85,19 +85,19 @@
     </div>
 
     <ol class="isteps" id="isteps">
-      <li>
+      <li style="padding-left:10px;border-left:3px solid #F0C24F">
         <div class="mock m-bar" id="m-bar" aria-hidden="true">
           <i class="m-dot"></i><span class="m-url">arthurvangeersdaele.github.io</span><i class="m-btn" id="m-btn"></i>
         </div>
         <div class="itxt"><b id="step1-title">Tap Share</b><span id="step1-text"></span></div>
       </li>
-      <li>
+      <li style="padding-left:10px;border-left:3px solid #F0C24F">
         <div class="mock m-sheet" aria-hidden="true">
           <span>Copy</span><span>Add to Reading List</span><span class="hl"><i class="m-plus"></i>Add to Home Screen</span>
         </div>
         <div class="itxt"><b>Tap Add to Home Screen</b><span>Scroll down the list if needed.</span></div>
       </li>
-      <li>
+      <li style="padding-left:10px;border-left:3px solid #F0C24F">
         <div class="mock m-add" aria-hidden="true">
           <span class="m-top"><i>Cancel</i><em>Add</em></span>
           <span class="m-name"><img src="icons/261017_troubadour_ballade_180.png" alt="">Troubadour Ballade</span>
@@ -105,7 +105,7 @@
         </div>
         <div class="itxt"><b>Tap Add</b><span>If you see <b>Open as Web App</b>, keep it on.</span></div>
       </li>
-      <li>
+      <li style="padding-left:10px;border-left:3px solid #F0C24F">
         <div class="mock m-home" aria-hidden="true">
           <i></i><i></i><i></i><i></i><i></i><i></i><i></i><img src="icons/261017_troubadour_ballade_180.png" alt="">
         </div>
@@ -439,6 +439,11 @@
 <script src="../back.js"></script>
 <script src="app.js"></script>
 <script src="../install-now.js"></script>
-<div aria-hidden="true" style="position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:9999;font:600 11px 'Barlow Semi Condensed',system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#F0C24F;color:#1A1206;pointer-events:none">Preview</div>
+<button type="button" id="preview-badge" onclick="document.getElementById('preview-notes').showModal()" style="position:fixed;left:50%;top:calc(2px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9999;font:600 11px 'Barlow Semi Condensed',system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase;padding:2px 10px;border-radius:8px;border:0;background:#F0C24F;color:#1A1206;cursor:pointer" title="What is new in this preview">Preview: what is new</button>
+<dialog id="preview-notes" class="settings" aria-labelledby="preview-notes-title" style="max-width:560px">
+  <div class="set-head"><h2 id="preview-notes-title">Troubadour Ballade, preview of 19 November</h2><button class="ico small" type="button" aria-label="Close" onclick="this.closest('dialog').close()">✕</button></div>
+  <p style="margin:0 0 8px;color:var(--muted)">This copy is for trying. Its stories are its own: the app you use at the table is untouched.</p>
+  <ul style="margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:15px;line-height:1.4"><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table, Go and Begin start their sounds after half a second, whatever the screen and the Wire speed.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">In the builder, the Timeline button opens the chapter on a timeline, as in a video editor: tracks, sounds with their waveform, gold cues where the table waits, sections, the choice and its ways.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Space plays from the playhead, it stops at each cue, Go plays on, a choice offers its ways.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Drag a sound to move it, its edges to trim it, its gold corners for its fades, its line for its volume. S cuts it at the playhead, C adds a cue, M a section.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Ctrl+C, X, V, D, Alt and a drag, Shift+Delete closes the gap, Ctrl+Z undoes. Two sounds overlapping on a track crossfade (a gold X).</li><li style="padding-left:10px;border-left:3px solid #F0C24F">With nothing selected, the inspector lists what to check before exporting.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">An export from the timeline keeps it (timeline.json) and still plays in the Ballade of today.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Five taps on the story's title at the table: the debug overlay, to copy and send.</li></ul>
+</dialog>
 </body>
 </html>
