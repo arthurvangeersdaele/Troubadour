@@ -73,15 +73,15 @@ try {
       A.hear(p, true);
       await wait(600);
       const rows = [...document.querySelectorAll('#mw-heard-list .hn-row')].map((r) => r.querySelector('.n').textContent);
-      const now = A.heardNow().filter((h) => h.heard > 0.01).map((h) => h.card.name);
-      out.places.push({ p, rows, now, none: !!document.querySelector('#mw-heard-list .hn-none') });
+      const all = A.heardNow().filter((h) => h.heard > 0.01), now = all.map((h) => h.card.name), waits = all.filter((h) => h.waiting).map((h) => h.card.name);
+      out.places.push({ p, rows, now, waits, none: !!document.querySelector('#mw-heard-list .hn-none') });
     }
     return out;
   });
   ok(probe.voices > 0, `the map's sounds opened (${probe.voices})`);
-  // The panel is at most 400 ms old: a random event may have started or ended since.
+  // The panel is at most 400 ms old: a random event may have started, ended or begun its wait since.
   const apart = (a, b) => a.filter((x) => !b.includes(x)).length + b.filter((x) => !a.includes(x)).length;
-  ok(probe.places.every((q) => apart(q.rows, q.now) <= 1 && (!q.now.length || q.now.slice(0, 3).includes(q.rows[0]))), 'the panel lists what the point hears, the loudest on top');
+  ok(probe.places.every((q) => apart(q.rows, q.now) <= 1 && (!q.now.length || q.now.slice(0, 3).includes(q.rows[0]) || q.waits.includes(q.rows[0]))), 'the panel lists what the point hears, the loudest on top');
   ok(probe.places.some((q) => q.rows.length > 0), 'some place hears something');
   ok(new Set(probe.places.map((q) => q.rows.join('|'))).size > 1, 'moving the point changes the list');
   probe.places.forEach((q) => console.log(`     at ${q.p.map(Math.round)}: ${q.rows.join(', ') || '(nothing)'}  /  ${q.now.join(', ')}`));
