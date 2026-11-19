@@ -170,6 +170,14 @@ try {
   const tr = await page.evaluate(() => window.MapView.__trail());
   ok(tr && tr.n >= 3, `a long press beyond the wall sends the party round it (${tr ? `${tr.n} points, ${tr.phase}` : 'no trail'})`);
   await page.evaluate(() => { const p = window.MapView.__place(); p.walls = p.walls.filter((w) => !w.__test); });
+  // Pinned effects: a strip over the map at the table, one tap fires one (M6).
+  await page.evaluate((u) => { window.MapUI.settings.pins = [`${u}:sounds/soundbox/thunder.mp3`]; location.hash = `#/edit/${u}/0`; }, uid);
+  await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'edit');
+  await page.evaluate((u) => { location.hash = `#/play/${u}/0`; }, uid);
+  await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'play' && window.MapAudio.isOpen(), null, { timeout: 60000 });
+  await page.waitForFunction(() => { const b = document.querySelector('#mw-pinstrip .pad'); return b && !b.disabled; }, null, { timeout: 20000 }).catch(() => {});
+  const strip = await page.evaluate(() => [...document.querySelectorAll('#mw-pinstrip .pad')].map((b) => ({ t: b.textContent, d: b.disabled })));
+  ok(strip.length === 1 && strip[0].t === 'Thunderclap' && !strip[0].d, `a pinned effect shows over the map at the table (${JSON.stringify(strip)})`);
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
   const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');

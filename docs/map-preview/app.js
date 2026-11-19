@@ -672,6 +672,7 @@
       A.setMusic(music);
       A.open(place(), rec.world, sounds);
       soundGate();
+      if (pins().length) loadPads(); else renderPinStrip();
       acquireWake();
       $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way.`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
@@ -3436,7 +3437,7 @@
       ...(rec.world.soundbox || []).map((c) => ({ s: c, own: true, id: `${rec.uid}:${c.file}`, key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]) })),
       ...SHARED.map((c) => ({ s: c, own: false, id: c.id, key: `shared:${c.blob}`, getBlob: () => DB.getBlob(c.blob) })),
     ].map((p) => Object.assign(p, { buffer: buffers.get(p.key) || null, state: buffers.get(p.key) ? 'ready' : 'loading' }));
-    renderPads();
+    renderPads(); renderPinStrip();
     for (const p of pads) {
       if (p.buffer) continue;
       try {
@@ -3447,7 +3448,7 @@
         p.state = 'ready';
       } catch (e) { p.state = 'error'; }
       if (rec !== r) return;
-      renderPads();
+      renderPads(); renderPinStrip();
     }
   }
   const pins = () => (Array.isArray(settings.pins) ? settings.pins : (settings.pins = []));
@@ -3482,7 +3483,24 @@
     const list = pins();
     const i = list.indexOf(id);
     if (i >= 0) list.splice(i, 1); else list.push(id);
-    saveSettings(); renderPads();
+    saveSettings(); renderPads(); renderPinStrip();
+  }
+  /** The pinned effects, also as a strip over the map at the table: one tap fires one (M6). */
+  function renderPinStrip() {
+    const box = $('#mw-pinstrip');
+    if (!box) return;
+    box.textContent = '';
+    const list = mode === 'play' && rec ? pins().map((u) => pads.find((p) => p.id === u)).filter(Boolean).slice(0, 8) : [];
+    box.hidden = !list.length;
+    list.forEach((p) => {
+      const b = el('button', 'pad pinned mini');
+      b.type = 'button';
+      b.disabled = p.state !== 'ready';
+      b.title = `${p.s.name}: one tap plays it`;
+      b.append(el('span', '', p.s.name));
+      b.addEventListener('click', () => firePad(p, b));
+      box.append(b);
+    });
   }
   /** A pad fires its effect once, at once (a tap again fires it again). */
   function firePad(p, b) {
