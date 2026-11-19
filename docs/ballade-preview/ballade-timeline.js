@@ -246,14 +246,17 @@
           runSteps.push({ at: g === 0 ? st.at : group[0].at, title: g === 0 ? st.title : '', cards: group });
         }
       });
+      // Version 1 keeps tenths of a second: every time is rounded where it stands on the timeline, so the
+      // roundings never add up along a run (each sound within 0.05 s of its place, however many steps before it).
+      const t1 = (v) => Math.round(v * 10) / 10;
       runSteps.forEach((st, k) => {
         const nb = k + 1 < runSteps.length ? runSteps[k + 1].at : e;
         steps.push({
-          title: st.title, gate: k === 0, next: r3(Math.max(0, nb - st.at)),
+          title: st.title, gate: k === 0, next: r3(Math.max(0, t1(nb) - t1(st.at))),
           cards: st.cards.map((c) => {
             const t = tracksById.get(c.track);
             const card = {
-              name: c.name, file: c.file, zone: c.kind, offset: r3(c.at - st.at), start: r3(c.in || 0),
+              name: c.name, file: c.file, zone: c.kind, offset: r3(Math.max(0, t1(c.at) - t1(st.at))), start: r3(c.in || 0),
               duration: r3(c.loop === 'random' ? (c.each || c.length) : c.length), play: c.loop,
               hold: c.loop === 'random' || (c.loop === 'loop' && !!c.holdToCue), repeat: c.loop !== 'once',
               fadeIn: fades.get(c.id).fadeIn, fadeOut: fades.get(c.id).fadeOut, volume: r2((c.volume == null ? 0.75 : c.volume) * (t ? t.volume : 1)),

@@ -116,6 +116,11 @@ for (const f of tales) {
   const runLen = steps.slice(0, steps.findIndex((s, i) => i > 0 && s.gate)).reduce((a, s) => a + len(s), 0);
   ok(Math.abs(runLen - 20) < 1e-6, `free timeline: the gate falls on its cue (${runLen} s)`);
   ok(steps.every((s) => s.cards.length <= 3), 'free timeline: at most three cards a step');
+  // Times that version 1 cannot hold (hundredths) are rounded where they stand, never adding up along a run.
+  const fine = { tracks: [{ id: 'e', name: 'Events', kind: 'events', volume: 1, mute: false }], clips: Array.from({ length: 12 }, (_, i) => clip(`f${i}`, 'e', 1.04 + i * 2.04, 0.5)), markers: Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, type: 'section', at: 0.97 + i * 4.08, name: `S${i}` })) };
+  const fs1 = v1Starts(T.stepsOf(fine).map((s) => ({ ...s, next: Math.round(s.next * 10) / 10, cards: s.cards.map((c) => ({ ...c, offset: Math.round(c.offset * 10) / 10 })) })));
+  const worst = Math.max(...fine.clips.map((c) => Math.abs(fs1.find(([, , k]) => k.name === c.id)[1] - c.at)));
+  ok(worst <= 0.0501, `hundredths rounded to tenths where they stand: every sound within 0.05 s (worst ${worst.toFixed(3)} s)`);
   // Two clips overlapping on one track crossfade over the overlap.
   const xf = { tracks: [{ id: 'm', name: 'Music', kind: 'music', volume: 1, mute: false }], clips: [clip('a', 'm', 0, 10, { kind: 'music', fadeOut: 1 }), clip('b', 'm', 7, 10, { kind: 'music' }), clip('c', 'm', 8, 1, { kind: 'music' })], markers: [] };
   const fd = T.fadesOf(xf);
