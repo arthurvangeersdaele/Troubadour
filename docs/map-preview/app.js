@@ -437,6 +437,8 @@
   /* ================= Saving ================= */
   let saveBad = false;
   function save() {
+    // Every change made while drawing is a step of the history (gathered once things settle).
+    if (mode === 'edit' && V.commitSoon) V.commitSoon();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 500);
     paintSave();
@@ -625,6 +627,7 @@
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
     V.setMode(mode);
     V.show(place(), rec.world);
+    paintHistory();
     V.layers.hidden.clear(); V.layers.locked.clear(); V.layers.wallsHidden = false; V.layers.wallsLocked = false;
     renderPlaces();
     if (location.hash !== here()) history.replaceState(null, '', here());
@@ -904,6 +907,61 @@
       e.shape.rotation = r;
     });
   }
+  /** Undo and redo: the panel shows the map as it is again. */
+  function undoRedo(back) {
+    if (mode !== 'edit') return;
+    const done = back ? V.undo() : V.redo();
+    if (!done) { toast(back ? 'Nothing to undo.' : 'Nothing to redo.', 1400); return; }
+    renderPanel(); renderPlaces(); renderLayers();
+  }
+  function paintHistory() {
+    const h = V.history ? V.history() : { undo: 0, redo: 0 };
+    const u = document.querySelector('#mw-tools [data-act="undo"]'), r = document.querySelector('#mw-tools [data-act="redo"]');
+    if (u) { u.disabled = !h.undo; u.title = h.undo ? `Undo (Ctrl+Z): ${h.undo} step${h.undo > 1 ? 's' : ''}` : 'Nothing to undo'; }
+    if (r) { r.disabled = !h.redo; r.title = h.redo ? `Redo (Ctrl+Shift+Z): ${h.redo} step${h.redo > 1 ? 's' : ''}` : 'Nothing to redo'; }
+  }
+  /** A pasted or duplicated element takes the next number of its kind. */
+  function numbered(c, from) {
+    const kind = (c.title || '').replace(/\s+\d+$/, '') || elName(from || c);
+    const same = place().elements.filter((x) => x !== c && x.title && x.title.startsWith(kind)).length;
+    c.title = `${kind} ${same + 1}`.slice(0, 80);
+  }
+  function clipboard(k) {
+    if (mode !== 'edit') return false;
+    const sel = V.selected();
+    if (k === 'c') { if (!sel) return false; V.copy(); toast(`${elName(sel)} copied.`, 1200); return true; }
+    if (k === 'x') { if (!sel) return false; const n = elName(sel); V.cut(); renderPanel(); renderPlaces(); renderLayers(); toast(`${n} cut.`, 1200); return true; }
+    if (k === 'v') {
+      const c = V.paste();
+      if (c === false) { toast('A place can be pasted in the world it comes from.', 2400); return true; }
+      if (!c) return false;
+      numbered(c); save(); renderPanel(); renderPlaces(); renderLayers();
+      return true;
+    }
+    if (k === 'd') { if (!sel) return false; duplicateElement(sel); return true; }
+    return false;
+  }
+  /** The keys of the editor, on one page (?). */
+  function shortcuts() {
+    $('#sheet-title').textContent = 'Keyboard shortcuts';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform || '');
+    const C = mac ? 'Cmd' : 'Ctrl';
+    const groups = [
+      ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['L', 'Places: the library'], ['E', 'Eraser']]],
+      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], ['Alt + drag', 'Move a copy'], ['N', 'Snapping on or off'], [`${C} + drag`, 'Move without snapping'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
+      ['Sound', [['S', 'Listen from the golden point: Heard now']]],
+      ['View', [['+ and -', 'Zoom'], ['F', 'The whole map'], ['?', 'This page']]],
+    ];
+    groups.forEach(([h, rows]) => {
+      body.append(el('h3', 'kb-h', h));
+      const t = el('div', 'kb');
+      rows.forEach(([k, what]) => { t.append(el('kbd', '', k), el('span', '', what)); });
+      body.append(t);
+    });
+    if (!$('#sheet').open) $('#sheet').showModal();
+  }
   /** A copy of an element, a little aside, with the same sounds. */
   function duplicateElement(e) {
     V.snapshot();
@@ -959,11 +1017,24 @@
   const posOf = (m) => (m < REACH_MIN * 0.75 ? 0 : Math.max(1, Math.min(100, Math.round(1 + (99 * Math.log(m / REACH_MIN)) / Math.log(REACH_MAX / REACH_MIN)))));
   const fmtReach = (m) => (m <= 0 ? 'its edge' : `${m < 1 ? m.toFixed(1) : m < 3 ? (Math.round(m * 4) / 4).toString() : Math.round(m)}× its size`);
   function reachSlider(e) {
-    return slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
+    const row = slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
       e.radius = Math.round(reachOf(v) * elSize(e));
       if (A.isOpen()) A.hear();
       V.redraw();
     });
+    row.classList.add('reach-row');
+    row.reachOf = e;
+    return row;
+  }
+  /** The reach handle on the map: the slider of the panel and what is heard follow it. */
+  function reachDragged(e) {
+    document.querySelectorAll('.reach-row').forEach((row) => {
+      if (row.reachOf !== e) return;
+      const i = row.querySelector('input'), b = row.querySelector('b');
+      i.value = posOf(e.radius / elSize(e)); paintRange(i);
+      b.textContent = fmtReach(e.radius / elSize(e));
+    });
+    if (A.isOpen()) A.hear();
   }
   function section(title, extra) {
     const s = el('section', 'pn');
@@ -2104,6 +2175,15 @@
       bar.append(label('Size'), placeSizeSeg(), el('small', 'op-h', currentStamp ? `${stampLabel(currentStamp)}: tap the map to lay it` : 'Pick a place in the library'));
     } else if (t === 'eraser') {
       bar.append(el('small', 'op-h', 'Tap a place, or a wall, to erase it. Undo brings it back.'));
+    } else if (t === 'select') {
+      const seg = el('div', 'seg small'); seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Snapping');
+      [[true, 'On'], [false, 'Off']].forEach(([v, s]) => {
+        const b = el('button', '', s); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(V.snap() === v));
+        b.title = v ? 'A place moved snaps to the edges and middles of the others (N)' : 'Places move freely (N)';
+        b.addEventListener('click', () => { V.snap(v); renderOpts('select'); });
+        seg.append(b);
+      });
+      bar.append(label('Snap'), seg, el('small', 'op-h', 'Alt: move a copy. Ctrl or Cmd: no snapping, for once'));
     } else { bar.hidden = true; return; }
     bar.hidden = false;
   }
@@ -3483,6 +3563,8 @@
     $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
     document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => { b.innerHTML = TOOL_ICON[b.dataset.tool]; });
     $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
+    $('#mw-tools [data-act="redo"]').innerHTML = ICON.redo;
+    $('#mw-tools [data-act="keys"]').innerHTML = ICON.keys;
     $('#mw-tools').addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -3500,7 +3582,9 @@
       }
       $('#mw-stamps').hidden = true;
       if (b.dataset.tool) V.setTool(b.dataset.tool);
-      else if (b.dataset.act === 'undo') { if (!V.undo()) toast('Nothing to undo.', 1400); }
+      else if (b.dataset.act === 'undo') undoRedo(true);
+      else if (b.dataset.act === 'redo') undoRedo(false);
+      else if (b.dataset.act === 'keys') shortcuts();
       else if (b.dataset.act === 'fit') V.fit();
 
     });
@@ -3587,6 +3671,9 @@
     $('#mw-title-in').addEventListener('input', (ev) => { if (!rec) return; rec.story.title = ev.target.value.slice(0, 120); $('#mw-title').textContent = rec.story.title || 'World'; document.title = `${rec.story.title || 'World'} | Troubadour Map`; save(); });
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
+    V.onHistory = paintHistory;
+    V.onReach = reachDragged;
+    V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (listening) prepare(worldFiles(rec), false).then(() => { if (listening && A.isOpen()) A.sync(); }); } };
     V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
@@ -3629,7 +3716,13 @@
     // Keys, while drawing.
     document.addEventListener('keydown', (e) => {
       if (screen !== 'world' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('dialog[open]')) return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (mode === 'edit') V.undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'z') { e.preventDefault(); undoRedo(!e.shiftKey); return; }
+        if (k === 'y') { e.preventDefault(); undoRedo(false); return; }
+        if ('cxvd'.includes(k) && k.length === 1 && mode === 'edit' && !(window.getSelection && String(window.getSelection()))) { if (clipboard(k)) e.preventDefault(); return; }
+      }
+      if (e.key === '?' && mode === 'edit') { shortcuts(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === '+' || e.key === '=') { V.zoomBy(1.25); return; }
       if (e.key === '-') { V.zoomBy(1 / 1.25); return; }
@@ -3639,6 +3732,7 @@
         if (map[k]) { V.setTool(map[k]); return; }
         if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
         if (k === 's') { listen(!listening); return; }
+        if (k === 'n') { V.snap(!V.snap()); toast(V.snap() ? 'Snapping on.' : 'Snapping off.', 1200); if (V.tool() === 'select') renderOpts('select'); return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
       }

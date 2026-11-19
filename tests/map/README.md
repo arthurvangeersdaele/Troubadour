@@ -23,3 +23,11 @@ node tests/map/listen.mjs [path/to/world.troubadour-map]
 ```
 
 Runs `docs/map-preview` when it exists (`MAP_APP=map` for the live app), on the discovery world by default. Checks that the editor opens silent, that Listen (the headphones, or S) opens Heard now, that the panel lists what the golden point hears as it moves, the loudest on top, that the meter reads the mix, that a slider sets a card's volume, that listening follows a change of map, and that the table shows neither. Uses the Playwright of `tests/ballade`. Run by the Map editor workflow.
+
+## The codes of an editor (M4)
+
+```
+node tests/map/editor.mjs [path/to/world.troubadour-map]
+```
+
+Undo and redo for every change (drawing, sounds, their settings), a step per change once things settle, 200 per map; what the app learns of a sound by itself (its length) is no step. The clipboard: copy, cut, paste at the pointer (on any map of the world), duplicate, Alt-drag. Snapping to the edges and middles of the other places, with a gold guide, and Ctrl held to move freely. The reach handle. The page of keys (?). 50 undos and 50 redos give the same map.

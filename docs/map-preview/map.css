@@ -909,3 +909,12 @@ html:not(.mode-app) .splash { display: none; }
 .hn-row.wait { opacity: .6; }
 .hn-tip, .hn-far { margin: 0; font-size: 12px; color: var(--muted); }
 @media (max-width: 560px) { .mp-heard { max-height: 46%; } }
+
+/* ---------- Redo, and the page of keys ---------- */
+.mp-tools button:disabled { opacity: .35; cursor: default; }
+.kb-h { margin: 14px 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kb-h:first-child { margin-top: 0; }
+.kb { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+.kb kbd { justify-self: start; font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card); color: var(--text); white-space: nowrap; }
+.kb span { font-size: 14px; }
+@media (hover: none) and (pointer: coarse) { .mp-tools [data-act="keys"] { display: none; } }
