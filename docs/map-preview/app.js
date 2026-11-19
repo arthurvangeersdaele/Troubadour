@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261119.3';
+  const VERSION = '261119.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2802,10 +2802,11 @@
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
   let musQueueView = false;
-  /* ================= Arriving on a place with music =================
-   * The party stops on a place whose music is not the one heard: a small card over the map names it. With the
-   * setting Music starts on arrival, it plays in a few seconds (Play now, or Skip to keep the music heard); without,
-   * the card asks (Play, or Skip). Several musics: the first plays, the others join the queue. */
+  /* ================= Arriving on a place with music, and leaving it =================
+   * The party stops on a place with another music, or leaves the place whose music is heard: a small card says what
+   * comes (the place's music; the map's music, or the place's music fading out). With the setting Music follows the
+   * party, it happens when the ring closes (tap to do it now, or Skip to keep the music heard); without, the card
+   * asks (Play or Skip). Several musics: the first plays, the others join the queue. */
   const ARRIVE_S = 5;
   let arrive = null;
   function closeArrive() {
@@ -2820,9 +2821,10 @@
     const all = worldMusic();
     // The world's musics (the voices that play them), in the order of the place.
     const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
-    if (!cards.length) return false;
+    const leaving = !!info.leaving, fading = leaving && !cards.length;
+    if (!cards.length && !fading) return false;
     const cur = A.currentMusic();
-    if (cur && cards.some((c) => c.file === cur.file)) return false; // already heard
+    if (!leaving && cur && cards.some((c) => c.file === cur.file)) return false; // already heard
     const auto = settings.musicAuto !== false;
     const box = $('#mw-arrive');
     box.textContent = '';
@@ -2833,12 +2835,12 @@
     const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
     play.style.setProperty('--ar-s', `${ARRIVE_S}s`);
     play.style.setProperty('--ar-c', C.toFixed(1));
-    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>`;
-    play.setAttribute('aria-label', `Play ${cards[0].name} now`);
-    play.title = auto ? 'Play it now' : 'Play it';
+    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic${fading ? ' stop' : ''}">${fading ? ICON.stop : ICON.play}</span>`;
+    play.setAttribute('aria-label', fading ? `Fade ${info.fading.name} out now` : `Play ${cards[0].name} now`);
+    play.title = fading ? (auto ? 'Fade it out now' : 'Fade it out') : (auto ? 'Play it now' : 'Play it');
     const txt = el('div', 'ar-txt');
-    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${elName(info.el)}</span>`;
-    const names = el('b', 'ar-names', cards.map((c) => c.name).join(', '));
+    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${leaving ? `Leaving ${elName(info.el)}` : elName(info.el)}</span>`;
+    const names = el('b', 'ar-names', fading ? info.fading.name : cards.map((c) => c.name).join(', '));
     const ask = el('span', 'ar-clock');
     txt.append(where, names, ask);
     const skip = el('button', 'ar-skip'); skip.type = 'button';
@@ -2859,7 +2861,9 @@
     box.append(row, skip);
     const paint = () => {
       if (!arrive) return;
-      ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Move to these musics?' : 'Move to this music?');
+      if (fading) ask.textContent = auto ? `Fades out in ${arrive.left} s` : 'Fade this music out?';
+      else if (leaving) ask.textContent = auto ? `The map's music, in ${arrive.left} s` : 'Back to the music of the map?';
+      else ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Move to these musics?' : 'Move to this music?');
     };
     paint();
     if (auto) {

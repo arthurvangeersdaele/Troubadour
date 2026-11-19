@@ -139,6 +139,24 @@ try {
       await page.waitForTimeout(5800);
       const after = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
       ok(after && after !== before && await page.isHidden('#mw-arrive'), 'nothing touched: it plays after 5 s');
+      // Leaving the place: the same card, the other way (the map's music comes back, or the place's music fades out).
+      await page.evaluate(() => window.MapAudio.hear([1, 1], true));
+      await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 4000 }).catch(() => {});
+      const lv = (await page.textContent('#mw-arrive')) || '';
+      ok(/Leaving/.test(lv) && /(Fades out|map's music), ?i?n? ?[1-5]? ?s?|in [1-5] s/.test(lv), `leaving the place: the card says what comes (${lv.replace(/\s+/g, ' ').trim().slice(0, 80)})`);
+      await page.waitForTimeout(5800 + 4500);
+      const gone = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
+      ok(gone !== after, `nothing touched: the place's music gives way (${gone || 'silence'})`);
+      // Musics are never heard by distance: they belong to the world.
+      const dist = await page.evaluate(async () => {
+        const A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms)), p = window.MapView.__place();
+        const out = [];
+        for (const q of [[1, 1], [p.width - 1, p.height - 1], [p.width / 2, p.height / 2]]) { A.hear(q, false); await wait(300); out.push(...A.voices().filter((v) => v.world).map((v) => v.heard)); }
+        A.hear([1, 1], true);
+        return out;
+      });
+      ok(dist.length > 0 && dist.every((h) => h === 1), `musics are heard in full wherever the party is (${dist.length} readings)`);
+      await page.waitForSelector('#mw-arrive', { state: 'hidden', timeout: 8000 }).catch(() => {});
       // Not automatic: the card asks.
       await page.evaluate(() => { window.MapUI.settings.musicAuto = false; const m = window.MapAudio.currentMusic(); if (m) window.MapAudio.stop(m); });
       await page.waitForTimeout(800);

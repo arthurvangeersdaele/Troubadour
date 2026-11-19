@@ -592,7 +592,7 @@
     voices.forEach((v) => { if (!v.world) play(v, v.card.zone === 'ambience' ? startFade() : 0.03); });
     // A music laid on the map starts as the party arrives (crossfading the one playing), unless it already plays:
     // the one of the place the party stands in, else the one of the whole map.
-    zoneKey = undefined;
+    zoneKey = undefined; lastZoneEl = null;
     const theme = zoneMusic() || p.general.find(isMusic) || null;
     zoneKey = theme ? theme.file : 'map'; moving = false;
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
@@ -606,38 +606,53 @@
     for (let i = place.elements.length - 1; i >= 0; i--) {
       const e = place.elements[i];
       const m = e.cards.find(isMusic);
-      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) { zoneEl = e; return m; }
+      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) { zoneEl = e; lastZoneEl = e; return m; }
     }
     zoneEl = null;
     return null;
   }
-  let zoneEl = null;
+  let zoneEl = null, lastZoneEl = null; // the place stopped on, and the last place with music it was on
   /** The music of the world with this file, started (the place's own card, or the whole map's, reached by its file). */
   function startZone(file) {
     const tv = [...voices.values()].find((o) => o.world && o.card.file === file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
   }
-  /** Called as the party moves: stopping in a place with a music crossfades to it; stopping out of it brings back the
-   *  music of the whole map. Only where the party stops counts: a place it only walks through leaves the music as it
-   *  is. Only a change of zone switches the music, so a music chosen by hand plays on. */
+  /** Called as the party moves. The setting Music follows the party (on by default) decides both ways: stopping on
+   *  a place with its own music, it plays; leaving that place, the map's music comes back, or, the map having none,
+   *  the place's music fades out. The app shows a card first (it counts down, or asks when the setting is off) and
+   *  calls start when it is to happen. Only where the party stops counts, and only a change of zone does anything,
+   *  so a music chosen by hand plays on. Musics are never heard by distance: they belong to the world. */
   function followZone() {
     if (!place || zoneKey === undefined || moving) return;
     const z = zoneMusic();
     const key = z ? z.file : 'map';
     if (key === zoneKey) return;
     zoneKey = key;
-    // Arriving on a place with music: the app shows it first (it plays in a few seconds, or the app asks), and
-    // calls start when it is to play.
-    if (z && api.onPlace) {
-      const el = zoneEl, cards = el.cards.filter(isMusic);
-      if (api.onPlace({ el, cards, start: () => { if (zoneKey === key) startZone(z.file); } })) return;
+    if (z) {
+      if (api.onPlace) {
+        const el = zoneEl, cards = el.cards.filter(isMusic);
+        if (api.onPlace({ el, cards, start: () => { if (zoneKey === key) startZone(z.file); } })) return;
+      }
+      if (settings.musicAuto === false) return;
+      startZone(z.file);
+      return;
     }
-    if (!z && api.onPlace) api.onPlace(null);
-    // Music starts by itself on arrival (setting, on by default); off, the music heard plays on.
+    // Leaving a place with music: only its own music, still heard, is changed.
+    const left = lastZoneEl, cur = currentMusic();
+    const target = place.general.find(isMusic) || null;
+    if (!cur || !left || !left.cards.some((c) => isMusic(c) && c.file === cur.file) || (target && target.file === cur.file)) { if (api.onPlace) api.onPlace(null); return; }
+    const act = () => { if (zoneKey !== key) return; if (target) startZone(target.file); else fadeMusic(); };
+    if (api.onPlace && api.onPlace({ leaving: true, el: left, cards: target ? [target] : [], fading: cur, start: act })) return;
     if (settings.musicAuto === false) return;
-    const target = z || place.general.find(isMusic);
-    if (!target) return;
-    startZone(target.file);
+    act();
+  }
+  /** The music heard fades out (the setting's fade), keeping where it was for when it comes back. */
+  function fadeMusic() {
+    const c = currentMusic(), v = c && voices.get(c);
+    if (!v) return;
+    v.keepOnReset = true;
+    end(v, settings.fade);
+    changed();
   }
 
   /** Everything stops: the world is left, or drawn. */

@@ -932,3 +932,4 @@ html:not(.mode-app) .splash { display: none; }
 .mp-arrive .ar-skip { width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .mp-arrive .ar-skip:active { background: var(--line); }
 @media (prefers-reduced-motion: reduce) { #mw-arrive.mp-arrive { animation: none; } }
+.mp-arrive .ar-go .ic.stop svg { transform: none; width: 20px; height: 20px; }
