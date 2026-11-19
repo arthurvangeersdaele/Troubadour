@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261119.4';
+  const VERSION = '261119.5';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -488,7 +488,27 @@
    * Short sounds are decoded (they strike at once, their loops have no seam); long ones (the musics, the long
    * ambiances) are streamed from the device, since decoding them all would take more memory than a phone has. */
   const streams = new Map(); // file => { stream: true, url, duration }
-  const sounds = { get: (f) => streams.get(f) || buffers.get(f) };
+  const sounds = { get: (f) => warm.get(f) || streams.get(f) || buffers.get(f) };
+  /* A music up to two and a half minutes is also decoded when it is about to play (a place's card counting down) or
+   * as it starts: from then on it starts at once, loops on a sample (no crossing of two rounds) and needs no element
+   * a phone might refuse to start. Two at most, the oldest one not heard let go: a phone's memory stays low. The
+   * decoding runs off the page's thread; the sound's measures (its ends, its loudness) come from its stream. */
+  const WARM_MAX = 2, WARM_LEN = 150;
+  const warm = new Map(), warming = new Set();
+  const musicActive = (f) => A.isOpen() && A.voices().some((v) => v.card.file === f && (v.active || v.state === 'paused'));
+  async function warmMusic(file) {
+    if (warm.has(file)) { const b = warm.get(file); warm.delete(file); warm.set(file, b); return; }
+    const s = streams.get(file);
+    if (!s || !(s.duration > 0) || s.duration > WARM_LEN || warming.has(file)) return;
+    warming.add(file);
+    try {
+      const buf = await decode(await (await fetch(s.url)).blob());
+      if (streams.get(file) !== s) return; // the world was left meanwhile
+      if (s.b > 0) buf._ballade = { a: s.a, b: s.b, la: s.la, lb: s.lb, lufs: s.lufs, loops: new Map() };
+      warm.set(file, buf);
+      for (const f of [...warm.keys()]) { if (warm.size <= WARM_MAX) break; if (f !== file && !musicActive(f)) warm.delete(f); }
+    } catch (e) { /* stays streamed */ } finally { warming.delete(file); }
+  }
   const STREAM_OVER = 300 * 1024;
   function probe(url, ms) {
     return new Promise((ok) => {
@@ -505,7 +525,7 @@
   /** A long sound is listened to once, whole, to learn where it really starts and ends (the encoder's silence), where
    *  it loops and how loud it is. Kept on the device with the sound; one at a time, so the memory stays low. */
   function measure(blob) { return window.TroubadourEngine.measure(audio().ctx, blob); }
-  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
+  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); warm.clear(); }
   async function prepare(fileList, label) {
     const r = rec;
     const music = new Set((r.world.music || []).map((c) => c.file));
@@ -2812,7 +2832,10 @@
   function closeArrive() {
     if (!arrive) return;
     clearInterval(arrive.timer); clearTimeout(arrive.done);
+    const was = arrive;
     arrive = null;
+    // Skipped: what was made ready is let go (played: it is the music heard now, prime has nothing to free).
+    setTimeout(() => (was.primed || []).forEach((c) => A.unprime(c)), 0);
     const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
   }
   function showArrive(info) {
@@ -2866,6 +2889,10 @@
       else ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Move to these musics?' : 'Move to this music?');
     };
     paint();
+    // The music to come is made ready now: it starts at once when asked.
+    (fading ? [] : cards.slice(0, 1)).forEach((c) => { warmMusic(c.file); A.prime(c); });
+    if (leaving && cards[0]) warmMusic(cards[0].file);
+    arrive.primed = fading ? [] : cards.slice(0, 1);
     if (auto) {
       arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left > 0) paint(); }, 1000);
       // The ring is drawn by the browser (one smooth fill); the music starts when it closes.
@@ -3704,6 +3731,7 @@
     };
     // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
     A.onChange = () => { V.touch(); };
+    A.onMusic = (c) => { warmMusic(c.file); };
     A.onPlace = (info) => { if (!info) { closeArrive(); return false; } return showArrive(info); };
     // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
     if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');

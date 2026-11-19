@@ -22,7 +22,7 @@
 
   let place = null, world = null, buffers = new Map(), point = [0, 0];
   const voices = new Map(); // card => voice
-  const api = { onChange: null, onPlace: null };
+  const api = { onChange: null, onPlace: null, onMusic: null };
   // The master pause, as in Troubadour: the voices it paused, and the random events it held between two plays.
   let pausedByAll = [], heldRandom = [];
 
@@ -157,6 +157,8 @@
     if (!buf) return false;
     v.nm.gain.setTargetAtTime(normOf(v), now(), 0.05);
     if (buf.stream) return startStream(v, buf, from);
+    // Decoded meanwhile (a music made ready): a round made ready as a stream is not needed.
+    if (v.primed) { undeck(v.primed.m); v.primed = null; }
     const { ctx } = audio();
     const info = E.analyse(buf);
     const src = ctx.createBufferSource();
@@ -187,27 +189,60 @@
     const p = m.play();
     if (p && p.catch) p.then(() => waitingTouch.delete(m)).catch((e) => { if (e && e.name === 'NotAllowedError') waitingTouch.add(m); });
   }
+  /* An iPhone lets a media element play by itself only once a touch has played it. A music started by the
+   * arrival card's countdown, or by the end of another, is started outside any touch: a fresh element would wait,
+   * silent, for the next tap. So a few elements are played (silence) at every touch while they are few, and
+   * kept: every stream takes one of them, and gives it back when it stops. Each keeps its own way into the graph
+   * (an element can have only one). */
+  const POOL_MAX = 8;
+  const pool = [];
+  let silentUrl = null;
+  function silence() {
+    if (silentUrl) return silentUrl;
+    // 50 ms of silence, 8 kHz mono, 16 bit WAV.
+    const n = 400, b = new ArrayBuffer(44 + n * 2), d = new DataView(b);
+    const w = (o, t) => { for (let i = 0; i < t.length; i++) d.setUint8(o + i, t.charCodeAt(i)); };
+    w(0, 'RIFF'); d.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+    d.setUint32(24, 8000, true); d.setUint32(28, 16000, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); w(36, 'data'); d.setUint32(40, n * 2, true);
+    silentUrl = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+    return silentUrl;
+  }
+  function bless() {
+    const fresh = POOL_MAX - pool.length;
+    for (let i = 0; i < fresh; i++) {
+      const m = new Audio();
+      m.src = silence();
+      const p = m.play();
+      const done = () => { try { m.pause(); } catch (e) { /* gone */ } m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ } };
+      if (p && p.then) p.then(done, done); else done();
+      m.blessed = true;
+      pool.push(m);
+    }
+  }
   ['pointerdown', 'touchend', 'keydown'].forEach((k) => document.addEventListener(k, () => {
+    if (pool.length < 3) bless();
     if (!waitingTouch.size) return;
     [...waitingTouch].forEach((m) => { waitingTouch.delete(m); if (m.dataset.live) tryPlay(m); });
   }, { capture: true, passive: true }));
   /** A media element on the sound, ready at `at` seconds into the file. */
   function deck(s, at, rest) {
-    const m = new Audio();
+    const m = pool.pop() || new Audio();
     m.preload = rest ? 'none' : 'auto';
     m.dataset.live = '1';
     m.src = s.url;
     if (at > 0.02) { try { m.currentTime = at; } catch (e) { /* set once it is known */ } }
-    m.addEventListener('loadedmetadata', () => {
+    m.onloadedmetadata = () => {
       if (!(s.b > 0) && Number.isFinite(m.duration) && m.duration > 0) s.duration = m.duration;
       if (at > 0.02 && Math.abs(m.currentTime - at) > 0.3) { try { m.currentTime = at; } catch (e) { /* stays */ } }
-    });
+    };
     return m;
   }
   function undeck(m) {
     delete m.dataset.live; waitingTouch.delete(m);
     try { m.pause(); } catch (e) { /* gone */ }
     m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ }
+    // A blessed element goes back to the pool, its listeners with it gone (a fresh token guards them anyway).
+    if (m.blessed && pool.length < POOL_MAX && !pool.includes(m)) { m.onended = null; m.onerror = null; m.onloadedmetadata = null; pool.push(m); }
   }
   function startStream(v, s, from) {
     const { ctx } = audio();
@@ -224,17 +259,17 @@
     m.loop = false;
     let node = null;
     const xf = ctx.createGain(); xf.gain.value = 1;
-    try { node = ctx.createMediaElementSource(m); node.connect(xf); } catch (e) { node = null; m.volume = curve(v.card.volume); }
+    try { node = m.node || (m.node = ctx.createMediaElementSource(m)); node.connect(xf); } catch (e) { node = null; m.volume = curve(v.card.volume); }
     xf.connect(v.vg);
     const src = {
       media: m, info, buffer: s,
       get loop() { return m.loop; }, set loop(x) { /* a streamed loop turns by crossing two rounds (blendTick) */ },
-      stop() { undeck(m); if (node) { try { node.disconnect(); } catch (e) { /* gone */ } } },
+      stop() { if (node) { try { node.disconnect(); } catch (e) { /* gone */ } } undeck(m); },
     };
     v.src = src; v.xf = xf; v.startedAt = now() - offset; v.quiet = 0;
     const token = ++v.token;
-    m.addEventListener('ended', () => { if (token === v.token) ended(v); });
-    m.addEventListener('error', () => { if (token === v.token && m.dataset.live) reset(v); });
+    m.onended = () => { if (token === v.token) ended(v); };
+    m.onerror = () => { if (token === v.token && m.dataset.live) reset(v); };
     if (!rest) tryPlay(m);
     return true;
   }
@@ -309,12 +344,53 @@
   }
 
   /* ---------- A voice, as Troubadour's Voice ---------- */
-  function play(v, fadeIn = 0.03) {
-    if (!buffers.get(v.card.file)) return;
+  /** The voice rises from silence once its sound really moves: a streamed sound (a media element) may take a moment
+   *  to start, and a fade begun before it would be half spent in silence (a slow, late start). The rise follows a
+   *  quarter sine, quick at first, as Troubadour's fade-in; `onRise` runs as it begins (the music it replaces fades
+   *  out then, not earlier, so the crossing has no hole). */
+  function rise(v, fadeIn, onRise) {
+    const g = v.env.gain, T = Math.max(fadeIn, 0.012);
+    const token = v.token;
+    let done = false;
+    const go = () => {
+      if (done || v.token !== token || v.state !== 'playing') return;
+      done = true;
+      const t = now();
+      g.cancelScheduledValues(t); g.setValueAtTime(0, t);
+      const n = T < 0.1 ? 1 : 12;
+      for (let k = 1; k <= n; k++) { const q = k / n; g.linearRampToValueAtTime(n === 1 ? 1 : Math.sin((q * Math.PI) / 2), t + T * q); }
+      if (onRise) onRise();
+    };
+    const m = v.src && v.src.media;
+    if (!m) { go(); return; }
+    const from = m.currentTime, began = Date.now();
+    const watch = () => {
+      if (done || v.token !== token || v.state !== 'playing') { if (!done && onRise && v.token !== token) onRise(); return; }
+      if ((!m.paused && m.currentTime > from + 0.01) || Date.now() - began > 1500) go(); else setTimeout(watch, 16);
+    };
+    watch();
+  }
+  /** Gets a streamed sound ready to start (loaded, at its place) before it is asked for: the arrival card gives it
+   *  seconds, so the music starts at once when its ring closes. */
+  function prime(card) {
+    const v = voices.get(card);
+    if (!v || v.active || v.state === 'paused' || v.primed || !isStream(v)) return;
+    const s = buffers.get(card.file), info = infoOf(card.file);
+    const off = v.keep && card.zone === 'music' && v.keep.offset < duration(v) - 2 ? v.keep.offset : 0;
+    const d = Math.max(0, info.b - info.a);
+    const at = info.a + (d ? Math.max(0, Math.min(d - 0.05, off)) : off);
+    v.primed = { m: deck(s, at, false), at };
+  }
+  function unprime(card) {
+    const v = voices.get(card);
+    if (v && !v.active && v.primed) { undeck(v.primed.m); v.primed = null; }
+  }
+  function play(v, fadeIn = 0.03, onRise) {
+    if (!buffers.get(v.card.file)) { if (onRise) onRise(); return; }
     clearTimeout(v.timer);
     if (v.card.play === 'random') { v.rnd = true; v.next = 0; v.rndAt = Date.now(); }
     const g = v.env.gain;
-    if (v.state === 'ending') { ramp(g, 1, 0.15); v.state = 'playing'; changed(); return; }
+    if (v.state === 'ending') { clearTimeout(v.timer); v.keepOnReset = false; ramp(g, 1, 0.15); v.state = 'playing'; changed(); if (onRise) onRise(); return; }
     if (v.state === 'paused' && v.fadingOut) {
       // Resumed while its pause still fades out: rise back from the level heard now, no jump.
       const t = now(), from = pauseLeft(v);
@@ -322,6 +398,7 @@
       g.cancelScheduledValues(t); g.setValueAtTime(from, t);
       g.linearRampToValueAtTime(1, t + Math.max(fadeIn * (1 - from), 0.012));
       v.state = 'playing'; changed();
+      if (onRise) onRise();
       return;
     }
     if (v.state === 'idle') {
@@ -330,11 +407,15 @@
     }
     const t = now();
     g.cancelScheduledValues(t); g.setValueAtTime(0, t);
-    g.linearRampToValueAtTime(1, t + Math.max(fadeIn, 0.012));
+    // A round made ready beforehand (prime) is kept for this start.
+    const ready = v.primed; v.primed = null;
     stopSource(v);
-    if (!startSource(v, v.offset)) return;
+    v.primed = ready;
+    if (!startSource(v, v.offset)) { if (onRise) onRise(); return; }
     v.state = 'playing';
     changed();
+    rise(v, fadeIn, onRise);
+    if (v.world && api.onMusic) api.onMusic(v.card);
   }
   /** Pause with a fade out of ms: the card shows paused at once, the sound stops once the fade is over. */
   function pause(v, ms = 40) {
@@ -432,8 +513,9 @@
     if (v.card.zone === 'music') {
       const others = musicsOf(v).filter((o) => o !== v && (o.active || o.state === 'paused'));
       const crossing = others.some((o) => o.active);
-      others.forEach((o) => { o.keepOnReset = true; end(o, settings.crossfade ? settings.fade : 150); });
-      play(v, crossing && settings.crossfade && v.state !== 'paused' ? settings.fade / 1000 : startFade());
+      // The music heard fades out as the new one rises, not before it is heard (no hole between them).
+      const letGo = () => others.forEach((o) => { if (o.active || o.state === 'paused') { o.keepOnReset = true; end(o, settings.crossfade ? settings.fade : 150); } });
+      play(v, crossing && settings.crossfade && v.state !== 'paused' ? settings.fade / 1000 : startFade(), letGo);
     } else {
       // A tap on Play rises over the fade-in (music, ambiances); events strike at once. Replays never come here.
       play(v, v.card.zone === 'ambience' ? startFade() : 0.03);
@@ -758,7 +840,7 @@
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
-    isOpen: () => !!place, point: () => point, position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
+    isOpen: () => !!place, point: () => point, prime: (c) => prime(c), unprime: (c) => unprime(c), position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
   });
   global.MapAudio = api;
 })(window);

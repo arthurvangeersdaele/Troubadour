@@ -21,3 +21,5 @@ jobs:
         run: node tests/map/listen.mjs
       - name: The codes of an editor
         run: node tests/map/editor.mjs
+      - name: The music follows the party (a walk of 40 stops)
+        run: node tests/map/music-walk.mjs 40
