@@ -206,6 +206,28 @@ try {
   if (s6) ok(s6.bPlays && s6.back >= s6.at - 0.2, `a music let go for another plays on from where it was when it comes back (${s6.at.toFixed(1)} s, back at ${s6.back.toFixed(1)} s)`);
   await page.evaluate(() => { window.MapUI.settings.fade = 4000; });
 
+  // The master pause holds every random event still, also one sounding when it is pressed (its play used to
+  // end during the 3 s fade and draw a next one).
+  const held = await page.evaluate(async () => {
+    const A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rs = A.voices().filter((v) => v.card.play === 'random');
+    if (!rs.length) return null;
+    const r = rs.reduce((a, b) => ((a.card.duration || 9) < (b.card.duration || 9) ? a : b));
+    if (r.state !== 'playing') { if (r.waiting) A.toggle(r.card); A.toggle(r.card); }
+    for (let i = 0; i < 40 && r.state !== 'playing'; i++) await wait(50);
+    const was = r.state;
+    A.pauseAll();
+    let heard = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 14000) { if (rs.some((v) => v.state === 'playing' && v.env.gain.value > 0.05 && Date.now() - t0 > 3200)) heard++; await wait(100); }
+    A.pauseAll();
+    await wait(500);
+    return { was, heard, back: rs.filter((v) => v.rnd || v.state === 'playing').length, n: rs.length };
+  });
+  if (held) {
+    ok(held.heard === 0, `master pause: no random event plays while everything is paused (${held.heard} moments heard, ${held.n} random events, one was ${held.was})`);
+    ok(held.back > 0, `master resume: the random events come back (${held.back})`);
+  }
   // A long press on the map sends the party there, the shortest way around the walls (M6).
   const way = await page.evaluate(() => {
     const V = window.MapView, p = V.__place(), M = window.TroubadourMap;

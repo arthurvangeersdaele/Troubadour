@@ -566,7 +566,7 @@
       if (!v.volMs) v.vg.gain.setTargetAtTime(curve(card.volume), now(), 0.03);
       if (v.src) v.src.loop = card.play === 'loop' && !blendOf(v);
       if (card.play !== 'random' && v.rnd) { v.rnd = false; v.next = 0; }
-      if (card.play === 'random' && v.active) v.rnd = true;
+      if (card.play === 'random' && v.active && !heldRandom.includes(v)) v.rnd = true; // held by the master pause: stays held
     });
     voices.forEach((v, card) => { if (!v.world && !live.has(card)) { drop(v); voices.delete(card); } });
     pausedByAll = pausedByAll.filter((v) => v.world || live.has(v.card));
@@ -652,13 +652,15 @@
       pausedByAll.forEach((v) => v.state === 'paused' && play(v, MASTER_FADE / 1000));
       pausedByAll = [];
       const t = Date.now();
-      heldRandom.forEach((v) => { v.rnd = true; v.next = t + randomPause(v); });
+      // Random events come back: one still sounding plays on, the others draw their next play.
+      heldRandom.forEach((v) => { const sounding = ['playing', 'paused', 'ending'].includes(v.state); v.rnd = true; v.next = sounding ? 0 : t + randomPause(v); v.rndAt = Date.now(); });
       heldRandom = [];
     } else {
       pausedByAll = [...voices.values()].filter((v) => v.state === 'playing');
       pausedByAll.forEach((v) => pause(v, MASTER_FADE));
-      // Random events waiting for their next play hold still too.
-      heldRandom = [...voices.values()].filter((v) => v.waiting);
+      // Every random event holds still: between two plays, and the one sounding now too (its play may end during
+      // the 3 s fade, and must not draw a next one while everything is paused).
+      heldRandom = [...voices.values()].filter((v) => v.rnd);
       heldRandom.forEach((v) => { v.rnd = false; v.next = 0; });
     }
     changed();

@@ -402,15 +402,22 @@ class TableSession(
             pausedByAll.forEach { if (stateOf(it) == NativeEngine.PAUSED || stateOf(it) == NativeEngine.PAUSING) play(it, fadeMs) }
             pausedByAll = emptyList()
             val now = SystemClock.uptimeMillis()
-            heldRandom.forEach { it.randomOn = true; it.nextAt = now + randomPause(it) }
+            // Random events come back: one still sounding plays on, the others draw their next play.
+            heldRandom.forEach {
+                val st = stateOf(it)
+                val sounding = st == NativeEngine.PLAYING || st == NativeEngine.PAUSING || st == NativeEngine.PAUSED || st == NativeEngine.ENDING
+                it.randomOn = true
+                it.nextAt = if (sounding) 0L else now + randomPause(it)
+            }
             heldRandom = emptyList()
         } else {
             val playing = cards.filter { stateOf(it) == NativeEngine.PLAYING }
             playing.forEach { pause(it, fadeMs) }
-            // Random events waiting for their next play hold still too.
-            val waiting = cards.filter { it.waiting }
-            waiting.forEach { it.randomOn = false; it.nextAt = 0L }
-            heldRandom = waiting
+            // Every random event holds still: between two plays, and the one sounding now too (its play may end
+            // during the 3 s fade, and must not draw a next one while everything is paused).
+            val random = cards.filter { it.randomOn }
+            random.forEach { it.randomOn = false; it.nextAt = 0L }
+            heldRandom = random
             pausedByAll = playing
         }
     }

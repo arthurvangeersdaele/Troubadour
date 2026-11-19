@@ -812,13 +812,15 @@
       pausedByAll.forEach((v) => v.state === 'paused' && v.play(MASTER_FADE / 1000));
       pausedByAll = [];
       const now = Date.now();
-      heldRandom.forEach((v) => { v.rnd = true; v.next = now + randomPause(v); v.paint(); });
+      // Random events come back: one still sounding plays on, the others draw their next play.
+      heldRandom.forEach((v) => { const sounding = v.state === 'playing' || v.state === 'paused' || v.state === 'ending'; v.rnd = true; v.next = sounding ? 0 : now + randomPause(v); v.paint(); });
       heldRandom = [];
     } else {
       pausedByAll = story.all.filter((v) => v.state === 'playing');
       pausedByAll.forEach((v) => v.pause(MASTER_FADE));
-      // Random events waiting for their next play hold still too.
-      heldRandom = story.all.filter((v) => v.waiting);
+      // Every random event holds still: between two plays, and the one sounding now too (its play may end during
+      // the 3 s fade, and must not draw a next one while everything is paused).
+      heldRandom = story.all.filter((v) => v.rnd);
       heldRandom.forEach((v) => { v.rnd = false; v.next = 0; v.paint(); });
     }
     paintMaster();
