@@ -322,6 +322,48 @@
     paintRuler();
     paintPlayhead();
     paintWaves();
+    paintOverview();
+  }
+
+  /** The overview: the whole chapter in one strip, the part on screen in a gold frame (click or drag to go there). */
+  function paintOverview() {
+    const cv = $('#tl-overview');
+    if (!cv || !T.rec) return;
+    const t = tl(), root = $('#tl-tracks');
+    const W = Math.max(100, cv.clientWidth), H = 34;
+    const dpr = Math.min(2, global.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const g = cv.getContext('2d');
+    g.scale(dpr, dpr);
+    const cs = getComputedStyle(document.documentElement);
+    const col = { music: cs.getPropertyValue('--music').trim(), ambience: cs.getPropertyValue('--amb').trim(), events: cs.getPropertyValue('--evt').trim() };
+    const total = span(), k = W / total;
+    const rows = Math.max(1, t.tracks.length), rh = (H - 4) / rows;
+    t.tracks.forEach((tr, i) => {
+      g.fillStyle = col[tr.kind] || '#888';
+      g.globalAlpha = tr.mute ? 0.25 : 0.75;
+      t.clips.filter((c) => c.track === tr.id).forEach((c) => g.fillRect(c.at * k, 2 + i * rh, Math.max(1, c.length * k), Math.max(1, rh - 1)));
+    });
+    g.globalAlpha = 1;
+    t.markers.forEach((m) => { g.fillStyle = m.type === 'cue' ? cs.getPropertyValue('--gold').trim() : cs.getPropertyValue('--muted').trim(); g.fillRect(Math.round(m.at * k), 0, m.type === 'cue' ? 2 : 1, H); });
+    if (t.choice) { g.fillStyle = cs.getPropertyValue('--silver').trim(); g.fillRect(Math.round(t.choice.at * k), 0, 2, H); }
+    // The part on screen.
+    const v0 = tOf(root.scrollLeft), v1 = tOf(root.scrollLeft + root.clientWidth - HEAD);
+    g.strokeStyle = cs.getPropertyValue('--gold').trim(); g.lineWidth = 2;
+    g.strokeRect(Math.max(1, v0 * k), 1, Math.max(4, (Math.min(total, v1) - v0) * k - 1), H - 2);
+  }
+  function overviewDown(e) {
+    const cv = e.currentTarget, root = $('#tl-tracks');
+    const go = (ev) => {
+      const r = cv.getBoundingClientRect();
+      const t = ((ev.clientX - r.left) / r.width) * span();
+      root.scrollLeft = Math.max(0, x(t) - (root.clientWidth - HEAD) / 2);
+      paintOverview();
+    };
+    go(e);
+    cv.setPointerCapture(e.pointerId);
+    cv.addEventListener('pointermove', go);
+    cv.addEventListener('pointerup', () => cv.removeEventListener('pointermove', go), { once: true });
   }
 
   function clipEl(c) {
@@ -495,6 +537,25 @@
       vol.addEventListener('change', () => edit(() => { c.volume = Math.round(Number(vol.value) * 100) / 100; }, true));
       const vr = el('div', 'tl-vol'); vr.append(vol, vb);
       box.append(field('Volume', vr));
+      // Timing helpers (P7).
+      const acts = el('div', 'tl-acts');
+      const mus = t.clips.filter((m) => m !== c && m.kind === 'music' && m.at <= c.at + 1e-6 && m.at + m.length > c.at + 0.1);
+      if (c.kind !== 'music' && c.loop !== 'once' && mus.length) {
+        const end = Math.max(...mus.map((m) => m.at + m.length));
+        const b = el('button', 'btn slim', 'Fit to the music'); b.type = 'button';
+        b.title = `Ends with the music it sits under, at ${fmt(end)}`;
+        b.addEventListener('click', () => edit(() => { c.length = r3(end - c.at); }, true));
+        acts.append(b);
+      }
+      const nextCue = t.markers.filter((m) => m.type === 'cue' && m.at > c.at + 0.1).sort((a, b) => a.at - b.at)[0];
+      const stopAt = nextCue ? nextCue.at : t.choice ? t.choice.at : null;
+      if (c.loop !== 'once' && stopAt != null && !(c.holdToCue && Math.abs(c.at + c.length - stopAt) < 1e-3)) {
+        const b = el('button', 'btn slim', nextCue ? 'Hold until the next cue' : 'Hold until the choice'); b.type = 'button';
+        b.title = `Loops until ${nextCue ? nextCue.name || 'the next cue' : 'the choice'} (${fmt(stopAt)}), and on while the table waits there`;
+        b.addEventListener('click', () => edit(() => { c.length = r3(stopAt - c.at); c.holdToCue = true; }, true));
+        acts.append(b);
+      }
+      if (acts.childNodes.length) box.append(acts);
       const del = el('button', 'btn slim danger', 'Delete this sound'); del.type = 'button';
       del.addEventListener('click', () => deleteSel());
       box.append(del);
@@ -548,7 +609,7 @@
       const found = checks(t);
       box.append(el('h4', 'tl-checkh', found.length ? `Checks: ${found.length} to look at` : 'Checks: nothing to look at'));
       found.slice(0, 12).forEach((f) => {
-        const b = el('button', 'tl-check', f.text); b.type = 'button';
+        const b = el('button', `tl-check${f.hint ? ' hint' : ''}`, f.text); b.type = 'button';
         b.addEventListener('click', () => { T.sel = f.sel; setPlayhead(f.at); renderTracks(); renderInspector(); });
         box.append(b);
       });
@@ -682,6 +743,11 @@
     t.markers.filter((m) => m.type === 'cue').forEach((m) => {
       const held = t.clips.some((c) => c.holdToCue && c.loop !== 'once' && c.at < m.at + 1e-6 && c.at + c.length >= m.at - 1e-3);
       if (!held) out.push({ text: `At ${m.name || 'the cue'} (${fmt(m.at)}) the table waits in silence: a looping sound that holds (∞) across it keeps the mood.`, sel: { type: 'marker', id: m.id }, at: m.at });
+    });
+    // Hints: where a music ends with sounds still to come, the story may want the table there (a cue).
+    t.clips.filter((c) => c.kind === 'music' && c.loop === 'once').forEach((c) => {
+      const e = c.at + c.length;
+      if (e < end - 2 && !t.markers.some((m) => m.type === 'cue' && Math.abs(m.at - e) < 2)) out.push({ text: `${c.name} ends at ${fmt(e)}: a cue there? (C at the playhead)`, sel: null, at: e, hint: true });
     });
     // Holes: stretches of 3 s or more where nothing plays (waiting at a cue aside).
     const spans = t.clips.map((c) => [c.at, c.at + c.length]).sort((a, b) => a[0] - b[0]);
@@ -1044,6 +1110,25 @@
     $('#tl-zout').addEventListener('click', () => zoom(1 / 1.5));
     $('#tl-fit').addEventListener('click', fit);
     $('#tl-tableplay').addEventListener('click', async () => { stop(); await flush(); if (T.onPlay) T.onPlay(T.rec, T.ch); });
+    $('#tl-overview').addEventListener('pointerdown', overviewDown);
+    $('#tl-tracks').addEventListener('scroll', () => { if (!T.ovRaf) T.ovRaf = requestAnimationFrame(() => { T.ovRaf = 0; paintOverview(); }); }, { passive: true });
+    // Two fingers on the tracks: pinch to zoom around them (an iPad).
+    let pinch = null;
+    $('#tl-tracks').addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 2) { pinch = null; return; }
+      const [a, b] = e.touches;
+      pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), cx: (a.clientX + b.clientX) / 2 };
+    }, { passive: true });
+    $('#tl-tracks').addEventListener('touchmove', (e) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      if (Math.abs(d / pinch.d - 1) < 0.04) return;
+      zoom(d / pinch.d, pinch.cx - $('#tl-tracks').getBoundingClientRect().left);
+      pinch.d = d;
+    }, { passive: false });
+    $('#tl-tracks').addEventListener('touchend', () => { pinch = null; }, { passive: true });
     $('#tl-tracks').addEventListener('wheel', (e) => {
       if (!(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();

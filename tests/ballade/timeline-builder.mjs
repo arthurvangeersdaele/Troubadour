@@ -150,6 +150,27 @@ try {
   ok(alt.n === na + 1 && alt.orig === ad.at && alt.sel !== big, 'Alt-drag moves a copy, the clip stays');
   await page.keyboard.press('Control+z');
   ok((await T()).clips === na, 'one undo takes the copy away');
+  // Timing helpers (P7): fit to the music, hold until the next cue; the overview.
+  const helper = await page.evaluate(() => {
+    const s = FlowTimeline.__state(), tl = s.flow.chapters[s.ch];
+    const c = tl.clips.find((x) => x.loop !== 'once' && tl.markers.some((m) => m.type === 'cue' && m.at > x.at + 0.1));
+    if (!c) return null;
+    c.holdToCue = false; c.length = Math.max(0.5, c.length / 2);
+    s.sel = { type: 'clip', id: c.id };
+    return c.id;
+  });
+  if (helper) {
+    await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowLeft'); // a redraw of the inspector, through the history
+    const btn = page.locator('#tl-inspector button', { hasText: /Hold until/ });
+    ok((await btn.count()) === 1, 'a loop that does not hold offers to hold until the next cue');
+    await btn.click();
+    const hc = await page.evaluate((id) => { const s = FlowTimeline.__state(), tl = s.flow.chapters[s.ch]; const c = tl.clips.find((x) => x.id === id); const cue = tl.markers.filter((m) => m.type === 'cue' && m.at > c.at + 0.1).sort((a, b) => a.at - b.at)[0]; return { hold: c.holdToCue, end: c.at + c.length, cue: cue.at }; }, helper);
+    ok(hc.hold && Math.abs(hc.end - hc.cue) < 1e-6, `held until its cue (ends ${hc.end}, cue ${hc.cue})`);
+    await page.keyboard.press('Control+z');
+  } else ok(true, '(no loop to hold in this chapter)');
+  const ov = await page.evaluate(() => { const c = document.getElementById('tl-overview'); return { w: c.width, h: c.height }; });
+  ok(ov.w > 100 && ov.h > 10, 'the overview of the chapter is drawn');
+
   // Checks: shown with nothing selected.
   await page.keyboard.press('Escape');
   await page.waitForTimeout(100);
