@@ -62,6 +62,7 @@
     // Left while its sounds were being found (another page asked for): nothing more to open.
     if (P.rec !== rec) return;
     const { ctx, master } = audio(true);
+    if (!P.noted && ctx.addEventListener) { P.noted = true; ctx.addEventListener('statechange', () => note(`audio ${ctx.state}`)); }
     if (!P.bus) { P.bus = ctx.createGain(); P.bus.connect(master); P.sbBus = ctx.createGain(); P.sbBus.connect(master); }
     // Heard on Troubadour's curve (v * v), like every other player: the same slider sounds the same everywhere.
     P.sbBus.gain.value = curve(settings.sbVolume);
@@ -1335,7 +1336,52 @@
   }
 
   /* ---------- Wiring (once) ---------- */
+  /* ---------- The debug overlay (261114_ballade_plan.md, 6.3): five taps on the story's title ---------- */
+  // What a troubadour can copy and send when the sound misbehaves at the table: the audio clock, what is planned
+  // and playing, the sounds in memory, the last interruption.
+  const DBG = { taps: [], box: null, timer: 0, events: [] };
+  function note(what) { DBG.events.push(`${new Date().toLocaleTimeString()} ${what}`); if (DBG.events.length > 30) DBG.events.shift(); }
+  function debugText() {
+    const { ctx } = audio();
+    const t = ctx.currentTime, st = P.rec ? state() : null;
+    let mem = 0; P.buffers.forEach((b) => { mem += b.length * b.numberOfChannels * 4; });
+    const live = P.voices.filter((v) => !v.done && v.t0 <= t && (v.cut == null || v.cut > t));
+    const ahead = P.voices.filter((v) => v.t0 > t);
+    return [
+      `Ballade ${P.rec ? P.rec.story.title : ''}, chapter ${P.ch + 1}`,
+      `audio clock ${t.toFixed(2)} s, ${ctx.state}, ${ctx.sampleRate} Hz, latency ${((ctx.baseLatency || 0) * 1000).toFixed(0)} ms`,
+      `state ${st ? st.mode : 'closed'}${P.paused ? ', paused' : ''}${P.gate ? `, next gate at ${(P.gate.t - t).toFixed(1)} s` : ''}`,
+      `sounds playing ${live.length}, planned ${ahead.length}, steps started ${P.starts.filter((x) => x != null).length} of ${P.steps.length}`,
+      `in memory ${P.buffers.size} sounds, about ${Math.round(mem / 1048576)} MB of samples; still to load ${P.loading}`,
+      `device ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 120)}`,
+      ...DBG.events.slice(-8),
+    ].join('\n');
+  }
+  function toggleDebug() {
+    if (DBG.box) { DBG.box.remove(); DBG.box = null; clearInterval(DBG.timer); return; }
+    const box = el('div', 'fl-debug');
+    const pre = el('pre');
+    const row = el('div', 'fl-debug-acts');
+    const copy = el('button', 'btn slim', 'Copy'); copy.type = 'button';
+    copy.addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText(debugText()).then(() => toast('Copied: paste it in a message.', 1800), () => toast('Could not copy.')); });
+    const shut = el('button', 'btn slim', 'Close'); shut.type = 'button';
+    shut.addEventListener('click', toggleDebug);
+    row.append(copy, shut);
+    box.append(pre, row);
+    document.body.append(box);
+    DBG.box = box;
+    const paint = () => { pre.textContent = debugText(); };
+    paint();
+    DBG.timer = setInterval(paint, 500);
+  }
+
   function wire() {
+    $('#fl-story').addEventListener('click', () => {
+      const t = Date.now();
+      DBG.taps = DBG.taps.filter((x) => t - x < 2000).concat(t);
+      if (DBG.taps.length >= 5) { DBG.taps = []; toggleDebug(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (P.rec) note(document.hidden ? 'hidden' : 'shown'); });
     $('#fl-go').addEventListener('click', onGo);
     $('#fl-pause').addEventListener('click', togglePause);
     $('#fl-stop').addEventListener('click', () => stopAll());
@@ -1378,5 +1424,5 @@
     $('#fl-back').addEventListener('click', leave);
   }
 
-  global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), isOpen: () => !!P.rec, chapter: () => P.ch, togglePause, isPaused: () => P.paused };
+  global.FlowPlayer = { open, close, wire, relayout: () => { if (P.rec && P.dom) renderCascade(); }, state: () => (P.rec ? state() : null), debug: () => debugText(), toggleDebug, isOpen: () => !!P.rec, chapter: () => P.ch, togglePause, isPaused: () => P.paused };
 })(window);

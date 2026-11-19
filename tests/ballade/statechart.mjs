@@ -117,6 +117,15 @@ for (const clock of [4, 30]) {
   }
 }
 
+// The debug overlay (6.3): five taps on the story's title open it, with the audio clock and what plays.
+if (await page.evaluate(() => !!(window.FlowPlayer && FlowPlayer.toggleDebug))) {
+  for (let i = 0; i < 5; i++) await page.click('#fl-story');
+  await page.waitForTimeout(700);
+  const txt = await page.evaluate(() => (document.querySelector('.fl-debug pre') || {}).textContent || '');
+  ok(/audio clock [\d.]+ s/.test(txt) && /in memory \d+ sounds/.test(txt), 'five taps on the title: the debug overlay, with the audio clock and the sounds in memory');
+  await page.evaluate(() => FlowPlayer.toggleDebug());
+}
+
 ok(errors.length === 0, `no page error${errors.length ? ': ' + errors.join('; ') : ''}`);
 await browser.close();
 server.close();

@@ -916,3 +916,8 @@ html.pc .fe-step:not(:hover):not(:focus-within) .fe-acts .ico { opacity: .35; }
 .fe-link svg { flex: none; color: var(--muted); }
 .fe-sounds.over { outline: 2px dashed var(--accent); outline-offset: -6px; border-radius: 14px; }
 .fe-into button { font-size: 13px; letter-spacing: 0; }
+
+/* The player's debug overlay (five taps on the story's title). */
+.fl-debug { position: fixed; left: 12px; right: 12px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 60; padding: 10px 12px; border-radius: 12px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 14px 40px var(--shadow); }
+.fl-debug pre { margin: 0 0 8px; max-height: 40vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: pre-wrap; }
+.fl-debug-acts { display: flex; gap: 8px; justify-content: flex-end; }
