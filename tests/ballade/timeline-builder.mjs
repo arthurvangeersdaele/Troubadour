@@ -103,6 +103,59 @@ try {
   await page.keyboard.press('Delete');
   ok(!(await T()).cues.includes(1.5), 'Delete removes the selected cue');
 
+  // The codes of P5: fade handles, the volume line, the clipboard, Alt-drag, ripple, crossfades, checks.
+  const C = (id) => page.evaluate((id) => { const s = FlowTimeline.__state(); return JSON.parse(JSON.stringify(s.flow.chapters[s.ch].clips.find((c) => c.id === id) || null)); }, id);
+  const big = await page.evaluate(() => { const s = FlowTimeline.__state(), tl = s.flow.chapters[s.ch]; const c = tl.clips.filter((x) => x.loop === 'loop').sort((a, b) => b.length - a.length)[0]; s.sel = { type: 'clip', id: c.id }; return c.id; });
+  await page.keyboard.press('Escape'); await page.evaluate((id) => { FlowTimeline.__state().sel = { type: 'clip', id }; }, big);
+  await page.evaluate(() => { document.querySelector('#tl-zin').click(); document.querySelector('#tl-zin').click(); });
+  await page.waitForTimeout(200);
+  const hnd = await page.evaluate((id) => { const d = document.querySelector(`.tl-clip[data-clip="${id}"]`); const f = d.querySelector('.fh.in').getBoundingClientRect(), v = d.querySelector('.vline').getBoundingClientRect(); return { fx: f.left + f.width / 2, fy: f.top + f.height / 2, vx: v.left + 30, vy: v.top, pps: FlowTimeline.__state().pps }; }, big);
+  await page.evaluate((id) => { const s = FlowTimeline.__state(), c = s.flow.chapters[s.ch].clips.find((x) => x.id === id); c.fadeIn = 0.5; c.fadeOut = 0.5; if (c.length < 6) c.length = 6; c.volume = 0.7; }, big);
+  await page.evaluate(() => { document.querySelector('#tl-zin').click(); });
+  await page.waitForTimeout(150);
+  Object.assign(hnd, await page.evaluate((id) => { const d = document.querySelector(`.tl-clip[data-clip="${id}"]`); const root = document.getElementById('tl-tracks'); root.scrollLeft = Math.max(0, d.offsetLeft + 176 - 300); const f = d.querySelector('.fh.in').getBoundingClientRect(); return { fx: f.left + f.width / 2, fy: f.top + f.height / 2, pps: FlowTimeline.__state().pps }; }, big));
+  const c0 = await C(big);
+  await page.mouse.move(hnd.fx, hnd.fy); await page.mouse.down(); await page.mouse.move(hnd.fx + hnd.pps * 1.5, hnd.fy, { steps: 6 }); await page.mouse.up();
+  const c1 = await C(big);
+  ok(Math.abs(c1.fadeIn - (c0.fadeIn + 1.5)) < 0.11, `the fade-in handle drags the fade (${c0.fadeIn} to ${c1.fadeIn} s)`);
+  const h2 = await page.evaluate((id) => { const d = document.querySelector(`.tl-clip[data-clip="${id}"]`); const root = document.getElementById('tl-tracks'); root.scrollLeft = Math.max(0, d.offsetLeft + 176 - 300); const v = d.querySelector('.vline').getBoundingClientRect(); return { x: Math.max(v.left + 30, root.getBoundingClientRect().left + 200), y: v.top }; }, big);
+  await page.mouse.move(h2.x, h2.y); await page.mouse.down(); await page.mouse.move(h2.x, h2.y + 10, { steps: 4 }); await page.mouse.up();
+  const c2 = await C(big);
+  ok(c2.volume < c1.volume - 0.1, `the volume line drags the volume down (${c1.volume} to ${c2.volume})`);
+  const n0 = (await T()).clips;
+  await page.keyboard.press('Control+d');
+  const dup = (await T()).sel.id;
+  const cd = await C(dup);
+  ok((await T()).clips === n0 + 1 && Math.abs(cd.at - (c2.at + c2.length)) < 1e-6 && cd.track === c2.track, 'Ctrl+D lays a copy right after it');
+  await page.evaluate((id) => { FlowTimeline.__state().sel = { type: 'clip', id }; FlowTimeline.__state().playhead = 2; }, big);
+  await page.keyboard.press('Control+c'); await page.keyboard.press('Control+v');
+  const pasted = await C((await T()).sel.id);
+  ok((await T()).clips === n0 + 2 && pasted.at === 2 && pasted.file === c2.file, 'Ctrl+V pastes it at the playhead');
+  // Pasted over the original on the same track: a crossfade, drawn as a gold X.
+  await page.waitForTimeout(100);
+  ok((await page.locator('.tl-xfade').count()) > 0, 'two clips overlapping on a track show a gold crossfade');
+  await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
+  ok((await T()).clips === n0, 'undone twice: as before');
+  // Ripple: Shift+Delete closes the gap.
+  const rp = await page.evaluate(() => { const s = FlowTimeline.__state(), tl = s.flow.chapters[s.ch]; const c = tl.clips.slice().sort((a, b) => a.at - b.at).find((x) => tl.clips.some((o) => o.at >= x.at + x.length)); s.sel = { type: 'clip', id: c.id }; const after = tl.clips.filter((o) => o.at >= c.at + c.length).map((o) => [o.id, o.at]); return { len: c.length, after }; });
+  await page.keyboard.press('Shift+Delete');
+  const moved2 = await page.evaluate((after) => { const s = FlowTimeline.__state(), tl = s.flow.chapters[s.ch]; return after.map(([id, at]) => [tl.clips.find((c) => c.id === id).at, at]); }, rp.after);
+  ok(moved2.length > 0 && moved2.every(([now, was]) => Math.abs(now - (was - rp.len)) < 1e-6), `Shift+Delete removes it and closes the gap (${moved2.length} moved back ${rp.len} s)`);
+  await page.keyboard.press('Control+z');
+  // Alt-drag: a copy moves, the clip stays.
+  const ad = await page.evaluate((id) => { const d = document.querySelector(`.tl-clip[data-clip="${id}"]`); const root = document.getElementById('tl-tracks'); root.scrollLeft = Math.max(0, d.offsetLeft + 176 - 300); const r = d.getBoundingClientRect(); return { x: Math.max(r.left + 40, root.getBoundingClientRect().left + 220), y: r.top + r.height - 8, at: FlowTimeline.__state().flow.chapters[FlowTimeline.__state().ch].clips.find((c) => c.id === id).at, pps: FlowTimeline.__state().pps }; }, big);
+  const na = (await T()).clips;
+  await page.keyboard.down('Alt'); await page.mouse.move(ad.x, ad.y); await page.mouse.down(); await page.mouse.move(ad.x + ad.pps * 2, ad.y, { steps: 6 }); await page.mouse.up(); await page.keyboard.up('Alt');
+  const alt = await page.evaluate((id) => { const s = FlowTimeline.__state(); return { n: s.flow.chapters[s.ch].clips.length, orig: s.flow.chapters[s.ch].clips.find((c) => c.id === id).at, sel: s.sel && s.sel.id }; }, big);
+  ok(alt.n === na + 1 && alt.orig === ad.at && alt.sel !== big, 'Alt-drag moves a copy, the clip stays');
+  await page.keyboard.press('Control+z');
+  ok((await T()).clips === na, 'one undo takes the copy away');
+  // Checks: shown with nothing selected.
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  ok(/Checks/.test(await page.textContent('#tl-inspector')), 'the inspector lists the checks before exporting');
+  await page.click('#tl-fit');
+
   // Play: the chapter clock through the engine. It stops at the first cue; Go plays on.
   const firstCue = (await T()).cues[0];
   await page.evaluate((t) => { FlowTimeline.__state().playhead = Math.max(0, t - 1.2); }, firstCue);

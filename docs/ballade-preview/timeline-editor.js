@@ -275,6 +275,12 @@
       lane.dataset.track = tr.id;
       lane.style.width = `${x(span())}px`;
       t.clips.filter((c) => c.track === tr.id).forEach((c) => lane.append(clipEl(c)));
+      // Two clips overlapping on a track crossfade: a gold X over the overlap.
+      BT.overlapsOf(t).filter((o) => o.track === tr.id).forEach((o) => {
+        const xf = el('i', 'tl-xfade'); xf.style.left = `${x(o.at)}px`; xf.style.width = `${Math.max(4, x(o.length))}px`;
+        xf.title = `Crossfade over ${o.length} s`;
+        lane.append(xf);
+      });
       lane.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('text/x-ballade-sound')) { e.preventDefault(); lane.classList.add('over'); } });
       lane.addEventListener('dragleave', () => lane.classList.remove('over'));
       lane.addEventListener('drop', (e) => {
@@ -340,6 +346,13 @@
     if (c.fadeIn > 0) { const f = el('i', 'fade in'); f.style.width = `${x(Math.min(c.fadeIn, c.length))}px`; d.append(f); }
     if (c.fadeOut > 0) { const f = el('i', 'fade out'); f.style.width = `${x(Math.min(c.fadeOut, c.length))}px`; d.append(f); }
     d.append(el('i', 'edge l'), el('i', 'edge r'));
+    if (T.sel && T.sel.type === 'clip' && T.sel.id === c.id) {
+      // Selected: its fades and its volume, to drag.
+      const fi = el('i', 'fh in'); fi.style.left = `${x(Math.min(c.fadeIn, c.length))}px`; fi.title = `Fade in: ${c.fadeIn} s (drag)`;
+      const fo = el('i', 'fh out'); fo.style.right = `${x(Math.min(c.fadeOut, c.length))}px`; fo.title = `Fade out: ${c.fadeOut} s (drag)`;
+      const vl = el('i', 'vline'); vl.style.top = `${18 + (1 - c.volume) * (ROW - 30)}px`; vl.title = `Volume: ${Math.round(c.volume * 100)} (drag up or down)`;
+      d.append(fi, fo, vl);
+    }
     d.addEventListener('pointerdown', (e) => clipDown(e, c, d));
     d.addEventListener('dblclick', () => { setPlayhead(c.at); });
     if (!T.peaks.has(c.file)) wantPeaks(c.file);
@@ -532,7 +545,14 @@
         add.addEventListener('click', () => edit(() => { t.choice = { question: '', at: r3(BT.endOf(t)), answers: [{ label: 'Way 1', timeline: { tracks: [], clips: [], markers: [] } }, { label: 'Way 2', timeline: { tracks: [], clips: [], markers: [] } }] }; T.sel = { type: 'choice' }; }, true));
         box.append(add);
       }
-      box.append(el('p', 'tl-hint', 'Keys: Space plays from the playhead, C adds a cue, M a section, S cuts a sound at the playhead, arrows nudge, Delete removes, Ctrl+Z undoes.'));
+      const found = checks(t);
+      box.append(el('h4', 'tl-checkh', found.length ? `Checks: ${found.length} to look at` : 'Checks: nothing to look at'));
+      found.slice(0, 12).forEach((f) => {
+        const b = el('button', 'tl-check', f.text); b.type = 'button';
+        b.addEventListener('click', () => { T.sel = f.sel; setPlayhead(f.at); renderTracks(); renderInspector(); });
+        box.append(b);
+      });
+      box.append(el('p', 'tl-hint', 'Keys: Space plays from the playhead, C adds a cue, M a section, S cuts a sound at the playhead, arrows nudge, Delete removes (Shift: and closes the gap), Ctrl+C, X, V, D copy, cut, paste at the playhead and duplicate, Alt-drag moves a copy, Ctrl+Z undoes.'));
     }
   }
 
@@ -611,6 +631,65 @@
       T.sel = { type: 'clip', id: b.id };
     }, true);
   }
+  /* ---------- Clipboard and ripple ---------- */
+  let clipboard = null; // a clip, kept across the chapters of the story
+  function copySel() { const c = T.sel && T.sel.type === 'clip' && clipOf(T.sel.id); if (!c) return false; clipboard = JSON.parse(JSON.stringify(c)); return true; }
+  /** Ctrl+V: at the playhead, on the track of the clip selected, else its own track, else one of its kind. */
+  function paste() {
+    if (!clipboard) return;
+    edit(() => {
+      const t = tl();
+      const c = Object.assign(JSON.parse(JSON.stringify(clipboard)), { id: uid('c'), at: r3(T.playhead) });
+      const selC = T.sel && T.sel.type === 'clip' && clipOf(T.sel.id);
+      let tr = (selC && trackOf(selC.track)) || trackOf(c.track) || t.tracks.find((x_) => x_.kind === c.kind);
+      if (!tr) { tr = { id: uid('t'), name: KNAME[c.kind], kind: c.kind, volume: 1, mute: false }; t.tracks.push(tr); }
+      c.track = tr.id; c.kind = tr.kind;
+      t.clips.push(c);
+      T.sel = { type: 'clip', id: c.id };
+    }, true);
+  }
+  /** Ctrl+D: a copy right after the clip, on its track. */
+  function duplicate() {
+    const c = T.sel && T.sel.type === 'clip' && clipOf(T.sel.id);
+    if (!c) return;
+    edit(() => { const k = Object.assign(JSON.parse(JSON.stringify(c)), { id: uid('c'), at: r3(c.at + c.length) }); tl().clips.push(k); T.sel = { type: 'clip', id: k.id }; }, true);
+  }
+  /** Shift+Delete: the clip goes and what came after it moves back by its length (clips, markers, the choice). */
+  function ripple() {
+    const c = T.sel && T.sel.type === 'clip' && clipOf(T.sel.id);
+    if (!c) { deleteSel(); return; }
+    edit(() => {
+      const t = tl(), end = c.at + c.length, by = c.length;
+      t.clips = t.clips.filter((k) => k.id !== c.id);
+      t.clips.forEach((k) => { if (k.at >= end - 1e-6) k.at = r3(k.at - by); });
+      t.markers.forEach((m) => { if (m.at >= end - 1e-6) m.at = r3(m.at - by); });
+      if (t.choice && t.choice.at >= end - 1e-6) t.choice.at = r3(t.choice.at - by);
+      T.sel = null;
+    }, true);
+  }
+
+  /* ---------- Checks before exporting (P6) ---------- */
+  /** What the table would meet that the troubadour may not want: { text, sel, at } each. */
+  function checks(t) {
+    const out = [];
+    const end = t.choice ? t.choice.at : BT.endOf(t);
+    t.clips.forEach((c) => {
+      if (T.blobs && !T.blobs.get(c.file)) out.push({ text: `${c.name}: its sound is not in the story.`, sel: { type: 'clip', id: c.id }, at: c.at });
+      if (t.choice && c.at >= t.choice.at - 1e-6) out.push({ text: `${c.name} starts after the choice: it never plays.`, sel: { type: 'clip', id: c.id }, at: c.at });
+      const fl = fileLen(c.file);
+      if (c.loop === 'once' && fl && c.length > fl - (c.in || 0) + 0.2) out.push({ text: `${c.name} is longer than its sound: it ends in silence.`, sel: { type: 'clip', id: c.id }, at: c.at });
+    });
+    t.markers.filter((m) => m.type === 'cue').forEach((m) => {
+      const held = t.clips.some((c) => c.holdToCue && c.loop !== 'once' && c.at < m.at + 1e-6 && c.at + c.length >= m.at - 1e-3);
+      if (!held) out.push({ text: `At ${m.name || 'the cue'} (${fmt(m.at)}) the table waits in silence: a looping sound that holds (∞) across it keeps the mood.`, sel: { type: 'marker', id: m.id }, at: m.at });
+    });
+    // Holes: stretches of 3 s or more where nothing plays (waiting at a cue aside).
+    const spans = t.clips.map((c) => [c.at, c.at + c.length]).sort((a, b) => a[0] - b[0]);
+    let reach = 0;
+    spans.forEach(([a, b]) => { if (a - reach >= 3 && a <= end) out.push({ text: `${(a - reach).toFixed(1)} s of silence from ${fmt(reach)}.`, sel: null, at: reach }); reach = Math.max(reach, b); });
+    return out;
+  }
+
   function nudge(d) {
     const s = T.sel;
     if (!s) return;
@@ -656,11 +735,22 @@
   function clipDown(e, c, d) {
     if (e.button !== 0) return;
     e.preventDefault(); e.stopPropagation();
-    T.sel = { type: 'clip', id: c.id };
+    const before = snap();
     const r = d.getBoundingClientRect();
+    const tgt = e.target.classList;
     const edge = e.clientX - r.left < 8 ? 'l' : r.right - e.clientX < 8 ? 'r' : null;
+    let kind = tgt.contains('fh') ? (tgt.contains('in') ? 'fade-in' : 'fade-out') : tgt.contains('vline') ? 'gain' : edge ? `trim-${edge}` : 'move';
+    // Alt-drag: a copy moves, the clip stays.
+    if (kind === 'move' && e.altKey) {
+      const copy = Object.assign(JSON.parse(JSON.stringify(c)), { id: uid('c') });
+      tl().clips.push(copy);
+      const cd = clipEl(copy);
+      d.parentNode.append(cd);
+      c = copy; d = cd;
+    }
+    T.sel = { type: 'clip', id: c.id };
     const len = fileLen(c.file);
-    T.drag = { kind: edge ? `trim-${edge}` : 'move', c, x0: e.clientX, y0: e.clientY, at0: c.at, len0: c.length, in0: c.in || 0, track0: c.track, before: snap(), moved: false, alt: e.altKey, fl: len };
+    T.drag = { kind, c, x0: e.clientX, y0: e.clientY, at0: c.at, len0: c.length, in0: c.in || 0, fi0: c.fadeIn, fo0: c.fadeOut, v0: c.volume, track0: c.track, before, moved: false, fl: len };
     d.setPointerCapture(e.pointerId);
     d.addEventListener('pointermove', dragMove);
     d.addEventListener('pointerup', dragUp, { once: true });
@@ -676,6 +766,28 @@
     if (!g.moved && Math.abs(dx) < 3 && Math.abs(e.clientY - g.y0) < 3) return;
     g.moved = true;
     const c = g.c, dt = tOf(dx);
+    const d0 = document.querySelector(`#tl-tracks .tl-clip[data-clip="${c.id}"]`);
+    if (g.kind === 'fade-in' || g.kind === 'fade-out') {
+      const room = Math.min(30, c.length);
+      if (g.kind === 'fade-in') { c.fadeIn = r3(Math.max(0, Math.min(room - c.fadeOut, Math.round((g.fi0 + dt) * 10) / 10))); }
+      else { c.fadeOut = r3(Math.max(0, Math.min(room - c.fadeIn, Math.round((g.fo0 - dt) * 10) / 10))); }
+      if (d0) {
+        const h = d0.querySelector(g.kind === 'fade-in' ? '.fh.in' : '.fh.out'), f = d0.querySelector(g.kind === 'fade-in' ? '.fade.in' : '.fade.out');
+        if (h) h.style[g.kind === 'fade-in' ? 'left' : 'right'] = `${x(g.kind === 'fade-in' ? c.fadeIn : c.fadeOut)}px`;
+        if (f) f.style.width = `${x(g.kind === 'fade-in' ? c.fadeIn : c.fadeOut)}px`;
+      }
+      $('#tl-time').textContent = `${g.kind === 'fade-in' ? 'Fade in' : 'Fade out'} ${(g.kind === 'fade-in' ? c.fadeIn : c.fadeOut).toFixed(1)} s`;
+      return;
+    }
+    if (g.kind === 'gain') {
+      c.volume = Math.max(0, Math.min(1, Math.round((g.v0 - (e.clientY - g.y0) / (ROW - 30)) * 100) / 100));
+      const vl = d0 && d0.querySelector('.vline');
+      if (vl) vl.style.top = `${18 + (1 - c.volume) * (ROW - 30)}px`;
+      const v = T.voices.get(c.id);
+      if (v && v.g && !v.random) v.g.gain.setTargetAtTime(c.volume * (v.norm || 1) * trackVol(c), audio().ctx.currentTime, 0.03);
+      $('#tl-time').textContent = `Volume ${Math.round(c.volume * 100)}`;
+      return;
+    }
     if (g.kind === 'move') {
       // Its start or its end sticks to what is near.
       const want = Math.max(0, g.at0 + dt);
@@ -803,6 +915,9 @@
     const { ctx, master } = audio(true);
     if (!T.bus) { T.bus = ctx.createGain(); T.bus.connect(master); }
     master.gain.value = global.FlowUI.curve(settings.master);
+    // Overlaps on a track crossfade (every way's too, for a choice picked while playing).
+    T.fades = new Map();
+    allTimelines(t).forEach((w) => BT.fadesOf(w).forEach((v, k) => T.fades.set(k, v)));
     const clock = new BT.Clock(t, {
       now: () => ctx.currentTime,
       start: (c, when, offset) => startClip(c, when, offset),
@@ -852,7 +967,8 @@
       one(when);
       return;
     }
-    const card = { file: c.file, zone: c.kind, start: c.in || 0, duration: c.length, play: c.loop, hold: c.loop === 'loop' && c.holdToCue, repeat: c.loop !== 'once', fadeIn: offset > 0 ? 0 : c.fadeIn, fadeOut: c.fadeOut, volume: vol };
+    const fd = (T.fades && T.fades.get(c.id)) || c;
+    const card = { file: c.file, zone: c.kind, start: c.in || 0, duration: c.length, play: c.loop, hold: c.loop === 'loop' && c.holdToCue, repeat: c.loop !== 'once', fadeIn: offset > 0 ? 0 : fd.fadeIn, fadeOut: fd.fadeOut, volume: vol };
     const e = EN.voice(ctx, T.bus, buf, card, when, offset, { even: even() });
     const v = { c, src: e.src, g: e.g, norm: EN.norm(buf, c.kind, even()) };
     T.voices.set(c.id, v);
@@ -940,6 +1056,10 @@
       if ((e.ctrlKey || e.metaKey) && !e.altKey) {
         if (k === 'z') { e.preventDefault(); undoRedo(!e.shiftKey); }
         else if (k === 'y') { e.preventDefault(); undoRedo(false); }
+        else if (k === 'c') { if (copySel()) { e.preventDefault(); toast('Sound copied: Ctrl+V pastes it at the playhead.', 1600); } }
+        else if (k === 'x') { if (copySel()) { e.preventDefault(); deleteSel(); } }
+        else if (k === 'v') { if (clipboard) { e.preventDefault(); paste(); } }
+        else if (k === 'd') { e.preventDefault(); duplicate(); }
         return;
       }
       if (e.altKey) return;
@@ -953,7 +1073,7 @@
       else if (k === '-') zoom(1 / 1.5);
       else if (k === 'z') fit();
       else if (e.key === 'Home') $('#tl-home').click();
-      else if (e.key === 'Delete' || e.key === 'Backspace') { if (T.sel) { e.preventDefault(); deleteSel(); } }
+      else if (e.key === 'Delete' || e.key === 'Backspace') { if (T.sel) { e.preventDefault(); if (e.shiftKey) ripple(); else deleteSel(); } }
       else if (e.key === 'Escape') { T.sel = null; renderTracks(); renderInspector(); }
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (T.sel) { e.preventDefault(); nudge((e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 1 : 0.1)); } }
     });

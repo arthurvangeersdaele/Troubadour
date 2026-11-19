@@ -171,6 +171,44 @@
     return (tl.clips || []).reduce((a, c) => Math.max(a, c.at + c.length), 0);
   }
 
+  /* ---------- Crossfades ---------- */
+  /** Two clips that overlap on one track crossfade over the overlap (3.1): the first fades out and the second fades
+   *  in over at least that long. Returns, per clip id, the fades it plays with: { fadeIn, fadeOut }. */
+  function fadesOf(tl) {
+    const out = new Map();
+    (tl.clips || []).forEach((c) => out.set(c.id, { fadeIn: +c.fadeIn || 0, fadeOut: +c.fadeOut || 0 }));
+    const byTrack = new Map();
+    (tl.clips || []).forEach((c) => { if (!byTrack.has(c.track)) byTrack.set(c.track, []); byTrack.get(c.track).push(c); });
+    byTrack.forEach((list) => {
+      list.sort((a, b) => a.at - b.at || a.length - b.length);
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+        const a = list[i], b = list[j];
+        if (b.at >= a.at + a.length - 1e-6) break;
+        const o = r3(Math.min(a.at + a.length, b.at + b.length) - b.at);
+        if (o <= 0) continue;
+        const fa = out.get(a.id), fb = out.get(b.id);
+        if (b.at + b.length <= a.at + a.length + 1e-6) continue; // inside the other: heard over it, no crossfade
+        fa.fadeOut = Math.max(fa.fadeOut, o); fb.fadeIn = Math.max(fb.fadeIn, o);
+      }
+    });
+    return out;
+  }
+  /** Where clips overlap on a track: [{ track, at, length }], for the gold X of the builder. */
+  function overlapsOf(tl) {
+    const out = [];
+    const byTrack = new Map();
+    (tl.clips || []).forEach((c) => { if (!byTrack.has(c.track)) byTrack.set(c.track, []); byTrack.get(c.track).push(c); });
+    byTrack.forEach((list, track) => {
+      list.sort((a, b) => a.at - b.at);
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+        const a = list[i], b = list[j];
+        if (b.at >= a.at + a.length - 1e-6) break;
+        out.push({ track, at: b.at, length: r3(Math.min(a.at + a.length, b.at + b.length) - b.at) });
+      }
+    });
+    return out;
+  }
+
   /* ---------- Version 2 to version 1 (the player of today reads this) ---------- */
 
   const V1_LANES = 3; // a version 1 step shows at most 3 cards side by side
@@ -181,6 +219,7 @@
    *  a clip that does not hold but goes on past a cue is faded when Go is tapped, and tracks have no names. */
   function stepsOf(tl) {
     const tracksById = new Map((tl.tracks || []).map((t) => [t.id, t]));
+    const fades = fadesOf(tl);
     const clips = (tl.clips || []).filter((c) => { const t = tracksById.get(c.track); return !t || !t.mute; })
       .slice().sort((a, b) => a.at - b.at || String(a.id).localeCompare(String(b.id)));
     const cues = (tl.markers || []).filter((m) => m.type === 'cue').map((m) => m).sort((a, b) => a.at - b.at);
@@ -217,7 +256,7 @@
               name: c.name, file: c.file, zone: c.kind, offset: r3(c.at - st.at), start: r3(c.in || 0),
               duration: r3(c.loop === 'random' ? (c.each || c.length) : c.length), play: c.loop,
               hold: c.loop === 'random' || (c.loop === 'loop' && !!c.holdToCue), repeat: c.loop !== 'once',
-              fadeIn: c.fadeIn || 0, fadeOut: c.fadeOut || 0, volume: r2((c.volume == null ? 0.75 : c.volume) * (t ? t.volume : 1)),
+              fadeIn: fades.get(c.id).fadeIn, fadeOut: fades.get(c.id).fadeOut, volume: r2((c.volume == null ? 0.75 : c.volume) * (t ? t.volume : 1)),
             };
             if (c.loop === 'random') { card.gapMin = c.gapMin; card.gapMax = c.gapMax; }
             return card;
@@ -325,7 +364,7 @@
     resume() { if (this.paused) { this.paused = false; this.t0 = this.opt.now(); this.tick(); } }
   }
 
-  const api = { VERSION, fromV1, toV1, stepsOf, clean, endOf, Clock, HOLD_FADE };
+  const api = { VERSION, fromV1, toV1, stepsOf, fadesOf, overlapsOf, clean, endOf, Clock, HOLD_FADE };
   global.BalladeTimeline = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

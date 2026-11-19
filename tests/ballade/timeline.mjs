@@ -116,6 +116,14 @@ for (const f of tales) {
   const runLen = steps.slice(0, steps.findIndex((s, i) => i > 0 && s.gate)).reduce((a, s) => a + len(s), 0);
   ok(Math.abs(runLen - 20) < 1e-6, `free timeline: the gate falls on its cue (${runLen} s)`);
   ok(steps.every((s) => s.cards.length <= 3), 'free timeline: at most three cards a step');
+  // Two clips overlapping on one track crossfade over the overlap.
+  const xf = { tracks: [{ id: 'm', name: 'Music', kind: 'music', volume: 1, mute: false }], clips: [clip('a', 'm', 0, 10, { kind: 'music', fadeOut: 1 }), clip('b', 'm', 7, 10, { kind: 'music' }), clip('c', 'm', 8, 1, { kind: 'music' })], markers: [] };
+  const fd = T.fadesOf(xf);
+  ok(fd.get('a').fadeOut === 3 && fd.get('b').fadeIn === 3, `overlap of 3 s: a fades out and b fades in over 3 s (${fd.get('a').fadeOut}, ${fd.get('b').fadeIn})`);
+  ok(fd.get('c').fadeIn === 0, 'a clip inside another is heard over it, without a crossfade');
+  ok(T.overlapsOf(xf).some((o) => o.at === 7 && o.length === 3), 'the overlap is told, for the builder');
+  const lc = T.stepsOf(xf).flatMap((s) => s.cards);
+  ok(lc.find((c) => c.name === 'a').fadeOut === 3 && lc.find((c) => c.name === 'b').fadeIn === 3, 'lowered, the cards carry the crossfade');
 }
 
 /* ---------- The clock ---------- */
