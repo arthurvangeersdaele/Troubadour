@@ -206,6 +206,17 @@ try {
   const lowered = await page.evaluate((v2) => BalladeTimeline.toV1(v2).chapters[0].steps, rec.v2);
   ok(JSON.stringify(lowered) === JSON.stringify(rec.v1.chapters[0].steps.map((s) => s)), 'its steps are the timeline lowered');
   ok(await page.isVisible('#fe-tlnote'), 'the steps view says it was built on the timeline');
+  // A sound previewed in the steps view (its length learnt) keeps the timeline; a step changed drops it.
+  await page.evaluate(async (u) => { const r = await FlowDB.get(u); r.lengths = {}; await FlowDB.put(r); }, uid);
+  await page.evaluate((u) => { location.hash = '#/'; }, uid); await page.waitForTimeout(300);
+  await page.evaluate((u) => { location.hash = `#/edit/${u}/0`; }, uid);
+  await page.waitForSelector('#fe-timeline'); await page.waitForTimeout(800);
+  const pv = page.locator('#fe-sounds button.pv').first();
+  ok((await pv.count()) === 1, 'the steps view lists the sounds with a listen button');
+  await pv.click(); await page.waitForTimeout(800);
+  ok(await page.evaluate(async (u) => Object.keys((await FlowDB.get(u)).lengths || {}).length > 0, uid), 'listening learnt the length of the sound');
+  await page.waitForTimeout(700);
+  ok(await page.evaluate(async (u) => !!(await FlowDB.get(u)).timeline, uid), 'opening the steps and listening to a sound keeps the timeline');
 
   // Export, then read again.
   const dl = page.waitForEvent('download', { timeout: 60000 });

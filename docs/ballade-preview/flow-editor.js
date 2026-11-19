@@ -57,9 +57,10 @@
   function goTo(path) { E.path = path; E.sel = null; closeHelp(); stopPreview(); renderAll(); $('#fe-main').scrollTop = 0; }
 
   /* ---------- Saving ---------- */
-  function changed(redraw = true) {
-    // Edited as steps: a timeline built before is made again from these steps when it opens next.
-    if (E.rec.timeline) { E.rec.timeline = null; paintTimelineNote(); }
+  function changed(redraw = true, notSteps = false) {
+    // Edited as steps: a timeline built before is made again from these steps when it opens next. (A sound's length
+    // learnt, or the story's title, changes no step: the timeline stays.)
+    if (E.rec.timeline && !notSteps) { E.rec.timeline = null; paintTimelineNote(); }
     const st = steps();
     if (st[0]) st[0].gate = true;
     $('#fe-saved').textContent = 'Saving…';
@@ -80,7 +81,7 @@
     if (!blob) return null;
     const b = await decode(blob);
     E.buffers.set(file, b);
-    if (!E.rec.lengths[file]) { E.rec.lengths[file] = Math.round(b.duration * 10) / 10; changed(false); }
+    if (!E.rec.lengths[file]) { E.rec.lengths[file] = Math.round(b.duration * 10) / 10; changed(false, true); }
     return b;
   }
   const lengthOf = (file) => E.rec.lengths[file] || null;
@@ -323,7 +324,7 @@
     const name = el('input', 'fe-name');
     name.value = st.title || ''; name.placeholder = 'Title of the story'; name.maxLength = 120;
     name.setAttribute('aria-label', 'Title of the story');
-    name.addEventListener('input', () => { st.title = name.value; $('#fe-title').textContent = name.value.trim() || 'New Ballade'; changed(false); });
+    name.addEventListener('input', () => { st.title = name.value; $('#fe-title').textContent = name.value.trim() || 'New Ballade'; changed(false, true); });
     nav.append(name, el('h3', '', 'Chapters'));
     E.rec.story.chapters.forEach((c, i) => {
       const b = el('button', 'chap');
@@ -352,7 +353,7 @@
       const a = await ask('Rename this chapter', '', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: 'Chapter name', value: st.chapters[E.ch].title, max: 120 });
       if (!a || !a.text) return;
       st.chapters[E.ch].title = a.text;
-      changed();
+      changed(true, true);
     });
     tools.append(ren);
     if (st.chapters.length > 1) {
@@ -971,7 +972,7 @@
       idle();
     } catch (e) { idle(); toast(`Could not add the sounds: ${e.message || e}`, 4200); }
     E.tab = zone === 'soundbox' ? 'soundbox' : 'chapter';
-    changed();
+    changed(true, true); // sounds joined the story, not its steps: a timeline stays
     if (n) toast(`${n} sound${n > 1 ? 's' : ''} added${from ? ` ${from}` : ''}. Drag one into the chapter, or tap + to make it a step.`, 4200);
   }
   // The Recueil panel (troupe/library.js) adds through the builder of the page.
