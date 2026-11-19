@@ -674,7 +674,7 @@
       soundGate();
       if (pins().length) loadPads(); else renderPinStrip();
       acquireWake();
-      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way.`;
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way (a tap is enough when the party stands on it).`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
       let seen = 0;
       try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }

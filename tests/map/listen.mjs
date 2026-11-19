@@ -44,6 +44,7 @@ try {
       r.world.places.push(p);
       await window.MapDB.put(r);
     }
+    window.__mapIds = r.world.places.map((q) => q.id);
     return r.uid;
   });
 
@@ -196,6 +197,21 @@ try {
   await page.waitForFunction(() => { const b = document.querySelector('#mw-pinstrip .pad'); return b && !b.disabled; }, null, { timeout: 20000 }).catch(() => {});
   const strip = await page.evaluate(() => [...document.querySelectorAll('#mw-pinstrip .pad')].map((b) => ({ t: b.textContent, d: b.disabled })));
   ok(strip.length === 1 && strip[0].t === 'Thunderclap' && !strip[0].d, `a pinned effect shows over the map at the table (${JSON.stringify(strip)})`);
+  // A sign tapped once while the party stands on it takes its way (M6).
+  const sign = await page.evaluate(() => {
+    const V = window.MapView, p = V.__place();
+    const e = p.elements.find((x) => x.shape.type === 'stamp');
+    e.link = window.__mapIds && window.__mapIds[1];
+    p.player = [e.shape.x, e.shape.y + Math.round(e.shape.size / 4)];
+    V.redraw();
+    const s = V.__toScreen([e.shape.x, e.shape.y]), r = document.getElementById('mw-canvas').getBoundingClientRect();
+    return { x: r.left + s[0], y: r.top + s[1], link: e.link };
+  });
+  if (sign.link) {
+    await page.mouse.click(sign.x, sign.y);
+    await page.waitForFunction(() => document.getElementById('mw-sub').textContent.startsWith('Map 2:'), null, { timeout: 4000 }).catch(() => {});
+    ok((await page.textContent('#mw-sub')).startsWith('Map 2:'), 'a tap on a sign the party stands on takes its way');
+  }
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
   const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');

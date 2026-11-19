@@ -160,6 +160,13 @@
     const q = toScreen(reachHandle(selected));
     return Math.hypot(sx - q[0], sy - q[1]) <= 18;
   }
+  let signTap = 0;
+  /** The party stands on an element: inside its outline (a drawing, an area) or on its line, give or take its sign. */
+  function partyOn(el) {
+    const sh = el.shape, p = place.player;
+    if (sh.type === 'stamp') return Math.hypot(p[0] - sh.x, p[1] - sh.y) <= sh.size / 2 + 30;
+    return M.reach(p, sh).d <= 30;
+  }
   function onPlayer(sx, sy) { const q = toScreen(place.player); return Math.hypot(sx - q[0], sy - q[1]) <= 26; }
 
   /* ---------- Undo and redo ---------- */
@@ -723,7 +730,13 @@
       const t = performance.now();
       const twice = last.t && last.el === g.el && t - last.t < 350 && Math.hypot(g.start[0] - last.s[0], g.start[1] - last.s[1]) < 30;
       last = twice ? { t: 0, s: [0, 0], el: null } : { t, s: g.start, el: g.el };
+      clearTimeout(signTap);
       if (twice && api.onTap) api.onTap(g.el || null);
+      // A sign tapped once while the party stands on it: its way is taken (unless a second tap opens its sounds).
+      else if (mode === 'play' && g.el && g.el.link && partyOn(g.el)) {
+        const el = g.el;
+        signTap = setTimeout(() => { if (last.el === el && last.t === t && api.onLink) { last = { t: 0, s: [0, 0], el: null }; api.onLink(el); } }, 360);
+      }
     } else if (g.kind === 'cross') {
       if (trail) {
         if (trail.phase === 'wait') { trail.phase = 'draw'; endTrail(); }
