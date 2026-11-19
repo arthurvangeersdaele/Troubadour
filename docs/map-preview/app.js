@@ -929,16 +929,18 @@
   function clipboard(k) {
     if (mode !== 'edit') return false;
     const sel = V.selected();
-    if (k === 'c') { if (!sel) return false; V.copy(); toast(`${elName(sel)} copied.`, 1200); return true; }
-    if (k === 'x') { if (!sel) return false; const n = elName(sel); V.cut(); renderPanel(); renderPlaces(); renderLayers(); toast(`${n} cut.`, 1200); return true; }
+    const many = V.selection().length;
+    if (k === 'c') { if (!sel) return false; V.copy(); toast(many > 1 ? `${many} places copied.` : `${elName(sel)} copied.`, 1200); return true; }
+    if (k === 'x') { if (!sel) return false; const n = many > 1 ? `${many} places` : elName(sel); V.cut(); renderPanel(); renderPlaces(); renderLayers(); toast(`${n} cut.`, 1200); return true; }
     if (k === 'v') {
       const c = V.paste();
       if (c === false) { toast('A place can be pasted in the world it comes from.', 2400); return true; }
       if (!c) return false;
-      numbered(c); save(); renderPanel(); renderPlaces(); renderLayers();
+      V.selection().forEach((x) => numbered(x)); save(); renderPanel(); renderPlaces(); renderLayers();
       return true;
     }
-    if (k === 'd') { if (!sel) return false; duplicateElement(sel); return true; }
+    if (k === 'd') { if (!sel) return false; if (V.selection().length > 1) { V.duplicate(); renderPanel(); renderPlaces(); renderLayers(); } else duplicateElement(sel); return true; }
+    if (k === 'a') { const n = V.selectAll(); if (n) toast(`${n} places selected.`, 1200); return true; }
     return false;
   }
   /** The keys of the editor, on one page (?). */
@@ -950,7 +952,7 @@
     const C = mac ? 'Cmd' : 'Ctrl';
     const groups = [
       ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['L', 'Places: the library'], ['E', 'Eraser']]],
-      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], ['Alt + drag', 'Move a copy'], ['N', 'Snapping on or off'], [`${C} + drag`, 'Move without snapping'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
+      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], [`${C}+A`, 'Select every place'], ['Shift + click', 'Add a place to the selection, or take it away'], ['Shift + drag on the map', 'Select every place in a band'], ['Arrows', 'Move the selection (Shift: further)'], ['Alt + drag', 'Move a copy'], ['N', 'Snapping on or off'], [`${C} + drag`, 'Move without snapping'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
       ['Sound', [['S', 'Listen from the golden point: Heard now']]],
       ['View', [['+ and -', 'Zoom'], ['F', 'The whole map'], ['?', 'This page']]],
     ];
@@ -1313,7 +1315,23 @@
     if (mode === 'edit' && edView && !sel) {
       head.textContent = edView === 'music' ? 'Music of the world' : 'Soundbox of the world';
       if (edView === 'music') editMusic(box); else editSoundbox(box);
-    } else if (mode === 'edit') { if (sel) editElement(box, sel); else editPlace(box, p); }
+    } else if (mode === 'edit') {
+      const many = sel ? V.selection().length : 0;
+      if (many > 1) {
+        // Several places selected: what they do together, then the one shown.
+        const s = el('section', 'pn mp-many');
+        s.append(el('h3', '', `${many} places selected`), el('p', 'hint', 'Drag one of them to move them together; arrows move them too. Shift and a click adds or takes one away. Below: the last one picked.'));
+        const row = el('div', 'mp-many-acts');
+        const dup = el('button', 'btn slim', 'Duplicate them'); dup.type = 'button';
+        dup.addEventListener('click', () => { V.duplicate(); V.selection().forEach((x) => numbered(x)); save(); renderPanel(); renderPlaces(); renderLayers(); });
+        const del = el('button', 'btn slim danger', 'Delete them'); del.type = 'button';
+        del.addEventListener('click', () => { V.deleteSelected(); renderPanel(); renderPlaces(); renderLayers(); });
+        row.append(dup, del);
+        s.append(row);
+        box.append(s);
+      }
+      if (sel) editElement(box, sel); else editPlace(box, p);
+    }
     else if (sel) playElement(box, sel); else playPlace(box, p);
     paintEdView();
     paintRanges(box);
@@ -3720,7 +3738,7 @@
         const k = e.key.toLowerCase();
         if (k === 'z') { e.preventDefault(); undoRedo(!e.shiftKey); return; }
         if (k === 'y') { e.preventDefault(); undoRedo(false); return; }
-        if ('cxvd'.includes(k) && k.length === 1 && mode === 'edit' && !(window.getSelection && String(window.getSelection()))) { if (clipboard(k)) e.preventDefault(); return; }
+        if ('cxvda'.includes(k) && k.length === 1 && mode === 'edit' && !(window.getSelection && String(window.getSelection()))) { if (clipboard(k)) e.preventDefault(); return; }
       }
       if (e.key === '?' && mode === 'edit') { shortcuts(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -3735,6 +3753,12 @@
         if (k === 'n') { V.snap(!V.snap()); toast(V.snap() ? 'Snapping on.' : 'Snapping off.', 1200); if (V.tool() === 'select') renderOpts('select'); return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
+        if (e.key.startsWith('Arrow') && V.selected()) {
+          e.preventDefault();
+          const d = e.shiftKey ? 50 : 10;
+          V.nudge(e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0, e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0);
+          return;
+        }
       }
       if (e.key.toLowerCase() === 'f') V.fit();
       if (mode === 'play' && e.code === 'Space') { e.preventDefault(); $('#mw-pause').click(); }

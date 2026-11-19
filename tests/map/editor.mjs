@@ -190,6 +190,42 @@ try {
   for (let i = 0; i < 50; i++) await page.keyboard.press('Control+Shift+z');
   ok((await page.evaluate(() => JSON.stringify(window.MapView.__place().elements))) === end, '50 redos: the map as it was made');
 
+  // A selection of many: Shift-click, moved together, arrows, copied and pasted together, deleted together.
+  {
+    const a = await pick(5), b = await page.evaluate(() => { const p = window.MapView.__place(), e = p.elements[6]; const c = window.TroubadourMap.centre(e.shape), s = window.MapView.__toScreen(c), r = document.getElementById('mw-canvas').getBoundingClientRect(); return { id: e.id, x: r.left + s[0], y: r.top + s[1] }; });
+    await page.keyboard.down('Shift'); await page.mouse.click(b.x, b.y); await page.keyboard.up('Shift');
+    ok((await page.evaluate(() => window.MapView.selection().length)) === 2, 'Shift-click adds a place to the selection');
+    ok(/2 places selected/.test(await page.textContent('#mw-inspector')), 'the panel says two places are selected');
+    const where = () => page.evaluate((ids) => ids.map((id) => window.TroubadourMap.centre(window.MapView.__place().elements.find((x) => x.id === id).shape)), [a.id, b.id]);
+    const w0 = await where();
+    await page.keyboard.down('Control'); // no snapping: the exact way the hand went
+    await page.mouse.move(b.x, b.y); await page.mouse.down(); await page.mouse.move(b.x + 40, b.y + 30, { steps: 6 }); await page.mouse.up();
+    await page.keyboard.up('Control');
+    const w1 = await where();
+    const d0 = [w1[0][0] - w0[0][0], w1[0][1] - w0[0][1]], d1 = [w1[1][0] - w0[1][0], w1[1][1] - w0[1][1]];
+    ok(Math.abs(d0[0] - d1[0]) < 1.5 && Math.abs(d0[1] - d1[1]) < 1.5 && Math.hypot(d0[0], d0[1]) > 20, `dragging one moves both by the same (${d0.map(Math.round)} and ${d1.map(Math.round)})`);
+    await page.keyboard.press('ArrowRight');
+    const w2 = await where();
+    ok(Math.abs(w2[0][0] - w1[0][0] - 10) < 0.5 && Math.abs(w2[1][0] - w1[1][0] - 10) < 0.5, 'an arrow moves both 10 units');
+    const n1 = await page.evaluate(() => window.MapView.__place().elements.length);
+    await page.keyboard.press('Control+c'); await page.mouse.move(600, 450); await page.keyboard.press('Control+v');
+    ok((await page.evaluate(() => window.MapView.__place().elements.length)) === n1 + 2 && (await page.evaluate(() => window.MapView.selection().length)) === 2, 'copied and pasted together, the copies selected');
+    await page.keyboard.press('Delete');
+    ok((await page.evaluate(() => window.MapView.__place().elements.length)) === n1, 'Delete removes the whole selection');
+    for (let i = 0; i < 4; i++) await page.keyboard.press('Control+z');
+    const w3 = await where();
+    ok(Math.abs(w3[0][0] - w0[0][0]) < 0.5 && Math.abs(w3[1][1] - w0[1][1]) < 0.5 && (await page.evaluate(() => window.MapView.__place().elements.length)) === n1, 'four undos: as before');
+    // Shift and a band; Ctrl+A.
+    await page.evaluate(() => window.MapView.select(null));
+    const r = await page.evaluate(() => document.getElementById('mw-canvas').getBoundingClientRect().toJSON());
+    await page.keyboard.down('Shift'); await page.mouse.move(r.left + r.width * 0.2, r.top + r.height * 0.2); await page.mouse.down(); await page.mouse.move(r.left + r.width * 0.6, r.top + r.height * 0.7, { steps: 8 }); await page.mouse.up(); await page.keyboard.up('Shift');
+    const band = await page.evaluate(() => window.MapView.selection().length);
+    ok(band >= 2, `Shift and a band select the places it touches (${band})`);
+    await page.keyboard.press('Control+a');
+    ok((await page.evaluate(() => window.MapView.selection().length)) === n1, `Ctrl+A selects every place (${n1})`);
+    await page.keyboard.press('Escape');
+  }
+
   // The page of keys.
   await page.keyboard.press('?');
   ok(await page.isVisible('#sheet') && /Keyboard shortcuts/.test(await page.textContent('#sheet-title')), '? opens the page of keys');

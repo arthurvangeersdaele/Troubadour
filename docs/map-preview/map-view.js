@@ -21,6 +21,8 @@
 
   let cv = null, ctx = null, place = null, world = null;
   let mode = 'edit', tool = 'select', stamp = 'lake', selected = null;
+  // More places selected with the one shown in the panel (Shift, a band, Ctrl+A): they move, go and copy together.
+  const group = new Set();
   let view = { x: 0, y: 0, k: 1 };
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
@@ -154,7 +156,7 @@
     return [r[0] + el.radius, r[1]];
   }
   function onReachHandle(sx, sy) {
-    if (!selected || mode !== 'edit' || tool !== 'select' || !place.elements.includes(selected)) return false;
+    if (!selected || group.size || mode !== 'edit' || tool !== 'select' || !place.elements.includes(selected)) return false;
     const q = toScreen(reachHandle(selected));
     return Math.hypot(sx - q[0], sy - q[1]) <= 18;
   }
@@ -199,7 +201,9 @@
     place.walls = o.walls; place.elements = o.elements; place.player = o.player;
     if (o.general) place.general = o.general;
     base = st;
+    const ids = [...group].map((e) => e.id);
     if (selected) select(place.elements.find((e) => e.id === selected.id) || null);
+    group.clear(); ids.forEach((id) => { const e = place.elements.find((x_) => x_.id === id); if (e && e !== selected) group.add(e); });
     dirty = true;
     if (api.onEdit) api.onEdit();
     // What the app tidies as it shows the map again (a name given to a place) is not a step of its own.
@@ -273,7 +277,7 @@
     const tol = 6 / view.k;
     const best = { x: null, y: null };
     place.elements.forEach((o) => {
-      if (o === el || layers.hidden.has(o.id)) return;
+      if (o === el || layers.hidden.has(o.id) || (gesture && gesture.others && gesture.others.includes(o))) return;
       const ob = M.bounds(o.shape);
       const theirs = { x: [ob[0], (ob[0] + ob[2]) / 2, ob[2]], y: [ob[1], (ob[1] + ob[3]) / 2, ob[3]] };
       ['x', 'y'].forEach((a) => mine[a].forEach((m) => theirs[a].forEach((t) => {
@@ -289,16 +293,46 @@
     if (best.y) { out[1] += best.y.d; guides.push({ y: best.y.at }); }
     return out;
   }
-  function copy() { if (!selected || !place) return false; clip = { world: world && world.id, from: place.id, el: JSON.stringify(selected) }; return true; }
+  function copy() { if (!selected || !place) return false; clip = { world: world && world.id, from: place.id, els: JSON.stringify(selection()) }; return true; }
+  /** Lays copies of several places together: their middle at `at`, or `off` aside; the first is the one shown. */
+  function layMany(srcs, at, off) {
+    if (srcs.length === 1) return lay(srcs[0], at, off);
+    const bs = srcs.map((e) => M.bounds(e.shape));
+    const box = [Math.min(...bs.map((b) => b[0])), Math.min(...bs.map((b) => b[1])), Math.max(...bs.map((b) => b[2])), Math.max(...bs.map((b) => b[3]))];
+    let dx = off || 0, dy = off || 0;
+    if (at) { dx = at[0] - (box[0] + box[2]) / 2; dy = at[1] - (box[1] + box[3]) / 2; }
+    // Kept on the map, all of them together.
+    dx = Math.max(-box[0], Math.min(place.width - box[2], dx)); dy = Math.max(-box[1], Math.min(place.height - box[3], dy));
+    snapshot();
+    const made = srcs.map((src) => {
+      const c = cloneElement(src);
+      shiftShape(c.shape, Math.round(dx), Math.round(dy));
+      place.elements.push(c);
+      return c;
+    });
+    group.clear(); made.slice(1).forEach((e) => group.add(e));
+    selected = null; select(made[0], true);
+    edited();
+    return made[0];
+  }
   function cut() { if (!copy()) return false; deleteSelected(); return true; }
   function paste() {
     if (!clip || !place || mode !== 'edit') return null;
     if (world && clip.world && clip.world !== world.id) return false;
-    const src = JSON.parse(clip.el);
+    const srcs = JSON.parse(clip.els);
     const inView = pointerW && pointerW[0] >= 0 && pointerW[1] >= 0 && pointerW[0] <= place.width && pointerW[1] <= place.height;
-    return lay(src, inView ? pointerW : null, clip.from === place.id ? 32 : 0);
+    return layMany(srcs, inView ? pointerW : null, clip.from === place.id ? 32 : 0);
   }
-  function duplicate() { if (!selected || !place) return null; return lay(selected, null, 32); }
+  /** Arrows: the selection moves by `d` units of the map (one step of the history per press). */
+  function nudge(dx, dy) {
+    const all = selection();
+    if (!all.length || mode !== 'edit') return false;
+    snapshot();
+    all.forEach((e) => shiftShape(e.shape, dx, dy));
+    edited();
+    return true;
+  }
+  function duplicate() { if (!selected || !place) return null; return layMany(selection(), null, 32); }
 
   /* ---------- The party's trail (at the table) ---------- */
   // Dragging the golden dot draws a dashed trail, treasure-map style; lifting the finger marks its end with a
@@ -473,11 +507,14 @@
       if (onReachHandle(s[0], s[1])) { snapshot(); gesture = { kind: 'reach', el: selected }; cv.classList.add('grabbing'); dirty = true; return; }
       if (onPlayer(s[0], s[1])) { snapshot(); gesture = { kind: 'player', start: s, dragged: false }; cv.classList.add('grabbing'); return; }
       const el = elementAt(w);
+      if (el && e.shiftKey) { toggleSelect(el); return; }
       if (el) {
-        // Alt-drag: a copy is moved, the element stays.
+        // Alt-drag: a copy is moved, the element stays. A place of a selection of many moves them all.
+        const many = !e.altKey && (el === selected || group.has(el)) && group.size > 0;
         const dragged = e.altKey ? lay(el, null, 0) : el;
-        select(dragged); snapshot();
-        const g = { kind: 'move', el: dragged, last: w, moved: false, s0: s };
+        const others = many ? selection().filter((x_) => x_ !== dragged) : [];
+        select(dragged, many); snapshot();
+        const g = { kind: 'move', el: dragged, others, last: w, moved: false, s0: s };
         // A long press without moving: the menu of the element (duplicate, delete, size, turn).
         g.hold = setTimeout(() => {
           if (gesture !== g || g.moved) return;
@@ -486,6 +523,8 @@
         }, PRESS_MS);
         gesture = g; cv.classList.add('grabbing'); return;
       }
+      // Shift on the map: a band selects every place it touches.
+      if (e.shiftKey) { gesture = { kind: 'band', a: w, b: w }; return; }
       select(null);
       gesture = { kind: 'pan', last: s };
       return;
@@ -542,6 +581,7 @@
         light = true;
         if (api.onPlayer) api.onPlayer(place.player, false);
         break;
+      case 'band': gesture.b = w; light = true; break;
       case 'reach': {
         const d = M.reach(w, gesture.el.shape).d;
         gesture.el.radius = Math.round(Math.max(0, Math.min(4000, d)) / 10) * 10;
@@ -564,6 +604,7 @@
         dx = want[0] - off[0]; dy = want[1] - off[1];
         gesture.off = want;
         shiftShape(gesture.el.shape, dx, dy);
+        (gesture.others || []).forEach((o) => shiftShape(o.shape, dx, dy));
         dirty = true;
         break;
       }
@@ -609,11 +650,18 @@
         if (last.el === g.el && t - last.t < 350) { last = { t: 0, s: [0, 0], el: null }; if (api.onOpen) api.onOpen(g.el); }
         else last = { t, s: [0, 0], el: g.el };
       }
-      const sh = g.el.shape;
-      if (sh.type === 'stamp') { sh.x = Math.round(sh.x); sh.y = Math.round(sh.y); } else sh.points.forEach((p) => { p[0] = Math.round(p[0]); p[1] = Math.round(p[1]); });
+      [g.el, ...(g.others || [])].forEach((x_) => { const sh = x_.shape; if (sh.type === 'stamp') { sh.x = Math.round(sh.x); sh.y = Math.round(sh.y); } else sh.points.forEach((p) => { p[0] = Math.round(p[0]); p[1] = Math.round(p[1]); }); });
       if (g.moved || tool === 'stamp') edited();
       if (g.created && api.onCreate) api.onCreate(g.el);
     } else if (g.kind === 'reach') { if (g.moved) edited(); }
+    else if (g.kind === 'band') {
+      const lo = [Math.min(g.a[0], g.b[0]), Math.min(g.a[1], g.b[1])], hi = [Math.max(g.a[0], g.b[0]), Math.max(g.a[1], g.b[1])];
+      const hit = place.elements.filter((x_) => { if (untouchable(x_)) return false; const b = M.bounds(x_.shape); return b[0] <= hi[0] && b[2] >= lo[0] && b[1] <= hi[1] && b[3] >= lo[1]; });
+      const keep = selection();
+      const all = [...new Set(keep.concat(hit))];
+      group.clear(); all.slice(1).forEach((x_) => group.add(x_));
+      selected = null; select(all[0] || null, true);
+    }
     else if (g.kind === 'stroke') finishStroke(g);
     dirty = true;
   }
@@ -879,12 +927,24 @@
       ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20, 12) : ctx.rect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20);
       ctx.fill(); ctx.stroke(); ctx.restore();
     }
+    if (mode === 'edit' && group.size) {
+      ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.2;
+      group.forEach((g_) => { if (!place.elements.includes(g_)) return; const b = M.bounds(g_.shape), p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]); ctx.strokeRect(p[0] - 6, p[1] - 6, q[0] - p[0] + 12, q[1] - p[1] + 12); });
+      ctx.restore();
+    }
+    if (gesture && gesture.kind === 'band') {
+      const p = toScreen(gesture.a), q = toScreen(gesture.b);
+      ctx.save(); ctx.fillStyle = alpha(pal.accent, 0.08); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
+      ctx.fillRect(Math.min(p[0], q[0]), Math.min(p[1], q[1]), Math.abs(q[0] - p[0]), Math.abs(q[1] - p[1]));
+      ctx.strokeRect(Math.min(p[0], q[0]) + 0.5, Math.min(p[1], q[1]) + 0.5, Math.abs(q[0] - p[0]), Math.abs(q[1] - p[1]));
+      ctx.restore();
+    }
     if (selected && mode === 'edit') {
       const b = M.bounds(selected.shape);
       const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
       ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5;
       ctx.strokeRect(p[0] - 8, p[1] - 8, q[0] - p[0] + 16, q[1] - p[1] + 16); ctx.restore();
-      if (tool === 'select' && place.elements.includes(selected)) {
+      if (tool === 'select' && place.elements.includes(selected) && !group.size) {
         // The reach handle, in the colour of the element's sounds; its number while it is dragged.
         const h = toScreen(reachHandle(selected)), c = zoneColour(selected);
         const busyReach = gesture && gesture.kind === 'reach';
@@ -1124,7 +1184,7 @@
   }
   function show(p, w) {
     dropTrail();
-    place = p; world = w; selected = null; undoStack.length = 0; redoStack.length = 0; base = null; clearTimeout(commitTimer); commit();
+    place = p; world = w; selected = null; group.clear(); undoStack.length = 0; redoStack.length = 0; base = null; clearTimeout(commitTimer); commit();
     fit();
     dirty = true;
   }
@@ -1134,16 +1194,36 @@
   let stampSizer = null;
   /** fn(stampId, place) gives the size of a place being laid, in units of the map. */
   function setStampSizer(fn) { stampSizer = fn; }
-  function select(el) {
+  function select(el, keepGroup) {
+    if (!keepGroup) group.clear();
+    if (el) group.delete(el);
     if (selected === el) { dirty = true; return; }
     selected = el;
     dirty = true;
     if (api.onSelect) api.onSelect(el);
   }
+  /** Every place selected: the one shown in the panel first. */
+  function selection() { return selected ? [selected, ...[...group].filter((e) => place.elements.includes(e) && e !== selected)] : []; }
+  /** Shift-click: a place joins the selection (it is the one the panel shows), or leaves it. */
+  function toggleSelect(el) {
+    if (!el) return;
+    if (el === selected) { const next = [...group].find((e) => place.elements.includes(e)) || null; if (next) group.delete(next); selected = null; select(next, true); return; }
+    if (group.has(el)) { group.delete(el); dirty = true; if (api.onSelect) api.onSelect(selected); return; }
+    if (selected) group.add(selected);
+    select(el, true);
+  }
+  function selectAll() {
+    const all = place.elements.filter((e) => !untouchable(e));
+    if (!all.length) return 0;
+    group.clear(); all.slice(1).forEach((e) => group.add(e));
+    selected = null; select(all[0], true);
+    return all.length;
+  }
   function deleteSelected() {
     if (!selected) return;
     snapshot();
-    place.elements.splice(place.elements.indexOf(selected), 1);
+    const gone = new Set(selection());
+    place.elements = place.elements.filter((e) => !gone.has(e));
     select(null);
     edited();
   }
@@ -1161,7 +1241,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __place: () => place, snap: (on) => (on === undefined ? snapOn : setSnap(on)), guides: () => guides.slice(), __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),

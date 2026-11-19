@@ -918,3 +918,6 @@ html:not(.mode-app) .splash { display: none; }
 .kb kbd { justify-self: start; font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card); color: var(--text); white-space: nowrap; }
 .kb span { font-size: 14px; }
 @media (hover: none) and (pointer: coarse) { .mp-tools [data-act="keys"] { display: none; } }
+.mp-many h3 { margin: 0; }
+.mp-many .hint { margin: 4px 0 8px; color: var(--muted); font-size: 14px; }
+.mp-many-acts { display: flex; gap: 8px; flex-wrap: wrap; }
