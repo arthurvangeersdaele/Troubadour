@@ -128,6 +128,28 @@ try {
   await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'play');
   await page.waitForFunction(() => window.MapAudio.isOpen(), null, { timeout: 60000 });
   ok(await page.isHidden('#mw-heard') && await page.isHidden('#mw-listen'), 'at the table: no Listen button, no panel');
+  // Now playing under the name, and the music lock (M6).
+  await page.waitForFunction(() => window.MapAudio.currentMusic(), null, { timeout: 20000 }).catch(() => {});
+  const m0 = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.name; });
+  if (m0) {
+    ok((await page.textContent('#mw-sub')).includes(`Music: ${m0}`), `now playing under the name of the world (${await page.textContent('#mw-sub')})`);
+    await page.waitForSelector('.mp-mlock', { state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await page.isVisible('.mp-mlock')) await page.click('.mp-mlock'); else await page.evaluate(() => window.MapAudio.lockMusic(true));
+    await page.waitForTimeout(300);
+    ok((await page.textContent('#mw-sub')).includes('(kept)'), 'the lock keeps the music, and says so');
+    const kept = await page.evaluate(async () => {
+      const A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      window.MapUI.settings.musicAsk = false; // the music starts on arrival, without asking first
+      const zones = window.MapView.__place().elements.filter((e) => e.cards.some((c) => c.zone === 'music'));
+      const go = async () => { const out = []; for (const e of zones) { A.hear(window.TroubadourMap.centre(e.shape), true); await wait(600); const m = A.currentMusic(); out.push(m && m.name); A.hear([1, 1], true); await wait(400); } return out; };
+      const locked = await go();
+      A.lockMusic(false);
+      const free = await go();
+      return { locked, free };
+    });
+    ok(kept.locked.length > 0 && kept.locked.every((n) => n === m0), `locked: walking into places with their own music keeps ${m0} (${kept.locked.length} places)`);
+    ok(kept.free.some((n) => n !== m0), `unlocked: a place with its own music changes it (${kept.free.join(', ')})`);
+  }
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
   const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');

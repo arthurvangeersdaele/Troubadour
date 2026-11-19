@@ -624,7 +624,8 @@
     if (mode === 'play') setPanel(true);
     $('#mw-title').textContent = rec.story.title || 'World';
     if (document.activeElement !== $('#mw-title-in')) $('#mw-title-in').value = rec.story.title || '';
-    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    nowShown = '';
+    paintNowPlaying();
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
     V.setMode(mode);
     V.show(place(), rec.world);
@@ -841,7 +842,8 @@
       add.addEventListener('click', () => addPlace());
       rail.append(add);
     }
-    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    nowShown = '';
+    paintNowPlaying();
   }
 
   async function renamePlace(p) {
@@ -1637,7 +1639,19 @@
     all.type = 'button';
     all.innerHTML = `${ICON.music}<span>All musics</span>`;
     all.addEventListener('click', openMusic);
-    s.querySelector('h3').append(all);
+    // The lock: the music heard stays wherever the party goes (until it is unlocked).
+    const lock = el('button', 'ico small mp-mlock');
+    lock.type = 'button';
+    const paintLock = () => {
+      const on = A.musicLocked();
+      lock.innerHTML = on ? ICON.lock : ICON.unlock;
+      lock.setAttribute('aria-pressed', String(on));
+      lock.title = on ? 'The music stays wherever the party goes: tap to let places change it' : 'Keep this music wherever the party goes';
+      lock.setAttribute('aria-label', lock.title);
+    };
+    lock.addEventListener('click', () => { A.lockMusic(!A.musicLocked()); paintLock(); paintNowPlaying(); toast(A.musicLocked() ? 'The music stays wherever the party goes.' : 'Places change the music again.', 1800); });
+    paintLock();
+    s.querySelector('h3').append(lock, all);
     const holder = el('div', 'el-cards');
     s.append(holder);
     let shown, rows = [];
@@ -1730,6 +1744,17 @@
 
   let liveTimer = 0;
   function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); arriveRows.forEach((f) => f()); }
+  /** Now playing, under the world's name at the table: the map, and the music heard (kept or not). */
+  let nowShown = '';
+  function paintNowPlaying() {
+    if (!rec) return;
+    let t = `Map ${pi + 1}: ${place().title}`;
+    if (mode === 'play' && A.isOpen()) {
+      const m = A.currentMusic();
+      if (m) t += `. Music: ${m.name}${A.musicLocked() ? ' (kept)' : ''}`;
+    }
+    if (t !== nowShown) { nowShown = t; $('#mw-sub').textContent = t; }
+  }
   function liveLoop() {
     clearInterval(liveTimer);
     // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
@@ -1739,6 +1764,7 @@
       const w = $('#world').classList;
       if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
       paintMaster();
+      paintNowPlaying();
     }, 100);
   }
 

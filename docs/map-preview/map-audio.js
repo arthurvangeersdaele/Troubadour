@@ -591,7 +591,7 @@
     const theme = zoneMusic() || p.general.find(isMusic) || null;
     zoneKey = theme ? theme.file : 'map'; moving = false;
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
-    if (tv && tv.state !== 'playing') toggleVoice(tv);
+    if (tv && tv.state !== 'playing' && !(musicLocked && currentMusic())) toggleVoice(tv);
     changed();
   }
 
@@ -615,12 +615,15 @@
   /** Called as the party moves: stopping in a place with a music crossfades to it; stopping out of it brings back the
    *  music of the whole map. Only where the party stops counts: a place it only walks through leaves the music as it
    *  is. Only a change of zone switches the music, so a music chosen by hand plays on. */
+  // The music lock (261114_map_plan.md, M6): the music heard stays, whatever place the party reaches.
+  let musicLocked = false;
   function followZone() {
     if (!place || zoneKey === undefined || moving) return;
     const z = zoneMusic();
     const key = z ? z.file : 'map';
     if (key === zoneKey) return;
     zoneKey = key;
+    if (musicLocked) return;
     // Arriving on a place with music: the app may show its musics first (setting Ask before a place's music); it
     // starts one itself, or calls back the fallback when nothing was touched.
     if (z && api.onPlace) {
@@ -637,6 +640,7 @@
 
   /** Everything stops: the world is left, or drawn. */
   function close(ms = settings.fade) {
+    musicLocked = false;
     voices.forEach((v) => drop(v, ms));
     voices.clear();
     pausedByAll = []; heldRandom = []; queue = [];
@@ -755,7 +759,7 @@
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
-    isOpen: () => !!place, point: () => point, heardNow, meter, meterOff,
+    isOpen: () => !!place, point: () => point, lockMusic: (on) => { musicLocked = !!on; changed(); }, musicLocked: () => musicLocked, heardNow, meter, meterOff,
   });
   global.MapAudio = api;
 })(window);
