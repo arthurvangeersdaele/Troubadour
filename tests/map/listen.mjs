@@ -150,6 +150,26 @@ try {
     ok(kept.locked.length > 0 && kept.locked.every((n) => n === m0), `locked: walking into places with their own music keeps ${m0} (${kept.locked.length} places)`);
     ok(kept.free.some((n) => n !== m0), `unlocked: a place with its own music changes it (${kept.free.join(', ')})`);
   }
+  // A long press on the map sends the party there, the shortest way around the walls (M6).
+  const way = await page.evaluate(() => {
+    const V = window.MapView, p = V.__place(), M = window.TroubadourMap;
+    const W = p.width, H = p.height, x = Math.round(W * 0.5);
+    p.walls.push({ points: [[x, Math.round(H * 0.1)], [x, Math.round(H * 0.9)]], __test: 1 });
+    const a = [Math.round(W * 0.3), Math.round(H * 0.5)], b = [Math.round(W * 0.7), Math.round(H * 0.5)];
+    const path = V.__findPath(a, b);
+    const crossings = path ? path.slice(1).reduce((n, q, i) => n + M.wallsBetween(path[i], q, p.walls), 0) : -1;
+    const len = path ? path.slice(1).reduce((l, q, i) => l + Math.hypot(q[0] - path[i][0], q[1] - path[i][1]), 0) : 0;
+    return { ok: !!path, crossings, len, straight: Math.hypot(b[0] - a[0], b[1] - a[1]), n: path ? path.length : 0, ends: path && [path[0], path[path.length - 1]], a, b };
+  });
+  ok(way.ok && way.crossings === 0 && way.len > way.straight * 1.1 && way.n <= 8, `the way around a wall: no wall crossed, ${way.n} points, ${Math.round(way.len)} long for ${Math.round(way.straight)} straight`);
+  // On the screen: a long press beyond the wall draws the trail there.
+  await page.evaluate(() => { const t = document.getElementById('mw-play-tip'); if (t) t.classList.add('gone'); document.getElementById('world').classList.remove('panel'); });
+  await page.waitForTimeout(400);
+  const lp = await page.evaluate(() => { const V = window.MapView, p = V.__place(); p.player = [Math.round(p.width * 0.3), Math.round(p.height * 0.5)]; const s = V.__toScreen([Math.round(p.width * 0.7), Math.round(p.height * 0.5)]), r = document.getElementById('mw-canvas').getBoundingClientRect(); return [r.left + s[0], r.top + s[1]]; });
+  await page.mouse.move(lp[0], lp[1]); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
+  const tr = await page.evaluate(() => window.MapView.__trail());
+  ok(tr && tr.n >= 3, `a long press beyond the wall sends the party round it (${tr ? `${tr.n} points, ${tr.phase}` : 'no trail'})`);
+  await page.evaluate(() => { const p = window.MapView.__place(); p.walls = p.walls.filter((w) => !w.__test); });
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
   const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');

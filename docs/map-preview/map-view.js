@@ -27,7 +27,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [], redoStack = [];
-  const api = { onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
+  const api = { onNoWay: null, onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -360,6 +360,88 @@
     if (Math.hypot(q[0] - last[0], q[1] - last[1]) * view.k >= 4) trail.pts.push(q);
     light = true;
   }
+  /* ---------- Sending the party (M6): a long press on the map, the shortest way around the walls ---------- */
+  /** The way from a to b: straight when no wall is between, else around the walls on a grid (A*), pulled tight.
+   *  Null when walls close it off. */
+  function findPath(a, b) {
+    if (!blocked(a, b)) return [a.slice(), b.slice()];
+    const cs = Math.max(place.width, place.height) / 140, nx = Math.ceil(place.width / cs), ny = Math.ceil(place.height / cs);
+    const wall = new Uint8Array(nx * ny);
+    const near2 = (cs * 0.8) * (cs * 0.8);
+    place.walls.forEach((w) => {
+      for (let i = 1; i < w.points.length; i++) {
+        const p = w.points[i - 1], q = w.points[i];
+        const x0 = Math.max(0, Math.floor((Math.min(p[0], q[0]) - cs) / cs)), x1 = Math.min(nx - 1, Math.ceil((Math.max(p[0], q[0]) + cs) / cs));
+        const y0 = Math.max(0, Math.floor((Math.min(p[1], q[1]) - cs) / cs)), y1 = Math.min(ny - 1, Math.ceil((Math.max(p[1], q[1]) + cs) / cs));
+        for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) {
+          if (M.nearestOnSegment([(gx + 0.5) * cs, (gy + 0.5) * cs], p, q).d2 <= near2) wall[gy * nx + gx] = 1;
+        }
+      }
+    });
+    const cellOf = (pt) => [Math.max(0, Math.min(nx - 1, Math.floor(pt[0] / cs))), Math.max(0, Math.min(ny - 1, Math.floor(pt[1] / cs)))];
+    // The nearest free cell to a point (it may stand right by a wall).
+    const free = (c) => {
+      if (!wall[c[1] * nx + c[0]]) return c;
+      for (let r = 1; r < 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        const x_ = c[0] + dx, y_ = c[1] + dy;
+        if (x_ >= 0 && y_ >= 0 && x_ < nx && y_ < ny && !wall[y_ * nx + x_]) return [x_, y_];
+      }
+      return null;
+    };
+    const s0 = free(cellOf(a)), g0 = free(cellOf(b));
+    if (!s0 || !g0) return null;
+    const N = nx * ny, start = s0[1] * nx + s0[0], goal = g0[1] * nx + g0[0];
+    const gS = new Float64Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), shut = new Uint8Array(N);
+    const h = (i) => Math.hypot((i % nx) - g0[0], Math.floor(i / nx) - g0[1]);
+    const open = [[h(start), start]];
+    gS[start] = 0;
+    const steps = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]];
+    let found = false;
+    while (open.length) {
+      // A small binary heap would be quicker; a map has at most 140 × 140 cells, a sorted pop is enough.
+      let bi = 0; for (let k = 1; k < open.length; k++) if (open[k][0] < open[bi][0]) bi = k;
+      const [, i] = open[bi]; open[bi] = open[open.length - 1]; open.pop();
+      if (shut[i]) continue;
+      if (i === goal) { found = true; break; }
+      shut[i] = 1;
+      const cx = i % nx, cy = Math.floor(i / nx);
+      for (const [dx, dy, w] of steps) {
+        const x_ = cx + dx, y_ = cy + dy;
+        if (x_ < 0 || y_ < 0 || x_ >= nx || y_ >= ny) continue;
+        const j = y_ * nx + x_;
+        if (wall[j] || shut[j]) continue;
+        if (dx && dy && (wall[cy * nx + x_] || wall[y_ * nx + cx])) continue; // no corner cut through a wall
+        const g = gS[i] + w;
+        if (g < gS[j]) { gS[j] = g; from[j] = i; open.push([g + h(j), j]); }
+      }
+    }
+    if (!found) return null;
+    const cells = [];
+    for (let i = goal; i >= 0; i = from[i]) { cells.push([((i % nx) + 0.5) * cs, (Math.floor(i / nx) + 0.5) * cs]); if (i === start) break; }
+    cells.reverse();
+    const pts = [a.slice(), ...cells, b.slice()];
+    // Pulled tight: from each point, straight to the farthest one no wall hides.
+    const out = [pts[0]];
+    let i = 0;
+    while (i < pts.length - 1) {
+      let j = pts.length - 1;
+      while (j > i + 1 && blocked(pts[i], pts[j])) j--;
+      out.push(pts[j]);
+      i = j;
+    }
+    return out.map((q) => [Math.round(q[0]), Math.round(q[1])]);
+  }
+  /** Sends the party to w along its way: the trail is drawn, and walked a second later. */
+  function sendTo(w) {
+    const to = clampPoint(w);
+    const path = findPath(place.player, to);
+    if (!path) { if (api.onNoWay) api.onNoWay(); return false; }
+    dropTrail();
+    trail = { pts: path, phase: 'draw' };
+    endTrail();
+    return true;
+  }
+
   function measure(pts) {
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
@@ -468,6 +550,7 @@
     pointers.set(e.pointerId, s);
     if (pointers.size === 2) {
       // Two fingers: whatever was being drawn is dropped, the map moves and zooms.
+      endPress();
       if (gesture && gesture.kind === 'stroke') gesture = null;
       if (gesture && gesture.kind === 'player' && trail && trail.phase === 'draw') dropTrail();
       const [a, b] = [...pointers.values()];
@@ -498,6 +581,12 @@
       }
       // On the point: a drag moves it, a tap (or a double tap) counts as a tap on the map below it.
       if (onPlayer(s[0], s[1])) { gesture = { kind: 'player', start: s, el: elementAt(w), dragged: false }; return; }
+      // A long press anywhere else (not on a sign): the party goes there, the shortest way around the walls.
+      if (!lk && pointers.size === 1) {
+        endPress();
+        press = { go: w, t0: performance.now(), s, timer: setTimeout(() => { endPress(); gesture = null; sendTo(w); }, PRESS_MS) };
+        light = true;
+      }
       gesture = { kind: 'tap', start: s, last: s, el: elementAt(w) };
       return;
     }
@@ -563,7 +652,7 @@
       case 'pan': fillOnResize = false;
         view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); gesture.last = s; dirty = true; break;
       case 'tap':
-        if (Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) > 6) gesture.panning = true;
+        if (Math.hypot(s[0] - gesture.start[0], s[1] - gesture.start[1]) > 6) { gesture.panning = true; if (press && press.go) endPress(); }
         if (gesture.panning) { fillOnResize = false; view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); dirty = true; }
         gesture.last = s; break;
       case 'cross': if (trail) dragCross(w); break;
@@ -913,6 +1002,12 @@
 
     // In screen pixels from here: the long press on a way, the selection, the party.
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (press && press.go) {
+      // The long press that sends the party: a gold ring fills round the finger.
+      const f = Math.min(1, (performance.now() - press.t0) / PRESS_MS);
+      if (f > 0.15) { ctx.beginPath(); ctx.arc(press.s[0], press.s[1], 24, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.stroke(); }
+      light = true;
+    }
     if (press && press.el && press.el.link) {
       const [lx, ly] = toScreen(M.centre(press.el.shape));
       const f = Math.min(1, (performance.now() - press.t0) / PRESS_MS);
@@ -1243,7 +1338,7 @@
   Object.assign(api, {
     mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
-    __toScreen: (p) => toScreen(p), __place: () => place, snap: (on) => (on === undefined ? snapOn : setSnap(on)), guides: () => guides.slice(), __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
+    __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, snap: (on) => (on === undefined ? snapOn : setSnap(on)), guides: () => guides.slice(), __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),
   });
   global.MapView = api;

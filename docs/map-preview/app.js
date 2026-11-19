@@ -673,7 +673,7 @@
       A.open(place(), rec.world, sounds);
       soundGate();
       acquireWake();
-      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way.`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
       let seen = 0;
       try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }
@@ -3761,6 +3761,7 @@
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
     V.onHistory = paintHistory;
+    V.onNoWay = () => toast('No way there: walls close it off.', 2000);
     V.onReach = reachDragged;
     V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (listening) prepare(worldFiles(rec), false).then(() => { if (listening && A.isOpen()) A.sync(); }); } };
