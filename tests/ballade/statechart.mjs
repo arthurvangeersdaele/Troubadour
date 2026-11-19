@@ -20,10 +20,13 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((ok) => server.listen(0, ok));
 const base = `http://localhost:${server.address().port}`;
+// The app under test: the preview while a rebuild is under way (docs/ballade-preview), else Ballade itself.
+const APP = process.env.BALLADE_APP || (fs.existsSync(path.join(ROOT, 'docs/ballade-preview')) ? 'ballade-preview' : 'ballade');
+console.log(`(testing docs/${APP})`);
 
 const browser = await chromium.launch(Object.assign({ args: ['--autoplay-policy=no-user-gesture-required'] }, process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}));
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
-const page = await ctx.newPage();
+let page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 
@@ -33,7 +36,7 @@ const state = () => page.evaluate(() => { const s = FlowPlayer.state(); return s
 const until = async (want, ms) => { const end = Date.now() + ms; let s; while (Date.now() < end) { s = await state(); if (want(s)) return s; await page.waitForTimeout(250); } return s; };
 
 console.log('Ballade chapter (ballade/flow-player.js, state())');
-await page.goto(`${base}/ballade/`);
+await page.goto(`${base}/${APP}/`);
 await page.waitForSelector('.bm-tale');
 await page.locator('.bm-tale', { hasText: 'Treasure' }).click();
 await page.locator('.bm-btn', { hasText: 'Play' }).click();
@@ -83,6 +86,36 @@ await page.click('.fl-nextch');
 const next = await until((s) => s === 'idle', 15000);
 const ch1 = await page.evaluate(() => FlowPlayer.chapter());
 ok(next === 'idle' && ch1 === ch0 + 1, `--Next chapter--> waiting in the next chapter, got ${next} in chapter ${ch1}`);
+
+// The time decides, not the drawing (P3): a tap's sounds start within 0.6 s whatever the Wire speed, and the
+// clock reaches a gate even when nothing is drawn (a locked screen stops the drawing).
+for (const clock of [4, 30]) {
+  const fresh = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+  page = await fresh.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(`${base}/${APP}/`);
+  await page.waitForSelector('.bm-tale');
+  await page.evaluate((c) => { FlowUI.settings.clock = c; }, clock);
+  await page.locator('.bm-tale', { hasText: 'Treasure' }).click();
+  await page.locator('.bm-btn', { hasText: 'Play' }).click();
+  await until((s) => s === 'idle', 30000);
+  await page.waitForFunction(() => !/loading/i.test((document.querySelector('.fl-go') || {}).textContent || '') && !document.querySelector('.fl-go[disabled]'), null, { timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => {
+    window.__starts = [];
+    const S = AudioBufferSourceNode.prototype.start;
+    if (!AudioBufferSourceNode.prototype.__w) { AudioBufferSourceNode.prototype.__w = 1; AudioBufferSourceNode.prototype.start = function (when, ...a) { (window.__starts || []).push(when); return S.call(this, when, ...a); }; }
+  });
+  const tap = await page.evaluate(() => { const t = FlowPlayer.state().t; document.querySelector('.fl-go').click(); return t; });
+  await page.waitForTimeout(300);
+  const first = await page.evaluate(() => Math.min(...window.__starts));
+  ok(first - tap < 0.65, `Wire speed ${clock}: Begin's first sound ${((first - tap) * 1000).toFixed(0)} ms after the tap (0.6 s at most)`);
+  if (clock === 30) {
+    await page.evaluate(() => { window.requestAnimationFrame = () => 0; }); // nothing is drawn any more
+    const r = await until((s) => s === 'wait' || s === 'choice', 90000);
+    ok(r === 'wait' || r === 'choice', `nothing drawn: the clock still reaches the gate (${r})`);
+  }
+}
 
 ok(errors.length === 0, `no page error${errors.length ? ': ' + errors.join('; ') : ''}`);
 await browser.close();

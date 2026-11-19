@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-theme="obsidian" data-mode="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Troubadour Ballade (preview)</title>
+<meta name="description" content="Troubadour Ballade: prepare the exact timing of your story's sounds before the session, then follow the golden wire at the table.">
+<meta name="theme-color" content="#15151B">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Troubadour Ballade">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="261017_troubadour_ballade.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/261017_troubadour_ballade_icon.svg">
+<link rel="apple-touch-icon" href="icons/261017_troubadour_ballade_180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/components.css">
+<link rel="stylesheet" href="../play/style.css">
+<link rel="stylesheet" href="../troupe/troupe.css">
+<link rel="stylesheet" href="flow.css">
+<link rel="stylesheet" href="../shared/install.css">
+<script src="../themes.js"></script>
+<script>
+  (function () {
+    var root = document.documentElement, ua = navigator.userAgent;
+    try {
+      var s = JSON.parse(localStorage.getItem('troubadour.flow.settings') || localStorage.getItem('troubadour.settings') || '{}');
+      var mode = s.mode || 'dark';
+      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
+      root.dataset.mode = mode;
+    } catch (e) {}
+    try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
+    // An iPad counts as an iPhone (installed from Safari, played from the Home Screen); it also holds the builder in landscape.
+    var ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    root.classList.toggle('ipad', ipad);
+    var iphone = /iPhone|iPod/.test(ua) || ipad;
+    window.TROUBADOUR_DEVICE = ipad ? 'iPad' : 'iPhone';
+    var standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    root.classList.toggle('iphone', iphone);
+    root.classList.toggle('standalone', standalone);
+    // Which face of the page: the app (iPhone Home Screen, or a computer for the editor),
+    // the install guide (iPhone, in a browser tab: this page is the app) or the notice for other devices.
+    var pc = root.classList.contains('pc');
+    root.classList.add(iphone ? (standalone ? 'mode-app' : 'mode-install') : (pc ? 'mode-app' : 'mode-other'));
+  })();
+</script>
+</head>
+<body>
+
+<!-- ============ Not an iPhone, not an iPad, not a computer ============ -->
+<main class="gate gate-other">
+  <div class="gate-card">
+    <img class="gate-icon" src="icons/261017_troubadour_ballade_180.png" alt="" width="84" height="84">
+    <p class="kicker">Troubadour Ballade</p>
+    <h1>Made for iPhone and iPad</h1>
+    <p>Troubadour Ballade installs on an iPhone or an iPad, from Safari, as an app on the Home Screen. Open this page there to install it.</p>
+    <p class="small">On a computer, this page is the Ballade builder: shape the timing of your stories there, or on an iPad held sideways. On Android, Troubadour Ballade is coming as an app.</p>
+    <a class="btn primary" href="../">Back to Troubadour</a>
+  </div>
+</main>
+
+<!-- ============ iPhone, in a browser: install guide ============ -->
+<main class="gate gate-install">
+  <div class="gate-card inst">
+    <div class="inst-hero">
+      <img class="gate-icon" src="icons/261017_troubadour_ballade_180.png" alt="" width="72" height="72">
+      <div>
+        <p class="kicker">Troubadour Ballade</p>
+        <h1>Add this page to your Home Screen</h1>
+      </div>
+    </div>
+    <p class="inst-key"><b>This page is the app.</b> Add it to your Home Screen: it becomes the Troubadour Ballade icon, and you play from there.</p>
+
+    <div class="inst-inapp" id="inst-inapp" hidden>
+      <p><b>First, open this page in Safari.</b> The browser you are in cannot add apps to the Home Screen.</p>
+      <p class="muted small">Tap its menu and choose <b>Open in Safari</b> (or <b>Open in browser</b>), or copy the link and paste it in Safari.</p>
+      <button class="btn primary" type="button" id="inst-copy">Copy the link</button>
+    </div>
+
+    <ol class="isteps" id="isteps">
+      <li>
+        <div class="mock m-bar" id="m-bar" aria-hidden="true">
+          <i class="m-dot"></i><span class="m-url">arthurvangeersdaele.github.io</span><i class="m-btn" id="m-btn"></i>
+        </div>
+        <div class="itxt"><b id="step1-title">Tap Share</b><span id="step1-text"></span></div>
+      </li>
+      <li>
+        <div class="mock m-sheet" aria-hidden="true">
+          <span>Copy</span><span>Add to Reading List</span><span class="hl"><i class="m-plus"></i>Add to Home Screen</span>
+        </div>
+        <div class="itxt"><b>Tap Add to Home Screen</b><span>Scroll down the list if needed.</span></div>
+      </li>
+      <li>
+        <div class="mock m-add" aria-hidden="true">
+          <span class="m-top"><i>Cancel</i><em>Add</em></span>
+          <span class="m-name"><img src="icons/261017_troubadour_ballade_180.png" alt="">Troubadour Ballade</span>
+          <span class="m-toggle">Open as Web App<i></i></span>
+        </div>
+        <div class="itxt"><b>Tap Add</b><span>If you see <b>Open as Web App</b>, keep it on.</span></div>
+      </li>
+      <li>
+        <div class="mock m-home" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><img src="icons/261017_troubadour_ballade_180.png" alt="">
+        </div>
+        <div class="itxt"><b>Play from the Troubadour Ballade icon</b><span>Close the browser, open Troubadour Ballade from your Home Screen and hold your phone upright.</span></div>
+      </li>
+    </ol>
+    <p class="muted small">Only once: iOS lets an app be added from a page through these steps only.</p>
+    <a class="back-link" href="../">Back to the Troubadour page</a>
+  </div>
+  <div class="to-share" id="to-share" aria-hidden="true"><span id="to-share-label">Share</span><i></i></div>
+</main>
+
+<!-- ============ The app ============ -->
+<div class="app" id="app">
+
+<!-- Opening: a golden dot, the wire runs down from it and splits in two around the word Ballade, like the logo;
+     the word rises in relief, gold climbs its letters and a glint sweeps them, then all melts into a pure white Ballade. -->
+<div class="splash bl-splash" id="splash" aria-hidden="true">
+  <div class="bl-stage" id="bl-stage">
+    <!-- The Troubadour Ballade logo, drawn exactly as the icon (branding/261017_troubadour_ballade_icon.svg). -->
+    <svg class="bl-wire" viewBox="160 140 704 740" aria-hidden="true">
+      <g class="bl-bars">
+        <rect x="224" y="416" width="128" height="320" rx="64" fill="#5C4627"/>
+        <rect x="448" y="256" width="128" height="512" rx="64" fill="#244E49"/>
+        <rect x="672" y="352" width="128" height="384" rx="64" fill="#5C302D"/>
+      </g>
+      <g class="bl-halo">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-halo2">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-core">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <g class="bl-shine">
+        <path class="bl-stem" pathLength="1" d="M512 196V500"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 352 640 352 812"/>
+        <path class="bl-arm" pathLength="1" d="M512 500C512 630 672 640 672 812"/>
+      </g>
+      <circle class="bl-dot top" cx="512" cy="176" r="38"/>
+      <circle class="bl-dot l" cx="352" cy="826" r="46"/>
+      <circle class="bl-dot r" cx="672" cy="826" r="46"/>
+    </svg>
+    <b class="sp-word bl-word" id="sp-word" data-text="Ballade">Ballade</b>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word'), stage = document.getElementById('bl-stage');
+    if (!root.classList.contains('mode-app')) { sp.remove(); return; }
+    var started = false, gone = false;
+    // Small and quiet, at Troubadour's letter size (ios/index.html): 8 % of the short side of the screen, between 28
+    // and 46 px; the logo stands above the word at 1.7 times the height of its letters.
+    function fit() {
+      var size = Math.max(28, Math.min(46, Math.min(window.innerWidth, window.innerHeight) * 0.08));
+      var logo = size * 1.7;
+      stage.style.width = (logo * 704 / 740) + 'px';
+      stage.style.gap = (size * 0.35) + 'px';
+      stage.querySelector('svg').style.height = logo + 'px';
+      word.style.fontSize = size + 'px';
+    }
+    function hide() {
+      if (gone) return; gone = true;
+      sp.classList.add('sp-out');
+      setTimeout(function () { sp.remove(); window.removeEventListener('resize', fit); }, 520);
+    }
+    function go() {
+      if (started) return; started = true;
+      fit();
+      sp.classList.add('sp-go');
+      var quiet = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(hide, quiet ? 900 : 3900);
+    }
+    window.addEventListener('resize', fit);
+    try {
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('700 100px "Cormorant SC"').then(go, go);
+        setTimeout(go, 800);
+      } else go();
+    } catch (e) { go(); }
+    sp.addEventListener('click', hide);
+    setTimeout(hide, 5600);
+  })();
+</script>
+
+<div class="rotate" aria-hidden="true">
+  <div class="phone-up"><i></i></div>
+  <b>Hold your phone upright</b>
+  <span>Troubadour Ballade follows the wire from top to bottom.</span>
+</div>
+
+<!-- ============ Library ============ -->
+<main id="library" class="fl-screen" hidden>
+  <!-- On a computer: La Troupe's bar and the builder's main menu (troupe/builder-menu.js) -->
+  <header class="sbar bm-bar">
+    <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+    <b class="here">Ballade builder</b>
+    <span class="grow"></span>
+    <a class="install" href="../#get" data-name="Ballade" data-ios="ballade/">Install now</a>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="bm-host" id="bm-host"></div>
+  <header class="sbar fl-sbar">
+    <svg class="brand bl-brand" viewBox="300 120 424 760" aria-hidden="true"><path d="M512 196V500C512 630 352 640 352 812M512 500C512 630 672 640 672 812"/><circle cx="512" cy="176" r="38"/><circle cx="352" cy="826" r="46"/><circle cx="672" cy="826" r="46"/></svg>
+    <span class="logo"><span class="lt">Troubadour </span><em>Ballade</em></span>
+    <span class="grow"></span>
+    <button class="ico" type="button" data-action="add-story" aria-label="Add a story" title="Add a story"></button>
+    <a class="ico" id="help" href="../troubadour-ballade/" target="_blank" rel="noopener" aria-label="Help: the Troubadour Ballade page" title="Help"></a>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="lib-wrap">
+    <div id="flow-list" class="lib-grid"></div>
+  </div>
+</main>
+
+<!-- ============ Player ============ -->
+<main id="player" class="fl-screen fl-player" hidden>
+  <header class="fl-top">
+    <button class="ico small" type="button" id="fl-back" aria-label="Back to the stories" title="Back"></button>
+    <span class="fl-story" id="fl-story"></span>
+    <span class="fl-status" id="fl-status"></span>
+    <button class="ico small" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <nav class="fl-chapters" id="fl-chapters" aria-label="Chapters"></nav>
+  <div class="fl-scroll" id="fl-scroll">
+    <div class="fl-cascade" id="fl-cascade"></div>
+  </div>
+  <footer class="fl-dock">
+    <div class="fl-dock-row">
+      <button class="fl-round" type="button" id="fl-stop" aria-label="Fade out everything and start the chapter again" title="Fade out everything"></button>
+      <button class="fl-round" type="button" id="fl-pause" aria-label="Pause" title="Pause"></button>
+      <button class="fl-go loading" type="button" id="fl-go" disabled><b id="fl-go-label">Loading sounds</b><span id="fl-go-sub"></span></button>
+      <button class="fl-round sb" type="button" id="fl-sb" aria-label="Soundbox" aria-pressed="false" title="Soundbox"></button>
+    </div>
+    <div class="fl-dock-row slim">
+      <label for="fl-master">Master</label>
+      <input type="range" id="fl-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
+    </div>
+  </footer>
+  <aside class="fl-drawer" id="fl-drawer" hidden aria-label="Soundbox">
+    <div class="sb-head"><h2>Soundbox</h2><button class="ico small" type="button" id="fl-drawer-close" aria-label="Close the soundbox"></button></div>
+    <div class="sb-vol"><label for="fl-sbvol">Volume</label><input type="range" id="fl-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
+    <div class="pads" id="fl-pads"></div>
+  </aside>
+</main>
+
+<!-- ============ Builder asked for on a phone, or an iPad held upright ============ -->
+<main id="nobuild" class="fl-nobuild" hidden>
+  <div>
+    <svg class="big" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <h1 id="nobuild-title">The builder needs a bigger screen</h1>
+    <p id="nobuild-text">Shape the timing of your Ballade on a computer, or on an iPad held sideways. Here, you can play it.</p>
+    <div class="acts">
+      <button class="btn" type="button" id="nobuild-back">Back to the stories</button>
+      <button class="btn primary" type="button" id="nobuild-play">Play this story</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ Editor (computer, iPad in landscape) ============ -->
+<main id="editor" class="fe-screen" hidden>
+  <header class="tbar">
+    <button class="ico" type="button" id="fe-back" aria-label="Back to the stories" title="Back"></button>
+    <div class="ttl"><b id="fe-title"></b><span id="fe-sub"></span></div>
+    <span class="fe-saved" id="fe-saved" aria-live="polite"></span>
+    <button class="btn slim" type="button" id="fe-troubadour" title="The story alone, without its Ballade">Export .troubadour</button>
+    <button class="btn slim" type="button" id="fe-play" title="Play this chapter as at the table">Play</button>
+    <button class="btn slim primary" type="button" id="fe-forge">Export the Ballade</button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="fe-body">
+    <nav class="rail" id="fe-chapters" aria-label="Chapters"></nav>
+    <section class="fe-main" id="fe-main" aria-label="Steps of the chapter"></section>
+    <aside class="fe-side">
+      <div class="fe-inspector" id="fe-inspector"></div>
+      <div class="fe-sounds" id="fe-sounds"></div>
+    </aside>
+  </div>
+</main>
+
+</div><!-- .app -->
+
+<!-- Settings -->
+<dialog id="settings" class="settings" aria-labelledby="settings-title">
+  <form method="dialog" class="set-head">
+    <h2 id="settings-title">Settings</h2>
+    <button class="ico small" value="close" aria-label="Close settings"></button>
+  </form>
+  <section>
+    <h3>Theme</h3>
+    <div class="themes" id="theme-pick" role="radiogroup" aria-label="Theme"></div>
+  </section>
+
+  <section>
+    <h3>Appearance</h3>
+    <div class="seg" id="mode-pick" role="radiogroup" aria-label="Appearance">
+      <button type="button" role="radio" data-v="dark">Dark</button>
+      <button type="button" role="radio" data-v="light">Light</button>
+      <button type="button" role="radio" data-v="system">System</button>
+    </div>
+  </section>
+
+  <section>
+    <h3>Troubadour name</h3>
+    <div class="troubadour-account" id="troubadour-account"></div>
+  </section>
+
+<section>
+  <h3>Screen</h3>
+    <div data-t-rows="awake"></div>
+</section>
+
+  <section>
+    <h3>Playback</h3>
+    <div data-t-rows="fade even silent.iphone-only"></div>
+    <div class="row-set">
+      <span>Wire speed<small>How fast the gold runs down the screen, the same for every sound: one minute of music is this tall</small></span>
+      <div class="seg small" id="clock-pick" role="radiogroup" aria-label="Wire speed">
+        <button type="button" role="radio" data-v="6">Slow</button>
+        <button type="button" role="radio" data-v="10">Normal</button>
+        <button type="button" role="radio" data-v="16">Fast</button>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>Next chapter starts at once<small>Off: Next chapter opens the chapter and waits for your Begin. On: its first sounds start right away</small></span><input type="checkbox" id="opt-autonext"><i></i></label>
+  </section>
+
+  <section>
+    <h3>Storage</h3>
+    <div class="store-info muted small" id="store-info">Checking…</div>
+    <div class="set-acts">
+      <button class="btn danger" type="button" data-action="wipe">Erase everything</button>
+    </div>
+    <p class="muted small">Your Ballades live on this device only. Keep the .troubadour-ballade files you export: they are your backup.</p>
+  </section>
+
+  <section class="about">
+    <h3>About</h3>
+    <p class="muted">Troubadour Ballade, <span id="app-version"></span>. <a href="../" target="_blank" rel="noopener">Troubadour page</a>, <a href="https://discord.gg/EkcyrgKQT" target="_blank" rel="noopener">Discord</a></p>
+  </section>
+</dialog>
+
+<!-- Actions on a story -->
+<dialog id="sheet" class="settings sheet" aria-labelledby="sheet-title">
+  <div class="set-head">
+    <h2 id="sheet-title"></h2>
+    <button class="ico small" type="button" data-action="close-sheet" aria-label="Close"></button>
+  </div>
+  <div id="sheet-body"></div>
+</dialog>
+
+<dialog id="ask" class="settings ask" aria-labelledby="ask-title">
+  <h2 id="ask-title"></h2>
+  <p id="ask-text"></p>
+  <div class="ask-acts" id="ask-acts"></div>
+</dialog>
+
+<div class="veil" id="busy" hidden>
+  <div class="forge loading">
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h2 id="busy-title"></h2>
+    <p class="step" id="busy-step"></p>
+    <div class="bar"><i id="busy-bar"></i></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="pick-file" hidden>
+<video id="awake-video" playsinline muted loop hidden></video>
+
+<script src="../shared/troubadour-settings.js"></script>
+<script src="../shared/install.js"></script>
+<script src="../troupe/troubadour-format.js"></script>
+<script src="../troupe/cropper.js"></script>
+<script src="../troupe/sound-credit.js"></script>
+<script src="../troupe/library.js"></script>
+<script src="../auth/account.js"></script>
+<script src="flow-format.js"></script>
+<script src="flow-db.js"></script>
+<script src="../shared/troubadour-ui.js"></script>
+<script src="flow-ui.js"></script>
+<script src="../shared/troubadour-engine.js"></script>
+<script src="flow-player.js"></script>
+<script src="flow-editor.js"></script>
+<script src="../troupe/builder-menu.js"></script>
+<script src="../back.js"></script>
+<script src="app.js"></script>
+<script src="../install-now.js"></script>
+<div aria-hidden="true" style="position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:9999;font:600 11px 'Barlow Semi Condensed',system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#F0C24F;color:#1A1206;pointer-events:none">Preview</div>
+</body>
+</html>

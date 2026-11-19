@@ -1,0 +1,301 @@
+/* Troubadour Ballade: reads and writes .troubadour-ballade files. Spec: TROUBADOUR_BALLADE_FORMAT.md at the repo root.
+ *
+ * A .troubadour-ballade file is a .troubadour file with one more entry: flow.json, the timing of every chapter.
+ * story.json and the audio stay exactly as in the .troubadour it was made from, so a Flow can always
+ * be turned back into a plain .troubadour (drop flow.json).
+ *
+ * Needs ../troupe/troubadour-format.js (window.Troubadour) for the ZIP reader and writer.
+ */
+(function (global) {
+  'use strict';
+
+  const B = global.Troubadour;
+  const FLOW_VERSION = 1;
+  const ZONES = ['music', 'ambience', 'events'];
+  const LANES = 3; // parallel sounds in one step, side by side on a phone
+  const MAX_SECONDS = 3600;
+
+  const now = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  const num = (v, d, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const r2 = (v) => Math.round(v * 100) / 100;
+
+  /** Every sound of a story, with the place it comes from: { name, file, zone, chapter (index, or -1 for the soundbox), loop, volume } */
+  function soundsOf(story) {
+    const out = [];
+    (story.chapters || []).forEach((c, i) => ZONES.forEach((z) => (c[z] || []).forEach((s) => out.push({ name: s.name, file: s.file, zone: z, chapter: i, loop: s.loop, volume: s.volume }))));
+    (story.soundbox || []).forEach((s) => out.push({ name: s.name, file: s.file, zone: 'soundbox', chapter: -1, loop: s.loop, volume: s.volume }));
+    return out;
+  }
+
+  /** How a card plays: 'once' (the sound, or a part of it, one time), 'loop' (again and again without a break)
+   *  or 'random' (the sound, then a random pause, then again). A card that `hold`s plays until the next gate is
+   *  tapped, the choice is picked or the chapter ends; a random card always holds. Files from before `play` say
+   *  only `repeat`: a loop for `duration` seconds. */
+  const PLAYS = ['once', 'loop', 'random'];
+  const playOf = (c) => (PLAYS.includes(c.play) ? c.play : c.repeat ? 'loop' : 'once');
+  const holds = (c) => playOf(c) === 'random' || (playOf(c) === 'loop' && !!c.hold);
+
+  /** A card cleaned up: known fields in range, unknown ones kept. */
+  function cleanCard(c, length) {
+    const out = Object.assign({}, c);
+    out.name = String(c.name || 'Sound').slice(0, 120);
+    out.file = String(c.file || '');
+    out.zone = ['music', 'ambience', 'events', 'soundbox'].includes(c.zone) ? c.zone : 'events';
+    out.offset = r1(num(c.offset, 0, 0, MAX_SECONDS));
+    out.start = r1(num(c.start, 0, 0, MAX_SECONDS));
+    out.play = playOf(c);
+    out.hold = holds(out);
+    // `repeat` stays for the players that came before `play`: they loop a loop or a random card for `duration`.
+    out.repeat = out.play !== 'once';
+    const room = length ? Math.max(0.1, length - out.start) : MAX_SECONDS;
+    // A loop lasts `duration`; a sound played once, and each play of a random card, at most the sound itself.
+    out.duration = r1(num(c.duration, out.play === 'loop' && out.hold ? Math.max(room, 300) : room, 0.1, out.play === 'loop' ? MAX_SECONDS : room));
+    if (out.play === 'random') {
+      out.gapMin = r1(num(c.gapMin, 5, 0, 600));
+      out.gapMax = r1(num(c.gapMax, Math.max(out.gapMin, 30), out.gapMin, 600));
+    } else { delete out.gapMin; delete out.gapMax; }
+    out.fadeIn = r1(num(c.fadeIn, 0, 0, Math.min(30, out.duration)));
+    out.fadeOut = r1(num(c.fadeOut, 0, 0, Math.min(30, out.duration)));
+    out.volume = r2(num(c.volume, 0.75, 0, 1));
+    return out;
+  }
+
+  function cleanStep(s, lengths) {
+    const out = Object.assign({}, s);
+    out.title = String(s.title || '').slice(0, 80);
+    out.gate = !!s.gate;
+    out.next = s.next == null || s.next === '' ? null : r1(num(s.next, 0, 0, MAX_SECONDS));
+    out.cards = (s.cards || []).slice(0, LANES).map((c) => cleanCard(c, lengths && lengths[c.file]));
+    return out;
+  }
+
+  /** A choice at the end of a list of steps: a question and 2 or more ways, each with its own steps,
+   *  and maybe a choice of its own at its end (choices nest as deep as the story needs). */
+  const MAX_ANSWERS = 12;
+  const MAX_DEPTH = 24;
+  function cleanChoice(c, depth = 0) {
+    if (!c || !Array.isArray(c.answers) || depth > MAX_DEPTH) return null;
+    const out = Object.assign({}, c);
+    out.question = String(c.question || '').slice(0, 140);
+    out.answers = c.answers.slice(0, MAX_ANSWERS).map((a, k) => {
+      const w = Object.assign({}, a, { label: String((a && a.label) || `Way ${k + 1}`).slice(0, 40), steps: (a && a.steps) || [] });
+      const sub = cleanChoice(a && a.choice, depth + 1);
+      if (sub) w.choice = sub; else delete w.choice;
+      return w;
+    });
+    return out.answers.length >= 2 ? out : null;
+  }
+  /** Every list of steps of a chapter (its trunk and every way, however deep), each with the way that leads to it:
+   *  { steps, path (answer indices from the chapter's choice down), holder (the object that owns `steps` and `choice`) }. */
+  function allLists(ch) {
+    const out = [];
+    const walk = (holder, path) => {
+      out.push({ steps: holder.steps || [], path, holder });
+      const c = holder.choice;
+      if (c && Array.isArray(c.answers) && path.length <= MAX_DEPTH) c.answers.forEach((a, k) => walk(a, path.concat(k)));
+    };
+    walk(ch, []);
+    return out;
+  }
+  /** Every step of a chapter: its trunk, then every way of every choice. */
+  function allSteps(ch) {
+    return allLists(ch).flatMap((l) => l.steps);
+  }
+
+  /** The step's own length: until `next` if set, else until its last card ends. Cards that hold until the
+   *  next gate never end on their own: they do not count (a step of such cards alone lasts 0 s). */
+  function stepLength(step) {
+    if (step.next != null) return step.next;
+    return step.cards.reduce((a, c) => (holds(c) ? a : Math.max(a, c.offset + c.duration)), 0);
+  }
+  /** Where every step starts, in seconds from the start of its run (a run begins at a gate). */
+  function runOffsets(steps) {
+    let t = 0;
+    return steps.map((s, i) => {
+      if (i === 0 || s.gate) t = 0;
+      const at = t;
+      t += stepLength(s);
+      return at;
+    });
+  }
+
+  /* ---------- A first Flow, made from a plain .troubadour ---------- */
+
+  /** A card made from a sound of the story: its loop setting picks how it plays. Endless loops and random
+   *  sounds hold until the next gate; "twice" loops two lengths; the rest plays once. */
+  function card(sound, length, opts = {}) {
+    const len = length || 60;
+    const z = sound.zone;
+    let play = 'once', hold = false, duration = len;
+    if (sound.loop === 'infinite') { play = 'loop'; hold = true; duration = Math.max(len, 300); }
+    else if (sound.loop === 'random') { play = 'random'; hold = true; }
+    else if (sound.loop === 'twice') { play = 'loop'; duration = len * 2; }
+    const soft = z === 'music' || z === 'ambience';
+    return cleanCard({
+      name: sound.name, file: sound.file, zone: z, offset: opts.offset || 0, start: 0, duration, play, hold,
+      fadeIn: soft && play !== 'random' ? Math.min(2, duration / 4) : 0,
+      fadeOut: soft && play !== 'random' ? Math.min(4, duration / 4) : 0,
+      volume: typeof sound.volume === 'number' ? sound.volume : 0.75,
+    }, length);
+  }
+
+  /** One chapter: music and ambiances open it together, every other sound waits for its cue. */
+  function defaultChapter(ch, lengths) {
+    const S = (z) => (ch[z] || []).map((s) => Object.assign({ zone: z }, s));
+    const music = S('music'); const amb = S('ambience'); const evt = S('events');
+    const steps = [];
+    const first = [];
+    if (music[0]) first.push(card(music[0], lengths[music[0].file]));
+    amb.slice(0, LANES - first.length).forEach((a) => first.push(card(a, lengths[a.file])));
+    const usedAmb = first.length - (music[0] ? 1 : 0);
+    // The opening sets the scene: its loops hold until the next gate, which is ready as soon as its sounds that end have ended.
+    if (first.length) steps.push({ title: 'Opening', gate: true, next: null, cards: first });
+    music.slice(1).forEach((m) => steps.push({ title: '', gate: true, next: null, cards: [card(m, lengths[m.file])] }));
+    const rest = amb.slice(usedAmb);
+    for (let i = 0; i < rest.length; i += LANES) steps.push({ title: '', gate: true, next: null, cards: rest.slice(i, i + LANES).map((a) => card(a, lengths[a.file])) });
+    evt.forEach((e) => steps.push({ title: '', gate: true, next: null, cards: [card(e, lengths[e.file])] }));
+    return { steps: steps.map((s) => cleanStep(s, lengths)) };
+  }
+
+  function defaultFlow(story, lengths, bard) {
+    const stamp = now();
+    return {
+      format: 'troubadour-ballade',
+      version: FLOW_VERSION,
+      id: B.uuid(),
+      story: story.id || null,
+      revision: 0,
+      bard: bard || B.FORGOTTEN,
+      created: stamp,
+      chapters: (story.chapters || []).map((c) => defaultChapter(c, lengths || {})),
+    };
+  }
+
+  /** Brings a flow in line with its story: one entry per chapter, cards only on sounds the archive holds. */
+  function normalize(flow, story, lengths, files) {
+    const out = Object.assign({}, flow);
+    const chapters = story.chapters || [];
+    out.chapters = chapters.map((c, i) => {
+      const fc = (flow.chapters || [])[i] || { steps: [] };
+      const ch = Object.assign({}, fc);
+      const clean = (list) => (list || []).map((s) => cleanStep(s, lengths))
+        .map((s) => Object.assign(s, { cards: s.cards.filter((k) => !files || files.has(k.file)) }));
+      ch.steps = clean(fc.steps);
+      if (ch.steps[0]) ch.steps[0].gate = true;
+      const choice = cleanChoice(fc.choice);
+      const ways = (c) => c.answers.forEach((a) => { a.steps = clean(a.steps); if (a.steps[0]) a.steps[0].gate = true; if (a.choice) ways(a.choice); });
+      if (choice) { ways(choice); ch.choice = choice; } else delete ch.choice;
+      return ch;
+    });
+    return out;
+  }
+
+  /* ---------- Reading ---------- */
+
+  /** Reads a .troubadour or a .troubadour-ballade. Resolves with { story, flow (null for a plain .troubadour), files: Map(path => Blob) }.
+   *  Only the audio the story points to is read. */
+  async function read(file, onProgress) {
+    const zip = await B.readZip(file);
+    if (!zip.has('story.json')) throw new Error('This file has no story.json: it is not a Troubadour story.');
+    const story = JSON.parse(await (await zip.get('story.json')()).text());
+    // Files forged before the rename say "bardic" and "bardic-flow": they read the same.
+    if (story.format !== 'troubadour' && story.format !== 'bardic') throw new Error('story.json is not a Troubadour story.');
+    if (story.version !== 1 && story.version !== 2) throw new Error(`This story uses format version ${story.version}, which Troubadour Ballade does not know yet.`);
+    if (story.version === 1) { story.bard = story.bard || story.author || B.FORGOTTEN; }
+    let flow = null;
+    if (zip.has('flow.json')) {
+      flow = JSON.parse(await (await zip.get('flow.json')()).text());
+      if (flow.format !== 'troubadour-ballade' && flow.format !== 'bardic-flow') throw new Error('flow.json is not a Troubadour Ballade.');
+      if (flow.version !== FLOW_VERSION) throw new Error(`This Ballade uses version ${flow.version}, which this Troubadour Ballade does not know yet. Update the app.`);
+    }
+    const paths = [...new Set(soundsOf(story).map((s) => s.file).concat(flow ? flow.chapters.flatMap((c) => allSteps(c).flatMap((s) => (s.cards || []).map((k) => k.file))) : []))]
+      .filter((p) => p && zip.has(p));
+    const files = new Map();
+    let n = 0;
+    for (const p of paths) {
+      const blob = await zip.get(p)();
+      const type = /\.ogg$/i.test(p) ? 'audio/ogg' : /\.m4a$/i.test(p) ? 'audio/mp4' : /\.wav$/i.test(p) ? 'audio/wav' : 'audio/mpeg';
+      files.set(p, new Blob([blob], { type }));
+      n += 1;
+      if (onProgress) onProgress(n, paths.length);
+    }
+    return { story, flow, files };
+  }
+
+  /* ---------- Writing ---------- */
+
+  /** Forges the next revision of the Flow. `files` maps each path to its Blob. Resolves with { blob, flow, fileName }. */
+  /** Every sound of the Ballade measured once, on the computer that builds it (261114_ballade_plan.md, 4.3):
+   *  where it really starts and ends, where its loop turns, how loud it is. Kept in flow.json as `sounds`
+   *  ({ path: { a, b, la, lb, lufs, size } }), so a phone never has to measure them. A sound already measured
+   *  (same path, same size) is not measured again. */
+  async function measureSounds(files, known, onProgress) {
+    const E = global.TroubadourEngine;
+    const out = {};
+    const audio = [...files.keys()].filter((p) => /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|webm)$/i.test(p)).sort();
+    for (let i = 0; i < audio.length; i++) {
+      const p = audio[i], data = files.get(p);
+      const size = data.size != null ? data.size : data.byteLength;
+      const k = known && known[p];
+      if (k && k.size === size) { out[p] = k; continue; }
+      if (!E || !E.measure) continue;
+      const info = await E.measure(null, data instanceof Blob ? data : new Blob([data]), `${p}:${size}`);
+      if (info) out[p] = { a: r3(info.a), b: r3(info.b), la: r3(info.la), lb: r3(info.lb), lufs: r2(info.lufs), size };
+      if (onProgress) onProgress((i + 1) / audio.length);
+    }
+    return out;
+  }
+  const r3 = (v) => Math.round(v * 1000) / 1000;
+
+  async function pack(story, flow, files, bard, onProgress, generator, opts = {}) {
+    const stamp = now();
+    // Measured in the builder (opts.measure); elsewhere what was measured before is kept as it is.
+    const sounds = opts.measure ? await measureSounds(files, flow.sounds, (f) => onProgress && onProgress(f * 0.5)) : flow.sounds;
+    const zipProgress = opts.measure && onProgress ? (f) => onProgress(0.5 + f * 0.5) : onProgress;
+    const out = Object.assign({}, flow, {
+      format: 'troubadour-ballade',
+      version: FLOW_VERSION,
+      id: flow.id || B.uuid(),
+      story: story.id || null,
+      revision: (flow.revision || 0) + 1,
+      bard: (bard || B.FORGOTTEN).trim(),
+      created: flow.created || stamp,
+      forged: stamp,
+      generator: generator || 'Troubadour Ballade (web)',
+    });
+    if (sounds && Object.keys(sounds).length) out.sounds = sounds; else delete out.sounds;
+    const entries = [
+      { name: 'story.json', data: new TextEncoder().encode(JSON.stringify(story, null, 2) + '\n') },
+      { name: 'flow.json', data: new TextEncoder().encode(JSON.stringify(out, null, 2) + '\n') },
+    ];
+    [...files.keys()].sort().forEach((p) => entries.push({ name: p, data: files.get(p) }));
+    const blob = await B.writeZip(entries, zipProgress);
+    return { blob, flow: out, fileName: `${yymmdd()}_${B.slug(story.title, 'story')}.troubadour-ballade` };
+  }
+
+  /** The story alone, as a plain .troubadour (story.json is kept as it came, revision included). */
+  async function packTroubadour(story, files, onProgress) {
+    const used = new Set(soundsOf(story).map((s) => s.file));
+    const entries = [{ name: 'story.json', data: new TextEncoder().encode(JSON.stringify(story, null, 2) + '\n') }];
+    [...files.keys()].filter((p) => used.has(p)).sort().forEach((p) => entries.push({ name: p, data: files.get(p) }));
+    const blob = await B.writeZip(entries, onProgress);
+    return { blob, fileName: `${yymmdd()}_${B.slug(story.title, 'story')}.troubadour` };
+  }
+
+  function yymmdd(d = new Date()) {
+    return `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  /** "1:05", "12 s", "∞" free: durations at the table. */
+  function clock(sec) {
+    sec = Math.max(0, Math.round(sec || 0));
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
+  global.TroubadourBallade = {
+    MAX_ANSWERS, cleanChoice, allSteps, allLists, PLAYS, playOf, holds, card,
+    FLOW_VERSION, LANES, ZONES, soundsOf, cleanCard, cleanStep, stepLength, runOffsets,
+    defaultFlow, defaultChapter, normalize, read, pack, packTroubadour, measureSounds, yymmdd, clock,
+  };
+})(window);
