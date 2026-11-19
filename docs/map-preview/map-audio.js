@@ -699,33 +699,43 @@
     const tv = [...voices.values()].find((o) => o.world && o.card.file === file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
   }
-  /** Called as the party moves. The setting Music follows the party (on by default) decides both ways: stopping on
-   *  a place with its own music, it plays; leaving that place, the map's music comes back, or, the map having none,
-   *  the place's music fades out. The app shows a card first (it counts down, or asks when the setting is off) and
-   *  calls start when it is to happen. Only where the party stops counts, and only a change of zone does anything,
-   *  so a music chosen by hand plays on. Musics are never heard by distance: they belong to the world. */
+  /** Called as the party moves. The setting Music follows the party (on by default) decides both ways.
+   *  Arriving: the party stops ON a place with its own music (not merely in its circle): the app shows its card,
+   *  and the music plays when the ring closes (asked, with the setting off).
+   *  Leaving: the moment the party goes out of the place's hearing circle (walking or not), its music gives way
+   *  at once: the map's music comes back, or, the map having none, it fades out (asked, with the setting off).
+   *  Only the music of that place is changed: a music chosen by hand plays on. Musics are never heard by
+   *  distance: they belong to the world. */
+  function inCircle(el) { return !!el && place.elements.includes(el) && M.hearing(point, el, [], 0).gain > 0; }
   function followZone() {
-    if (!place || zoneKey === undefined || moving) return;
-    const z = zoneMusic();
-    const key = z ? z.file : 'map';
-    if (key === zoneKey) return;
-    zoneKey = key;
+    if (!place || zoneKey === undefined) return;
+    const z = moving ? null : zoneMusic();
     if (z) {
+      if (z.file === zoneKey) return;
+      zoneKey = z.file;
       if (api.onPlace) {
         const el = zoneEl, cards = el.cards.filter(isMusic);
+        const key = zoneKey;
         if (api.onPlace({ el, cards, start: () => { if (zoneKey === key) startZone(z.file); } })) return;
       }
       if (settings.musicAuto === false) return;
       startZone(z.file);
       return;
     }
-    // Leaving a place with music: only its own music, still heard, is changed.
-    const left = lastZoneEl, cur = currentMusic();
+    if (zoneKey === 'map') return;
+    // Still within the hearing circle of the place the music belongs to: nothing changes.
+    const left = lastZoneEl;
+    if (inCircle(left)) return;
+    zoneKey = 'map';
+    const cur = currentMusic();
     const target = place.general.find(isMusic) || null;
     if (!cur || !left || !left.cards.some((c) => isMusic(c) && c.file === cur.file) || (target && target.file === cur.file)) { if (api.onPlace) api.onPlace(null); return; }
-    const act = () => { if (zoneKey !== key) return; if (target) startZone(target.file); else fadeMusic(); };
-    if (api.onPlace && api.onPlace({ leaving: true, el: left, cards: target ? [target] : [], fading: cur, start: act })) return;
-    if (settings.musicAuto === false) return;
+    const act = () => { if (zoneKey !== 'map') return; if (target) startZone(target.file); else fadeMusic(); };
+    if (settings.musicAuto === false) {
+      if (api.onPlace && api.onPlace({ leaving: true, el: left, cards: target ? [target] : [], fading: cur, start: act })) return;
+      return;
+    }
+    if (api.onPlace) api.onPlace(null);
     act();
   }
   /** The music heard fades out (the setting's fade), keeping where it was for when it comes back. */

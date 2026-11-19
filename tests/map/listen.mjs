@@ -139,14 +139,26 @@ try {
       await page.waitForTimeout(5800);
       const after = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
       ok(after && after !== before && await page.isHidden('#mw-arrive'), 'nothing touched: it plays after 5 s');
-      // Leaving the place: the same card, the other way (the map's music comes back, or the place's music fades out).
-      await page.evaluate(() => window.MapAudio.hear([1, 1], true));
-      await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 4000 }).catch(() => {});
-      const lv = (await page.textContent('#mw-arrive')) || '';
-      ok(/Leaving/.test(lv) && /(Fades out|map's music), ?i?n? ?[1-5]? ?s?|in [1-5] s/.test(lv), `leaving the place: the card says what comes (${lv.replace(/\s+/g, ' ').trim().slice(0, 80)})`);
-      await page.waitForTimeout(5800 + 4500);
+      // Out of the place but within its hearing circle: the music stays. Out of the circle: it gives way at once.
+      const ring = await page.evaluate((p0) => {
+        const P = window.MapView.__place(), M = window.TroubadourMap;
+        const e = P.elements.find((x) => x.cards.some((c) => c.zone === 'music') && M.hearing(p0, x, [], 0).d === 0);
+        const b = M.bounds(e.shape);
+        // Just beyond its edge, inside the circle, on the side of the map with room.
+        const r = e.radius, x = b[2] + Math.min(r / 3, 60);
+        return { inside: [x, (b[1] + b[3]) / 2], r };
+      }, zoneAt);
+      await page.evaluate((p) => window.MapAudio.hear(p, true), ring.inside);
+      await page.waitForTimeout(1500);
+      const still = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
+      ok(still === after, 'off the place but within its hearing circle: its music stays');
+      await page.evaluate(() => window.MapAudio.hear([1, 1], false)); // walking out, not even stopped
+      await page.waitForTimeout(400);
+      ok(await page.isHidden('#mw-arrive'), 'out of the circle: no card, at once');
+      await page.waitForTimeout(2500);
       const gone = await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
-      ok(gone !== after, `nothing touched: the place's music gives way (${gone || 'silence'})`);
+      ok(gone !== after, `out of the circle: the place's music gave way while walking (${gone || 'silence'})`);
+      await page.evaluate(() => window.MapAudio.hear([1, 1], true));
       // Musics are never heard by distance: they belong to the world.
       const dist = await page.evaluate(async () => {
         const A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms)), p = window.MapView.__place();
