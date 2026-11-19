@@ -59,6 +59,8 @@
     P.rec = rec;
     P.onLeave = opts.onLeave || null;
     P.blobs = opts.blobs || await global.FlowDB.filesOf(rec);
+    // Left while its sounds were being found (another page asked for): nothing more to open.
+    if (P.rec !== rec) return;
     const { ctx, master } = audio(true);
     if (!P.bus) { P.bus = ctx.createGain(); P.bus.connect(master); P.sbBus = ctx.createGain(); P.sbBus.connect(master); }
     // Heard on Troubadour's curve (v * v), like every other player: the same slider sounds the same everywhere.

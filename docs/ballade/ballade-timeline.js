@@ -3,6 +3,8 @@
  *
  *  - fromV1(flow): a version 1 flow.json (steps, gates, offsets) as a version 2 one (clips at absolute times,
  *    cues, sections, choices), every relative time kept (3.4).
+ *  - toV1(flow): a version 2 flow.json as version 1, for the players that read version 1 (every clip where the
+ *    timeline puts it, every cue a gate).
  *  - clean(flow): a version 2 flow.json made safe: fields in range, unknown fields kept.
  *  - Clock: the chapter clock (4.1). It runs from Begin, stops at cues and choices, holds on Pause, and plans
  *    every sound ahead on the audio clock (look-ahead 2 s), so a sound starts on time even if the screen sleeps.
@@ -169,6 +171,89 @@
     return (tl.clips || []).reduce((a, c) => Math.max(a, c.at + c.length), 0);
   }
 
+  /* ---------- Version 2 to version 1 (the player of today reads this) ---------- */
+
+  const V1_LANES = 3; // a version 1 step shows at most 3 cards side by side
+  /** One timeline as a list of version 1 steps: a run per stretch between cues (its first step a gate), a step
+   *  per section, cut wherever more than three sounds would start in one step. Every clip starts where it is on
+   *  the timeline, counted from its cue; each step's `next` is set, so every gate falls exactly on its cue.
+   *  A track's volume multiplies its clips', a muted track is left out. Version 1 cannot say two things:
+   *  a clip that does not hold but goes on past a cue is faded when Go is tapped, and tracks have no names. */
+  function stepsOf(tl) {
+    const tracksById = new Map((tl.tracks || []).map((t) => [t.id, t]));
+    const clips = (tl.clips || []).filter((c) => { const t = tracksById.get(c.track); return !t || !t.mute; })
+      .slice().sort((a, b) => a.at - b.at || String(a.id).localeCompare(String(b.id)));
+    const cues = (tl.markers || []).filter((m) => m.type === 'cue').map((m) => m).sort((a, b) => a.at - b.at);
+    const sections = (tl.markers || []).filter((m) => m.type === 'section').sort((a, b) => a.at - b.at);
+    const end = tl.choice ? tl.choice.at : endOf(tl);
+    const bounds = [0, ...cues.map((c) => c.at)];
+    const steps = [];
+    bounds.forEach((s, r) => {
+      const e = r + 1 < bounds.length ? bounds[r + 1] : Math.max(end, s);
+      const inRun = clips.filter((c) => c.at >= s - 1e-9 && (c.at < e - 1e-9 || (r === bounds.length - 1 && c.at <= e + 1e-9)));
+      // Steps of this run: one per section (the cue's own name for the first), cut by four sounds or more.
+      const starts = [{ at: s, title: r > 0 ? cues[r - 1].name || '' : '' }];
+      sections.forEach((m) => {
+        if (m.at < s - 1e-9 || m.at >= e - 1e-9) return;
+        if (Math.abs(m.at - s) < 1e-9) starts[0].title = starts[0].title || m.name; else starts.push({ at: m.at, title: m.name });
+      });
+      const runSteps = [];
+      starts.forEach((st, k) => {
+        const nb = k + 1 < starts.length ? starts[k + 1].at : e;
+        const mine = inRun.filter((c) => c.at >= st.at - 1e-9 && (c.at < nb - 1e-9 || (k === starts.length - 1)));
+        if (!mine.length) { runSteps.push({ at: st.at, title: st.title, cards: [] }); return; }
+        for (let g = 0; g < mine.length; g += V1_LANES) {
+          const group = mine.slice(g, g + V1_LANES);
+          runSteps.push({ at: g === 0 ? st.at : group[0].at, title: g === 0 ? st.title : '', cards: group });
+        }
+      });
+      runSteps.forEach((st, k) => {
+        const nb = k + 1 < runSteps.length ? runSteps[k + 1].at : e;
+        steps.push({
+          title: st.title, gate: k === 0, next: r3(Math.max(0, nb - st.at)),
+          cards: st.cards.map((c) => {
+            const t = tracksById.get(c.track);
+            const card = {
+              name: c.name, file: c.file, zone: c.kind, offset: r3(c.at - st.at), start: r3(c.in || 0),
+              duration: r3(c.loop === 'random' ? (c.each || c.length) : c.length), play: c.loop,
+              hold: c.loop === 'random' || (c.loop === 'loop' && !!c.holdToCue), repeat: c.loop !== 'once',
+              fadeIn: c.fadeIn || 0, fadeOut: c.fadeOut || 0, volume: r2((c.volume == null ? 0.75 : c.volume) * (t ? t.volume : 1)),
+            };
+            if (c.loop === 'random') { card.gapMin = c.gapMin; card.gapMax = c.gapMax; }
+            return card;
+          }),
+        });
+      });
+    });
+    // A run with nothing in it still has its gate; an empty timeline has no steps.
+    return clips.length || cues.length ? steps : [];
+  }
+  /** A version 2 flow.json as version 1, for the players that read version 1 (the timeline is kept beside it). */
+  function toV1(flow) {
+    if (!flow || flow.version !== VERSION) throw new Error('Not a version 2 Ballade');
+    const out = Object.assign({}, flow, { version: 1 });
+    delete out.converted;
+    const lower = (tl, depth) => {
+      const o = { steps: stepsOf(tl) };
+      if (tl.choice && depth < MAX_DEPTH) {
+        o.choice = Object.assign({}, tl.choice, { answers: tl.choice.answers.map((a) => {
+          const w = Object.assign({}, a, lower(a.timeline || {}, depth + 1));
+          delete w.timeline;
+          return w;
+        }) });
+        delete o.choice.at;
+      }
+      return o;
+    };
+    out.chapters = (flow.chapters || []).map((ch) => {
+      const c = Object.assign({}, ch, lower(ch, 0));
+      delete c.tracks; delete c.clips; delete c.markers;
+      if (!c.choice) delete c.choice;
+      return c;
+    });
+    return out;
+  }
+
   /* ---------- The chapter clock (4.1) ---------- */
 
   /**
@@ -240,7 +325,7 @@
     resume() { if (this.paused) { this.paused = false; this.t0 = this.opt.now(); this.tick(); } }
   }
 
-  const api = { VERSION, fromV1, clean, endOf, Clock, HOLD_FADE };
+  const api = { VERSION, fromV1, toV1, stepsOf, clean, endOf, Clock, HOLD_FADE };
   global.BalladeTimeline = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

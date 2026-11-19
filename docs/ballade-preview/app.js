@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261118.6';
+  const VERSION = '261119.1';
   const { $, el, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.FlowUI;
   const F = window.TroubadourBallade;
   const DB = window.FlowDB;
@@ -305,7 +305,7 @@
     try {
       busy('Exporting the .troubadour-ballade', '', 0);
       const files = await DB.filesOf(r);
-      const out = await F.pack(r.story, r.flow, files, window.Troubadour.bardName(), (f) => busy('Exporting the .troubadour-ballade', '', f), `Troubadour Ballade ${VERSION}`);
+      const out = await F.pack(r.story, r.flow, files, window.Troubadour.bardName(), (f) => busy('Exporting the .troubadour-ballade', '', f), `Troubadour Ballade ${VERSION}`, { timeline: r.timeline });
       r.flow = out.flow;
       await DB.put(r);
       idle();
@@ -345,7 +345,7 @@
     const isFlow = /\.(troubadour-ballade|bardic-flow)$/i.test(file.name);
     try {
       busy('Opening the story', file.name, 0);
-      const { story, flow, files } = await F.read(file, (n, t) => busy('Opening the story', `Sound ${n} of ${t}`, n / t));
+      const { story, flow, files, timeline } = await F.read(file, (n, t) => busy('Opening the story', `Sound ${n} of ${t}`, n / t));
       // How long every sound lasts: from story.json, else measured.
       const lengths = {};
       (story.chapters || []).forEach((c) => F.ZONES.forEach((z) => (c[z] || []).forEach((s) => { if (s.duration) lengths[s.file] = s.duration; })));
@@ -383,7 +383,7 @@
         busy('Keeping the sounds on this device', `${n} of ${files.size}`, n / files.size);
         keys[p] = await DB.putBlob(b);
       }
-      const rec = await DB.put({ uid, story, flow: fl, files: keys, lengths });
+      const rec = await DB.put({ uid, story, flow: fl, files: keys, lengths, timeline: timeline || null });
       await DB.collect();
       idle();
       // Imported or downloaded, a Ballade joins the list without opening: Edit or Play it from there.
@@ -477,23 +477,24 @@
 
   /* ================= Routing ================= */
   function show(id) {
-    ['library', 'player', 'editor', 'nobuild'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
+    ['library', 'player', 'editor', 'timeline', 'nobuild'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
     screen = id;
     document.documentElement.dataset.screen = id;
     if (id === 'player') acquireWake(); else releaseWake();
   }
 
   async function route() {
-    const m = /^#\/(play|edit)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
+    const m = /^#\/(play|edit|timeline)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
     if (screen === 'player' && !(m && m[1] === 'play')) window.FlowPlayer.close();
     if (screen === 'editor' && !(m && m[1] === 'edit')) window.FlowEditor.close();
+    if (screen === 'timeline' && !(m && m[1] === 'timeline')) window.FlowTimeline.close();
     if (isOnline()) fromOnline = true;
     else if (!m && fromOnline && screen === 'player') { location.replace('#/online'); return; }
     else if (!m) fromOnline = false;
     if (!m) { show('library'); await renderLibrary(); return; }
     const rec = await DB.get(m[2]);
     if (!rec) { location.hash = '#/'; return; }
-    if (m[1] === 'edit') {
+    if (m[1] === 'edit' || m[1] === 'timeline') {
       if (!canBuild()) {
         // A phone, or an iPad held upright: a page that says where to build, and offers to play.
         const upright = ipad();
@@ -501,6 +502,11 @@
         $('#nobuild-text').textContent = upright ? 'The builder opens on an iPad held sideways, or on a computer. It opens by itself as you turn it.' : 'Shape the timing of your Ballade on a computer, or on an iPad held sideways. Here, you can play it.';
         $('#nobuild-play').onclick = () => { location.hash = `#/play/${rec.uid}`; };
         show('nobuild');
+        return;
+      }
+      if (m[1] === 'timeline') {
+        show('timeline');
+        await window.FlowTimeline.open(rec, { chapter: Number(m[3] || 0), onLeave: (r, ch) => { location.hash = `#/edit/${rec.uid}/${ch}`; }, onPlay: (r, ch) => { location.hash = `#/play/${rec.uid}/${ch}`; } });
         return;
       }
       show('editor');
@@ -536,6 +542,7 @@
     $('#library').addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); importFile(f); } });
     window.FlowPlayer.wire();
     window.FlowEditor.wire();
+    window.FlowTimeline.wire();
     window.addEventListener('hashchange', route);
     $('#nobuild-back').addEventListener('click', () => { location.hash = '#/'; });
     // An iPad turned sideways on the fallback page opens the builder.

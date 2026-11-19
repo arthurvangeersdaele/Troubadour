@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../play/style.css">
 <link rel="stylesheet" href="../troupe/troupe.css">
 <link rel="stylesheet" href="flow.css">
+<link rel="stylesheet" href="timeline.css">
 <link rel="stylesheet" href="../shared/install.css">
 <script src="../themes.js"></script>
 <script>
@@ -278,10 +279,12 @@
     <div class="ttl"><b id="fe-title"></b><span id="fe-sub"></span></div>
     <span class="fe-saved" id="fe-saved" aria-live="polite"></span>
     <button class="btn slim" type="button" id="fe-troubadour" title="The story alone, without its Ballade">Export .troubadour</button>
+    <button class="btn slim" type="button" id="fe-timeline" title="Build this chapter on a timeline, as in a video or sound editor">Timeline</button>
     <button class="btn slim" type="button" id="fe-play" title="Play this chapter as at the table">Play</button>
     <button class="btn slim primary" type="button" id="fe-forge">Export the Ballade</button>
     <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
   </header>
+  <p class="tl-banner" id="fe-tlnote" hidden></p>
   <div class="fe-body">
     <nav class="rail" id="fe-chapters" aria-label="Chapters"></nav>
     <section class="fe-main" id="fe-main" aria-label="Steps of the chapter"></section>
@@ -290,6 +293,40 @@
       <div class="fe-sounds" id="fe-sounds"></div>
     </aside>
   </div>
+</main>
+
+<!-- ============ Timeline builder (computer, iPad in landscape) ============ -->
+<main id="timeline" class="tl-screen" hidden>
+  <header class="tbar">
+    <button class="ico" type="button" id="tl-back" aria-label="Back to the steps" title="Back to the steps"></button>
+    <div class="ttl"><b id="tl-title"></b><span>Timeline builder (preview)</span></div>
+    <select id="tl-chapter" aria-label="Chapter"></select>
+    <button class="ico" type="button" id="tl-undo" aria-label="Undo"></button>
+    <button class="ico" type="button" id="tl-redo" aria-label="Redo"></button>
+    <span class="fe-saved" id="tl-saved" aria-live="polite"></span>
+    <button class="btn slim" type="button" id="tl-tableplay" title="Play this chapter as at the table">Play at the table</button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <p class="tl-banner" id="tl-banner" hidden></p>
+  <div class="tl-ways" id="tl-ways" hidden></div>
+  <div class="tl-body">
+    <aside class="tl-media" id="tl-media" aria-label="Sounds of the story"></aside>
+    <section class="tl-tracks" id="tl-tracks" aria-label="Tracks"></section>
+    <aside class="tl-inspector" id="tl-inspector" aria-label="Inspector"></aside>
+  </div>
+  <footer class="tl-transport">
+    <button class="ico" type="button" id="tl-home" aria-label="To the start" title="To the start (Home)"></button>
+    <button class="ico tl-playbtn" type="button" id="tl-play"></button>
+    <b class="tl-time" id="tl-time">0:00.0</b>
+    <span class="tl-wait" id="tl-wait"></span>
+    <span class="grow"></span>
+    <button class="btn slim" type="button" id="tl-cue" title="A cue at the playhead: the table waits there for Go (C)">Add a cue</button>
+    <button class="btn slim" type="button" id="tl-section" title="A section at the playhead: a name to read, it stops nothing (M)">Add a section</button>
+    <button class="btn slim" type="button" id="tl-snap" aria-pressed="true" title="Snap to edges, markers and the playhead (N)">Snap</button>
+    <button class="ico" type="button" id="tl-zout" aria-label="Zoom out" title="Zoom out (-)">−</button>
+    <button class="ico" type="button" id="tl-fit" aria-label="The whole chapter" title="The whole chapter (Z)">⤢</button>
+    <button class="ico" type="button" id="tl-zin" aria-label="Zoom in" title="Zoom in (+)">+</button>
+  </footer>
 </main>
 
 </div><!-- .app -->
@@ -388,6 +425,7 @@
 <script src="../troupe/sound-credit.js"></script>
 <script src="../troupe/library.js"></script>
 <script src="../auth/account.js"></script>
+<script src="ballade-timeline.js"></script>
 <script src="flow-format.js"></script>
 <script src="flow-db.js"></script>
 <script src="../shared/troubadour-ui.js"></script>
@@ -395,6 +433,7 @@
 <script src="../shared/troubadour-engine.js"></script>
 <script src="flow-player.js"></script>
 <script src="flow-editor.js"></script>
+<script src="timeline-editor.js"></script>
 <script src="../troupe/builder-menu.js"></script>
 <script src="../back.js"></script>
 <script src="app.js"></script>

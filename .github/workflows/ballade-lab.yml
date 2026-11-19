@@ -25,6 +25,9 @@ jobs:
       - name: The chapter's statechart (261118_troubadour_unifier.md, 4.2)
         working-directory: tests/ballade
         run: node statechart.mjs
+      - name: The timeline builder (261114_ballade_plan.md, P4)
+        working-directory: tests/ballade
+        run: node timeline-builder.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

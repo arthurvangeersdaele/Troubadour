@@ -203,11 +203,20 @@
     if (story.format !== 'troubadour' && story.format !== 'bardic') throw new Error('story.json is not a Troubadour story.');
     if (story.version !== 1 && story.version !== 2) throw new Error(`This story uses format version ${story.version}, which Troubadour Ballade does not know yet.`);
     if (story.version === 1) { story.bard = story.bard || story.author || B.FORGOTTEN; }
-    let flow = null;
+    let flow = null, timeline = null;
     if (zip.has('flow.json')) {
       flow = JSON.parse(await (await zip.get('flow.json')()).text());
       if (flow.format !== 'troubadour-ballade' && flow.format !== 'bardic-flow') throw new Error('flow.json is not a Troubadour Ballade.');
-      if (flow.version !== FLOW_VERSION) throw new Error(`This Ballade uses version ${flow.version}, which this Troubadour Ballade does not know yet. Update the app.`);
+      // Version 2 (a timeline per chapter): played through its version 1 steps, the timeline kept beside them.
+      if (flow.version === 2 && global.BalladeTimeline) { timeline = global.BalladeTimeline.clean(flow); flow = global.BalladeTimeline.toV1(timeline); }
+      else if (flow.version !== FLOW_VERSION) throw new Error(`This Ballade uses version ${flow.version}, which this Troubadour Ballade does not know yet. Update the app.`);
+    }
+    // Built on the timeline: timeline.json holds it (flow.json holds its steps, for the players of version 1).
+    if (!timeline && flow && zip.has('timeline.json') && global.BalladeTimeline) {
+      try {
+        const t = global.BalladeTimeline.clean(JSON.parse(await (await zip.get('timeline.json')()).text()));
+        if ((t.chapters || []).length === (flow.chapters || []).length) timeline = t;
+      } catch (e) { /* unreadable: the steps are enough */ }
     }
     const paths = [...new Set(soundsOf(story).map((s) => s.file).concat(flow ? flow.chapters.flatMap((c) => allSteps(c).flatMap((s) => (s.cards || []).map((k) => k.file))) : []))]
       .filter((p) => p && zip.has(p));
@@ -220,7 +229,7 @@
       n += 1;
       if (onProgress) onProgress(n, paths.length);
     }
-    return { story, flow, files };
+    return { story, flow, files, timeline };
   }
 
   /* ---------- Writing ---------- */
@@ -269,6 +278,12 @@
       { name: 'story.json', data: new TextEncoder().encode(JSON.stringify(story, null, 2) + '\n') },
       { name: 'flow.json', data: new TextEncoder().encode(JSON.stringify(out, null, 2) + '\n') },
     ];
+    // Built on the timeline (version 2): kept beside the steps, with the same id and revision.
+    if (opts.timeline && opts.timeline.chapters) {
+      const tl = Object.assign({}, opts.timeline, { id: out.id, story: out.story, revision: out.revision, bard: out.bard, created: out.created, forged: out.forged, generator: out.generator });
+      delete tl.sounds; delete tl.converted;
+      entries.push({ name: 'timeline.json', data: new TextEncoder().encode(JSON.stringify(tl, null, 2) + '\n') });
+    }
     [...files.keys()].sort().forEach((p) => entries.push({ name: p, data: files.get(p) }));
     const blob = await B.writeZip(entries, zipProgress);
     return { blob, flow: out, fileName: `${yymmdd()}_${B.slug(story.title, 'story')}.troubadour-ballade` };

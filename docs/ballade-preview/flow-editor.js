@@ -24,7 +24,15 @@
     E.rec.lengths = E.rec.lengths || {};
     $('#fe-title').textContent = rec.story.title || 'New Ballade';
     $('#fe-sub').textContent = `Ballade builder, revision ${rec.flow.revision || 0}, ${rec.flow.bard || ''}`;
+    paintTimelineNote();
     renderAll();
+  }
+  /** Built on the timeline: the steps show what it plays, and editing them here starts its timeline again from them. */
+  function paintTimelineNote() {
+    const n = $('#fe-tlnote');
+    if (!n) return;
+    n.hidden = !(E.rec && E.rec.timeline);
+    n.textContent = 'Built on the timeline. These steps are what it plays; a change here makes its timeline again from them (track names and overlaps are lost).';
   }
   function close() { closeHelp(); stopPreview(); flush(); E.rec = null; E.buffers.clear(); E.blobs = null; }
 
@@ -50,6 +58,8 @@
 
   /* ---------- Saving ---------- */
   function changed(redraw = true) {
+    // Edited as steps: a timeline built before is made again from these steps when it opens next.
+    if (E.rec.timeline) { E.rec.timeline = null; paintTimelineNote(); }
     const st = steps();
     if (st[0]) st[0].gate = true;
     $('#fe-saved').textContent = 'Saving…';
@@ -983,7 +993,7 @@
     const bard = global.Troubadour.bardName();
     try {
       busy('Exporting the .troubadour-ballade', '', 0);
-      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Exporting the .troubadour-ballade', '', f), 'Troubadour Ballade builder (web)', { measure: true });
+      const out = await F.pack(E.rec.story, E.rec.flow, E.blobs, bard, (f) => busy('Exporting the .troubadour-ballade', '', f), 'Troubadour Ballade builder (web)', { measure: true, timeline: E.rec.timeline });
       E.rec.flow = out.flow;
       await global.FlowDB.put(E.rec);
       idle();
@@ -1008,6 +1018,7 @@
     $('#fe-back').innerHTML = ICON.back;
     $('#fe-back').addEventListener('click', async () => { await flush(); if (E.onLeave) E.onLeave(); });
     $('#fe-play').addEventListener('click', async () => { await flush(); if (E.onPlay) E.onPlay(E.ch); });
+    $('#fe-timeline').addEventListener('click', async () => { await flush(); location.hash = `#/timeline/${E.rec.uid}/${E.ch}`; });
     $('#fe-forge').addEventListener('click', forge);
     $('#fe-troubadour').addEventListener('click', exportTroubadour);
     document.addEventListener('click', closeHelp);

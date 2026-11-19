@@ -3,7 +3,8 @@
 // 1. Every discovery tale converts from version 1: every card becomes one clip, every gate after the first a cue,
 //    every relative time kept, no two clips overlapping on one track, held clips ending at their cue.
 // 2. A converted file cleans to itself (round trip).
-// 3. The clock plays a chapter with cues and a choice: every sound starts within 5 ms of its place on the
+// 3. Lowered back to version 1, every card is where it was (the player of today reads version 1).
+// 4. The clock plays a chapter with cues and a choice: every sound starts within 5 ms of its place on the
 //    timeline counted from the tap that released it, pauses shift what follows by exactly their length,
 //    held sounds end at Go with at least 1.5 s of fade, and the states follow the chart (4.2).
 import fs from 'node:fs';
@@ -68,6 +69,53 @@ for (const f of tales) {
   const a = T.clean(v2), b = T.clean(JSON.parse(JSON.stringify(a)));
   ok(JSON.stringify(a) === JSON.stringify(b), `${f}: cleans to itself (round trip)`);
   ok(JSON.stringify(a.chapters) === JSON.stringify(v2.chapters), `${f}: a converted file is already clean`);
+}
+
+/* ---------- Back to version 1 (the player of today reads it) ---------- */
+// A converted tale lowered again: every card starts where it did, counted from its gate, with its file, start,
+// volume and way of playing; the same gates; the same choices. Then a free version 2 timeline (four sounds at once,
+// sections, a muted track, a track's volume) lowers to steps a version 1 player plays at the same times.
+console.log('Version 2 to version 1');
+const v1Key = (run, at, c) => `${run}|${Math.round(at * 1000)}|${c.file}|${c.start || 0}|${c.volume}|${playOf(c)}|${holds(c)}`;
+for (const f of tales) {
+  const v1 = JSON.parse(execFileSync('unzip', ['-p', path.join(disc, f), 'flow.json']).toString());
+  const back = T.toV1(T.fromV1(v1));
+  ok(back.version === 1 && back.id === v1.id, `${f}: lowered to version 1, same id`);
+  const same = (s1, s2, where) => {
+    const a = v1Starts(s1 || []).map(([r, at, c]) => v1Key(r, at, c)).sort(), b = v1Starts(s2 || []).map(([r, at, c]) => v1Key(r, at, c)).sort();
+    ok(JSON.stringify(a) === JSON.stringify(b), `${where}: every card where it was (${a.length} and ${b.length})`);
+    ok((s2 || []).every((s) => s.cards.length <= 3), `${where}: at most three cards a step`);
+    ok((s1 || []).filter((s, i) => i > 0 && s.gate).length === (s2 || []).filter((s, i) => i > 0 && s.gate).length, `${where}: the same gates`);
+  };
+  v1.chapters.forEach((ch, i) => {
+    same(ch.steps, back.chapters[i].steps, `${f} ch${i + 1}`);
+    const walk = (c1, c2, where) => {
+      if (!c1) { ok(!c2, `${where}: no choice`); return; }
+      ok(!!c2 && c2.answers.length === c1.answers.length && c2.question === c1.question && !('at' in c2), `${where}: the choice`);
+      c1.answers.forEach((a, j) => { same(a.steps, c2.answers[j].steps, `${where} way ${j + 1}`); walk(a.choice, c2.answers[j].choice, `${where} way ${j + 1}`); });
+    };
+    walk(ch.choice, back.chapters[i].choice, `${f} ch${i + 1}`);
+  });
+}
+{
+  const clip = (id, track, at, length, extra) => Object.assign({ id, track, name: id, file: `${id}.mp3`, kind: 'ambience', at, in: 0, length, loop: 'once', fadeIn: 0, fadeOut: 0, fadeCurve: 'equal-power', volume: 0.5, holdToCue: false }, extra);
+  const tl = {
+    tracks: [{ id: 'a', name: 'Rain', kind: 'ambience', volume: 0.5, mute: false }, { id: 'b', name: 'Hits', kind: 'events', volume: 1, mute: false }, { id: 'm', name: 'Muted', kind: 'music', volume: 1, mute: true }],
+    clips: [clip('r', 'a', 0, 20, { loop: 'loop', holdToCue: true }), clip('e1', 'b', 2, 1), clip('e2', 'b', 2, 1), clip('e3', 'b', 2.5, 1), clip('e4', 'b', 3, 1), clip('x', 'm', 1, 5), clip('after', 'b', 21, 2), clip('sec', 'b', 25, 2)],
+    markers: [{ id: 'q', type: 'cue', at: 20, name: 'The door' }, { id: 's', type: 'section', at: 24, name: 'Inside' }],
+  };
+  const steps = T.stepsOf(tl);
+  const starts = v1Starts(steps.map((s) => Object.assign({}, s, { cards: s.cards })));
+  const at = (name) => { const x = starts.find(([, , c]) => c.name === name); return x && [x[0], Math.round(x[1] * 1000) / 1000]; };
+  ok(JSON.stringify(at('r')) === '[0,0]' && JSON.stringify(at('e4')) === '[0,3]' && JSON.stringify(at('e1')) === '[0,2]', 'free timeline: four sounds at once start where they are, over two steps');
+  ok(JSON.stringify(at('after')) === '[1,1]' && JSON.stringify(at('sec')) === '[1,5]', 'free timeline: after the cue, counted from it, sections kept');
+  ok(!at('x'), 'free timeline: a muted track is left out');
+  ok(steps.find((s) => s.cards.some((c) => c.name === 'r')).cards.find((c) => c.name === 'r').volume === 0.25, "free timeline: a track's volume multiplies its clips'");
+  ok(steps.filter((s) => s.gate).length === 2 && steps[0].gate && steps.find((s) => s.title === 'The door').gate, 'free timeline: the cue is a gate, named');
+  ok(steps.some((s) => s.title === 'Inside' && !s.gate), 'free timeline: a section is a step of its own');
+  const runLen = steps.slice(0, steps.findIndex((s, i) => i > 0 && s.gate)).reduce((a, s) => a + len(s), 0);
+  ok(Math.abs(runLen - 20) < 1e-6, `free timeline: the gate falls on its cue (${runLen} s)`);
+  ok(steps.every((s) => s.cards.length <= 3), 'free timeline: at most three cards a step');
 }
 
 /* ---------- The clock ---------- */
