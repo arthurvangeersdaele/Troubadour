@@ -1,0 +1,3728 @@
+/* Troubadour Map: library, import and export, the panel beside the map, settings and routing.
+ *   #/                  the worlds kept on this device
+ *   #/play/<uid>/<n>    a world at the table, on its place n
+ *   #/edit/<uid>/<n>    the editor of a world (drawing, sounds, places)
+ */
+(function () {
+  'use strict';
+
+  const VERSION = '261118.6';
+  const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
+  const M = window.TroubadourMap;
+  const DB = window.MapDB;
+  const V = window.MapView;
+  const A = window.MapAudio;
+  const pc = () => document.documentElement.classList.contains('pc');
+
+  let screen = '';
+  let rec = null;          // the world on screen: { uid, story, world, files }
+  let pi = 0;              // index of its place on screen
+  let mode = 'edit';
+  let tapped = null;       // at the table: the element whose sounds the panel shows
+  let saveTimer = 0;
+  const buffers = new Map(); // file => AudioBuffer, for the world on screen
+  const place = () => rec.world.places[pi];
+
+  /* ================= Library ================= */
+
+  /** The ways to add a world: on the library when it is empty, and behind the + of the top bar. */
+  function addDoors(then = () => {}) {
+    const go = (fn) => () => { then(); fn(); };
+    const door = (kind, icon, title, text, fn) => {
+      const d = el('button', `ldoor d-${kind}`);
+      d.type = 'button';
+      d.innerHTML = `<span class="di">${icon}</span>`;
+      d.append(el('b', '', title), el('span', '', text));
+      d.addEventListener('click', fn);
+      return d;
+    };
+    return [
+      door('new', ICON.plus, 'New world', 'A blank map, with your own sounds', go(newWorld)),
+      door('import', ICON.import, 'Import', 'A .troubadour or .troubadour-map file', go(pickFile)),
+      door('disc', DISC, 'Discovery', 'A world ready to walk, sounds included', go(openDiscovery)),
+    ];
+  }
+
+  /* ================= Discovery worlds ================= */
+  /* They live in docs/discovery/maps/, listed in docs/discovery/index.json (shared by every app). */
+  const DISC = svg('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 20);
+  let DISCOVERIES = [];
+  let discoveryLoad = null;
+  function loadDiscoveries() {
+    if (!discoveryLoad) {
+      discoveryLoad = fetch('../discovery/index.json', { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => {
+          DISCOVERIES = (d.maps || []).map((m) => Object.assign({}, m, {
+            file: `../discovery/${m.file}`,
+            blurb: m.size ? `${m.blurb} About ${Math.max(1, Math.round(m.size / 1e6))} MB.` : m.blurb,
+          }));
+        })
+        .catch(() => { discoveryLoad = null; });
+    }
+    return discoveryLoad;
+  }
+  const hasDiscovery = (recs, d) => recs.find((r) => r.world.id === d.id && (r.world.revision || 0) >= d.revision);
+  /** The discovery worlds: one tap adds one (or plays it, when it is already on this device). */
+  async function openDiscovery() {
+    await loadDiscoveries();
+    const recs = await DB.list();
+    $('#sheet-title').textContent = 'Discovery worlds';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = '';
+    const doors = el('div', 'lib-doors add-doors disc-doors');
+    DISCOVERIES.forEach((d) => {
+      const have = hasDiscovery(recs, d);
+      const b = el('button', 'ldoor d-disc');
+      b.type = 'button';
+      b.innerHTML = `<span class="di">${have ? ICON.play : DISC}</span>`;
+      b.append(el('b', '', d.title), el('span', '', have ? 'On this device: tap to play' : d.blurb));
+      b.addEventListener('click', () => { $('#sheet').close(); if (have) playAt(have); else addDiscovery(d); });
+      doors.append(b);
+    });
+    if (!DISCOVERIES.length) doors.append(el('p', 'muted', 'The discovery worlds need a connection to download. Try again once you are online.'));
+    body.append(doors);
+    if (!$('#sheet').open) $('#sheet').showModal();
+  }
+  async function addDiscovery(d) {
+    try {
+      busy(`Downloading ${d.title}`, '', 0);
+      const res = await fetch(d.file);
+      if (!res.ok) throw new Error(`the server answered ${res.status}`);
+      const total = Number(res.headers.get('content-length')) || d.size || 0;
+      const reader = res.body.getReader();
+      const parts = [];
+      let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value);
+        got += value.length;
+        busy(`Downloading ${d.title}`, total ? `${window.Troubadour.formatSize(got)} of ${window.Troubadour.formatSize(total)}` : window.Troubadour.formatSize(got), total ? got / total : null);
+      }
+      await importFile(new File(parts, d.file.split('/').pop()));
+    } catch (e) {
+      idle();
+      toast(`${d.title} could not be downloaded: ${e.message || e}. Check your connection.`, 5200);
+    }
+  }
+  function openAddWorld() {
+    $('#sheet-title').textContent = 'Add a world';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = '';
+    const doors = el('div', 'lib-doors add-doors');
+    doors.append(...addDoors(() => $('#sheet').close()));
+    body.append(doors);
+    $('#sheet').showModal();
+  }
+
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const cardCount = (r) => r.world.places.reduce((a, p) => a + p.general.length + p.elements.reduce((b, e) => b + e.cards.length, 0), 0);
+  /** A small picture of the world's first place, in place of a cover. */
+  /* The colour of a world, as Troubadour picks the tint of a story cover (cover.js): the one its story carries,
+   * else one drawn from its key. Its colours come from the theme. */
+  const TINTS = ['amb', 'evt', 'blue', 'violet', 'ember'];
+  const TINT_HEX = { amb: '#4DB6A6', evt: '#E5655B', blue: '#5B9BF5', violet: '#B58AE8', ember: '#E39B54', gold: '#E0A84B' };
+  const TINT_CSS = { amb: 'var(--amb)', evt: 'var(--evt)', blue: 'var(--blue)', violet: 'color-mix(in srgb, var(--evt) 50%, var(--blue))', ember: 'color-mix(in srgb, var(--music) 55%, var(--evt))', gold: 'var(--music)' };
+  function tintOf(r) {
+    const carried = r.story.extra && r.story.extra.cover;
+    if (carried) {
+      if (TINT_CSS[carried.tint]) return carried.tint;
+      const k = Object.keys(TINT_HEX).find((t) => TINT_HEX[t].toUpperCase() === String(carried.color || '').toUpperCase());
+      if (k) return k;
+    }
+    const key = String(r.world.id || r.story.id || r.uid || 'world');
+    let h = 0x811c9dc5;
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return TINTS[(h >>> 8) % TINTS.length];
+  }
+  /** A theme colour (var() or color-mix) as the canvas can paint it. */
+  function solid(css) {
+    const probe = el('span');
+    probe.style.color = css;
+    probe.hidden = true;
+    document.body.append(probe);
+    const c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  }
+  /** A small picture of the world's first map, dressed as a Troubadour story cover (its tint, gold wires, light). */
+  function mapCover(r, big, card) {
+    const cv = el('canvas', 'cover');
+    cv.setAttribute('aria-hidden', 'true');
+    const tint = TINT_CSS[tintOf(r)];
+    window.MapStamps.register(r.world.stamps);
+    cv.style.setProperty('--cv-c', tint);
+    if (card) card.style.setProperty('--c', tint);
+    requestAnimationFrame(() => V.storyThumb(cv, r.world.places[0], solid(tint)));
+    return cv;
+  }
+  function btnEl(cls, html, label, fn) {
+    const b = el('button', cls);
+    b.type = 'button';
+    b.innerHTML = html;
+    if (label) b.setAttribute('aria-label', label);
+    b.addEventListener('click', fn);
+    return b;
+  }
+  const playAt = (r) => { audio(true); location.hash = `#/play/${r.uid}/0`; };
+  const editAt = (r) => { location.hash = `#/edit/${r.uid}/0`; };
+
+  function heroCard(r) {
+    const c = el('section', 'hero mp-hero');
+    c.append(mapCover(r, true, c));
+    const inner = el('div', 'hero-in');
+    const kick = el('div', 'hero-kick');
+    kick.append(el('span', 'tag', r.world.revision ? `Revision ${r.world.revision}` : 'World'), el('span', 'kick', 'Last opened'));
+    inner.append(kick, el('h2', '', r.story.title || 'World'));
+    inner.append(el('p', 'hero-sub clamp', r.world.places.map((p) => p.title).join(', ')));
+    inner.append(el('p', 'hero-meta', `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}, by ${r.world.bard || r.story.bard || 'Forgotten Troubadour'}`));
+    inner.append(el('span', 'grow'));
+    const acts = el('div', 'hero-acts');
+    acts.append(
+      btnEl('hb primary', `${ICON.play}<span>Play</span>`, null, () => playAt(r)),
+      btnEl('hb more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
+    );
+    inner.append(acts);
+    c.append(inner);
+    openOnTap(c, r);
+    return c;
+  }
+  /** As in Troubadour: a tap anywhere on a world (not on its buttons) plays it. */
+  function openOnTap(card, r) {
+    card.classList.add('tappable');
+    card.addEventListener('click', (e) => { if (!e.target.closest('button, a')) playAt(r); });
+  }
+
+  function worldRow(r) {
+    const row = el('div', 'srow');
+
+    const txt = el('div', 'stxt');
+    txt.append(el('b', '', r.story.title || 'World'), el('span', 'meta', `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}`));
+    row.append(mapCover(r, false, row), txt,
+      btnEl('more', ICON.more, `More: ${r.story.title}`, () => worldMenu(r)),
+      btnEl('go', ICON.play, `Play ${r.story.title}`, () => playAt(r)));
+    openOnTap(row, r);
+    return row;
+  }
+
+  /** The Map online player (#/online, on a computer): open a .troubadour-map and play it here, as Troubadour's online player does. */
+  const isOnline = () => location.hash === '#/online';
+  let fromOnline = false;
+  function barFor(online) {
+    const here = document.querySelector('.bm-bar .here');
+    if (here) here.textContent = online ? 'Map online player' : 'Map builder';
+    document.querySelectorAll('[data-bm="new"]').forEach((b) => { b.hidden = online; });
+    document.title = online ? 'Map online player | Troubadour' : 'Troubadour Map';
+  }
+  function renderOnline(recs) {
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Map online player', lead: 'Open a .troubadour-map and play it on this screen: move the party, and hear what it hears.',
+        mark: '<svg viewBox=\"0 0 24 24\" class=\"portal\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"13\" rx=\"2.5\"/><path d=\"M12 10.6a.9.9 0 1 1 .9.9 2 2 0 1 1-2-2 3 3 0 1 1 3 3\"/><path d=\"M9 21h6M12 17v4\"/></svg>' },
+      moreTitle: 'Discovery worlds',
+      more: DISCOVERIES.filter((d) => !hasDiscovery(recs, d))
+        .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
+      drop: { text: 'Drop a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'In this browser, for now', playOnly: true,
+        note: "Opened here, kept only in this browser's temporary storage: it may be cleared without asking. Your files stay safe where you keep them.",
+        empty: 'Nothing here yet. Open a .troubadour-map to play it.',
+        items: recs.map((r) => ({ title: r.story.title || 'World',
+          meta: `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}`, updated: r.updated,
+          cover: mapCover(r, false, null), onPlay: () => playAt(r), onMore: () => worldMenu(r) })),
+      },
+    });
+  }
+
+  /** On a computer, the library is the Map builder's main menu, after the Story builder. */
+  function renderMenu(recs) {
+    window.TroupeBuilderMenu.render($('#bm-host'), {
+      hero: { title: 'Map builder', lead: 'Command space: draw the places of your world, bind your sounds to them, and the party hears them as it walks.',
+        mark: '<svg viewBox="182 230 660 660" class="ring"><g><circle cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/><circle cx="512" cy="560" r="290" stroke-width="26" stroke-dasharray="1 82" opacity=".7"/></g><circle class="core" cx="512" cy="560" r="80"/><circle class="eye" cx="512" cy="560" r="28"/></svg>' },
+      create: { title: 'New world', sub: 'A blank map, then your own sounds', onClick: newWorld },
+      moreTitle: 'Discovery worlds',
+      more: DISCOVERIES.filter((d) => !hasDiscovery(recs, d))
+        .map((d) => ({ tag: 'Discovery world', title: d.title, sub: d.blurb, onClick: () => addDiscovery(d) })),
+      drop: { text: 'Drop a .troubadour or a .troubadour-map here', onFile: importFile, onBrowse: pickFile },
+      history: {
+        title: 'Your worlds, in this browser',
+        note: "These live in this browser's storage, which it may clear without asking (private windows, cleaning up space, another browser). Export each one to keep it for good.",
+        empty: 'Nothing here yet. Your worlds are kept in this browser as you draw them.',
+        items: recs.map((r) => ({
+          title: r.story.title || 'World',
+          meta: `${plural(r.world.places.length, 'map')}, ${plural(cardCount(r), 'sound card')}${r.world.revision ? `, revision ${r.world.revision}` : ''}`,
+          updated: r.updated,
+          cover: mapCover(r, false, null),
+          onEdit: () => editAt(r), onPlay: () => playAt(r), onExport: () => exportWorld(r), onMore: () => worldMenu(r),
+        })),
+      },
+    });
+  }
+
+  async function renderLibrary() {
+    const grid = $('#world-list');
+    await loadDiscoveries();
+    const recs = await DB.list();
+    if (pc() && window.TroupeBuilderMenu) { barFor(isOnline()); if (isOnline()) renderOnline(recs); else renderMenu(recs); return; }
+    grid.textContent = '';
+    if (!recs.length) {
+      const hello = el('div', 'hello');
+      hello.innerHTML = '<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>';
+      hello.append(el('h1', '', 'Your world awaits'), el('p', 'lead', 'Draw the maps of your world, lay your sounds on the map, and hear what the party hears as it walks. Start a blank world, import a .troubadour story, or walk a discovery world.'));
+      grid.append(hello, el('h3', 'lib-h', 'Add a world'));
+      const doors = el('div', 'lib-doors');
+      doors.append(...addDoors());
+      grid.append(doors);
+      return;
+    }
+    const [first, ...rest] = recs;
+    const wrap = el('div', 'lib-b');
+    wrap.append(heroCard(first));
+    const list = el('div', 'lib-list');
+    list.append(el('h3', 'lib-h', rest.length ? 'All worlds' : 'Your worlds'));
+    rest.forEach((r) => list.append(worldRow(r)));
+    const add = el('button', 'srow add');
+    add.type = 'button';
+    add.innerHTML = `<span class="add-i">${ICON.plus}</span>`;
+    const at = el('span', 'stxt');
+    at.append(el('b', '', 'Add a world'), el('span', 'meta', 'New, a discovery world, or a .troubadour or .troubadour-map file'));
+    add.append(at);
+    add.addEventListener('click', openAddWorld);
+    list.append(add);
+    wrap.append(list);
+    grid.append(wrap);
+  }
+
+  /** The sizes of a map, as the editor offers them. */
+  const SIZES = [['Small', 1600, 1000], ['Medium', 2000, 1250], ['Large', 3200, 2000], ['Huge', 4800, 3000]];
+  const sizeField = (p) => ({ label: 'Map size', options: SIZES.map(([l]) => [l, l]), value: (SIZES.find(([, w, h]) => p && p.width === w && p.height === h) || SIZES[1])[0] });
+  /** A map takes a new size: what is drawn on it stretches with it. */
+  function resizePlace(p, label) {
+    const z = SIZES.find(([l]) => l === label);
+    if (!z || (p.width === z[1] && p.height === z[2])) return false;
+    const fx = z[1] / p.width, fy = z[2] / p.height;
+    const sc = (q) => [Math.round(q[0] * fx), Math.round(q[1] * fy)];
+    p.width = z[1]; p.height = z[2];
+    p.player = sc(p.player);
+    p.walls.forEach((w) => { w.points = w.points.map(sc); });
+    p.elements.forEach((e) => {
+      const sh = e.shape;
+      if (sh.type === 'stamp') { sh.x = Math.round(sh.x * fx); sh.y = Math.round(sh.y * fy); sh.size = Math.round(sh.size * Math.sqrt(fx * fy)); } else sh.points = sh.points.map(sc);
+      if (e.radius) e.radius = Math.round(e.radius * Math.sqrt(fx * fy));
+    });
+    return true;
+  }
+
+  async function newWorld() {
+    const a = await ask('New world', 'A name for your world and for its first map. You add the sounds while you draw.', [
+      { label: 'Cancel', value: null }, { label: 'Create', value: 'ok', cls: 'primary' },
+    ], { label: 'World', placeholder: 'The Drowned Abbey', max: 120, second: { label: 'First map', placeholder: 'The village', max: 80 }, sizes: sizeField(null) });
+    if (!a || !a.value) return;
+    const bard = window.Troubadour.bardName();
+    const story = M.blankStory(a.text || 'New world', bard);
+    const world = M.blankWorld(story, bard);
+    world.places[0].title = a.text2 || 'Map 1';
+    resizePlace(world.places[0], a.size);
+    const r = await DB.put({ uid: DB.uid(), story, world, files: {} });
+    location.hash = `#/edit/${r.uid}/0`;
+  }
+
+  function menu(title, items) {
+    $('#sheet-title').textContent = title;
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'mp-menu';
+    items.forEach(([icon, label, sub, fn, cls]) => {
+      const b = el('button', `mp-menu-item ${cls || ''}`);
+      b.type = 'button';
+      b.innerHTML = icon;
+      const t = el('span');
+      t.append(el('b', '', label), el('small', '', sub));
+      b.append(t);
+      b.addEventListener('click', () => { $('#sheet').close(); fn(); });
+      body.append(b);
+    });
+    $('#sheet').showModal();
+  }
+
+  function worldMenu(r, fromTable) {
+    menu(r.story.title || 'World', [
+      ...(fromTable ? [] : [[ICON.edit, 'Edit the world', 'Draw its maps, lay its sounds', () => editAt(r)]]),
+      [ICON.pen || ICON.edit, 'Rename the world', 'Its name, on its cover and at the table', async () => {
+        const a = await ask('Rename the world', '', [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: 'World name', value: r.story.title, max: 120 });
+        if (!a || !a.value || !a.text) return;
+        r.story.title = a.text;
+        await DB.put(r);
+        if (rec && rec.uid === r.uid) { $('#mw-title').textContent = r.story.title; $('#mw-title-in').value = r.story.title; }
+        renderLibrary();
+      }],
+      [ICON.share, 'Export .troubadour-map', 'Forges the next revision, signed with your troubadour name', () => exportWorld(r)],
+      [ICON.trash, (document.documentElement.classList.contains('pc') ? 'Remove from this browser' : 'Remove from this device'), 'Keep a .troubadour-map if you want it back', async () => {
+        const ok = await ask(`Remove ${r.story.title}?`, 'Its maps, its drawings and its sounds leave this device.', [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, cls: 'danger' }]);
+        if (!ok) return;
+        await DB.remove(r.uid);
+        if (rec && rec.uid === r.uid) { leaveOk = true; location.hash = '#/'; } else renderLibrary();
+      }, 'danger'],
+    ]);
+  }
+
+  async function exportWorld(r) {
+    try {
+      flush();
+      busy('Exporting the .troubadour-map', '', 0);
+      const files = await DB.filesOf(r);
+      const out = await M.pack(r.story, r.world, files, window.Troubadour.bardName(), (f) => busy('Exporting the .troubadour-map', '', f), `Troubadour Map ${VERSION}`);
+      // Keep the forged revision, but not a copy: the record holds the live world.
+      Object.assign(r.world, { id: out.world.id, revision: out.world.revision, bard: out.world.bard, created: out.world.created, forged: out.world.forged, generator: out.world.generator });
+      await DB.put(r);
+      idle();
+      await deliver(out.blob, out.fileName);
+    } catch (e) { idle(); toast(`Could not export: ${e.message || e}`, 4200); }
+  }
+
+
+  /* ================= Import ================= */
+  function pickFile() {
+    const input = $('#pick-file');
+    if (!document.documentElement.classList.contains('ios')) input.accept = '.troubadour,.troubadour-map,.bardic,application/zip';
+    input.value = '';
+    input.click();
+  }
+
+  async function importFile(file) {
+    const isMap = /\.troubadour-map$/i.test(file.name);
+    try {
+      busy('Opening the story', file.name, 0);
+      const { story, world, files } = await M.read(file, (n, t) => busy('Opening the story', `Sound ${n} of ${t}`, n / t));
+      let wd = world ? M.normalize(world, files) : M.defaultWorld(story, window.Troubadour.bardName());
+      const all = await DB.list();
+      let uid = DB.uid();
+      const twin = all.find((r) => (world ? r.world.id === wd.id : r.story.id && r.story.id === story.id && !r.world.revision));
+      if (twin) {
+        idle();
+        const newer = world && (wd.revision || 0) > (twin.world.revision || 0);
+        const answer = await ask(`${story.title} is already here`, world
+          ? `This device holds revision ${twin.world.revision || 0} of this world; the file is revision ${wd.revision || 0}.${newer ? ' The file is newer.' : ''}`
+          : 'A world of this story, never exported yet, is already on this device.', [
+          { label: 'Cancel', value: null },
+          { label: 'Keep both', value: 'both' },
+          { label: 'Replace', value: 'replace', cls: 'primary' },
+        ]);
+        if (!answer) return;
+        if (answer === 'replace') uid = twin.uid;
+        else if (world) wd = Object.assign({}, wd, { id: window.Troubadour.uuid(), revision: 0 });
+      }
+      const keys = {};
+      let n = 0;
+      for (const [p, b] of files) {
+        n += 1;
+        busy('Keeping the sounds on this device', `${n} of ${files.size}`, n / files.size);
+        keys[p] = await DB.putBlob(b);
+      }
+      const r = await DB.put({ uid, story, world: wd, files: keys });
+      await DB.collect();
+      idle();
+      // Imported or downloaded, a world joins the list without opening: Edit or Play it from there.
+      if (!world) toast(`A world of ${story.title} is ready, one map per chapter: Edit it to draw the maps and lay its sounds.`, 5200);
+      else toast(`${story.title} is in your list.`);
+      if (location.hash === '#/' || !location.hash || isOnline()) renderLibrary(); else location.hash = '#/';
+    } catch (e) {
+      idle();
+      toast(`${isMap ? 'This .troubadour-map' : 'This file'} could not be opened: ${e.message || e}`, 5200);
+    }
+  }
+
+  /* ================= Saving ================= */
+  let saveBad = false;
+  function save() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 500);
+    paintSave();
+  }
+  function flush() {
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    if (!rec) return;
+    const r = rec;
+    DB.put(r).then(() => { saveBad = false; paintSave(); }).catch((e) => { saveBad = true; paintSave(); toast(`Could not save: ${e.message || e}`, 4000); });
+  }
+  /** The save state of the editor, as Troubadour's: a green phone with a check while every change is kept on this
+   *  device (dimmed for the half second a change waits), a red disk when saving failed, which offers to export. */
+  function paintSave() {
+    const b = $('#mw-saved');
+    if (!b) return;
+    const bad = saveBad, waiting = !!saveTimer;
+    b.classList.toggle('bad', bad);
+    b.classList.toggle('wait', waiting && !bad);
+    b.innerHTML = bad ? ICON.saveDisk : ICON.savedOk;
+    const what = bad ? 'Not saved: export the world to keep it' : waiting ? 'Saving' : 'Saved on this device';
+    b.setAttribute('aria-label', what); b.title = what;
+  }
+  async function saveState() {
+    if (!rec) return;
+    if (!saveBad) { toast(saveTimer ? 'Saving…' : 'Saved on this device: every change is kept as you make it.', 2400); return; }
+    const v = await ask('Saving stopped working', 'Your last changes could not be kept on this device (its storage is full or blocked). Export the world as a .troubadour-map now so you do not lose your work: you can import it again later.', [
+      { label: 'Try again', value: 'retry' }, { label: 'Export now', value: 'export', cls: 'primary' },
+    ]);
+    if (v === 'export') exportWorld(rec);
+    else if (v === 'retry') flush();
+  }
+
+  /* ================= Sounds of the world ================= */
+  async function ensure(fileList, label) {
+    const need = [...new Set(fileList)].filter((f) => f && !buffers.has(f) && rec.files[f]);
+    let n = 0;
+    for (const f of need) {
+      n += 1;
+      if (need.length > 2 && label !== false) busy('Loading the sounds', `${n} of ${need.length}`, n / need.length);
+      try { buffers.set(f, await decode(await DB.getBlob(rec.files[f]))); } catch (e) { /* unreadable: stays silent */ }
+    }
+    if (need.length > 2 && label !== false) idle();
+  }
+
+  /* At the table, a world is made ready once, whole: every map changes at once and nothing loads on the way.
+   * Short sounds are decoded (they strike at once, their loops have no seam); long ones (the musics, the long
+   * ambiances) are streamed from the device, since decoding them all would take more memory than a phone has. */
+  const streams = new Map(); // file => { stream: true, url, duration }
+  const sounds = { get: (f) => streams.get(f) || buffers.get(f) };
+  const STREAM_OVER = 300 * 1024;
+  function probe(url, ms) {
+    return new Promise((ok) => {
+      const a = new Audio();
+      let over = false;
+      const done = (d) => { if (over) return; over = true; clearTimeout(timer); a.removeAttribute('src'); try { a.load(); } catch (e) { /* gone */ } ok(d); };
+      const timer = setTimeout(() => done(0), ms);
+      a.preload = 'metadata';
+      a.onloadedmetadata = () => done(Number.isFinite(a.duration) ? a.duration : 0);
+      a.onerror = () => done(0);
+      a.src = url;
+    });
+  }
+  /** A long sound is listened to once, whole, to learn where it really starts and ends (the encoder's silence), where
+   *  it loops and how loud it is. Kept on the device with the sound; one at a time, so the memory stays low. */
+  function measure(blob) { return window.TroubadourEngine.measure(audio().ctx, blob); }
+  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
+  async function prepare(fileList, label) {
+    const r = rec;
+    const music = new Set((r.world.music || []).map((c) => c.file));
+    r.world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') music.add(c.file); }));
+    const need = [...new Set(fileList)].filter((f) => f && !sounds.get(f) && r.files[f]);
+    if (!need.length) return;
+    const show = label !== false && need.length > 2;
+    let n = 0, blind = 0;
+    const one = async (f) => {
+      try {
+        let blob = await DB.getBlob(r.files[f]);
+        if (!blob) throw new Error('missing');
+        if (music.has(f) || blob.size > STREAM_OVER) {
+          if (!blob.type) blob = new Blob([blob], { type: /\.(ogg|oga)$/i.test(f) ? 'audio/ogg' : /\.wav$/i.test(f) ? 'audio/wav' : /\.(m4a|aac|mp4)$/i.test(f) ? 'audio/mp4' : 'audio/mpeg' });
+          const s = { stream: true, url: URL.createObjectURL(blob), duration: 0, a: 0, b: 0, la: 0, lb: 0, lufs: null };
+          let an = await DB.getKV(`an:${r.files[f]}`, null);
+          if (!an) { an = await measure(blob); if (an) DB.setKV(`an:${r.files[f]}`, an).catch(() => {}); }
+          if (an) Object.assign(s, an, { duration: an.b - an.a });
+          // Unreadable here: its length, when the browser tells it without playing (else learnt at its first play).
+          else if (blind < 2) { s.duration = await probe(s.url, 1500); if (!s.duration) blind += 1; }
+          if (rec === r) streams.set(f, s); else URL.revokeObjectURL(s.url);
+        } else if (rec === r) buffers.set(f, await decode(blob));
+      } catch (e) { /* unreadable: stays silent */ }
+      n += 1;
+      if (show && rec === r) busy(label || 'Opening the story', `${r.story.title || 'World'}, ${n} of ${need.length} sounds`, n / need.length);
+    };
+    if (show) busy(label || 'Opening the story', `${r.story.title || 'World'}, 0 of ${need.length} sounds`, 0);
+    const todo = need.slice();
+    await Promise.all([0, 1, 2, 3].map(async () => { while (todo.length && rec === r) await one(todo.shift()); }));
+    if (show) idle();
+  }
+  const worldFiles = (r) => (r.world.music || []).map((c) => c.file).concat(...r.world.places.map(placeFiles));
+  const placeFiles = (p) => p.general.map((c) => c.file).concat(...p.elements.map((e) => e.cards.map((c) => c.file)));
+
+  /** One sound previewed in the editor or the sound picker, on its own. */
+  let preview = null;
+  async function listen(file, btn, getBlob) {
+    const { ctx: c0 } = audio(true); // inside the tap: wakes the audio before anything waits
+    if (c0.state !== 'running') c0.resume().catch(() => {});
+    if (preview) { const was = preview; preview = null; try { was.src.stop(); } catch (e) { /* done */ } if (was.btn) was.btn.innerHTML = ICON.play; if (was.file === file) return; }
+    if (btn) btn.classList.add('wait');
+    try {
+      if (getBlob && !buffers.has(file)) buffers.set(file, await decode(await getBlob()));
+      else await ensure([file], false);
+    } catch (e) { /* unreadable */ }
+    if (btn) btn.classList.remove('wait');
+    const buf = buffers.get(file);
+    if (!buf) { toast('This sound cannot be read here.'); return; }
+    const { ctx, master } = audio(true);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(master);
+    src.start();
+    preview = { src, file, btn };
+    if (btn) btn.innerHTML = ICON.pause;
+    src.onended = () => { if (preview && preview.src === src) { preview = null; if (btn) btn.innerHTML = ICON.play; } };
+  }
+  function stopPreview() { if (preview) listen(preview.file); }
+
+  /* ================= A world ================= */
+  const here = () => `#/${mode}/${rec.uid}/${pi}`;
+  async function openWorld(r, n, m) {
+    if (!(rec && rec.uid === r.uid)) {
+      A.close(0);
+      buffers.clear();
+      dropStreams();
+      rec = r;
+      window.MapStamps.register(rec.world.stamps);
+      buildStamps();
+    }
+    mode = m;
+    goPlace(Math.max(0, Math.min(rec.world.places.length - 1, n || 0)), true);
+  }
+
+  /** A world opened without a touch (the page reloaded, a link followed): the browser keeps the sound off until one.
+   *  Rather than a silent map, a veil asks for that touch, and everything starts with it. */
+  function soundGate() {
+    const g = $('#mw-gate');
+    const { ctx } = audio(true);
+    const check = () => {
+      const off = screen === 'world' && mode === 'play' && ctx.state !== 'running';
+      g.hidden = !off;
+      return off;
+    };
+    clearInterval(soundGate.timer);
+    // The context may take a moment to wake after the tap that opened the world.
+    setTimeout(() => { if (check()) soundGate.timer = setInterval(() => { if (!check()) clearInterval(soundGate.timer); }, 200); }, 350);
+  }
+
+  /** Takes the party to another map by a way (a door, stairs): it arrives beside the way that leads back,
+   *  on the side of the middle of the map, never on its sign. */
+  function travel(to) {
+    const from = place(), dest = rec.world.places[to];
+    const back = dest.elements.find((e) => e.link === from.id);
+    if (back) {
+      const b = M.bounds(back.shape), c = M.centre(back.shape);
+      const mid = [dest.width / 2, dest.height / 2];
+      let dx = mid[0] - c[0], dy = mid[1] - c[1];
+      const d = Math.hypot(dx, dy) || 1;
+      dx /= d; dy /= d;
+      const half = Math.hypot(b[2] - b[0], b[3] - b[1]) / 2;
+      const gap = half + Math.max(80, Math.min(dest.width, dest.height) * 0.08);
+      dest.player = [Math.round(Math.max(20, Math.min(dest.width - 20, c[0] + dx * gap))), Math.round(Math.max(20, Math.min(dest.height - 20, c[1] + dy * gap)))];
+      save();
+    }
+    goPlace(to);
+  }
+
+  async function goPlace(n, first) {
+    stopPreview();
+    closeArrive();
+    pi = n;
+    // At the table, the sound menu stays open on the whole map of the new place.
+    tapped = undefined;
+    if (mode === 'play') setPanel(true);
+    $('#mw-title').textContent = rec.story.title || 'World';
+    if (document.activeElement !== $('#mw-title-in')) $('#mw-title-in').value = rec.story.title || '';
+    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
+    V.setMode(mode);
+    V.show(place(), rec.world);
+    V.layers.hidden.clear(); V.layers.locked.clear(); V.layers.wallsHidden = false; V.layers.wallsLocked = false;
+    renderPlaces();
+    if (location.hash !== here()) history.replaceState(null, '', here());
+    await setMode(mode, !first);
+  }
+
+  async function setMode(m, keepAudio) {
+    closeArrive();
+    mode = m;
+    $('#world').dataset.mode = m;
+    // The player leads nowhere but the table: the editor opens from the library.
+    $('#mw-switch').hidden = m === 'play';
+    $('#mw-sb .star').innerHTML = m === 'edit' ? ICON.bookStar : ICON.star;
+    $('#mw-sb').title = m === 'edit' ? "This world's soundbox" : 'Soundbox';
+    paintSave();
+    // At the table, the sound menu opens on a double tap only (an element, or the map itself).
+    // At the table, the sound menu opens on the whole map; while drawing, the panel follows the screen's width.
+    tapped = undefined;
+    setPanel(m === 'play');
+    if (m !== 'play') { closeSoundbox(); closeMusic(); }
+    // The cards heard while editing fall silent when the table opens, and the other way round.
+    stopFxWhere(() => true);
+    const was = V.mode();
+    V.setMode(m);
+    if (was !== m) { V.fit(); renderPlaces(); }
+    $('#mw-stamps').hidden = true;
+    if (m !== 'edit') setLayers(false);
+    renderOpts(m === 'edit' ? V.tool() : null);
+    renderLayers();
+    if (m === 'play') {
+      const r0 = rec, music = worldMusic();
+      // The opening popup of every online player, shown long enough to be read.
+      const t0 = Date.now();
+      busy('Opening the story', `${rec.story.title || 'World'}`, 0);
+      await prepare(worldFiles(rec));
+      busy('Opening the story', `${r0.story.title || 'World'}`, 1);
+      await new Promise((res) => setTimeout(res, Math.max(0, 700 - (Date.now() - t0))));
+      idle();
+      if (rec !== r0 || mode !== 'play') return;
+      A.setMusic(music);
+      A.open(place(), rec.world, sounds);
+      soundGate();
+      acquireWake();
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
+      // The tip shows the first three times a world is played, and goes at the first touch of the map.
+      let seen = 0;
+      try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }
+      clearTimeout(setMode.tip);
+      if (seen < 3 && !keepAudio) {
+        try { localStorage.setItem('troubadour.map.tips', String(seen + 1)); } catch (e) { /* private mode */ }
+        $('#mw-play-tip').classList.remove('gone');
+        setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 8000);
+      } else $('#mw-play-tip').classList.add('gone');
+    } else {
+      if (m === 'edit' && listening) openListen();
+      else { if (!keepAudio || A.isOpen()) A.close(); if (listening) listen(false); }
+      releaseWake();
+    }
+    renderPanel();
+  }
+
+  /* ================= Listening in the editor: Heard now ================= */
+  // The editor hears the map from the golden point, as the table will: move the point with the select tool, and
+  // the panel says which sounds it hears, how much, and at what level. Nothing of this runs at the table.
+  let listening = false, heardTimer = 0, heardTick = 0, heardRows = new Map(), heardDrag = false;
+  async function openListen() {
+    const r0 = rec, p0 = pi;
+    audio(true);
+    await prepare(worldFiles(rec));
+    if (!listening || rec !== r0 || pi !== p0 || mode !== 'edit' || screen !== 'world') return;
+    A.open(place(), rec.world, sounds);
+    renderHeard(true);
+  }
+  function listen(on) {
+    if (on && (mode !== 'edit' || !rec)) return;
+    listening = on;
+    $('#mw-listen').setAttribute('aria-pressed', String(on));
+    $('#mw-listen').title = on ? 'Stop listening (S)' : 'Listen from the golden point (S)';
+    $('#mw-heard').hidden = !on;
+    clearInterval(heardTimer);
+    if (on) {
+      $('#mw-heard-master').value = settings.master; paintRange($('#mw-heard-master'));
+      $('#mw-heard-master-val').textContent = String(Math.round(settings.master * 100));
+      heardRows.clear(); $('#mw-heard-list').textContent = '';
+      openListen();
+      heardTimer = setInterval(() => renderHeard(false), 100);
+    } else {
+      if (A.isOpen()) A.close();
+      A.meterOff();
+      V.redraw && V.redraw();
+    }
+  }
+  /** The meter every tenth of a second, the list every 400 ms (and never under a finger on a slider). */
+  function renderHeard(now) {
+    if (!listening) return;
+    if (A.isOpen()) {
+      const m = A.meter();
+      const db = (x) => Math.max(0, Math.min(1, 1 + (20 * Math.log10(Math.max(x, 1e-6))) / 48));
+      $('#mw-meter .lv').style.width = `${db(m.level) * 100}%`;
+      $('#mw-meter .pk').style.left = `calc(${db(m.peak) * 100}% - 2px)`;
+      $('#mw-meter').classList.toggle('hot', m.peak >= 0.98);
+    }
+    if (!now && (heardTick++ % 4)) return;
+    if (heardDrag) return;
+    const list = $('#mw-heard-list');
+    const all = A.isOpen() ? A.heardNow() : [];
+    const near = all.filter((h) => h.heard > 0.01), far = all.length - near.length;
+    const keep = new Set();
+    near.forEach((h) => {
+      let row = heardRows.get(h.card);
+      if (!row) {
+        row = el('div', `hn-row z-${h.card.zone}`);
+        const n = el('span', 'n', h.card.name), pc = el('span', 'h', ''), bar = el('div', 'bar'); bar.append(el('i'));
+        const vol = el('input'); vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01;
+        vol.setAttribute('aria-label', `Volume of ${h.card.name}`);
+        vol.value = h.card.volume; paintRange(vol);
+        vol.addEventListener('pointerdown', () => { heardDrag = true; });
+        const up = () => { heardDrag = false; };
+        vol.addEventListener('pointerup', up); vol.addEventListener('pointercancel', up); vol.addEventListener('blur', up);
+        vol.addEventListener('input', () => A.setVolume(h.card, Number(vol.value)));
+        vol.addEventListener('change', () => { heardDrag = false; save(); });
+        row.append(n, pc, bar, vol);
+        row.parts = { pc, bar: bar.firstChild, vol };
+        heardRows.set(h.card, row);
+      }
+      row.classList.toggle('wait', h.waiting);
+      row.parts.pc.textContent = h.waiting ? 'waits' : `heard ${Math.round(h.heard * 100)} %`;
+      row.parts.bar.style.width = `${Math.round(h.heard * 100)}%`;
+      if (document.activeElement !== row.parts.vol) { row.parts.vol.value = h.card.volume; paintRange(row.parts.vol); }
+      row.title = `${h.card.name}: heard ${Math.round(h.heard * 100)} %, volume ${Math.round(h.card.volume * 100)} %`;
+      keep.add(h.card);
+      list.append(row); // in order: the loudest first
+    });
+    heardRows.forEach((row, c) => { if (!keep.has(c)) { row.remove(); heardRows.delete(c); } });
+    let farEl = list.querySelector('.hn-far');
+    if (far) { if (!farEl) farEl = el('p', 'hn-far'); farEl.textContent = `${far} more out of reach`; list.append(farEl); } else if (farEl) farEl.remove();
+    $('#mw-heard-tip').hidden = near.length > 0;
+    let none = list.querySelector('.hn-none');
+    if (near.length) { if (none) none.remove(); } else {
+      if (!none) { none = el('p', 'hn-far hn-none'); list.prepend(none); }
+      none.textContent = A.isOpen() ? 'Nothing reaches the golden point here.' : 'Opening the sounds…';
+    }
+  }
+
+  /** The maps of the world, as Troubadour's chapters: a numbered rail (a strip under the top bar on a narrow
+   *  screen, and always at the table, so the map keeps the left of the screen). */
+  function renderPlaces() {
+    const rail = $('#mw-places');
+    rail.textContent = '';
+    rail.append(el('h3', '', 'Maps'));
+    const links = new Set(place().elements.map((e) => e.link).filter(Boolean));
+    rec.world.places.forEach((p, i) => {
+      const b = el('button', 'chap');
+      b.type = 'button';
+      if (i === pi) b.setAttribute('aria-current', 'true');
+      b.append(el('span', 'n', String(i + 1)), el('span', 't', p.title));
+      if (links.has(p.id)) { const pin = el('i', 'way'); pin.innerHTML = ICON.pin; b.append(pin); b.title = `Map ${i + 1}: ${p.title}. An element of this map leads there`; }
+      else b.title = `Map ${i + 1}: ${p.title}`;
+      if (mode === 'edit' && i === pi) {
+        // The map on screen: a tap renames it.
+        const pen = el('i', 'ren'); pen.innerHTML = ICON.edit; b.append(pen);
+        b.title += '. Tap to rename it';
+      }
+      b.addEventListener('click', () => { if (i !== pi) goPlace(i); else if (mode === 'edit') renamePlace(p); });
+      rail.append(b);
+      if (i === pi) requestAnimationFrame(() => b.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+    });
+    if (mode === 'edit') {
+      const add = el('button', 'chap add');
+      add.type = 'button';
+      add.append(el('span', 'n', '+'), el('span', 't', 'New map'));
+      add.addEventListener('click', () => addPlace());
+      rail.append(add);
+    }
+    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+  }
+
+  async function renamePlace(p) {
+    const a = await ask('This map', 'Its name, and its size: what is drawn on it grows or shrinks with it.', [{ label: 'Duplicate', value: 'dup' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: `Map ${pi + 1}`, value: p.title, max: 80, sizes: sizeField(p) });
+    if (!a || !a.value) return;
+    if (a.value === 'dup') { duplicatePlace(p); return; }
+    if (a.text) p.title = a.text;
+    const grown = resizePlace(p, a.size);
+    save(); renderPlaces();
+    if (grown) { V.show(p, rec.world); V.fit(); }
+    if (!V.selected()) renderPanel();
+  }
+  /** A copy of a map, just after it: same drawing, same sounds, its elements with ids of their own. */
+  function duplicatePlace(p) {
+    const q = JSON.parse(JSON.stringify(p));
+    q.id = `place-${M.shortId()}`;
+    q.title = `${p.title} (copy)`.slice(0, 80);
+    q.elements.forEach((e) => { e.id = M.shortId(); });
+    const at = rec.world.places.indexOf(p) + 1;
+    rec.world.places.splice(at, 0, q);
+    save();
+    goPlace(at);
+    toast(`${q.title}: a copy of the map.`, 1800);
+  }
+  async function addPlace(title) {
+    if (!title) {
+      const a = await ask('New map', 'A new map in this world: a cellar, the next town, the road between them.', [{ label: 'Cancel', value: null }, { label: 'Create', value: 'ok', cls: 'primary' }], { label: 'Name', placeholder: `Map ${rec.world.places.length + 1}`, max: 80, sizes: sizeField(null) });
+      if (!a || !a.value) return null;
+      title = a.text;
+      addPlace.size = a.size;
+    }
+    const p = M.newPlace(title || `Map ${rec.world.places.length + 1}`);
+    if (addPlace.size) { resizePlace(p, addPlace.size); addPlace.size = null; }
+    rec.world.places.push(p);
+    save();
+    goPlace(rec.world.places.length - 1);
+    return p;
+  }
+
+  /* ================= The panel ================= */
+  /** Opens or closes the panel (at the table: the sound menu), and paints the Sounds button. */
+  function setPanel(open) {
+    $('#world').classList.toggle('panel', !!open);
+    paintMenuBtn();
+    if (open && mode === 'play') refreshLive();
+  }
+  function paintMenuBtn() {
+    const b = $('#mw-menu');
+    if (b) b.setAttribute('aria-pressed', String($('#world').classList.contains('panel') && (mode === 'edit' ? !edView : !tapped)));
+  }
+  let liveRows = [];
+  /** Builds cards whose live painting goes to `rows` instead of the sound menu's. */
+  function withRows(rows, fn) { const was = liveRows; liveRows = rows; try { return fn(); } finally { liveRows = was; } }
+
+  function slider(label, value, min, max, step, fmt, oninput) {
+    const row = el('label', 'slide');
+    const s = el('span', '', label);
+    const input = el('input');
+    input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = value;
+    const b = el('b', '', fmt(Number(value)));
+    input.addEventListener('input', () => { b.textContent = fmt(Number(input.value)); oninput(Number(input.value)); });
+    input.addEventListener('change', save);
+    row.append(s, input, b);
+    return row;
+  }
+  /** A row with − and + around a value: the size and the turn of a place. */
+  function stepper(label, read, step, cls) {
+    const row = el('div', `row-step ${cls || ''}`);
+    const box = el('div', 'stepper');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', label);
+    const less = el('button', '', '−'), more = el('button', '', '+'), val = el('b', '');
+    less.type = more.type = 'button';
+    less.setAttribute('aria-label', `${label}: less`); more.setAttribute('aria-label', `${label}: more`);
+    const paint = () => { val.textContent = read(); };
+    less.addEventListener('click', () => { step(-1); paint(); V.redraw(); save(); });
+    more.addEventListener('click', () => { step(1); paint(); V.redraw(); save(); });
+    box.append(less, val, more);
+    row.append(el('span', '', label), box);
+    paint();
+    return row;
+  }
+  // The sizes a place steps through, in % of the width of its map.
+  const SIZE_STEPS = [1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 23, 26, 30, 35, 40, 50, 60];
+  const pctOf = (e) => (e.shape.size / place().width) * 100;
+  const fmtPct = (v) => `${v < 10 ? Math.round(v * 2) / 2 : Math.round(v)} %`;
+  function sizeStepper(e) {
+    return stepper('Size', () => fmtPct(pctOf(e)), (d) => {
+      const v = pctOf(e);
+      const next = d > 0 ? SIZE_STEPS.find((x) => x > v + 0.05) : [...SIZE_STEPS].reverse().find((x) => x < v - 0.05);
+      if (!next) return;
+      // Its reach grows and shrinks with it: the same times its size.
+      const k = e.radius / Math.max(1, e.shape.size);
+      e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
+      e.radius = Math.round(k * e.shape.size);
+      if (A.isOpen()) A.hear();
+    });
+  }
+  function turnStepper(e) {
+    return stepper('Turn', () => `${e.shape.rotation}°`, (d) => {
+      let r = Math.round((e.shape.rotation + d * 15) / 15) * 15;
+      if (r > 180) r -= 360; if (r <= -180) r += 360;
+      e.shape.rotation = r;
+    });
+  }
+  /** A copy of an element, a little aside, with the same sounds. */
+  function duplicateElement(e) {
+    V.snapshot();
+    const c = JSON.parse(JSON.stringify(e));
+    c.id = M.shortId();
+    const sh = c.shape, off = Math.round(Math.max(40, (sh.size || place().width * 0.05) * 0.35));
+    if (sh.type === 'stamp') { sh.x = Math.min(place().width, sh.x + off); sh.y = Math.min(place().height, sh.y + off); }
+    else sh.points.forEach((q) => { q[0] += off; q[1] += off; });
+    const kind = c.title.replace(/\s+\d+$/, '') || elName(e);
+    const same = place().elements.filter((x) => x.title && x.title.startsWith(kind)).length;
+    c.title = `${kind} ${same + 1}`.slice(0, 80);
+    place().elements.push(c);
+    V.select(c);
+    save(); V.redraw(); renderPlaces();
+    return c;
+  }
+  /** The menu of an element, at a long press (or a right click) while drawing. */
+  function elementMenu(e, cx, cy) {
+    const m = $('#mw-ctx');
+    m.textContent = '';
+    const head = el('div', 'ctx-head');
+    head.append(el('b', '', elName(e)));
+    m.append(head);
+    if (e.shape.type === 'stamp') m.append(sizeStepper(e), turnStepper(e));
+    const item = (icon, label, fn, cls) => {
+      const b = el('button', `ctx-item ${cls || ''}`);
+      b.type = 'button'; b.setAttribute('role', 'menuitem');
+      b.innerHTML = `${icon}<span>${label}</span>`;
+      b.addEventListener('click', () => { closeMenu(); fn(); });
+      m.append(b);
+    };
+    item(ICON.edit, 'Edit', () => { V.select(e); edView = null; renderPanel(); setPanel(true); });
+    const own = e.shape.type === 'stamp' && window.MapStamps.isCustom(e.shape.stamp) && ((rec.world.stamps || []).find((s) => s.id === e.shape.stamp));
+    if (own) item(ICON.pen || ICON.edit, 'Redraw the place', () => placeEditor(own));
+    item(ICON.copy, 'Duplicate', () => duplicateElement(e));
+    item(ICON.trash, 'Delete', () => { V.select(e); V.deleteSelected(); }, 'danger');
+    $('#toast').hidden = true;
+    m.hidden = false;
+    // Beside the finger, inside the screen.
+    const r = m.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    m.style.left = `${Math.max(8, Math.min(W - r.width - 8, cx + 12))}px`;
+    m.style.top = `${Math.max(8, Math.min(H - r.height - 8, cy - r.height / 2))}px`;
+    setTimeout(() => document.addEventListener('pointerdown', outside, true), 0);
+  }
+  function outside(ev) { if (!$('#mw-ctx').contains(ev.target)) closeMenu(); }
+  function closeMenu() { $('#mw-ctx').hidden = true; document.removeEventListener('pointerdown', outside, true); if (mode === 'edit' && V.selected()) renderPanel(); }
+
+  /** How far an element's sounds carry beyond its edge, in times its own size, on a logarithmic slider:
+   *  its edge only, then from a tenth of its size to fifty times it. */
+  const elSize = (e) => { const b = M.bounds(e.shape); return Math.max(20, b[2] - b[0], b[3] - b[1]); };
+  const REACH_MIN = 0.1, REACH_MAX = 50;
+  const reachOf = (t) => (t <= 0 ? 0 : REACH_MIN * Math.pow(REACH_MAX / REACH_MIN, (t - 1) / 99));
+  const posOf = (m) => (m < REACH_MIN * 0.75 ? 0 : Math.max(1, Math.min(100, Math.round(1 + (99 * Math.log(m / REACH_MIN)) / Math.log(REACH_MAX / REACH_MIN)))));
+  const fmtReach = (m) => (m <= 0 ? 'its edge' : `${m < 1 ? m.toFixed(1) : m < 3 ? (Math.round(m * 4) / 4).toString() : Math.round(m)}× its size`);
+  function reachSlider(e) {
+    return slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
+      e.radius = Math.round(reachOf(v) * elSize(e));
+      if (A.isOpen()) A.hear();
+      V.redraw();
+    });
+  }
+  function section(title, extra) {
+    const s = el('section', 'pn');
+    const h = el('h3');
+    h.append(el('span', '', title), el('span', 'grow'));
+    if (extra) h.append(extra);
+    s.append(h);
+    return s;
+  }
+  const ZONE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+
+  /** The loop button, as in Troubadour: 1×, 2×, ∞, then random (ambiances, events) or play after (music). */
+  const LOOP_LABEL = { once: '1×', twice: '2×', loop: '∞' };
+  const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause', after: 'Play after: starts when another music ends on its own' };
+  function paintLoop(btn, c) {
+    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : c.play === 'after' ? ' aft' : ''}`;
+    if (c.play === 'random') btn.innerHTML = ICON.random; else if (c.play === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[c.play];
+    btn.title = `${LOOP_TITLE[c.play]} (tap to change)`;
+    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[c.play]}`);
+  }
+  const fmtLeft = (sec) => { sec = Math.ceil(sec || 0); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
+  const clockOf = (sec) => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
+  const ZONE_COLOUR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--blue)' };
+
+  /** A sound card, built like Troubadour's (.c: name and loop, progress, play, stop, volume as set in Settings).
+   *  In the editor: preview, loop, + and −, remove. At the table, a thin meter tells how much reaches the party. */
+  function cardRow(c, list, owner) {
+    const row = el('div', 'c');
+    row.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
+    const zoneKey = c.zone === 'soundbox' ? 'events' : c.zone;
+    const vm = mode === 'edit' ? 'simple' : ((settings.vol && settings.vol[zoneKey]) || 'simple');
+    row.classList.add(`vm-${vm}`);
+
+    const head = el('div', 'ch');
+    // A long name rolls inside its frame, as in Troubadour (see rollTitles).
+    const nm = el('b', 'nm');
+    nm.title = `${c.name} (${ZONE_LABEL[c.zone] || c.zone})`;
+    nm.append(el('span', '', c.name));
+    head.append(nm);
+    let rem = null;
+    if (mode === 'play' && vm !== 'hidden') { rem = el('small'); head.append(rem); }
+    // The world's musics have no loop of their own: the queue says what comes next.
+    const worldMus = !!(rec && rec.world.music && list === rec.world.music);
+    const loop = el('button');
+    loop.type = 'button';
+    paintLoop(loop, c);
+    loop.addEventListener('click', () => {
+      // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
+      const ways = c.zone === 'music' ? ['once', 'twice', 'loop'] : ['once', 'twice', 'loop', 'random'];
+      const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
+      Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
+      save();
+      if (A.isOpen()) A.sync();
+      if (mode === 'edit') renderPanel(); else paintLoop(loop, c);
+    });
+    head.append(loop);
+    if (mode === 'edit') {
+      const x = el('button', 'loop x');
+      x.type = 'button';
+      x.innerHTML = ICON.x;
+      x.title = 'Remove this card';
+      x.setAttribute('aria-label', `Remove ${c.name}`);
+      x.addEventListener('click', () => {
+        list.splice(list.indexOf(c), 1);
+        // A music taken out of the world leaves the maps it was laid on too (else it would come back with them).
+        if (worldMus) rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
+        save(); syncAudio(); renderPanel(); V.redraw(); renderPlaces();
+      });
+      head.append(x);
+    }
+    row.append(head);
+
+    // The editor: the longest pause of a random card, as in Troubadour (0.5 s to it; Auto: the one of the settings).
+    if (mode === 'edit' && c.play === 'random') {
+      const opts = el('div', 'opts');
+      const val = el('b');
+      const paintGap = () => { val.textContent = c.randomMax ? `${c.randomMax} s` : `Auto`; less.disabled = !c.randomMax; more.disabled = c.randomMax >= A.RANDOM_TOP; };
+      const stepGap = (d) => {
+        const n = (c.randomMax || 0) + d;
+        Object.assign(c, M.cleanCard(Object.assign({}, c, { randomMax: n >= 1 ? n : 0 })));
+        if (!(n >= 1)) delete c.randomMax;
+        save(); paintGap();
+      };
+      const box = el('div', 'stepper');
+      box.setAttribute('role', 'group'); box.setAttribute('aria-label', `Longest pause of ${c.name}`);
+      const less = el('button', '', '‹'); less.type = 'button'; less.setAttribute('aria-label', 'Shorter'); less.addEventListener('click', () => stepGap(-1));
+      const more = el('button', '', '›'); more.type = 'button'; more.setAttribute('aria-label', 'Longer'); more.addEventListener('click', () => stepGap(1));
+      box.append(less, val, more);
+      opts.append(el('span', '', 'Longest pause'), box);
+      opts.title = `Plays again after a pause of 0.5 s to this. Auto: ${A.randomMax()} s, from the settings`;
+      paintGap();
+      row.append(opts);
+    }
+
+    // The progress of the sound (at the table), and how much of an element reaches the party.
+    let fill = null, bar = null;
+    if (mode === 'play') {
+      const track = el('div', 'track');
+      fill = el('div', 'fill');
+      track.append(fill);
+      row.append(track);
+    }
+
+    const ctrl = el('div', 'ctrl');
+    const pb = el('button', 'pb play');
+    pb.type = 'button';
+    pb.innerHTML = ICON.play;
+    ctrl.append(pb);
+    let end = null;
+    if (mode === 'edit') {
+      pb.title = 'Listen';
+      pb.setAttribute('aria-label', `Listen to ${c.name}`);
+      pb.addEventListener('click', () => listen(c.file, pb));
+    } else {
+      pb.addEventListener('click', () => { A.toggle(c); refreshLive(); });
+      end = el('button', 'pb end');
+      end.type = 'button';
+      end.innerHTML = ICON.stop;
+      end.title = 'Fade out';
+      end.setAttribute('aria-label', `Fade out ${c.name}`);
+      end.addEventListener('click', () => { A.stop(c); refreshLive(); });
+      ctrl.append(end);
+    }
+    let lvl = null, vol = null, paintLvl = () => {};
+    if (vm === 'full') {
+      vol = el('input');
+      vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
+      vol.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
+      vol.setAttribute('aria-label', `${c.name} volume`);
+      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); paintRange(vol); });
+      vol.addEventListener('change', save);
+      ctrl.append(vol);
+    } else if (vm === 'simple') {
+      // Two buttons, as in Troubadour: 25 % steps, glided smoothly over 2 s a step (from the volume heard now).
+      lvl = el('span', 'lvl');
+      paintLvl = () => {
+        const v = A.voice(c);
+        const pct = `${Math.round(A.shownVolume(c) * 100)}`;
+        if (lvl.textContent !== pct) lvl.textContent = pct;
+        lvl.classList.toggle('moving', !!(v && v.volMs));
+      };
+      const step = (dir) => {
+        if (!A.stepVolume(c, dir)) return;
+        paintLvl();
+        save();
+      };
+      const dn = el('button', 'vb vdn'); dn.type = 'button'; dn.innerHTML = ICON.volDown; dn.setAttribute('aria-label', `Lower ${c.name}`);
+      dn.addEventListener('click', () => step(-1));
+      const up = el('button', 'vb'); up.type = 'button'; up.innerHTML = ICON.volUp; up.setAttribute('aria-label', `Raise ${c.name}`);
+      up.addEventListener('click', () => step(1));
+      paintLvl();
+      ctrl.append(dn, lvl, up);
+    } else if (mode === 'play') {
+      rem = el('small');
+      ctrl.append(rem);
+    }
+    row.append(ctrl);
+
+    if (mode === 'play') {
+      liveRows.push(() => {
+        // Painted as Troubadour paints its cards.
+        const v = A.voice(c);
+        const st = v ? v.state : 'idle';
+        const waiting = !!(v && v.waiting);
+        const on = !!(v && (v.active || waiting));
+        // Living ambiances: a discreet mark shows the volume heard right now; the slider and the number keep the card's own.
+        if (c.zone === 'ambience') {
+          const heard = A.living(c), alive = heard != null;
+          if (vol) { vol.classList.toggle('living', alive); if (alive) vol.style.setProperty('--lp', Math.min(1, heard).toFixed(3)); }
+          if (lvl) { lvl.classList.toggle('living', alive); if (alive) lvl.style.setProperty('--lo', `${((heard - c.volume) * 90).toFixed(1)}px`); }
+        }
+        row.classList.toggle('on', on);
+        row.classList.toggle('paused', st === 'paused');
+        const icon = st === 'playing' || waiting ? 'pause' : 'play';
+        if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
+        pb.setAttribute('aria-label', `${st === 'playing' ? 'Pause' : waiting ? 'Stop' : 'Play'} ${c.name}`);
+        pb.disabled = !sounds.get(c.file);
+        end.disabled = !(on || st === 'paused');
+        paintLvl();
+        const pr = A.progress(c);
+        if (pr.p < 0) { fill.style.width = on || st === 'paused' ? '100%' : '0'; fill.style.background = 'var(--blue)'; }
+        else { fill.style.width = `${pr.p * 100}%`; fill.style.background = `hsl(${Math.round(130 * (1 - pr.p))},72%,50%)`; }
+        let txt = '', warn = false;
+        if (waiting) txt = `next ${fmtLeft(pr.next)}`;
+        else if (v && v.held) txt = 'held';
+        else if (on || st === 'paused') {
+          if (c.play === 'loop') txt = '∞ loop';
+          else if (pr.left != null) { txt = fmtLeft(pr.left); warn = pr.left <= 10; }
+        }
+        if (rem && rem.textContent !== txt) rem.textContent = txt;
+        if (rem) rem.classList.toggle('warn', warn);
+      });
+    }
+    return row;
+  }
+
+  function addSoundsButton(list, label, target) {
+    const b = el('button', 'btn slim');
+    b.type = 'button';
+    b.innerHTML = `${ICON.plus}<span>${label || 'Add sounds'}</span>`;
+    b.addEventListener('click', () => pickSounds(list, target));
+    return b;
+  }
+
+  function cardsBlock(title, list, owner, empty, targetName) {
+    // The element's name is read when the picker opens: renamed meanwhile, it shows its new name.
+    const target = () => (owner ? elName(owner) : targetName || null);
+    const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add', target) : null);
+    if (!list.length) s.append(el('div', 'pn-empty', empty));
+    if (mode === 'edit') { editCards(s, list, target); return s; }
+    list.forEach((c) => s.append(cardRow(c, list, owner)));
+    return s;
+  }
+
+  /** The cards of the editor, as Troubadour's: music apart from the ambiances and the events, each kind in its dashed
+   *  zone of its colour. Every card plays on its own, so several can be heard together while the troubadour builds. */
+  const EDIT_ZONES = [['music', 'Music', 'var(--music)', ['once', 'twice', 'loop']], ['ambience', 'Ambiances', 'var(--amb)', ['once', 'twice', 'loop', 'random']], ['events', 'Events', 'var(--evt)', ['once', 'twice', 'loop', 'random']]];
+  const zoneOf = (c) => (c.zone === 'soundbox' ? 'events' : c.zone);
+  function editCards(s, list, target) {
+    const subs = EDIT_ZONES.map(([z]) => list.filter((c) => zoneOf(c) === z));
+    const others = list.filter((c) => !EDIT_ZONES.some(([z]) => z === zoneOf(c)));
+    // A card moved, removed or renamed in its zone: the list of the element follows, kind after kind.
+    const back = () => { list.splice(0, list.length, ...subs.flat(), ...others); };
+    EDIT_ZONES.forEach(([z, label, colour, loops], k) => {
+      const sub = subs[k];
+      if (!sub.length) return;
+      const h = el('h4', 'zh', label);
+      h.style.setProperty('--z', colour);
+      s.append(h);
+      s.append(fxZone(sub, (c) => ({
+        key: c.file, getBlob: () => DB.getBlob(rec.files[c.file]), colour, loops,
+        save: () => { back(); save(); syncAudio(); },
+        rerender: () => { back(); renderPanel(); V.redraw(); },
+        onLoop: () => { back(); renderPanel(); },
+        extra: c.play === 'random' ? () => gapRow(c) : null,
+        removeText: 'It leaves this card list. The sound stays in the world.',
+      }), 'Add', () => { pickState.type = z; pickSounds(list, target); }, colour));
+    });
+  }
+  /** The longest pause of a random card, as in Troubadour (0.5 s to it; Auto: the one of the settings). */
+  function gapRow(c) {
+    const opts = el('div', 'row opts');
+    const val = el('b');
+    const box = el('div', 'stepper');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', `Longest pause of ${c.name}`);
+    const less = el('button', '', '−'); less.type = 'button'; less.setAttribute('aria-label', 'Shorter');
+    const more = el('button', '', '+'); more.type = 'button'; more.setAttribute('aria-label', 'Longer');
+    const paint = () => { val.textContent = c.randomMax ? `${c.randomMax} s` : 'Auto'; less.disabled = !c.randomMax; more.disabled = c.randomMax >= A.RANDOM_TOP; };
+    const step = (d) => {
+      const n = (c.randomMax || 0) + d;
+      Object.assign(c, M.cleanCard(Object.assign({}, c, { randomMax: n >= 1 ? n : 0 })));
+      if (!(n >= 1)) delete c.randomMax;
+      save(); paint();
+    };
+    less.addEventListener('click', () => step(-1)); more.addEventListener('click', () => step(1));
+    box.append(less, val, more);
+    opts.append(el('span', 'vl', 'Longest pause'), box);
+    opts.title = `Plays again after a pause of 0.5 s to this. Auto: ${A.randomMax()} s, from the settings`;
+    paint();
+    return opts;
+  }
+
+  function renderPanel() {
+    paintMenuBtn();
+    liveRows.length = 0;
+    const box = $('#mw-inspector');
+    box.textContent = '';
+    if (!rec) return;
+    const p = place();
+    const sel = mode === 'edit' ? V.selected() : tapped;
+    // At the table, the panel is the sound menu: a small title, and what it shows (an element, or the whole map).
+    const head = $('#mw-side-title');
+    head.textContent = '';
+    if (mode === 'play') { head.className = 'mp-menu-title'; head.append(el('small', '', 'Sound menu'), el('span', '', sel ? elName(sel) : 'Whole map')); }
+    else { head.className = ''; head.textContent = sel ? elName(sel) : p.title; }
+    if (mode === 'edit' && edView && !sel) {
+      head.textContent = edView === 'music' ? 'Music of the world' : 'Soundbox of the world';
+      if (edView === 'music') editMusic(box); else editSoundbox(box);
+    } else if (mode === 'edit') { if (sel) editElement(box, sel); else editPlace(box, p); }
+    else if (sel) playElement(box, sel); else playPlace(box, p);
+    paintEdView();
+    paintRanges(box);
+    refreshLive();
+    requestAnimationFrame(() => rollTitles(box));
+  }
+
+  /** A name longer than its card rolls back and forth inside it (as in Troubadour). */
+  function rollTitles(root) {
+    root.querySelectorAll('.nm').forEach((nm) => {
+      const span = nm.firstChild;
+      if (!span) return;
+      nm.classList.remove('roll');
+      const over = span.scrollWidth - nm.clientWidth;
+      if (over > 2) {
+        nm.classList.add('roll');
+        nm.style.setProperty('--roll', `${-(over + 10)}px`);
+        nm.style.setProperty('--rd', `${Math.max(3, over / 18)}s`);
+      }
+    });
+  }
+  const stampLabel = (id) => { const c = window.MapStamps.custom(id); return c ? c.name : (window.MapStamps.LIST.find((s) => s.id === id) || { label: id }).label; };
+  const elName = (e) => e.title || (e.shape.type === 'stamp' ? stampLabel(e.shape.stamp) : e.shape.closed ? 'Drawn area' : 'Drawn line');
+
+  /* The world's soundbox and music, in the editor: behind the Soundbox and Music buttons of its top bar. */
+  let edView = null; // null (the map or the element selected), 'soundbox' or 'music'
+  function paintEdView() {
+    if (mode !== 'edit') return;
+    const open = $('#world').classList.contains('panel');
+    $('#mw-sb').setAttribute('aria-pressed', String(open && edView === 'soundbox'));
+    $('#mw-mus-btn').setAttribute('aria-pressed', String(open && edView === 'music'));
+  }
+  function showEdView(v) {
+    const open = $('#world').classList.contains('panel');
+    if (open && edView === v) { edView = null; setPanel(false); renderPanel(); return; }
+    edView = v;
+    if (V.selected()) V.select(null);
+    setPanel(true);
+    renderPanel();
+  }
+  /** Moves a card up or down its list. */
+  function orderButtons(list, c) {
+    const box = el('span', 'ord');
+    [['↑', -1, 'Move up'], ['↓', 1, 'Move down']].forEach(([t, d, label]) => {
+      const b = el('button', 'loop', t); b.type = 'button'; b.title = label; b.setAttribute('aria-label', `${label}: ${c.name}`);
+      const i = list.indexOf(c);
+      b.disabled = d < 0 ? i <= 0 : i >= list.length - 1;
+      b.addEventListener('click', () => { const k = list.indexOf(c); list.splice(k, 1); list.splice(k + d, 0, c); save(); renderPanel(); });
+      box.append(b);
+    });
+    return box;
+  }
+  function orderedBlock(title, list, empty, target) {
+    const s = cardsBlock(title, list, null, empty, target);
+    s.querySelectorAll('.c').forEach((row, i) => { const ch = row.querySelector('.ch'); if (ch) ch.insertBefore(orderButtons(list, list[i]), ch.querySelector('.loop')); });
+    return s;
+  }
+  function editMusic(box) {
+    const list = worldMusic();
+    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on the whole map starts when the party arrives there; laid on a place, when the party walks into it (and the map\'s comes back when it walks out).'));
+    const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: ['once', 'twice', 'loop'] }),
+      'Add musics: from this device, the Recueil or Files', () => {
+        fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
+          for (const r of picked) {
+            const key = r.blobKey || await DB.putBlob(await r.getBlob());
+            const path = freePath(`sounds/map/music/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
+            rec.files[path] = key;
+            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
+          }
+          flush();
+          renderPanel();
+        }, 'music');
+      }, 'var(--music)'));
+  }
+
+
+
+  /* The inspector, as an editor's: what is selected in tabs. A place: Place, Sounds, Way. The map: Map, Sounds. */
+  const inspTab = { el: 'place', map: 'map' };
+  function tabbed(box, kind, tabs) {
+    const seg = el('div', 'seg insp-tabs');
+    seg.setAttribute('role', 'tablist');
+    const show = () => {
+      [...box.children].forEach((c) => { if (c.dataset.tab) c.hidden = c.dataset.tab !== inspTab[kind]; });
+      seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === inspTab[kind])));
+      paintRanges(box);
+      requestAnimationFrame(() => rollTitles(box));
+    };
+    if (!tabs.some(([v]) => v === inspTab[kind])) inspTab[kind] = tabs[0][0];
+    tabs.forEach(([v, label, count]) => {
+      const b = el('button', '', label);
+      b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.v = v;
+      if (count) b.append(el('i', 'n', String(count)));
+      b.addEventListener('click', () => { inspTab[kind] = v; show(); });
+      seg.append(b);
+    });
+    box.prepend(seg);
+    show();
+  }
+  const inTab = (node, tab) => { node.dataset.tab = tab; return node; };
+
+  function editPlace(box, p) {
+    const name = inTab(section('Map'), 'map');
+    const t = el('input'); t.type = 'text'; t.value = p.title; t.maxLength = 80; t.setAttribute('aria-label', 'Name of the map');
+    t.addEventListener('input', () => { p.title = t.value.trim() || 'Map'; renderPlaces(); save(); });
+    name.append(t);
+    const size = el('div', 'seg small');
+    SIZES.forEach(([label, w, h]) => {
+      const b = el('button', '', label);
+      b.type = 'button';
+      b.setAttribute('aria-checked', String(p.width === w && p.height === h));
+      b.addEventListener('click', () => {
+        if (!resizePlace(p, label)) return;
+        save(); V.show(p, rec.world); V.fit(); renderPanel();
+      });
+      size.append(b);
+    });
+    const sz = el('div', 'row-set');
+    sz.append(el('span', '', 'Map size'), size);
+    name.append(sz);
+    box.append(name);
+
+    box.append(inTab(cardsBlock('Whole map', p.general, null, 'Sounds heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music laid here starts when the party arrives.'), 'sounds'));
+
+    // The ground under the drawings, map by map: a forest on grass, a cave on dirt.
+    const ground = inTab(section('Ground'), 'map');
+    const gseg = el('div', 'seg ground-seg'); gseg.setAttribute('role', 'radiogroup'); gseg.setAttribute('aria-label', 'Ground of this map');
+    const now = p.ground || settings.ground || 'grid';
+    [['grid', 'Grid'], ['grass', 'Grass'], ['dirt', 'Dirt'], ['empty', 'Empty']].forEach(([v, label]) => {
+      const b = el('button', '', label); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(v === now));
+      b.addEventListener('click', () => { p.ground = v; save(); V.redraw(); gseg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b))); });
+      gseg.append(b);
+    });
+    ground.append(gseg);
+    box.append(ground);
+
+    const how = inTab(section('Drawing'), 'map');
+    how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Double tap an element (with the select tool) to give it sounds, a reach and a way to another place.'));
+    box.append(how);
+
+    const acts = section('This map');
+    const row = el('div', 'pn-acts');
+    const up = el('button', 'btn slim', 'Move up'); up.type = 'button'; up.disabled = pi === 0;
+    up.addEventListener('click', () => { movePlace(-1); });
+    const down = el('button', 'btn slim', 'Move down'); down.type = 'button'; down.disabled = pi === rec.world.places.length - 1;
+    down.addEventListener('click', () => { movePlace(1); });
+    const del = el('button', 'btn slim danger', 'Delete'); del.type = 'button'; del.disabled = rec.world.places.length < 2;
+    del.addEventListener('click', async () => {
+      const ok = await ask(`Delete ${p.title}?`, 'Its drawings and sound cards go with it. The sounds stay in the story.', [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, cls: 'danger' }]);
+      if (!ok) return;
+      rec.world.places.splice(pi, 1);
+      rec.world.places.forEach((q) => q.elements.forEach((e) => { if (e.link === p.id) e.link = null; }));
+      save();
+      goPlace(Math.max(0, pi - 1));
+    });
+    row.append(up, down, del);
+    acts.append(row);
+    box.append(inTab(acts, 'map'));
+    tabbed(box, 'map', [['map', 'Map'], ['sounds', 'Sounds', p.general.length]]);
+  }
+
+  function movePlace(d) {
+    const list = rec.world.places;
+    const [p] = list.splice(pi, 1);
+    list.splice(pi + d, 0, p);
+    pi += d;
+    save();
+    renderPlaces();
+    renderPanel();
+    history.replaceState(null, '', here());
+  }
+
+  function editElement(box, e) {
+    const sh = e.shape;
+    const id = inTab(section('Place'), 'place');
+    const t = el('input'); t.type = 'text'; t.value = e.title; t.maxLength = 80; t.placeholder = 'Name (shown on the map)';
+    t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
+    id.append(t);
+    if (sh.type === 'stamp') {
+      id.append(sizeStepper(e), turnStepper(e));
+    } else if (sh.points.length > 2) {
+      const l = el('label', 'row-set toggle');
+      const span = el('span', '', 'Closed shape');
+      span.append(el('small', '', 'An area (inside it, its sounds are at full volume), or a line'));
+      const cb = el('input'); cb.type = 'checkbox'; cb.checked = sh.closed;
+      cb.addEventListener('change', () => { V.snapshot(); sh.closed = cb.checked; V.redraw(); save(); });
+      l.append(span, cb, el('i'));
+      id.append(l);
+    }
+    box.append(id);
+
+    box.append(inTab(cardsBlock('Sounds', e.cards, e, 'No sound yet: this place is a drawing only. Add sounds of the story to hear it from the map.'), 'sounds'));
+
+    const reach = inTab(section('Reach'), 'place');
+    reach.append(reachSlider(e));
+    reach.append(el('p', '', 'How far beyond its edge its sounds carry, counted in times its own size: full inside, fading to silence at this distance. The tinted ground shows it.'));
+    box.append(reach);
+
+    const way = inTab(section('Leads to'), 'way');
+    const sel = el('select');
+    sel.setAttribute('aria-label', 'Map this element leads to');
+    const none = el('option', '', 'Nowhere'); none.value = ''; sel.append(none);
+    rec.world.places.forEach((q, i) => { if (i === pi) return; const o = el('option', '', q.title); o.value = q.id; sel.append(o); });
+    const nw = el('option', '', '+ A new map'); nw.value = '__new'; sel.append(nw);
+    sel.value = e.link || '';
+    sel.addEventListener('change', () => {
+      if (sel.value === '__new') {
+        const p = M.newPlace(e.title || `Map ${rec.world.places.length + 1}`);
+        rec.world.places.push(p);
+        e.link = p.id;
+        renderPlaces();
+        renderPanel();
+      } else e.link = sel.value || null;
+      V.redraw(); save(); renderPlaces();
+    });
+    way.append(sel, el('p', '', 'At the table, a long press on its sign (in its middle) takes the party there: a door, stairs, a road to the next town.'));
+    box.append(way);
+
+    const acts = el('div', 'pn-acts');
+    const del = el('button', 'btn slim danger');
+    del.type = 'button';
+    del.innerHTML = `${ICON.trash}<span>Delete this element</span>`;
+    del.addEventListener('click', () => { V.deleteSelected(); });
+    acts.append(del);
+    box.append(inTab(acts, 'place'));
+    tabbed(box, 'el', [['place', 'Place'], ['sounds', 'Sounds', e.cards.length], ['way', 'Way', e.link ? 1 : 0]]);
+  }
+
+  /** How much of an element reaches the party (worked out again only when the party moves). */
+  const heardMemo = new Map();
+  function heardOf(e, p) {
+    const pt = A.point(), m = heardMemo.get(e);
+    if (m && m.x === pt[0] && m.y === pt[1] && m.walls === p.walls.length) return m.h;
+    const h = M.hearing(pt, e, p.walls, rec.world.wallLoss);
+    heardMemo.set(e, { x: pt[0], y: pt[1], walls: p.walls.length, h });
+    return h;
+  }
+  /** The heading of an element's sounds: a gauge and how much of it reaches the party. The section is dimmed out of reach. */
+  function heardLine(e, p, sub, sec) {
+    const bar = el('i');
+    const txt = el('span');
+    const gauge = el('b'); gauge.append(bar);
+    sub.append(gauge, txt);
+    liveRows.push(() => {
+      const h = heardOf(e, p);
+      const pct = Math.round(h.gain * 100);
+      const t = h.d === 0 ? 'Here, 100 %' : pct > 0 ? `${pct} %${h.walls ? `, ${h.walls} wall${h.walls > 1 ? 's' : ''}` : ''}` : 'Out of reach';
+      if (txt.textContent !== t) txt.textContent = t;
+      bar.style.width = `${pct}%`;
+      sub.classList.toggle('far', pct === 0);
+      if (sec) sec.classList.toggle('far', pct === 0);
+    });
+  }
+
+  /** The sound menu of the whole map: its own sounds, then the sounds of every element, under its name: the
+   *  elements the party hears most come first; those out of reach go last, folded (a tap on their name unfolds them). */
+  const unfolded = new Set();
+  const notMusic = (list) => list.filter((c) => c.zone !== 'music');
+  /** The music heard now (playing or paused), first in the sound menu whatever it shows. */
+  function musicSlot(box) {
+    const s = section('Music', null);
+    const all = el('button', 'btn slim');
+    all.type = 'button';
+    all.innerHTML = `${ICON.music}<span>All musics</span>`;
+    all.addEventListener('click', openMusic);
+    s.querySelector('h3').append(all);
+    const holder = el('div', 'el-cards');
+    s.append(holder);
+    let shown, rows = [];
+    liveRows.push(() => {
+      const c = A.currentMusic();
+      if (c !== shown) {
+        shown = c;
+        holder.textContent = ''; rows = [];
+        s.hidden = !c;
+        if (c) { holder.append(withRows(rows, () => cardRow(c, rec.world.music, null))); requestAnimationFrame(() => rollTitles(holder)); }
+      }
+      rows.forEach((f) => f());
+    });
+    box.append(s);
+  }
+  function playPlace(box, p) {
+    musicSlot(box);
+    const gen = notMusic(p.general);
+    if (gen.length || !p.elements.some((e) => notMusic(e.cards).length)) box.append(cardsBlock('Heard everywhere', gen, null, 'No sound for the whole map. Add some in the editor.'));
+    const els = p.elements.filter((e) => notMusic(e.cards).length);
+    const secs = new Map();
+    els.forEach((e) => {
+      const sub = el('span', 'heard-pct');
+      const s = section(elName(e), sub);
+      s.classList.add('el-sounds');
+      const head = s.querySelector('h3');
+      const fold = el('span', 'fold');
+      fold.innerHTML = ICON.chevron;
+      head.prepend(fold);
+      head.setAttribute('role', 'button');
+      head.tabIndex = 0;
+      head.title = 'Show or hide its sounds';
+      const flip = () => { if (unfolded.has(e)) unfolded.delete(e); else unfolded.add(e); refreshLive(); };
+      head.addEventListener('click', flip);
+      head.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(); } });
+      const body = el('div', 'el-cards');
+      notMusic(e.cards).forEach((c) => body.append(cardRow(c, e.cards, e)));
+      s.append(body);
+      heardLine(e, p, sub, s);
+      secs.set(e, s);
+      box.append(s);
+    });
+    if (!els.length) return;
+    let order = '';
+    liveRows.push(() => {
+      // Folded: out of reach and not opened by hand. Ordered by what the party hears, not while a finger is on the menu.
+      secs.forEach((s, e) => s.classList.toggle('folded', heardOf(e, p).gain === 0 && !unfolded.has(e)));
+      if (box.matches(':active') || box.contains(document.activeElement) && document.activeElement.matches('input')) return;
+      const sorted = els.map((e, i) => ({ e, i, g: heardOf(e, p).gain })).sort((a, b) => (b.g > 0) - (a.g > 0) || b.g - a.g || a.i - b.i);
+      const key = sorted.map((x) => x.i).join(',');
+      if (key === order) return;
+      order = key;
+      sorted.forEach((x) => box.append(secs.get(x.e)));
+    });
+  }
+
+  /** The sound menu of one element (a double tap on the map's ground brings the whole map back). */
+  function playElement(box, e) {
+    musicSlot(box);
+    const own = notMusic(e.cards);
+    if (e.link) {
+      const to = rec.world.places.findIndex((q) => q.id === e.link);
+      if (to >= 0) {
+        const go = el('button', 'btn primary go-place');
+        go.type = 'button';
+        go.innerHTML = `${ICON.link}<span>Go to ${rec.world.places[to].title}</span>`;
+        go.addEventListener('click', () => travel(to));
+        box.append(go);
+      }
+    }
+    if (own.length || !e.link) {
+      const sub = el('span', 'heard-pct');
+      const s = section('Sounds', sub);
+      if (!own.length) s.append(el('div', 'pn-empty', 'No sound on this element.'));
+      own.forEach((c) => s.append(cardRow(c, e.cards, e)));
+      if (own.length) heardLine(e, place(), sub, s);
+      box.append(s);
+    }
+    if (own.length) {
+      const reach = section('Reach');
+      reach.append(reachSlider(e));
+      box.append(reach);
+    }
+  }
+
+  /** The coloured part of a slider, up to its thumb. */
+  const paintRange = (r) => r.style.setProperty('--p', `${((r.value - r.min) / (r.max - r.min || 1)) * 100}%`);
+  function paintRanges(root) { root.querySelectorAll('input[type="range"]').forEach(paintRange); }
+  document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input[type="range"]')) paintRange(e.target); });
+
+  let liveTimer = 0;
+  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); arriveRows.forEach((f) => f()); }
+  function liveLoop() {
+    clearInterval(liveTimer);
+    // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
+    // touched, and the map keeps the whole frame for itself.
+    liveTimer = setInterval(() => {
+      if (screen !== 'world' || mode !== 'play' || document.hidden) return;
+      const w = $('#world').classList;
+      if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
+      paintMaster();
+    }, 100);
+  }
+
+  function syncAudio() {
+    if (mode !== 'play' || !A.isOpen()) return;
+    prepare(placeFiles(place()), false).then(() => A.sync());
+  }
+
+  /* ================= More sounds for the world ================= */
+  /** Picks files with a hidden input of its own (several at once when `multiple`). */
+  function chooseFiles(accept, multiple) {
+    return new Promise((ok) => {
+      const i = el('input');
+      i.type = 'file';
+      if (accept && !document.documentElement.classList.contains('ios')) i.accept = accept;
+      i.multiple = !!multiple;
+      // iPhone fires `change` only for an input that stays in the page.
+      i.hidden = true;
+      document.body.append(i);
+      i.addEventListener('change', () => { ok([...i.files]); i.remove(); });
+      i.click();
+    });
+  }
+  function freePath(base) {
+    let p = base, n = 2;
+    while (rec.files[p]) { p = base.replace(/(\.[a-z0-9]+)$/i, `-${n}$1`); n += 1; }
+    return p;
+  }
+
+  /** Audio files of this device become sounds of the world (in its Map sounds chapter). */
+  async function addFromDevice(after) {
+    const files = (await chooseFiles('audio/*,.mp3,.ogg,.m4a,.wav', true)).filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
+    if (!files.length) return;
+    const zone = await ask(files.length > 1 ? `${files.length} sounds: what are they?` : `${files[0].name}: what is it?`, 'It sets their colour and how they play once laid on the map: music and ambiances loop, events come back at random.', [
+      { label: 'Music', value: 'music' }, { label: 'Ambiance', value: 'ambience' }, { label: 'Event', value: 'events', cls: 'primary' },
+    ]);
+    if (!zone) return;
+    try {
+      const ch = M.ownChapter(rec.story);
+      let n = 0;
+      for (const f of files) {
+        n += 1;
+        busy('Keeping the sounds on this device', `${n} of ${files.length}`, n / files.length);
+        const ext = (f.name.split('.').pop() || 'mp3').toLowerCase();
+        const name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 120) || 'Sound';
+        const path = freePath(`sounds/map/${zone}/${window.Troubadour.slug(name, 'sound')}.${ext}`);
+        rec.files[path] = await DB.putBlob(f);
+        ch[zone].push({ name, file: path, loop: zone === 'events' ? 'random' : 'infinite', volume: 0.75 });
+      }
+      idle();
+      flush();
+      after();
+    } catch (e) { idle(); toast(`Could not keep the sounds: ${e.message || e}`, 4200); }
+  }
+
+  /** Every sound of another .troubadour story joins the world, in a chapter named after it. */
+  async function addFromStory(after) {
+    const [f] = await chooseFiles('.troubadour,.bardic,.troubadour-map,.troubadour-ballade', false);
+    if (!f) return;
+    try {
+      busy('Opening the story', f.name, 0);
+      const { story, files } = await M.read(f, (n, t) => busy('Opening the story', `Sound ${n} of ${t}`, n / t));
+      const k = (rec.story.chapters || []).length + 1;
+      const ch = { title: story.title || f.name, map: true, music: [], ambience: [], events: [] };
+      const seen = new Set();
+      const list = M.soundsOf(story).filter((x) => files.has(x.file) && (seen.has(x.file) ? false : seen.add(x.file)));
+      let n = 0;
+      for (const x of list) {
+        n += 1;
+        busy('Keeping the sounds on this device', `${n} of ${list.length}`, n / list.length);
+        const path = freePath(`sounds/x${k}/${x.file.replace(/^sounds\//, '')}`);
+        rec.files[path] = await DB.putBlob(files.get(x.file));
+        ch[x.zone === 'soundbox' ? 'events' : x.zone].push({ name: x.name, file: path, loop: x.loop || 'once', volume: typeof x.volume === 'number' ? x.volume : 0.75 });
+      }
+      rec.story.chapters = (rec.story.chapters || []).concat(ch);
+      idle();
+      flush();
+      toast(`${list.length} sound${list.length > 1 ? 's' : ''} of ${ch.title} added.`);
+      after();
+    } catch (e) { idle(); toast(`This story could not be opened: ${e.message || e}`, 4200); }
+  }
+
+  /* ================= The Recueil's sounds ================= */
+  // Every sound of every tale of the Recueil (docs/recueil/sounds.json). Only a sound's own bytes are fetched:
+  // the tales store their sounds uncompressed, so each one is a byte range of its .troubadour file.
+  const RECUEIL = '../recueil/';
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  let recueil = null, recueilLoad = null;
+  const recueilBytes = new Map(); // id -> Promise<Blob>
+  const taleBlobs = new Map();    // .troubadour file -> Promise<Blob>, when a whole tale had to be fetched
+  function loadRecueil() {
+    if (!recueilLoad) {
+      recueilLoad = fetch(`${RECUEIL}sounds.json`, { cache: 'no-cache' })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => { recueil = (d.sounds || []).map((x) => Object.assign(x, { key: fold(`${x.name} ${x.tale} ${x.bard}`) })); return recueil; })
+        .catch((e) => { recueilLoad = null; throw e; });
+    }
+    return recueilLoad;
+  }
+  function wholeTale(file) {
+    if (!taleBlobs.has(file)) {
+      taleBlobs.set(file, fetch(RECUEIL + encodeURIComponent(file)).then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .catch((e) => { taleBlobs.delete(file); throw e; }));
+    }
+    return taleBlobs.get(file);
+  }
+  function recueilBlob(x) {
+    if (!recueilBytes.has(x.id)) {
+      recueilBytes.set(x.id, (async () => {
+        let part = null;
+        if (!taleBlobs.has(x.file)) {
+          try {
+            const res = await fetch(RECUEIL + encodeURIComponent(x.file), { headers: { Range: `bytes=${x.offset}-${x.offset + x.length - 1}` } });
+            if (res.status === 206) { const bl = await res.blob(); if (bl.size === x.length) part = bl; }
+            else if (res.ok) taleBlobs.set(x.file, res.blob());
+          } catch (e) { /* the whole tale, below */ }
+        }
+        if (!part) part = (await wholeTale(x.file)).slice(x.offset, x.offset + x.length);
+        if (x.deflated) part = await new Response(part.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+        if (part.size !== x.size) throw new Error('The sound came back damaged. Try again.');
+        const ext = (x.path.split('.').pop() || 'mp3').toLowerCase();
+        return new Blob([part], { type: ext === 'ogg' ? 'audio/ogg' : ext === 'm4a' ? 'audio/mp4' : ext === 'wav' ? 'audio/wav' : 'audio/mpeg' });
+      })().catch((e) => { recueilBytes.delete(x.id); throw e; }));
+    }
+    return recueilBytes.get(x.id);
+  }
+  /** A sound of the Recueil joins the world (once): its bytes on this device, a line in the Recueil chapter. */
+  async function keepRecueil(x) {
+    const zone = x.row === 'soundbox' ? 'events' : (x.row || 'events');
+    let ch = (rec.story.chapters || []).find((c) => c.map === true && c.title === 'Recueil');
+    if (!ch) { ch = { title: 'Recueil', map: true, music: [], ambience: [], events: [] }; rec.story.chapters.push(ch); }
+    const had = ch[zone].find((s) => s.recueil === x.id);
+    if (had) return Object.assign({ zone }, had);
+    const blob = await recueilBlob(x);
+    const path = freePath(`sounds/recueil/${zone}/${window.Troubadour.slug(x.name, 'sound')}.${(x.path.split('.').pop() || 'mp3').toLowerCase()}`);
+    rec.files[path] = await DB.putBlob(blob);
+    const s = { name: x.name, file: path, loop: zone === 'events' ? 'random' : 'infinite', volume: 0.75, recueil: x.id, tale: x.tale };
+    // Its locked identity travels with it (TROUBADOUR_FORMAT.md, "sound"), like in the Story builder.
+    if (x.origin && x.origin.length) s.sound = Object.assign({ id: x.id, origin: x.origin }, x.edited ? { edited: true } : {}, x.parent ? { parent: x.parent } : {}, x.brought ? { brought: x.brought } : {});
+    ch[zone].push(s);
+    flush();
+    return Object.assign({ zone }, s);
+  }
+
+  /* ================= The sound browser (the Add sheet, and the library drawer of the editor) ================= */
+  const pickState = { src: 'world', type: 'all', q: '' };
+  const TYPE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+
+  /** Fills `root` with the sounds of the world or of the Recueil, filtered by kind and search.
+   *  `target()` gives where a tap adds a sound: { list, name }. With `drag`, a sound can also be dragged
+   *  onto an element of the map (or onto its ground: the whole map). Returns { paint }. */
+  function soundBrowser(root, target, drag) {
+    root.textContent = '';
+    const bar = el('div', 'snd-bar');
+    const seg = (cls, items, key) => {
+      const g = el('div', `seg small ${cls}`);
+      g.setAttribute('role', 'radiogroup');
+      items.forEach(([v, label]) => {
+        const b = el('button', '', label);
+        b.type = 'button';
+        b.dataset.v = v;
+        b.setAttribute('role', 'radio');
+        b.addEventListener('click', () => { pickState[key] = v; paintSegs(); paint(); });
+        g.append(b);
+      });
+      return g;
+    };
+    const srcSeg = seg('snd-src', [['world', 'This world'], ['recueil', 'Recueil']], 'src');
+    const typeSeg = seg('snd-type', [['all', 'All'], ['music', 'Music'], ['ambience', 'Amb.'], ['events', 'Events']], 'type');
+    const paintSegs = () => {
+      srcSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === pickState.src)));
+      typeSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === pickState.type)));
+    };
+    const search = el('input', 'snd-search');
+    search.type = 'search';
+    search.placeholder = 'Search a sound';
+    search.value = pickState.q;
+    search.addEventListener('input', () => { pickState.q = search.value; paint(); });
+    bar.append(srcSeg, typeSeg, search);
+    const box = el('div', 'snd-list');
+    const foot = el('div', 'snd-foot');
+    const fromDevice = el('button', 'btn slim');
+    fromDevice.type = 'button';
+    fromDevice.innerHTML = `${ICON.import}<span>This device</span>`;
+    fromDevice.title = 'Audio files of this device';
+    fromDevice.addEventListener('click', () => addFromDevice(() => { pickState.src = 'world'; paintSegs(); paint(); }));
+    const fromStory = el('button', 'btn slim');
+    fromStory.type = 'button';
+    fromStory.innerHTML = `${ICON.import}<span>.troubadour</span>`;
+    fromStory.title = 'Every sound of a .troubadour story';
+    fromStory.addEventListener('click', () => addFromStory(() => { pickState.src = 'world'; paintSegs(); paint(); }));
+    foot.append(fromDevice, fromStory);
+    root.append(bar, box, foot);
+
+    const changed = () => { save(); syncAudio(); renderPanel(); renderPlaces(); V.redraw(); if (drag) paintMarks(); };
+    const inList = (list, file) => list.find((c) => c.file === file);
+    const typeOk = (zone) => pickState.type === 'all' || pickState.type === zone || (pickState.type === 'events' && zone === 'soundbox');
+    const words = () => fold(pickState.q).split(/\s+/).filter(Boolean);
+    const marks = [];
+    const paintMarks = () => marks.forEach((f) => f());
+
+    /** Puts a sound (resolved by `get`, which may fetch it from the Recueil) into a list, or takes it out. */
+    async function toggleIn(list, get) {
+      const x = await get();
+      const had = inList(list, x.file);
+      if (had) list.splice(list.indexOf(had), 1); else list.push(M.card(x));
+      changed();
+      return !had;
+    }
+
+    /** One row: preview, name, where it comes from, its kind, and the add mark. */
+    function row(name, sub, zone, file, get, onListen) {
+      const r = el('div', `snd z-${zone}`);
+      r.setAttribute('role', 'button');
+      r.tabIndex = 0;
+      const lis = el('button', 'snd-play');
+      lis.type = 'button';
+      lis.innerHTML = ICON.play;
+      lis.setAttribute('aria-label', `Listen to ${name}`);
+      lis.addEventListener('click', (ev) => { ev.stopPropagation(); onListen(lis); });
+      const t = el('span', 'snd-t');
+      t.append(el('b', '', name), el('small', '', sub));
+      const tag = el('span', 'snd-tag', TYPE_LABEL[zone] || zone);
+      const mark = el('span', 'snd-mark');
+      const isIn = () => { const f = file(); return !!(f && inList(target().list, f)); };
+      const paintMark = (busyNow) => {
+        const on = isIn();
+        r.classList.toggle('in', on);
+        mark.innerHTML = busyNow ? '<i class="spin"></i>' : on ? ICON.check : ICON.plus;
+        r.setAttribute('aria-pressed', String(on));
+      };
+      marks.push(() => paintMark());
+      paintMark();
+      const go = async (list) => {
+        if (r.classList.contains('busy')) return;
+        r.classList.add('busy'); paintMark(true);
+        try { await toggleIn(list, get); } catch (e) { toast(`Could not add it: ${e.message || e}`, 3600); }
+        r.classList.remove('busy'); paintMark();
+      };
+      let dragged = false;
+      r.addEventListener('click', () => { if (dragged) { dragged = false; return; } go(target().list); });
+      r.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(target().list); } });
+      if (drag) {
+        // Drag a sound onto the map: on an element, it joins its sounds; on the ground, the whole map's.
+        r.addEventListener('pointerdown', (ev) => {
+          if (ev.button > 0 || ev.target.closest('.snd-play')) return;
+          const id = ev.pointerId, x0 = ev.clientX, y0 = ev.clientY;
+          let ghost = null, over = undefined;
+          const move = (e2) => {
+            if (e2.pointerId !== id) return;
+            const dx = e2.clientX - x0, dy = e2.clientY - y0;
+            if (!ghost) {
+              // Mostly sideways: a drag. Up and down stays a scroll of the list.
+              if (Math.hypot(dx, dy) < 8 || Math.abs(dy) > Math.abs(dx) * 1.2) return;
+              ghost = el('div', `snd-ghost z-${zone}`, name);
+              document.body.append(ghost);
+              try { r.setPointerCapture(id); } catch (err) { /* old browsers */ }
+              r.classList.add('dragging');
+            }
+            e2.preventDefault();
+            ghost.style.transform = `translate(${e2.clientX + 12}px, ${e2.clientY - 18}px)`;
+            const hit = V.elementAtClient(e2.clientX, e2.clientY);
+            if (hit !== over) { over = hit; V.hover(hit === undefined ? null : hit); ghost.classList.toggle('on', hit !== undefined); ghost.dataset.to = hit === undefined ? '' : hit ? elName(hit) : 'Whole map'; }
+          };
+          const up = async (e2) => {
+            if (e2.pointerId !== id) return;
+            r.removeEventListener('pointermove', move);
+            r.removeEventListener('pointerup', up);
+            r.removeEventListener('pointercancel', up);
+            V.hover(null);
+            if (!ghost) return;
+            dragged = true;
+            ghost.remove();
+            r.classList.remove('dragging');
+            if (e2.type === 'pointercancel') return;
+            const hit = V.elementAtClient(e2.clientX, e2.clientY);
+            if (hit === undefined) return;
+            const list = hit ? hit.cards : place().general;
+            r.classList.add('busy'); paintMark(true);
+            try {
+              const x = await get();
+              if (!inList(list, x.file)) { list.push(M.card(x)); changed(); }
+              toast(`${name}: added to ${hit ? elName(hit) : 'the whole map'}.`, 1800);
+              if (hit) V.flash(hit);
+            } catch (err) { toast(`Could not add it: ${err.message || err}`, 3600); }
+            r.classList.remove('busy'); paintMark();
+          };
+          r.addEventListener('pointermove', move);
+          r.addEventListener('pointerup', up);
+          r.addEventListener('pointercancel', up);
+        });
+      }
+      r.append(lis, t, tag, mark);
+      return r;
+    }
+
+    function paintWorld() {
+      const seen = new Set();
+      const sounds = M.soundsOf(rec.story).filter((x) => rec.files[x.file] && (seen.has(x.file) ? false : seen.add(x.file)));
+      const w = words();
+      let group = null, n = 0;
+      sounds.forEach((x) => {
+        if (!typeOk(x.zone)) return;
+        if (w.length && !w.every((k) => fold(x.name).includes(k))) return;
+        const g = x.chapter >= 0 ? (rec.story.chapters[x.chapter].title || `Chapter ${x.chapter + 1}`) : 'Soundbox';
+        if (g !== group) { group = g; box.append(el('h4', '', g)); }
+        n += 1;
+        box.append(row(x.name, g, x.zone, () => x.file, async () => x, (btn) => listen(x.file, btn)));
+      });
+      if (!n) box.append(el('div', 'pn-empty', pickState.q || pickState.type !== 'all' ? 'No sound here with these filters.' : 'No sound in this world yet: take some from the Recueil, this device or a .troubadour story.'));
+    }
+
+    function paintRecueil() {
+      if (!recueil) {
+        box.append(el('div', 'pn-empty', 'Opening the Recueil…'));
+        loadRecueil().then(() => { if (pickState.src === 'recueil' && root.isConnected) paint(); },
+          () => { box.textContent = ''; box.append(el('div', 'pn-empty', 'The Recueil cannot be reached right now. Check your connection.')); });
+        return;
+      }
+      const w = words();
+      const hits = recueil.filter((x) => typeOk(x.row) && w.every((k) => x.key.includes(k)));
+      const shown = hits.slice(0, 150);
+      // No heading per tale: each sound already names its tale under its own name.
+      shown.forEach((x) => {
+        const zone = x.row === 'soundbox' ? 'events' : x.row;
+        const kept = () => { const ch = (rec.story.chapters || []).find((c) => c.map === true && c.title === 'Recueil'); const s2 = ch && (ch[zone] || []).find((y) => y.recueil === x.id); return s2 ? s2.file : null; };
+        box.append(row(x.name, `${x.tale}${x.duration ? `, ${clockOf(x.duration)}` : ''}`, x.row, kept, () => keepRecueil(x),
+          (btn) => listen(`recueil:${x.id}`, btn, () => recueilBlob(x))));
+      });
+      if (!hits.length) box.append(el('div', 'pn-empty', 'No sound of the Recueil with these filters.'));
+      else if (hits.length > shown.length) box.append(el('p', 'snd-more', `${hits.length - shown.length} more: search to narrow them down.`));
+    }
+
+    function paint() {
+      marks.length = 0;
+      box.textContent = '';
+      box.scrollTop = 0;
+      if (pickState.src === 'recueil') paintRecueil(); else paintWorld();
+    }
+    paintSegs();
+    paint();
+    return { paint, paintMarks };
+  }
+
+  /** The Add sheet: sounds for one list of cards (an element's, the whole map's, or the soundbox). */
+  function pickSounds(list, target) {
+    if (typeof target === 'function') target = target();
+    if (target === 'the music') pickState.type = 'music';
+    stopPreview();
+    $('#sheet-title').textContent = target ? `Sounds of ${target}` : 'Sounds of the whole map';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'snd-pick';
+    $('#sheet').classList.add('wide');
+    const holder = el('div', 'snd-holder');
+    body.append(holder);
+    soundBrowser(holder, () => ({ list, name: target }), false);
+    const done = el('button', 'btn primary slim', 'Done');
+    done.type = 'button';
+    done.addEventListener('click', () => $('#sheet').close());
+    holder.querySelector('.snd-foot').append(el('span', 'grow'), done);
+    $('#sheet').addEventListener('close', () => { stopPreview(); $('#sheet').classList.remove('wide'); }, { once: true });
+    $('#sheet').showModal();
+  }
+
+
+
+  /* ================= Layers (the list of everything on the map, as a drawing editor's) ================= */
+  function layerThumb(e) {
+    const c = el('canvas', 'ly-th'); c.width = c.height = 56;
+    const g = c.getContext('2d');
+    try {
+      if (e.shape.type === 'stamp') { g.translate(28, 28); window.MapStamps.draw(g, e.shape.stamp, 46, V.palette()); }
+      else {
+        const b = M.bounds(e.shape), w = Math.max(1, b[2] - b[0]), h = Math.max(1, b[3] - b[1]), k = 44 / Math.max(w, h);
+        g.strokeStyle = V.palette().ink || '#888'; g.lineWidth = 3; g.lineJoin = g.lineCap = 'round';
+        g.beginPath();
+        e.shape.points.forEach((q, i) => { const x = 28 + (q[0] - (b[0] + w / 2)) * k, y = 28 + (q[1] - (b[1] + h / 2)) * k; if (i) g.lineTo(x, y); else g.moveTo(x, y); });
+        if (e.shape.closed) g.closePath();
+        g.stroke();
+      }
+    } catch (err) { /* a place the library no longer knows: an empty thumb */ }
+    return c;
+  }
+  function renderLayers() {
+    const list = $('#mw-layers-list');
+    if (!list || !rec || mode !== 'edit') return;
+    const p = place(), L = V.layers, sel = V.selected();
+    // What is gone from the map is gone from the sets.
+    [L.hidden, L.locked].forEach((s) => s.forEach((e) => { if (!p.elements.includes(e)) s.delete(e); }));
+    const keep = list.scrollTop;
+    list.textContent = '';
+    const flag = (on, iconOn, iconOff, label, fn) => {
+      const b = el('button', `ly-f${on ? ' on' : ''}`); b.type = 'button';
+      b.innerHTML = on ? iconOn : iconOff; b.title = label; b.setAttribute('aria-label', label); b.setAttribute('aria-pressed', String(on));
+      b.addEventListener('click', (ev) => { ev.stopPropagation(); fn(); V.redraw(); renderLayers(); });
+      return b;
+    };
+    if (!p.elements.length) list.append(el('div', 'pn-empty', 'Nothing on this map yet. Lay a place from the library, or draw a wall.'));
+    // The one on top of the map first, as in every layers list.
+    p.elements.slice().reverse().forEach((e) => {
+      const hid = L.hidden.has(e), lock = L.locked.has(e);
+      const row = el('div', `ly-row${e === sel ? ' sel' : ''}${hid ? ' hid' : ''}`);
+      row.setAttribute('role', 'button'); row.tabIndex = 0;
+      const grip = el('span', 'ly-grip'); grip.innerHTML = ICON.grip; grip.title = 'Drag to bring it over or under the others';
+      const nm = el('span', 'ly-nm', elName(e));
+      const meta = el('small', 'ly-meta', [e.cards.length ? `${e.cards.length} sound${e.cards.length > 1 ? 's' : ''}` : '', e.link ? 'way' : ''].filter(Boolean).join(', '));
+      const txt = el('span', 'ly-t'); txt.append(nm, meta);
+      row.append(grip, layerThumb(e), txt,
+        flag(hid, ICON.eyeOff, ICON.eye, hid ? `Show ${elName(e)}` : `Hide ${elName(e)} while drawing`, () => { if (hid) L.hidden.delete(e); else { L.hidden.add(e); if (V.selected() === e) V.select(null); } }),
+        flag(lock, ICON.lock, ICON.unlock, lock ? `Unlock ${elName(e)}` : `Lock ${elName(e)}: it cannot be moved on the map`, () => { if (lock) L.locked.delete(e); else L.locked.add(e); }));
+      const pick = () => { edView = null; V.select(e); if (!narrowEditor()) setPanel(true); else setLayers(false); renderLayers(); };
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+      row.addEventListener('dblclick', () => { V.centreOn(M.centre(e.shape)); setPanel(true); });
+      dragLayer(grip, row, e);
+      list.append(row);
+    });
+    if (p.walls.length) {
+      const row = el('div', `ly-row walls${L.wallsHidden ? ' hid' : ''}`);
+      const ic = el('span', 'ly-th ly-wall'); ic.innerHTML = ICON.wall;
+      const txt = el('span', 'ly-t'); txt.append(el('span', 'ly-nm', 'Walls'), el('small', 'ly-meta', `${p.walls.length} drawn`));
+      row.append(el('span', 'ly-grip none'), ic, txt,
+        flag(L.wallsHidden, ICON.eyeOff, ICON.eye, L.wallsHidden ? 'Show the walls' : 'Hide the walls while drawing', () => { L.wallsHidden = !L.wallsHidden; }),
+        flag(L.wallsLocked, ICON.lock, ICON.unlock, L.wallsLocked ? 'Unlock the walls' : 'Lock the walls: the eraser leaves them', () => { L.wallsLocked = !L.wallsLocked; }));
+      list.append(row);
+    }
+    list.scrollTop = keep;
+  }
+  /** Dragging a row by its grip changes what is over what on the map. */
+  function dragLayer(grip, row, e) {
+    grip.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      const list = $('#mw-layers-list');
+      const rows = [...list.querySelectorAll('.ly-row:not(.walls)')];
+      const from = rows.indexOf(row), h = row.getBoundingClientRect().height + 4, y0 = ev.clientY;
+      let to = from;
+      row.classList.add('drag');
+      try { grip.setPointerCapture(ev.pointerId); } catch (err) { /* older browsers */ }
+      const move = (m) => {
+        const dy = m.clientY - y0;
+        to = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / h)));
+        row.style.transform = `translateY(${dy}px)`;
+        rows.forEach((r, i) => { if (r === row) return; r.style.transform = from < to && i > from && i <= to ? `translateY(${-h}px)` : from > to && i < from && i >= to ? `translateY(${h}px)` : ''; });
+      };
+      const up = () => {
+        grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+        if (to !== from) {
+          V.snapshot();
+          const els = place().elements, n = els.length;
+          // The list shows the top of the map first: row i is element n - 1 - i.
+          els.splice(n - 1 - from, 1);
+          els.splice(n - 1 - to, 0, e);
+          save(); V.redraw();
+        }
+        renderLayers();
+      };
+      grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+    });
+    grip.addEventListener('click', (ev) => ev.stopPropagation());
+  }
+  /** On a narrow screen (a phone), the layers open over the map, one panel at a time; on a wide one they stay beside it. */
+  const narrowEditor = () => matchMedia('(max-width: 900px)').matches;
+  function setLayers(open) {
+    $('#world').classList.toggle('layers', !!open);
+    const b = $('#mw-layers-btn');
+    if (b) b.setAttribute('aria-pressed', String(!!open));
+    if (open) { $('#mw-stamps').hidden = true; if (narrowEditor()) setPanel(false); renderLayers(); }
+  }
+
+  /* ================= The options of the tool in hand (a bar over the map, only while the tool has some) ================= */
+  function renderOpts(t) {
+    const bar = $('#mw-opts');
+    if (!bar) return;
+    bar.textContent = '';
+    if (mode !== 'edit' || !rec) { bar.hidden = true; return; }
+    const label = (s) => el('span', 'op-l', s);
+    if (t === 'wall') {
+      const steps = [[0.25, 'A little'], [0.5, 'Half'], [0.75, 'A lot'], [1, 'All']];
+      const seg = el('div', 'seg small'); seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'How much a wall muffles');
+      const near = steps.reduce((a, b) => (Math.abs(b[0] - rec.world.wallLoss) < Math.abs(a[0] - rec.world.wallLoss) ? b : a))[0];
+      steps.forEach(([v, s]) => {
+        const b = el('button', '', s); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(v === near));
+        b.title = `Each wall between a sound and the party takes ${Math.round(v * 100)} % of it away, on every map of the world`;
+        b.addEventListener('click', () => { rec.world.wallLoss = v; save(); if (A.isOpen()) A.hear(); renderOpts('wall'); });
+        seg.append(b);
+      });
+      bar.append(label('Walls muffle'), seg, el('small', 'op-h', 'Shift: a straight wall'));
+    } else if (t === 'stamp') {
+      if (!$('#mw-stamps').hidden) { bar.hidden = true; return; }
+      bar.append(label('Size'), placeSizeSeg(), el('small', 'op-h', currentStamp ? `${stampLabel(currentStamp)}: tap the map to lay it` : 'Pick a place in the library'));
+    } else if (t === 'eraser') {
+      bar.append(el('small', 'op-h', 'Tap a place, or a wall, to erase it. Undo brings it back.'));
+    } else { bar.hidden = true; return; }
+    bar.hidden = false;
+  }
+
+  /* ================= Tools ================= */
+  const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, stamp: ICON.stamp, eraser: ICON.eraser };
+  function paintTools(t) {
+    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+  }
+  function buildStamps() {
+    const box = $('#mw-stamps');
+    box.textContent = '';
+    const pal = V.palette();
+    const S = window.MapStamps;
+    if (rec) S.register(rec.world.stamps);
+    const tile = (id, label, extra) => {
+      const b = el('button');
+      b.type = 'button';
+      b.dataset.stamp = id;
+      const cv = el('canvas');
+      cv.width = 112; cv.height = 112;
+      const c = cv.getContext('2d');
+      c.translate(56, 56);
+      S.draw(c, id, 100, pal);
+      b.append(cv, el('span', '', label));
+      if (extra) b.append(extra);
+      b.addEventListener('click', () => { V.setStamp(id); paintStamps(id); box.hidden = true; });
+      box.append(b);
+    };
+    // First, a new place of your own; then the places of this world; then the library.
+    const add = el('button', 'st-new');
+    add.type = 'button';
+    add.innerHTML = `<span class="st-plus">${ICON.plus}</span><span>New place</span>`;
+    add.addEventListener('click', () => { box.hidden = true; placeEditor(null); });
+    box.append(add);
+    if (((rec && rec.world.stamps) || []).length) box.append(el('h4', 'st-g', 'Your places'));
+    ((rec && rec.world.stamps) || []).forEach((st) => {
+      const ed = el('span', 'st-edit');
+      ed.innerHTML = ICON.edit;
+      ed.setAttribute('role', 'button');
+      ed.setAttribute('aria-label', `Change ${st.name}`);
+      ed.title = 'Change this place';
+      ed.addEventListener('click', (e) => { e.stopPropagation(); box.hidden = true; placeEditor(st); });
+      tile(st.id, st.name, ed);
+    });
+    let group = null;
+    // The size of the places laid, at the head of the library while it is open (the options bar takes over once closed).
+    const size = el('div', 'st-size');
+    size.append(el('span', '', 'Size'), placeSizeSeg());
+    box.prepend(size);
+    S.LIST.forEach((s) => {
+      if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
+      tile(s.id, s.label);
+    });
+    paintStamps(null);
+  }
+  /* The size a place is laid at: Auto gives each its natural size (a bush small, a kingdom huge); the others
+   * give every place the same share of the map's width. Changed afterwards on the place itself, in % of the map. */
+  const PLACE_SIZES = [['auto', 'Auto', 'Each place at its natural size'], ['s', 'S', '6 % of the map'], ['m', 'M', '10 % of the map'], ['l', 'L', '16 % of the map'], ['xl', 'XL', '25 % of the map']];
+  const PLACE_SHARE = { s: 0.06, m: 0.1, l: 0.16, xl: 0.25 };
+  const placeShare = (id) => PLACE_SHARE[settings.placeSize] || (window.MapStamps.natural ? window.MapStamps.natural(id) : 0.07);
+  V.setStampSizer && V.setStampSizer((id, p) => Math.max(20, Math.round((p.width * placeShare(id)) / 5) * 5));
+  function placeSizeSeg() {
+    const seg = el('div', 'seg small');
+    seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Size of the places you lay');
+    PLACE_SIZES.forEach(([v, label, tip]) => {
+      const b = el('button', '', label);
+      b.type = 'button'; b.setAttribute('role', 'radio'); b.title = tip; b.dataset.v = v;
+      b.setAttribute('aria-checked', String((settings.placeSize || 'auto') === v));
+      b.addEventListener('click', () => {
+        settings.placeSize = v; saveSettings();
+        seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x.dataset.v === v)));
+      });
+      seg.append(b);
+    });
+    return seg;
+  }
+  let currentStamp = null;
+  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); setTimeout(() => { if (mode === 'edit' && (V.tool() === 'stamp' || !$('#mw-stamps').hidden)) renderOpts('stamp'); }, 0); }
+
+  /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
+  const LINE_W = [0.01, 0.022, 0.036];   // fine, normal, bold
+  const BRUSH_W = [0.03, 0.06, 0.11];
+  const ERASE_R = [0.02, 0.04, 0.075];
+  function placeEditor(existing) {
+    const S = window.MapStamps;
+    const norm = (sk) => (Array.isArray(sk) ? { w: 0.022, p: sk } : sk);
+    const st = existing ? JSON.parse(JSON.stringify(existing)) : { id: `p-${Math.random().toString(36).slice(2, 10)}`, name: '', strokes: [], fills: [], paint: [], v: 0 };
+    st.strokes = (st.strokes || []).map(norm); st.fills = st.fills || []; st.paint = st.paint || [];
+    const history = [];
+    const remember = () => { history.push(JSON.stringify({ strokes: st.strokes, fills: st.fills, paint: st.paint })); if (history.length > 80) history.shift(); };
+    let tool = 'line', size = 1, colour = 'water';
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem('troubadour.map.colours') || '[]').filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 6); } catch (e) { recent = []; }
+
+    $('#sheet-title').textContent = existing ? 'Change the place' : 'New place';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'pe';
+    $('#sheet').classList.add('wide');
+
+    const name = el('input', 'pe-name');
+    name.type = 'text'; name.maxLength = 40; name.placeholder = 'Its name: Lighthouse, Old mill, Temple…'; name.value = st.name;
+    name.setAttribute('aria-label', 'Name of the place');
+    name.setAttribute('enterkeyhint', 'done');
+    name.addEventListener('keydown', (e) => { if (e.key === 'Enter') name.blur(); });
+
+    const stage = el('div', 'pe-stage');
+    const cv = el('canvas', 'pe-canvas');
+    cv.setAttribute('aria-label', 'Drawing of the place');
+    stage.append(cv);
+
+    // Tools: lines, brush, pour, eraser; then the size, undo and start again.
+    const tools = el('div', 'pe-tools');
+    const tbtn = (id, icon, label) => {
+      const b = el('button', 'pe-t'); b.type = 'button'; b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label); b.dataset.t = id;
+      b.addEventListener('click', () => { tool = id; paintTools(); });
+      return b;
+    };
+    const BRUSH = svg('<path d="M18.5 3.5l2 2-8.2 8.2-2.4.4.4-2.4z"/><path d="M9.6 13.8c-2.4-.3-4.4 1.4-4.4 3.8 0 1.4-.8 2.2-1.7 2.4 3.6 1.4 7.6-.4 7.6-4.2"/>', 18);
+    const POUR = svg('<path d="M5 11l7-7 7 7-7 7z"/><path d="M5 11h14"/><path d="M20 15s1.6 2 1.6 3.1a1.6 1.6 0 0 1-3.2 0C18.4 17 20 15 20 15z"/>', 18);
+    tools.append(tbtn('line', ICON.pen, 'Lines'), tbtn('brush', BRUSH, 'Brush: colour under the lines'), tbtn('pour', POUR, 'Pour a colour into a shape'), tbtn('erase', ICON.eraser, 'Eraser: rub out'));
+    const sizes = el('div', 'pe-sizes');
+    [0, 1, 2].forEach((k) => {
+      const b = el('button', 'pe-s'); b.type = 'button'; b.dataset.s = k; b.setAttribute('aria-label', ['Fine', 'Medium', 'Large'][k]); b.title = ['Fine', 'Medium', 'Large'][k];
+      b.append(el('i'));
+      b.addEventListener('click', () => { size = k; paintTools(); });
+      sizes.append(b);
+    });
+    const undo = el('button', 'pe-t'); undo.type = 'button'; undo.innerHTML = ICON.undo; undo.title = 'Undo'; undo.setAttribute('aria-label', 'Undo');
+    undo.addEventListener('click', () => { const h = history.pop(); if (!h) return; Object.assign(st, JSON.parse(h)); draw(); });
+    const clear = el('button', 'pe-t'); clear.type = 'button'; clear.innerHTML = ICON.trash; clear.title = 'Start again'; clear.setAttribute('aria-label', 'Start again (undo brings it back)');
+    clear.addEventListener('click', () => { if (!st.strokes.length && !st.paint.length && !st.fills.length) return; remember(); st.strokes = []; st.fills = []; st.paint = []; draw(); toast('Cleared. Undo brings it back.', 1600); });
+    const tools2 = el('div', 'pe-tools');
+    tools2.append(sizes, el('span', 'grow'), undo, clear);
+
+    // Colours: those of the theme, your own (the colour picker), the last ones you made.
+    const colours = el('div', 'pe-colours');
+    const pal = V.palette();
+    const fillOf = (k) => (k === 'hole' ? '#17130F' : pal[k] || k);
+    const chip = (k, label) => {
+      const c = el('button', 'pe-c'); c.type = 'button'; c.dataset.c = k; c.title = label; c.setAttribute('aria-label', `${label}: tap to pick it, or drag it into a shape`);
+      c.style.setProperty('--fill', fillOf(k));
+      // A tap picks the colour (for the brush or the pour); a drag pours it where the finger lifts.
+      c.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const id = e.pointerId, x0 = e.clientX, y0 = e.clientY;
+        let ghost = null;
+        try { c.setPointerCapture(id); } catch (err) { /* old browsers */ }
+        const move = (ev) => {
+          if (ev.pointerId !== id) return;
+          if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) { ghost = el('div', 'pe-ghost'); ghost.style.setProperty('--fill', fillOf(k)); document.body.append(ghost); }
+          if (ghost) ghost.style.transform = `translate(${ev.clientX - 14}px, ${ev.clientY - 14}px)`;
+        };
+        const up = (ev) => {
+          if (ev.pointerId !== id) return;
+          c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', up); c.removeEventListener('pointercancel', up);
+          if (ghost) { ghost.remove(); if (ev.type === 'pointerup') pourAt(ev.clientX, ev.clientY, k); return; }
+          colour = k;
+          if (tool === 'line' || tool === 'erase') tool = 'brush';
+          paintTools();
+        };
+        c.addEventListener('pointermove', move); c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+      });
+      return c;
+    };
+    /* The colour picker: hue, colour and light, on sliders (the phone's own picker closes on its own in a dialog). */
+    const hexOf = (h, sa, l) => {
+      sa /= 100; l /= 100;
+      const k = (n) => (n + h / 30) % 12, a2 = sa * Math.min(l, 1 - l);
+      const f = (n) => Math.round(255 * (l - a2 * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+      return `#${[f(0), f(8), f(4)].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+    };
+    const hslOf = (hex) => {
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+      let h = 0;
+      if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return [Math.round(((h * 60) + 360) % 360), Math.round(d ? (d / (1 - Math.abs(2 * l - 1))) * 100 : 0), Math.round(l * 100)];
+    };
+    const picker = el('div', 'pe-picker');
+    picker.hidden = true;
+    function openPicker() {
+      const [h0, s0, l0] = /^#[0-9a-f]{6}$/i.test(colour) ? hslOf(colour) : [30, 45, 45];
+      picker.textContent = '';
+      const sw = el('span', 'sw'), hx = el('span', 'hx');
+      const top = el('div', 'row'); top.append(sw, hx);
+      const slider = (label, min, max, v) => { const l = el('label'); const i = el('input'); i.type = 'range'; i.min = min; i.max = max; i.step = 1; i.value = v; l.append(el('span', '', label), i); return { l, i }; };
+      const H = slider('Hue', 0, 359, h0), C = slider('Colour', 0, 100, s0), L = slider('Light', 8, 92, l0);
+      const paint = () => {
+        const h = +H.i.value, sa = +C.i.value, l = +L.i.value, hex = hexOf(h, sa, l);
+        sw.style.setProperty('--fill', hex); hx.textContent = hex.toUpperCase();
+        H.i.style.setProperty('--track', `linear-gradient(90deg, ${[0, 60, 120, 180, 240, 300, 360].map((d) => hexOf(d, 85, 55)).join(',')})`);
+        C.i.style.setProperty('--track', `linear-gradient(90deg, ${hexOf(h, 0, l)}, ${hexOf(h, 100, l)})`);
+        L.i.style.setProperty('--track', `linear-gradient(90deg, ${hexOf(h, sa, 8)}, ${hexOf(h, sa, 50)}, ${hexOf(h, sa, 92)})`);
+        return hex;
+      };
+      [H, C, L].forEach((x) => x.i.addEventListener('input', paint));
+      const acts = el('div', 'acts');
+      const no = el('button', 'btn slim', 'Cancel'); no.type = 'button'; no.addEventListener('click', () => { picker.hidden = true; });
+      const yes = el('button', 'btn slim primary', 'Use it'); yes.type = 'button';
+      yes.addEventListener('click', () => {
+        const hex = paint();
+        recent = [hex].concat(recent.filter((x) => x !== hex)).slice(0, 6);
+        try { localStorage.setItem('troubadour.map.colours', JSON.stringify(recent)); } catch (e) { /* private mode */ }
+        colour = hex;
+        if (tool === 'line' || tool === 'erase') tool = 'brush';
+        picker.hidden = true;
+        paintColours();
+      });
+      acts.append(no, yes);
+      picker.append(top, H.l, C.l, L.l, acts);
+      paint();
+      picker.hidden = false;
+    }
+    const paintColours = () => {
+      colours.textContent = '';
+      S.FILLS.forEach(([k, label]) => colours.append(chip(k, label)));
+      recent.forEach((h) => colours.append(chip(h, h.toUpperCase())));
+      const more = el('button', 'pe-c pe-more');
+      more.type = 'button';
+      more.title = 'Another colour';
+      more.setAttribute('aria-label', 'Another colour');
+      more.innerHTML = ICON.plus;
+      more.addEventListener('click', () => openPicker());
+      colours.append(more);
+      paintTools();
+    };
+    const hint = el('p', 'pe-hint');
+
+    const foot = el('div', 'pe-foot');
+    if (existing) {
+      const del = el('button', 'btn slim danger', 'Delete'); del.type = 'button';
+      del.addEventListener('click', async () => {
+        const used = rec.world.places.reduce((n, p) => n + p.elements.filter((e) => e.shape.type === 'stamp' && e.shape.stamp === st.id).length, 0);
+        const ok = await ask(`Delete ${existing.name}?`, used ? `It is laid ${used} time${used > 1 ? 's' : ''} on the maps of this world: those become plain circles.` : 'It leaves the library of this world.', [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, cls: 'danger' }]);
+        if (!ok) return;
+        rec.world.stamps = (rec.world.stamps || []).filter((x) => x.id !== st.id);
+        S.forget(st.id);
+        save(); buildStamps(); V.redraw();
+        $('#sheet').close();
+      });
+      foot.append(del);
+    }
+    const cancel = el('button', 'btn slim', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', () => $('#sheet').close());
+    const ok = el('button', 'btn slim primary', existing ? 'Save' : 'Add to the library'); ok.type = 'button';
+    ok.addEventListener('click', () => {
+      if (!st.strokes.length && !st.paint.length) { toast('Draw your place first.', 1800); return; }
+      st.name = name.value.trim() || 'Place';
+      st.v = (existing ? (existing.v || 0) : 0) + 1;
+      const list = rec.world.stamps || (rec.world.stamps = []);
+      const at = list.findIndex((x) => x.id === st.id);
+      if (at >= 0) list[at] = st; else list.push(st);
+      S.register([st]);
+      save(); buildStamps(); V.redraw();
+      $('#sheet').close();
+      if (!existing) { V.setStamp(st.id); paintStamps(st.id); }
+    });
+    foot.append(el('span', 'grow'), cancel, ok);
+
+    const side = el('div', 'pe-side');
+    side.append(name, tools, tools2, colours, hint);
+    const main = el('div', 'pe-main');
+    main.append(stage, side);
+    body.append(main, foot, picker);
+
+    const HINTS = {
+      line: 'Draw the lines of your place with your finger. A line that ends near its start closes the shape.',
+      brush: 'Paint with the colour picked: it always stays under the lines.',
+      pour: 'Tap inside a closed shape to pour the colour picked. You can also drag a colour into a shape.',
+      erase: 'Rub out lines and paint. A tap inside a shape takes its poured colour away.',
+    };
+    function paintTools() {
+      tools.querySelectorAll('[data-t]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === tool)));
+      sizes.querySelectorAll('[data-s]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.s) === size)));
+      sizes.dataset.tool = tool;
+      colours.querySelectorAll('.pe-c[data-c]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === colour && tool !== 'line' && tool !== 'erase')));
+      cv.style.cursor = tool === 'pour' ? 'cell' : tool === 'erase' ? 'none' : 'crosshair';
+      hint.textContent = HINTS[tool];
+    }
+    let live = null, eraser = null, rubbed = false;
+    const widthNow = () => (tool === 'brush' ? BRUSH_W[size] : LINE_W[size]);
+    function draw() {
+      const r = cv.getBoundingClientRect();
+      const d = Math.min(2, window.devicePixelRatio || 1);
+      const w = Math.max(10, Math.round(r.width));
+      if (cv.width !== Math.round(w * d)) { cv.width = cv.height = Math.round(w * d); }
+      const c = cv.getContext('2d');
+      c.setTransform(d, 0, 0, d, 0, 0);
+      const p = V.palette();
+      c.fillStyle = p.paper; c.fillRect(0, 0, w, w);
+      c.strokeStyle = p.line; c.lineWidth = 1; c.globalAlpha = 0.5;
+      for (let i = 1; i < 8; i++) { const q = Math.round((i * w) / 8) + 0.5; c.beginPath(); c.moveTo(q, 0); c.lineTo(q, w); c.moveTo(0, q); c.lineTo(w, q); c.stroke(); }
+      c.globalAlpha = 1;
+      const shown = Object.assign({}, st, { v: `e${JSON.stringify(st.strokes).length}-${JSON.stringify(st.paint).length}-${JSON.stringify(st.fills)}` });
+      c.drawImage(S.picture(shown, Object.assign({ hole: '#17130F' }, p)), 0, 0, w, w);
+      if (live) {
+        // The line or the paint being drawn, over the picture (it takes its place when the finger lifts).
+        const col = live.kind === 'brush' ? fillOf(live.c) : p.ink;
+        c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w * live.w;
+        if (live.kind === 'brush') c.globalAlpha = 0.85;
+        c.beginPath(); live.p.forEach((q, i) => (i ? c.lineTo(q[0] * w, q[1] * w) : c.moveTo(q[0] * w, q[1] * w)));
+        if (live.p.length === 1) { c.arc(live.p[0][0] * w, live.p[0][1] * w, c.lineWidth / 2, 0, Math.PI * 2); c.fill(); } else c.stroke();
+        c.globalAlpha = 1;
+      }
+      if (eraser) {
+        c.strokeStyle = p.ink; c.lineWidth = 1.5; c.setLineDash([3, 3]);
+        c.beginPath(); c.arc(eraser[0] * w, eraser[1] * w, ERASE_R[size] * w, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+      }
+    }
+    const toUnit = (cx, cy) => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (cx - r.left) / r.width)), Math.max(0, Math.min(1, (cy - r.top) / r.height))]; };
+    const r3 = (v) => Math.round(v * 1000) / 1000;
+    function pourAt(cx, cy, k) {
+      const r = cv.getBoundingClientRect();
+      if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return;
+      const [x, y] = toUnit(cx, cy);
+      const next = S.fillAt(st, x, y, k);
+      if (!next) { toast('Pour the colour inside a closed shape.', 1800); return; }
+      remember(); st.fills = next; draw();
+    }
+    /** The eraser rubs out what lies under it: the lines and the paint are cut where it passes. */
+    function rub(x, y) {
+      const rr = ERASE_R[size];
+      let changed = false;
+      const cut = (list) => {
+        const out = [];
+        list.forEach((sk) => {
+          // Points close enough together for the eraser to cut between them.
+          const dense = [];
+          sk.p.forEach((q, i) => {
+            if (i) { const a = sk.p[i - 1]; const n = Math.ceil(Math.hypot(q[0] - a[0], q[1] - a[1]) / (rr / 3)); for (let k = 1; k < n; k++) dense.push([a[0] + ((q[0] - a[0]) * k) / n, a[1] + ((q[1] - a[1]) * k) / n]); }
+            dense.push(q);
+          });
+          let run = [], hit = false;
+          dense.forEach((q) => {
+            if (Math.hypot(q[0] - x, q[1] - y) <= rr + sk.w / 2) { hit = true; if (run.length > 1) out.push(Object.assign({}, sk, { p: run.map((v) => [r3(v[0]), r3(v[1])]) })); run = []; }
+            else run.push(q);
+          });
+          if (!hit) { out.push(sk); return; }
+          changed = true;
+          if (run.length > 1) out.push(Object.assign({}, sk, { p: run.map((v) => [r3(v[0]), r3(v[1])]) }));
+        });
+        return out;
+      };
+      const s2 = cut(st.strokes), p2 = cut(st.paint);
+      if (!changed) return;
+      if (!rubbed) { remember(); rubbed = true; }
+      st.strokes = s2; st.paint = p2;
+    }
+    cv.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const [x, y] = toUnit(e.clientX, e.clientY);
+      if (tool === 'pour') { pourAt(e.clientX, e.clientY, colour); return; }
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
+      if (tool === 'erase') { rubbed = false; eraser = [x, y]; eraser.moved = false; eraser.start = [x, y]; rub(x, y); draw(); return; }
+      live = { kind: tool, c: colour, w: widthNow(), p: [[r3(x), r3(y)]] };
+      draw();
+    });
+    cv.addEventListener('pointermove', (e) => {
+      const [x, y] = toUnit(e.clientX, e.clientY);
+      if (eraser) {
+        if (Math.hypot(x - eraser.start[0], y - eraser.start[1]) > 0.01) eraser.moved = true;
+        const keep = { moved: eraser.moved, start: eraser.start };
+        eraser = Object.assign([x, y], keep);
+        rub(x, y); draw(); return;
+      }
+      if (!live) return;
+      const last = live.p[live.p.length - 1];
+      if (Math.hypot(x - last[0], y - last[1]) < 0.005) return;
+      live.p.push([r3(x), r3(y)]);
+      draw();
+    });
+    const end = () => {
+      if (eraser) {
+        // A tap that rubbed nothing, inside a coloured shape: its poured colour goes.
+        if (!eraser.moved && !rubbed) {
+          const next = S.fillAt(st, eraser.start[0], eraser.start[1], 'stone');
+          if (next) { const kept = next.slice(0, -1); if (kept.length !== st.fills.length) { remember(); st.fills = kept; } }
+        }
+        eraser = null; draw(); return;
+      }
+      if (!live) return;
+      if (live.kind === 'line') {
+        // A line that ends near where it began closes itself, so it can take a colour.
+        const a = live.p[0], b = live.p[live.p.length - 1];
+        if (live.p.length > 4 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05) live.p.push([a[0], a[1]]);
+        remember(); st.strokes.push({ w: live.w, p: live.p });
+      } else { remember(); st.paint.push({ c: live.c, w: live.w, p: live.p }); }
+      live = null; draw();
+    };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+    cv.addEventListener('pointerleave', () => { if (eraser && !eraser.moved) return; });
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(stage);
+    $('#sheet').addEventListener('close', () => { ro.disconnect(); $('#sheet').classList.remove('wide'); body.className = ''; }, { once: true });
+    paintColours();
+    $('#sheet').showModal();
+    requestAnimationFrame(draw);
+  }
+
+  /* ================= Settings ================= */
+  function buildSettings() {
+    const paintThemes = () => window.TroubadourThemes.render($('#theme-pick'), window.TroubadourThemes.resolve(settings.theme), (id) => { settings.theme = id; saveSettings(); applyTheme(); paintSettings(); });
+    $('#mode-pick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.mode = b.dataset.v; saveSettings(); applyTheme(); paintSettings();
+    });
+    $('#fade-pick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.fade = Number(b.dataset.v); saveSettings(); paintSettings();
+    });
+    // Playback, as in Troubadour.
+    $('#fadein-pick').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.fadeIn = Number(b.dataset.v); saveSettings(); paintSettings();
+    });
+    const stepRandom = (d) => { settings.randomMax = Math.min(A.RANDOM_TOP, Math.max(1, A.randomMax() + d)); saveSettings(); paintSettings(); };
+    $('#random-less').addEventListener('click', () => stepRandom(-1));
+    $('#random-more').addEventListener('click', () => stepRandom(1));
+    $('#opt-life').addEventListener('change', (e) => { settings.life = e.target.checked; saveSettings(); paintSettings(); });
+    const stepLife = (d) => { settings.lifeEvery = Math.min(30, Math.max(2, A.lifeEvery() + d)); saveSettings(); paintSettings(); };
+    $('#life-less').addEventListener('click', () => stepLife(A.lifeEvery() > 10 ? -2 : -1));
+    $('#life-more').addEventListener('click', () => stepLife(A.lifeEvery() >= 10 ? 2 : 1));
+    $('#opt-crossfade').addEventListener('change', (e) => { settings.crossfade = e.target.checked; saveSettings(); });
+    document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.vol[g.dataset.zone] = b.dataset.v; saveSettings(); paintSettings();
+      if (rec && mode === 'play') renderPanel();
+    }));
+    $('#opt-trail').addEventListener('change', (e) => { settings.trail = e.target.checked; saveSettings(); paintSettings(); });
+    $('#trail-speed').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
+    });
+    // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
+    $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
+    $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
+    $('#opt-music-ask').addEventListener('change', (e) => { settings.musicAsk = e.target.checked; saveSettings(); if (!e.target.checked) closeArrive(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); paintArriveClock(); });
+    $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
+    $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
+    $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
+    $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
+    $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
+    $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
+    $('[data-action="wipe"]').addEventListener('click', async () => {
+      const ok = await ask('Erase everything?', 'Every world and every sound leaves this device. Your settings stay.', [{ label: 'Cancel', value: false }, { label: 'Erase', value: true, cls: 'danger' }]);
+      if (!ok) return;
+      A.close(0); rec = null; leaveOk = true;
+      await DB.wipe();
+      $('#settings').close();
+      location.hash = '#/';
+      renderLibrary();
+    });
+    $('#app-version').textContent = `version ${VERSION}`;
+    if (window.BardAccount) window.BardAccount.mount($('#troubadour-account'));
+    buildSettings.paintThemes = paintThemes;
+  }
+  function paintSettings() {
+    buildSettings.paintThemes();
+    document.querySelectorAll('#mode-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.mode)));
+    document.querySelectorAll('#fade-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.fade)));
+    document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === settings.vol[g.dataset.zone]))));
+    document.querySelectorAll('#fadein-pick [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === (settings.fadeIn ?? 1000))));
+    $('#random-val').textContent = `${A.randomMax()} s`;
+    $('#random-note').textContent = `Plays again after a pause of 0.5\u00a0s to ${A.randomMax()}\u00a0s`;
+    $('#random-less').disabled = A.randomMax() <= 1;
+    $('#random-more').disabled = A.randomMax() >= A.RANDOM_TOP;
+    $('#opt-life').checked = !!settings.life;
+    $('#life-val').textContent = `${A.lifeEvery()} s`;
+    $('#life-note').textContent = `A new volume about every ${A.lifeEvery()}\u00a0s`;
+    $('#life-less').disabled = !settings.life || A.lifeEvery() <= 2;
+    $('#life-more').disabled = !settings.life || A.lifeEvery() >= 30;
+    $('#life-row').classList.toggle('off', !settings.life);
+    $('#opt-crossfade').checked = settings.crossfade;
+    $('#opt-rings').checked = settings.rings;
+    $('#opt-trail-walls').checked = settings.trailWalls === false;
+    $('#opt-names').checked = settings.names !== false;
+    $('#opt-music-ask').checked = settings.musicAsk !== false;
+    $('#opt-music-auto').checked = settings.musicAuto !== false;
+    $('#opt-even').checked = settings.even !== false;
+    $('#opt-portrait').checked = !!settings.portrait;
+    $('#opt-trail').checked = settings.trail;
+    $('#trail-speed-row').hidden = !settings.trail;
+    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.trailSpeed)));
+    $('#opt-awake').checked = settings.awake;
+    $('#opt-silent').checked = settings.silent;
+  }
+  async function openSettings() {
+    paintSettings();
+    $('#settings').showModal();
+    const info = $('#store-info');
+    info.textContent = 'Checking…';
+    const p = await DB.persistence();
+    const size = (b) => window.Troubadour.formatSize(b || 0);
+    info.textContent = `${p.usage != null ? `In use: about ${size(p.usage)}.` : ''} ${p.persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
+  }
+
+  /* ================= Keep the screen awake ================= */
+  let wake = null, videoAwake = false;
+  async function acquireWake() {
+    if (!settings.awake || screen !== 'world' || mode !== 'play' || document.visibilityState !== 'visible') return;
+    if ('wakeLock' in navigator && !wake) {
+      try { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); return; } catch (e) { wake = null; }
+    }
+    if (wake || videoAwake) return;
+    const v = $('#awake-video');
+    if (!v.src) v.src = '../ios/261014_keep_awake.mp4';
+    v.play().then(() => { videoAwake = true; }).catch(() => {});
+  }
+  function releaseWake() {
+    if (wake) { wake.release().catch(() => {}); wake = null; }
+    if (videoAwake) { $('#awake-video').pause(); videoAwake = false; }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      acquireWake();
+      if (A.isOpen()) { const { ctx } = audio(); if (ctx.state !== 'running') ctx.resume().catch(() => {}); }
+    } else flush();
+  });
+
+  /* ================= Routing ================= */
+  function show(id) {
+    ['library', 'world', 'sbx'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
+    screen = id;
+    document.documentElement.dataset.screen = id;
+    if (id !== 'world') { if (listening) listen(false); A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
+    if (id !== 'sbx') stopFxWhere((k) => k.startsWith('shared:'));
+  }
+
+  /** Leaving a world asks first, whatever the way out (the back button of the top bar, of the browser or of the phone). */
+  let leaveOk = false;
+  async function leaveWorld() {
+    if (screen !== 'world' || !rec) { location.hash = '#/'; return; }
+    const playing = mode === 'play';
+    const ok = await ask(`Leave ${rec.story.title || 'this world'}?`,
+      playing ? 'Its sounds fade out and you go back to your worlds.' : 'Your drawing is saved. You go back to your worlds.',
+      [{ label: 'Stay', value: false }, { label: 'Leave', value: true, cls: 'danger' }]);
+    if (!ok) return;
+    if (playing && rec) {
+      // As every online player: the sounds fade out under the same popup before the table closes.
+      const r0 = rec;
+      A.close();
+      busy('Leaving the story', r0.story.title || '');
+      await new Promise((res) => setTimeout(res, A.isSounding && !A.isSounding() ? 700 : settings.fade + 60));
+      idle();
+      if (rec !== r0) return;
+    }
+    leaveOk = true;
+    location.hash = '#/';
+  }
+  async function route() {
+    const m = /^#\/(play|edit)\/([^/]+)(?:\/(\d+))?$/.exec(location.hash);
+    if (!m && screen === 'world' && rec && !leaveOk) {
+      // A back gesture: stay in the world (its address comes back) and ask.
+      history.pushState(null, '', here());
+      leaveWorld();
+      return;
+    }
+    leaveOk = false;
+    if (isOnline()) fromOnline = true;
+    else if (!m && fromOnline && screen === 'world' && location.hash !== '#/soundbox') { location.replace('#/online'); return; }
+    else if (!m) fromOnline = false;
+    if (!m && location.hash === '#/soundbox') { flush(); show('sbx'); rec = null; renderShared(); return; }
+    if (!m) { flush(); show('library'); rec = null; await renderLibrary(); return; }
+    const n = Number(m[3] || 0);
+    if (rec && rec.uid === m[2] && screen === 'world') {
+      if (m[1] !== mode) { flush(); mode = m[1]; if (n !== pi) await goPlace(n); else await setMode(mode); }
+      else if (n !== pi) goPlace(n);
+      return;
+    }
+    const r = await DB.get(m[2]);
+    if (!r) { location.hash = '#/'; return; }
+    DB.put(r).catch(() => {}); // last opened: first in the library
+    show('world');
+    await openWorld(r, n, m[1]);
+  }
+
+  /* ================= The world's music (the Music button, right of the Soundbox) ================= */
+  /** The musics of the world: kept in map.json (world.music). An older world starts from every music of its story;
+   *  a music laid on a map always joins them (it starts when the party arrives on that map). */
+  function worldMusic() {
+    const w = rec.world;
+    const seen = new Set();
+    const add = (x) => { if (x.file && rec.files[x.file] && !seen.has(x.file)) { seen.add(x.file); w.music.push(M.card(Object.assign({}, x, { zone: 'music' }))); } };
+    if (!Array.isArray(w.music)) {
+      w.music = [];
+      M.soundsOf(rec.story).forEach((x) => { if (x.zone === 'music') add(x); });
+    }
+    w.music = w.music.filter((c) => rec.files[c.file]);
+    // Their loop: 1×, 2× or ∞. Musics that had none of them (play after, or the days without a loop button) loop.
+    if (w.musicLoops !== 1) { w.music.forEach((c) => { c.play = 'loop'; }); w.musicLoops = 1; }
+    w.music.forEach((c) => { c.zone = 'music'; if (!['once', 'twice', 'loop'].includes(c.play)) c.play = 'loop'; });
+    w.music.forEach((c) => seen.add(c.file));
+    w.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') add(c); }));
+    return w.music;
+  }
+
+  const musRows = [];
+  let musQ = '';
+  function openMusic() {
+    closeSoundbox();
+    $('#mw-mus').hidden = false;
+    $('#world').classList.add('over');
+    $('#mw-mus-btn').setAttribute('aria-pressed', 'true');
+    A.setMusic(worldMusic());
+    renderMusic();
+  }
+  function closeMusic() {
+    $('#mw-mus').hidden = true;
+    if ($('#mw-sbx').hidden) $('#world').classList.remove('over');
+    $('#mw-mus-btn').setAttribute('aria-pressed', 'false');
+    musRows.length = 0;
+  }
+  /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
+  let musQueueView = false;
+  /* ================= Arriving on a place with music (setting Show a place's music on arrival) =================
+   * The party stops on a place with music: its music cards show over the map, as cards with all their controls, the
+   * party free to move on. One music, or several: each can be played or added to the queue. If nothing is touched for
+   * a few seconds, the setting Music starts on arrival decides (its music starts, or the music heard plays on). */
+  const ARRIVE_MS = 9000;
+  let arrive = null;
+  function closeArrive() {
+    if (!arrive) return;
+    clearTimeout(arrive.timer); cancelAnimationFrame(arrive.raf);
+    arrive = null;
+    const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
+    arriveRows.length = 0;
+  }
+  const arriveRows = [];
+  function paintArriveClock() {
+    if (!arrive) return;
+    const lab = $('#mw-arrive .ar-clock');
+    if (lab) lab.textContent = arrive.touched ? '' : settings.musicAuto !== false ? (arrive.cards.length > 1 ? 'The first starts by itself' : 'Starts by itself') : 'Leaves by itself';
+  }
+  function showArrive(info) {
+    closeArrive();
+    if (!info || mode !== 'play' || settings.musicAsk === false) return false;
+    const all = worldMusic();
+    // The cards of the world's musics (the voices that play them), in the order of the place.
+    const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
+    if (!cards.length) return false;
+    // Already heard: nothing to propose.
+    const cur = A.currentMusic();
+    if (cards.length === 1 && cur && cur.file === cards[0].file) return false;
+    const box = $('#mw-arrive');
+    box.textContent = '';
+    arrive = { info, cards, touched: false, t0: performance.now(), timer: 0, raf: 0 };
+    const head = el('div', 'ar-head');
+    const ttl = el('div', 'ar-ttl');
+    ttl.append(el('small', '', cards.length > 1 ? 'Musics of this place' : 'Music of this place'), el('b', '', elName(info.el)));
+    const x = el('button', 'ico small'); x.type = 'button'; x.innerHTML = ICON.close; x.setAttribute('aria-label', 'Close'); x.title = 'Close: nothing changes';
+    x.addEventListener('click', () => { closeArrive(); });
+    head.append(ttl, x);
+    box.append(head);
+    const list = el('div', 'ar-list');
+    cards.forEach((c) => {
+      const wrap = el('div', 'ar-card');
+      wrap.append(withRows(arriveRows, () => cardRow(c, all, null)));
+      const q = el('button', 'btn small ar-q'); q.type = 'button';
+      q.innerHTML = `${ICON.queueAdd}<span>Add to the queue</span>`;
+      q.addEventListener('click', () => { A.queueAdd(c); q.disabled = true; q.querySelector('span').textContent = 'In the queue'; refreshLive(); });
+      wrap.append(q);
+      list.append(wrap);
+    });
+    box.append(list);
+    if (cards.length > 1) {
+      const allQ = el('button', 'btn small ar-all'); allQ.type = 'button';
+      allQ.innerHTML = `${ICON.queueAdd}<span>Add them all to the queue</span>`;
+      allQ.addEventListener('click', () => { cards.forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); }); list.querySelectorAll('.ar-q').forEach((b) => { b.disabled = true; b.querySelector('span').textContent = 'In the queue'; }); allQ.disabled = true; refreshLive(); });
+      box.append(allQ);
+    }
+    // The time left before the fallback, as a thin gold line under the head.
+    const clock = el('div', 'ar-time'); const bar = el('i'); clock.append(bar);
+    box.append(el('small', 'ar-clock'), clock);
+    paintArriveClock();
+    // Any touch on the cards is a choice in hand: the clock stops, the cards stay until closed or the party moves on.
+    box.addEventListener('pointerdown', () => { if (!arrive || arrive.touched) return; arrive.touched = true; clearTimeout(arrive.timer); clock.hidden = true; paintArriveClock(); }, { once: true });
+    const tick = () => {
+      if (!arrive || arrive.touched) return;
+      bar.style.transform = `scaleX(${Math.max(0, 1 - (performance.now() - arrive.t0) / ARRIVE_MS)})`;
+      arrive.raf = requestAnimationFrame(tick);
+    };
+    tick();
+    arrive.timer = setTimeout(() => { if (!arrive || arrive.touched) return; const go = arrive.info.start; closeArrive(); go(); }, ARRIVE_MS);
+    box.hidden = false;
+    requestAnimationFrame(() => rollTitles(box));
+    refreshLive();
+    return true;
+  }
+
+  function renderMusic() {
+    musRows.length = 0;
+    const now = $('#mw-mus-now'), list = $('#mw-mus-list');
+    now.textContent = ''; list.textContent = '';
+    const all = rec.world.music || [];
+    $('#mw-mus-queue').setAttribute('aria-pressed', String(musQueueView));
+    $('.mus-q').hidden = musQueueView;
+    // The music heard now: its card (progress, play and pause, stop, volume).
+    let shown, nowRows = [];
+    musRows.push(() => {
+      const c = A.currentMusic();
+      if (c !== shown) {
+        shown = c;
+        now.textContent = ''; nowRows = [];
+        if (c) { now.append(withRows(nowRows, () => cardRow(c, all, null))); requestAnimationFrame(() => rollTitles(now)); }
+        else now.append(el('p', 'mus-none', 'No music playing. Tap one below.'));
+      }
+      nowRows.forEach((f) => f());
+    });
+    // The queue button: how many musics wait.
+    const paintQ = (n) => { $('#mw-mus-queue').innerHTML = ICON.queue + (n ? `<i class="qn">${n}</i>` : ''); };
+    let qn = A.queue().length;
+    paintQ(qn);
+    musRows.push(() => {
+      const n = A.queue().length;
+      if (n === qn) return;
+      qn = n;
+      paintQ(n);
+      // The queue moved on by itself (a music ended): its view is drawn again, outside this paint.
+      if (musQueueView) setTimeout(renderMusic, 0);
+    });
+    if (!all.length) { list.append(el('p', 'sb-empty', 'No music in this world yet. Add some in the editor, behind its Music button.')); refreshLive(); return; }
+    const iconBtn = (cls, icon, label, fn) => {
+      const b = el('button', `mus-i ${cls}`); b.type = 'button'; b.innerHTML = icon; b.title = label; b.setAttribute('aria-label', label);
+      b.addEventListener('click', (ev) => { ev.stopPropagation(); fn(b); });
+      return b;
+    };
+    const ensureMusic = async (c, r, pb) => {
+      audio(true);
+      if (sounds.get(c.file)) return true;
+      r.classList.add('busy'); pb.classList.add('wait');
+      await prepare([c.file], false);
+      pb.classList.remove('wait'); r.classList.remove('busy');
+      if (!sounds.get(c.file)) { toast('This music cannot be read here.'); return false; }
+      return true;
+    };
+    const musicRow = (c, opts) => {
+      const r = el('div', 'snd z-music mus-row');
+      r.setAttribute('role', 'button');
+      r.tabIndex = 0;
+      const pb = el('span', 'snd-play');
+      pb.innerHTML = ICON.play;
+      const t = el('span', 'snd-t');
+      const sub = el('small', '', '');
+      t.append(el('b', '', c.name), sub);
+      r.append(pb, t, ...opts.buttons(r, pb));
+      const go = async () => { if (r.classList.contains('busy')) return; if (!(await ensureMusic(c, r, pb))) return; A.setMusic(all); opts.play(); refreshLive(); };
+      r.addEventListener('click', go);
+      r.addEventListener('keydown', (ev) => { if (ev.target === r && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); go(); } });
+      musRows.push(() => {
+        const v = A.voice(c), st = v ? v.state : 'idle';
+        const icon = st === 'playing' ? 'pause' : 'play';
+        if (pb.dataset.i !== icon) { pb.innerHTML = ICON[icon]; pb.dataset.i = icon; }
+        r.classList.toggle('in', st === 'playing' || st === 'paused');
+        const b = sounds.get(c.file);
+        const txt = st === 'playing' ? 'Playing' : st === 'paused' ? 'Paused' : st === 'ending' ? 'Fading out' : b && b.duration ? clockOf(b.duration) : '';
+        if (sub.textContent !== txt) sub.textContent = txt;
+      });
+      return r;
+    };
+
+    if (musQueueView) {
+      // The queue: what plays next, in order. A tap plays one now.
+      const q = A.queue();
+      if (!q.length) list.append(el('p', 'sb-empty', 'The queue is empty. Add musics to it with their queue button.'));
+      q.forEach((c, i) => list.append(musicRow(c, {
+        play: () => A.playMusic(c, i),
+        buttons: () => [
+          iconBtn('', ICON.up, 'Play earlier', () => { A.queueMove(i, -1); renderMusic(); }),
+          iconBtn('', ICON.down, 'Play later', () => { A.queueMove(i, 1); renderMusic(); }),
+          iconBtn('', ICON.x, 'Take out of the queue', () => { A.queueRemove(i); renderMusic(); }),
+        ],
+      })));
+      list.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
+      refreshLive();
+      return;
+    }
+
+    const words = fold(musQ).split(/\s+/).filter(Boolean);
+    const rows = new Map();
+    all.forEach((c) => {
+      if (words.length && !words.every((k) => fold(c.name).includes(k))) return;
+      const r = musicRow(c, {
+        play: () => A.toggle(c),
+        buttons: (row, pb) => [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
+          if (!(await ensureMusic(c, row, pb))) return;
+          A.setMusic(all);
+          A.queueAdd(c);
+          b.classList.remove('done'); void b.offsetWidth; b.classList.add('done');
+          toast(`${c.name}: in the queue.`, 1400);
+        })],
+      });
+      rows.set(c, r);
+      list.append(r);
+    });
+    if (!rows.size) list.append(el('p', 'sb-empty', 'No music with this name.'));
+    // The one heard now goes first; the others keep their order.
+    let order = null;
+    musRows.push(() => {
+      const c = A.currentMusic();
+      if (c === order) return;
+      order = c;
+      const first = c && rows.get(c);
+      [...rows.values()].forEach((r) => list.append(r));
+      if (first) { list.prepend(first); list.scrollTop = 0; }
+    });
+    refreshLive();
+  }
+
+  /* ================= Effects, as in the Troubadour web app: the shared soundbox, the world's soundbox ================= */
+  let SHARED = []; // { id, name, blob, size, duration, volume }
+  const saveShared = () => DB.setKV('soundbox', SHARED).catch((e) => toast(`Could not save: ${e.message || e}`, 4000));
+  const fmtSize = (b) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
+  const DEV = /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'iPad' : /iPhone|iPod/.test(navigator.userAgent) ? 'iPhone' : 'device';
+
+  /** Listening to effects: as many at once as the troubadour likes, each through the table's volume curve. */
+  const fxPreviews = new Map(); // key -> { src, gain, card, btn }
+  function stopFx(key) {
+    const p = fxPreviews.get(key);
+    if (!p) return;
+    fxPreviews.delete(key);
+    try { p.src.stop(); } catch (e) { /* done */ }
+    if (p.card) p.card.classList.remove('playing');
+    if (p.btn) { p.btn.innerHTML = ICON.play; p.btn.classList.remove('on'); }
+  }
+  const stopFxWhere = (f) => [...fxPreviews.keys()].filter(f).forEach(stopFx);
+  async function toggleFx(key, getBlob, vol, card, b) {
+    if (fxPreviews.has(key)) { stopFx(key); return; }
+    const { ctx, master } = audio(true);
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    let buf = buffers.get(key);
+    if (!buf) {
+      if (b) b.classList.add('wait');
+      try { buf = await decode(await getBlob()); buffers.set(key, buf); } catch (e) { buf = null; }
+      if (b) b.classList.remove('wait');
+      if (!buf) { toast('This sound is missing.'); return; }
+    }
+    if (fxPreviews.has(key)) return;
+    const src = ctx.createBufferSource();
+    // In the editor, a music or an ambiance laid to loop is heard looping, as at the table.
+    if (card && card.dataset.loop === '1') src.loop = true;
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.value = A.curve(vol());
+    src.connect(gain).connect(master);
+    src.start();
+    fxPreviews.set(key, { src, gain, card, btn: b });
+    if (card) card.classList.add('playing');
+    if (b) { b.innerHTML = ICON.pause; if (b.classList.contains('pick-play')) b.classList.add('on'); }
+    src.onended = () => { const p = fxPreviews.get(key); if (p && p.src === src) stopFx(key); };
+  }
+
+  /** An effect card, as Troubadour's: its name, remove, listen, length and size, move earlier or later, volume. */
+  function fxCard(s, i, list, o) {
+    const c = el('div', 'sc');
+    c.style.setProperty('--z', o.colour || 'var(--accent)');
+    if (o.loops && s.play === 'loop') c.dataset.loop = '1';
+    const top = el('div', 'row');
+    const name = el('input');
+    name.value = s.name;
+    name.maxLength = 80;
+    name.setAttribute('aria-label', 'Sound name');
+    name.setAttribute('enterkeyhint', 'done');
+    name.oninput = () => { s.name = name.value; o.save(); };
+    name.onblur = () => { if (!s.name.trim()) { s.name = 'Effect'; name.value = s.name; o.save(); } };
+    name.onkeydown = (e) => { if (e.key === 'Enter') name.blur(); };
+    const x = el('button', 'x');
+    x.type = 'button'; x.innerHTML = ICON.x; x.setAttribute('aria-label', `Remove ${s.name}`);
+    x.onclick = async () => {
+      const v = await ask(`Remove “${s.name}”?`, o.removeText, [{ label: 'Cancel', value: null }, { label: 'Remove', value: 'rm', cls: 'danger' }]);
+      if (v !== 'rm') return;
+      stopFx(o.key);
+      list.splice(list.indexOf(s), 1);
+      if (o.onRemove) o.onRemove(s);
+      o.save();
+      o.rerender();
+    };
+    top.append(name, x);
+    const bottom = el('div', 'row');
+    const play = el('button', 'pb play');
+    play.type = 'button'; play.innerHTML = ICON.play; play.setAttribute('aria-label', `Listen to ${s.name}`);
+    play.onclick = () => toggleFx(o.key, o.getBlob, () => s.volume, c, play);
+    if (fxPreviews.has(o.key)) { c.classList.add('playing'); play.innerHTML = ICON.pause; const p = fxPreviews.get(o.key); p.card = c; p.btn = play; }
+    const meta = el('span', 'meta');
+    const paintMeta = () => { meta.textContent = ''; [s.duration ? clockOf(s.duration) : null, s.size ? fmtSize(s.size) : null].filter(Boolean).forEach((t) => meta.append(el('span', '', t))); };
+    paintMeta();
+    // Older effects learn their size (and length) the first time they show.
+    if (!s.size || !s.duration) {
+      o.getBlob().then(async (blob) => {
+        if (!blob) return;
+        let changed = false;
+        if (!s.size) { s.size = blob.size; changed = true; }
+        if (!s.duration) { try { const b = buffers.get(o.key) || await decode(blob); buffers.set(o.key, b); s.duration = Math.round(b.duration * 10) / 10; changed = true; } catch (e) { /* unreadable */ } }
+        if (changed) { paintMeta(); o.save(); }
+      }).catch(() => {});
+    }
+    const mv = el('span', 'mvh');
+    const mvb = (icon, label, d) => {
+      const b = el('button'); b.type = 'button'; b.innerHTML = icon; b.setAttribute('aria-label', label); b.title = label;
+      b.disabled = d < 0 ? i === 0 : i === list.length - 1;
+      b.onclick = () => { const j = i + d; if (j < 0 || j >= list.length) return; [list[j], list[i]] = [list[i], list[j]]; o.save(); o.rerender(); };
+      return b;
+    };
+    mv.append(mvb(ICON.left, 'Move earlier', -1), mvb(ICON.right, 'Move later', 1));
+    bottom.append(play, meta, mv);
+    // A music's loop, as on Troubadour's cards: 1×, 2×, ∞ (soundbox effects fire once, they have none).
+    if (o.loops) {
+      const loop = el('button');
+      loop.type = 'button';
+      paintLoop(loop, s);
+      loop.addEventListener('click', () => {
+        const next = o.loops[(o.loops.indexOf(s.play) + 1) % o.loops.length];
+        Object.assign(s, M.cleanCard(Object.assign({}, s, { play: next })));
+        paintLoop(loop, s);
+        c.dataset.loop = s.play === 'loop' ? '1' : '';
+        const pv = fxPreviews.get(o.key);
+        if (pv) pv.src.loop = s.play === 'loop';
+        o.save();
+        if (o.onLoop) o.onLoop();
+      });
+      bottom.append(loop);
+    }
+    // Its volume: the level it fires at.
+    const volRow = el('label', 'row edvol');
+    volRow.append(el('span', 'vl', 'Volume'));
+    const vr = el('input');
+    vr.type = 'range'; vr.min = 0; vr.max = 1; vr.step = 0.05; vr.value = typeof s.volume === 'number' ? s.volume : 0.75;
+    vr.setAttribute('aria-label', `Default volume of ${s.name}`);
+    vr.style.setProperty('--z', o.colour || 'var(--accent)');
+    const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
+    vr.addEventListener('input', () => {
+      s.volume = Math.round(+vr.value * 100) / 100;
+      const p = fxPreviews.get(o.key);
+      if (p) p.gain.gain.setTargetAtTime(A.curve(s.volume), audio().ctx.currentTime, 0.03);
+      vp.textContent = `${Math.round(s.volume * 100)}`;
+      o.save();
+    });
+    volRow.append(vr, vp);
+    c.append(top, bottom, volRow);
+    if (o.extra) c.append(o.extra());
+    requestAnimationFrame(() => paintRange(vr));
+    return c;
+  }
+  /** The dashed zone of effects, with its Add button at the foot. */
+  function fxZone(list, opts, hint, onAdd, colour) {
+    const dz = el('div', 'dz');
+    dz.style.setProperty('--z', colour || 'var(--accent)');
+    list.forEach((s, i) => dz.append(fxCard(s, i, list, opts(s))));
+    const h = el('button', 'hint');
+    h.type = 'button';
+    h.innerHTML = `${ICON.plus}<span>${list.length ? 'Add more' : hint}</span>`;
+    h.onclick = onAdd;
+    dz.append(h);
+    return dz;
+  }
+
+  /* The shared soundbox screen (the star of the worlds screen). */
+  function renderShared() {
+    const box = $('#shared-list');
+    box.textContent = '';
+    box.append(fxZone(SHARED, (s) => ({ key: `shared:${s.blob}`, getBlob: () => DB.getBlob(s.blob), save: saveShared, rerender: renderShared, removeText: 'It leaves your shared soundbox.' }),
+      'Add your first effects: critical hits, level ups, explosions', addShared));
+  }
+  function addShared() {
+    fxPicker('the shared soundbox', new Set(SHARED.map((s) => s.blob)), async (picked) => {
+      for (const r of picked) {
+        const blob = r.blobKey ? null : await r.getBlob();
+        const key = r.blobKey || await DB.putBlob(blob);
+        SHARED.push({ id: DB.uid(), name: String(r.name || 'Effect').slice(0, 80), blob: key, size: r.size || (blob && blob.size) || 0, duration: r.duration || 0, volume: 0.75 });
+      }
+      await saveShared();
+      renderShared();
+    });
+  }
+
+  /* The world's soundbox, in the editor. */
+  function editSoundbox(box) {
+    const list = rec.world.soundbox || (rec.world.soundbox = []);
+    box.append(el('p', 'pn-note', 'Quick effects for this world only. They sit next to your shared soundbox on the table.'));
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save, rerender: renderPanel, removeText: 'It leaves the soundbox of this world.' }),
+      'Add effects: critical hits, doors, thunder', () => {
+        fxPicker('the soundbox', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
+          for (const r of picked) {
+            const key = r.blobKey || await DB.putBlob(await r.getBlob());
+            const path = freePath(`sounds/map/soundbox/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
+            rec.files[path] = key;
+            list.push(Object.assign(M.card({ name: String(r.name || 'Effect').slice(0, 80), file: path, zone: 'soundbox', volume: 0.75 }, { play: 'once' }), { size: r.size || 0, duration: r.duration || 0 }));
+          }
+          flush();
+          renderPanel();
+        });
+      }));
+  }
+
+  /** The sound picker of the Troubadour web app: Files, the sounds on this device or the Recueil, ticked and added at once.
+   *  `have` holds the stored sounds already in the list; `onAdd(rows)` gets { name, blobKey | getBlob, size, duration, ext }. */
+  let fxSource = 'device';
+  async function fxPicker(label, have, onAdd, kind = 'soundbox') {
+    stopPreview();
+    // On this device: every sound of every world, and the shared soundbox. Reusing one takes no extra space.
+    const seen = new Map();
+    const extOf = (p) => ((String(p).split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3');
+    (await DB.list()).forEach((r) => {
+      (r.world.soundbox || []).forEach((c) => { const k = r.files[c.file]; if (k && !seen.has(k)) seen.set(k, { name: c.name, from: r.story.title || 'World', kind: 'soundbox', key: k, ext: extOf(c.file), size: c.size, duration: c.duration }); });
+      M.soundsOf(r.story).forEach((x) => { const k = r.files[x.file]; if (k && !seen.has(k)) seen.set(k, { name: x.name, from: r.story.title || 'World', kind: x.zone, key: k, ext: extOf(x.file) }); });
+    });
+    SHARED.forEach((s) => { if (!seen.has(s.blob)) seen.set(s.blob, { name: s.name, from: 'Shared soundbox', kind: 'soundbox', key: s.blob, size: s.size, duration: s.duration }); });
+    const local = [...seen.values()].filter((x) => !have.has(x.key)).sort((a, b) => a.name.localeCompare(b.name))
+      .map((x) => ({ key: `d:${x.key}`, name: x.name, kind: x.kind, sub: [x.from, x.duration ? clockOf(x.duration) : null].filter(Boolean).join(', '), blobKey: x.key, ext: x.ext || 'mp3', size: x.size, duration: x.duration, fold: fold(`${x.name} ${x.from} ${x.kind}`), getBlob: () => DB.getBlob(x.key) }));
+
+    $('#sheet-title').textContent = `Add to ${label}`;
+    const body = $('#sheet-body');
+    body.textContent = '';
+    body.className = 'picker';
+    const stopPick = () => stopFxWhere((k) => k.startsWith('pick:'));
+    const fromFiles = el('button', 'btn big-pick');
+    fromFiles.type = 'button';
+    fromFiles.innerHTML = `${ICON.files}<span>Choose from Files</span>`;
+    fromFiles.onclick = async () => {
+      const files = (await chooseFiles('audio/*,.mp3,.ogg,.m4a,.wav', true)).filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
+      if (!files.length) return;
+      stopPick();
+      $('#sheet').close();
+      busy('Adding sounds', '', 0);
+      try {
+        const rows = [];
+        for (const f of files) {
+          let duration = 0;
+          try { duration = Math.round((await decode(f)).duration * 10) / 10; } catch (e) { /* unreadable */ }
+          rows.push({ name: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Effect', getBlob: async () => f, size: f.size, duration, ext: extOf(f.name) });
+        }
+        await onAdd(rows);
+        toast(`${plural(rows.length, 'sound')} added.`);
+      } catch (e) { toast(e.message || String(e), 4000); }
+      idle();
+    };
+    body.append(fromFiles);
+
+    const tabs = el('div', 'seg pick-tabs');
+    const tab = (id, text) => { const b = el('button', '', text); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.src = id; b.onclick = () => { fxSource = id; paintTabs(); draw(); }; return b; };
+    tabs.append(tab('device', `On this ${DEV}`), tab('recueil', 'From the Recueil'));
+    const paintTabs = () => tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.src === fxSource)));
+    const q = el('input', 'pick-q');
+    q.type = 'search';
+    q.setAttribute('enterkeyhint', 'search');
+    q.setAttribute('autocomplete', 'off');
+    const head = el('div', 'pick-head');
+    head.append(tabs, q);
+    body.append(head);
+
+    const ul = el('div', 'pick-list');
+    const chosen = new Map();
+    const addBtn = el('button', 'btn primary', 'Add');
+    addBtn.type = 'button';
+    addBtn.disabled = true;
+    const paintAdd = () => { addBtn.disabled = !chosen.size; addBtn.textContent = chosen.size ? `Add ${plural(chosen.size, 'sound')}` : 'Add'; };
+    addBtn.onclick = async () => {
+      const picked = [...chosen.values()];
+      stopPick();
+      $('#sheet').close();
+      let n = 0;
+      try {
+        const rows = [];
+        for (const r of picked) {
+          if (r.rx) {
+            busy('Adding sounds from the Recueil', `${r.name} (${n + 1} of ${picked.length})`, n / picked.length);
+            const blob = await recueilBlob(r.rx);
+            rows.push({ name: r.name, getBlob: async () => blob, size: blob.size, duration: r.rx.duration || 0, ext: extOf(r.rx.path) });
+          } else rows.push(r);
+          n += 1;
+        }
+        await onAdd(rows);
+        if (rows.length) toast(`${plural(rows.length, 'sound')} added.`);
+      } catch (e) { toast(e.message || String(e), 4000); }
+      idle();
+    };
+    const ROWNAME = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
+    const ROWCOLOR = { music: 'var(--music)', ambience: 'var(--amb)', events: 'var(--evt)', soundbox: 'var(--accent)' };
+    const near = { soundbox: 'events', events: 'soundbox', music: 'ambience', ambience: 'music' }[kind];
+    const rank = (k) => (k === kind ? 0 : k === near ? 1 : 2);
+    const row = (r) => {
+      const lab = el('label', 'pick-row');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = chosen.has(r.key);
+      cb.onchange = () => { if (cb.checked) chosen.set(r.key, r); else chosen.delete(r.key); paintAdd(); };
+      const t = el('span', 'pt');
+      const line = el('small', '');
+      if (r.kind) { const tag = el('span', 'pick-tag', ROWNAME[r.kind] || r.kind); tag.style.setProperty('--z', ROWCOLOR[r.kind] || 'var(--accent)'); line.append(tag); }
+      line.append(document.createTextNode(r.sub));
+      t.append(el('b', '', r.name), line);
+      const pb = el('button', 'pick-play');
+      pb.type = 'button';
+      const pk = `pick:${r.key}`;
+      pb.innerHTML = fxPreviews.has(pk) ? ICON.pause : ICON.play;
+      pb.setAttribute('aria-label', `Listen to ${r.name}`);
+      pb.onclick = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!fxPreviews.has(pk)) stopPick(); // one at a time in the picker
+        toggleFx(pk, r.rx ? () => recueilBlob(r.rx) : r.getBlob, () => 0.75, null, pb);
+      };
+      lab.append(cb, el('i'), t);
+      if (window.TroubadourCredit) {
+        const info = el('button', 'pick-info');
+        info.type = 'button';
+        info.innerHTML = window.TroubadourCredit.INFO;
+        info.setAttribute('aria-label', `Source of ${r.name}`);
+        info.onclick = (e) => { e.preventDefault(); e.stopPropagation(); if (r.rx) window.TroubadourCredit.show(r.rx); else window.TroubadourCredit.show({ name: r.name, hint: 'Give it a source in the Story builder, on a computer: the Recueil only takes sounds that name theirs.' }); };
+        lab.append(info);
+      }
+      lab.append(pb);
+      return lab;
+    };
+    const draw = () => {
+      ul.textContent = '';
+      const term = fold(q.value.trim());
+      if (fxSource === 'device') {
+        q.placeholder = `Search ${plural(local.length, 'sound')} on this ${DEV}`;
+        const hits = local.filter((r) => !term || r.fold.includes(term));
+        if (!hits.length) ul.append(el('p', 'muted small pick-empty', local.length ? 'No sound matches.' : `No other sound on this ${DEV} yet. Try the Recueil.`));
+        hits.slice().sort((a, b) => rank(a.kind) - rank(b.kind) || a.name.localeCompare(b.name)).slice(0, 300).forEach((r) => ul.append(row(r)));
+        return;
+      }
+      q.placeholder = 'Search a sound, a tale or a troubadour';
+      if (!recueil) {
+        ul.append(el('p', 'muted small pick-empty', 'Fetching the sounds of the Recueil…'));
+        loadRecueil().then(() => { if (fxSource === 'recueil' && $('#sheet').open) draw(); })
+          .catch(() => { ul.textContent = ''; ul.append(el('p', 'muted small pick-empty', 'The Recueil could not be reached. Check your connection.')); });
+        return;
+      }
+      const hits = recueil.filter((x) => !term || x.key.includes(term)).sort((a, b) => rank(a.row) - rank(b.row) || a.name.localeCompare(b.name));
+      if (!hits.length) ul.append(el('p', 'muted small pick-empty', 'No sound of the Recueil matches.'));
+      hits.slice(0, 300).forEach((x) => ul.append(row({ key: `r:${x.id}`, name: x.name, kind: x.row, sub: [x.tale, x.duration ? clockOf(x.duration) : null].filter(Boolean).join(', '), rx: x })));
+    };
+    q.oninput = draw;
+    if (!local.length) fxSource = 'recueil';
+    paintTabs();
+    draw();
+    const bar = el('div', 'pick-bar');
+    bar.append(addBtn);
+    body.append(ul, bar);
+    $('#sheet').addEventListener('close', stopPick, { once: true });
+    $('#sheet').showModal();
+  }
+
+  /* ================= The soundbox (at the table), as Troubadour's drawer: the world's effects, then the shared ones ================= */
+  let sbGain = null;
+  let pads = []; // { s, own, id, key, getBlob, buffer, state }
+  const sbSources = new Set();
+  function openSoundbox() {
+    closeMusic();
+    $('#mw-sbx').hidden = false;
+    $('#world').classList.add('over');
+    $('#mw-sb').setAttribute('aria-pressed', 'true');
+    loadPads();
+  }
+  function closeSoundbox() {
+    $('#mw-sbx').hidden = true;
+    if ($('#mw-mus').hidden) $('#world').classList.remove('over');
+    $('#mw-sb').setAttribute('aria-pressed', 'false');
+  }
+  async function loadPads() {
+    const r = rec;
+    pads = [
+      ...(rec.world.soundbox || []).map((c) => ({ s: c, own: true, id: `${rec.uid}:${c.file}`, key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]) })),
+      ...SHARED.map((c) => ({ s: c, own: false, id: c.id, key: `shared:${c.blob}`, getBlob: () => DB.getBlob(c.blob) })),
+    ].map((p) => Object.assign(p, { buffer: buffers.get(p.key) || null, state: buffers.get(p.key) ? 'ready' : 'loading' }));
+    renderPads();
+    for (const p of pads) {
+      if (p.buffer) continue;
+      try {
+        const blob = await p.getBlob();
+        if (!blob) throw new Error('missing');
+        p.buffer = await decode(blob);
+        buffers.set(p.key, p.buffer);
+        p.state = 'ready';
+      } catch (e) { p.state = 'error'; }
+      if (rec !== r) return;
+      renderPads();
+    }
+  }
+  const pins = () => (Array.isArray(settings.pins) ? settings.pins : (settings.pins = []));
+  function orderedPads() {
+    const pinned = pins().map((u) => pads.find((p) => p.id === u)).filter(Boolean);
+    return pinned.concat(pads.filter((p) => !pins().includes(p.id)));
+  }
+  function renderPads() {
+    const box = $('#mw-pads');
+    if ($('#mw-sbx').hidden) return;
+    box.textContent = '';
+    if (!pads.length) { box.append(el('div', 'sb-empty', 'No effects yet. Add some to this world in the editor, or to your shared soundbox.')); return; }
+    let lastGroup = null;
+    orderedPads().forEach((p) => {
+      const pinned = pins().includes(p.id);
+      const group = pinned ? 'Pinned' : p.own ? 'This world' : 'Shared';
+      if (group !== lastGroup) { box.append(el('h4', 'pad-g', group)); lastGroup = group; }
+      const b = el('button', `pad${pinned ? ' pinned' : ''}${p.own ? '' : ' shared'}`);
+      b.type = 'button';
+      b.disabled = p.state !== 'ready';
+      b.append(el('span', '', p.state === 'error' ? `${p.s.name} (unavailable)` : p.s.name));
+      const pin = el('span', 'pin');
+      pin.innerHTML = pinned ? ICON.starFill : ICON.star;
+      pin.setAttribute('role', 'button'); pin.setAttribute('aria-label', `Pin ${p.s.name}`); pin.tabIndex = 0;
+      pin.addEventListener('click', (e) => { e.stopPropagation(); togglePin(p.id); });
+      b.append(pin);
+      b.addEventListener('click', () => firePad(p, b));
+      box.append(b);
+    });
+  }
+  function togglePin(id) {
+    const list = pins();
+    const i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1); else list.push(id);
+    saveSettings(); renderPads();
+  }
+  /** A pad fires its effect once, at once (a tap again fires it again). */
+  function firePad(p, b) {
+    if (!p.buffer) return;
+    const { ctx, master } = audio(true);
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    if (!sbGain) { sbGain = ctx.createGain(); sbGain.gain.value = A.curve(settings.sbVolume); sbGain.connect(master); }
+    const src = ctx.createBufferSource();
+    src.buffer = p.buffer;
+    const g = ctx.createGain();
+    g.gain.value = A.curve(typeof p.s.volume === 'number' ? Math.min(1, p.s.volume / 0.75) : 1);
+    src.connect(g).connect(sbGain);
+    src.start();
+    sbSources.add(src);
+    src.onended = () => sbSources.delete(src);
+    if (b) { b.classList.remove('fire'); void b.offsetWidth; b.classList.add('fire'); b.addEventListener('animationend', () => b.classList.remove('fire'), { once: true }); }
+  }
+  function stopPads() {
+    sbSources.forEach((s) => { try { s.stop(); } catch (e) { /* already stopped */ } });
+    sbSources.clear();
+  }
+  function paintMaster() {
+    const b = $('#mw-pause');
+    const resume = A.resumePending();
+    if (b.dataset.i === (resume ? 'play' : 'pause')) return;
+    b.dataset.i = resume ? 'play' : 'pause';
+    b.innerHTML = resume ? ICON.play : ICON.pause;
+    b.classList.toggle('on', resume);
+    b.setAttribute('aria-label', resume ? 'Resume all' : 'Pause all');
+  }
+
+  /* ================= The drawing tools: moved by their grip, always inside the map ================= */
+  const TOOLS_KEY = 'troubadour.map.tools';
+  function placeTools(x, y) {
+    const tools = $('#mw-tools'), stage = $('#mw-stage');
+    const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
+    if (!sw || !tw) return;
+    const nx = Math.max(6, Math.min(sw - tw - 6, x)), ny = Math.max(6, Math.min(sh - th - 6, y));
+    tools.style.left = `${nx}px`; tools.style.top = `${ny}px`;
+    placeFloats();
+    return [nx, ny];
+  }
+  /** What floats over the map makes way for the tools, wherever they were dragged: the library of places opens beside
+   *  them (never over them), the zoom and the layers button go to the other side. */
+  function placeFloats() {
+    const tools = $('#mw-tools'), stage = $('#mw-stage'), lib = $('#mw-stamps');
+    const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
+    if (!sw || !tw) return;
+    const x = tools.offsetLeft, y = tools.offsetTop, m = 8;
+    const right = x + tw / 2 > sw / 2, low = y + th / 2 > sh / 2;
+    stage.classList.toggle('tools-right', right);
+    const s = lib.style;
+    if (tw > th) {
+      // The tools lie flat (an upright phone): the library takes the width, under them or over them.
+      const top = low ? m : y + th + m, bottom = low ? sh - y + m : m;
+      s.left = `${m}px`; s.width = `${sw - 2 * m}px`; s.top = `${top}px`; s.maxHeight = `${Math.max(120, sh - top - bottom)}px`;
+    } else {
+      const room = right ? x - 2 * m : sw - (x + tw) - 2 * m, w = Math.max(160, Math.min(380, room));
+      s.width = `${w}px`; s.left = `${right ? Math.max(m, x - m - w) : x + tw + m}px`; s.top = `${m}px`; s.maxHeight = `${sh - 2 * m}px`;
+    }
+  }
+  function wireToolsGrip() {
+    const grip = $('#mw-grip'), tools = $('#mw-tools');
+    grip.innerHTML = svg('<circle cx="9" cy="5" r="1.4"/><circle cx="15" cy="5" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="19" r="1.4"/><circle cx="15" cy="19" r="1.4"/>', 18, true);
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(TOOLS_KEY) || 'null'); } catch (e) { saved = null; }
+    const restore = () => { if (saved) placeTools(saved[0], saved[1]); else placeTools(tools.offsetLeft, tools.offsetTop); };
+    new ResizeObserver(restore).observe($('#mw-stage'));
+    grip.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const id = e.pointerId, x0 = e.clientX - tools.offsetLeft, y0 = e.clientY - tools.offsetTop;
+      grip.setPointerCapture(id);
+      tools.classList.add('moving');
+      const move = (ev) => { if (ev.pointerId === id) saved = placeTools(ev.clientX - x0, ev.clientY - y0) || saved; };
+      const up = (ev) => {
+        if (ev.pointerId !== id) return;
+        tools.classList.remove('moving');
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', up);
+        grip.removeEventListener('pointercancel', up);
+        try { localStorage.setItem(TOOLS_KEY, JSON.stringify(saved)); } catch (err) { /* private mode */ }
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', up);
+      grip.addEventListener('pointercancel', up);
+    });
+  }
+
+  /* ================= Wiring ================= */
+  function wire() {
+    document.querySelectorAll('[data-action="settings"]').forEach((b) => { b.innerHTML = ICON.gear; b.addEventListener('click', openSettings); });
+    document.querySelectorAll('.set-head .ico, [data-action="close-sheet"]').forEach((b) => { b.innerHTML = ICON.close; });
+    $('[data-action="close-sheet"]').addEventListener('click', () => $('#sheet').close());
+    document.querySelectorAll('.i-import').forEach((s) => { s.outerHTML = ICON.import; });
+    $('[data-action="add-world"]').innerHTML = ICON.plus;
+    $('[data-action="add-world"]').addEventListener('click', openAddWorld);
+    document.querySelectorAll('[data-bm="new"]').forEach((b) => b.addEventListener('click', newWorld));
+    document.querySelectorAll('[data-bm="open"]').forEach((b) => b.addEventListener('click', pickFile));
+    $('#pick-file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importFile(f); });
+    $('#library').addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); });
+    $('#library').addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); importFile(f); } });
+
+    // The iPhone and iPad hint, until it is dismissed.
+    const root = document.documentElement;
+    let hinted = false;
+    try { hinted = localStorage.getItem('troubadour.map.ioshint') === '1'; } catch (e) { /* private mode */ }
+
+    // World screen.
+    $('#mw-back').innerHTML = ICON.back;
+    $('#mw-back').addEventListener('click', () => leaveWorld());
+    $('#mw-more').innerHTML = ICON.share;
+    $('#mw-switch').innerHTML = ICON.go;
+    $('#mw-listen').innerHTML = ICON.listen;
+    $('#mw-listen').addEventListener('click', () => listen(!listening));
+    $('#mw-heard-x').innerHTML = ICON.close;
+    $('#mw-heard-x').addEventListener('click', () => listen(false));
+    $('#mw-heard-master').addEventListener('input', (e) => {
+      settings.master = Number(e.target.value);
+      $('#mw-heard-master-val').textContent = String(Math.round(settings.master * 100));
+      $('#mw-master').value = settings.master; paintRange($('#mw-master'));
+      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
+      const { ctx, master } = audio();
+      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
+    });
+    $('#mw-heard-master').addEventListener('change', saveSettings);
+    $('#mw-sb .star').innerHTML = ICON.star;
+    $('#mw-sb').addEventListener('click', () => { if (mode === 'edit') { showEdView('soundbox'); return; } if ($('#mw-sbx').hidden) openSoundbox(); else closeSoundbox(); });
+    $('#mw-mus-btn .ic').innerHTML = ICON.music;
+    $('#mw-mus-btn').addEventListener('click', () => { if (mode === 'edit') { showEdView('music'); return; } if ($('#mw-mus').hidden) openMusic(); else closeMusic(); });
+    $('#mw-mus-close').innerHTML = ICON.close;
+    $('#mw-mus-queue').addEventListener('click', () => { musQueueView = !musQueueView; renderMusic(); });
+    $('#mw-mus-close').addEventListener('click', closeMusic);
+    $('#mw-mus-q').addEventListener('input', (e) => { musQ = e.target.value; renderMusic(); });
+    // The shared soundbox, from the worlds screen (as in Troubadour).
+    document.querySelectorAll('[data-action="shared"]').forEach((b) => { b.innerHTML = ICON.star; b.addEventListener('click', () => { location.hash = location.hash === '#/soundbox' ? '#/' : '#/soundbox'; }); });
+    $('[data-action="add-shared"]').innerHTML = `${ICON.plus}<span class="long">Add effects</span>`;
+    $('[data-action="add-shared"]').addEventListener('click', addShared);
+    $('#mw-sbx-close').innerHTML = ICON.close;
+    $('#mw-sbx-close').addEventListener('click', closeSoundbox);
+    $('#mw-sbvol').value = settings.sbVolume;
+    paintRange($('#mw-sbvol'));
+    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) sbGain.gain.setTargetAtTime(A.curve(settings.sbVolume), audio().ctx.currentTime, 0.03); });
+    $('#mw-sbvol').addEventListener('change', saveSettings);
+    wireToolsGrip();
+    $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
+    $('#mw-panel').innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/>', 19);
+    $('#mw-panel').addEventListener('click', () => $('#world').classList.toggle('panel'));
+    $('#mw-side-close').innerHTML = ICON.close;
+    $('#mw-side-close').addEventListener('click', () => { setPanel(false); if (mode === 'edit' && edView) { edView = null; renderPanel(); } });
+    // The sound menu of the whole map, left of the Soundbox: opens it, or closes it when it already shows the whole map.
+    $('#mw-menu .ic').innerHTML = ICON.sound;
+    $('#mw-menu').addEventListener('click', () => {
+      const open = $('#world').classList.contains('panel');
+      // In the editor: the panel of the map, or of the element selected.
+      if (mode === 'edit') { if (open && !edView) setPanel(false); else { edView = null; setPanel(true); renderPanel(); } return; }
+      if (open && !tapped) { setPanel(false); return; }
+      tapped = null;
+      setPanel(true);
+      renderPanel();
+    });
+    $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
+    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => { b.innerHTML = TOOL_ICON[b.dataset.tool]; });
+    $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
+    $('#mw-tools').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.tool === 'stamp') {
+        // The library opens with nothing picked: a place is armed only once chosen in it.
+        const box = $('#mw-stamps');
+        if (!box.hidden) { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); return; }
+        paintStamps(null);
+        box.hidden = false;
+        placeFloats();
+        renderOpts('stamp');
+        box.scrollTop = 0;
+        b.setAttribute('aria-pressed', 'true');
+        return;
+      }
+      $('#mw-stamps').hidden = true;
+      if (b.dataset.tool) V.setTool(b.dataset.tool);
+      else if (b.dataset.act === 'undo') { if (!V.undo()) toast('Nothing to undo.', 1400); }
+      else if (b.dataset.act === 'fit') V.fit();
+
+    });
+    $('#mw-layers-btn').innerHTML = ICON.layers;
+    $('#mw-layers-btn').addEventListener('click', () => setLayers(!$('#world').classList.contains('layers')));
+    $('#mw-layers-close').innerHTML = ICON.close;
+    $('#mw-layers-close').addEventListener('click', () => setLayers(false));
+    // Zoom, as in every editor: out, the value (a tap brings the whole map back), in.
+    $('#mw-zout').innerHTML = ICON.minus; $('#mw-zin').innerHTML = ICON.plus;
+    $('#mw-zout').addEventListener('click', () => V.zoomBy(1 / 1.25));
+    $('#mw-zin').addEventListener('click', () => V.zoomBy(1.25));
+    $('#mw-zval').addEventListener('click', () => V.fit());
+    setInterval(() => { if (screen !== 'world' || document.hidden) return; const z = `${Math.round(V.zoomShown() * 100)} %`; const b = $('#mw-zval'); if (b.textContent !== z) b.textContent = z; }, 200);
+    $('#mw-fill').innerHTML = ICON.fit;
+    $('#mw-fill').addEventListener('click', () => V.fit());
+
+    $('#mw-fade').innerHTML = ICON.stopMusic;
+    // The master buttons, as in Troubadour: pause (or resume) everything and stop everything, over 3 s.
+    $('#mw-fade').addEventListener('click', () => { A.stopMusic(); refreshLive(); paintMaster(); });
+    $('#mw-pause').innerHTML = ICON.pause;
+    $('#mw-pause').addEventListener('click', () => { A.pauseAll(); refreshLive(); paintMaster(); });
+    $('#mw-master').value = settings.master;
+    paintRange($('#mw-master'));
+    $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
+    $('#mw-master').addEventListener('input', (e) => {
+      settings.master = Number(e.target.value);
+      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
+      const { ctx, master } = audio();
+      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
+    });
+    $('#mw-master').addEventListener('change', saveSettings);
+
+    // The map.
+    V.mount($('#mw-canvas'));
+    $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
+    V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; renderOpts(t); };
+    // An element deleted (its button, the Delete key, the eraser): its panel closes, never falling back on the map's
+    // panel (where the map itself can be deleted).
+    let shownEl = null;
+    V.onSelect = (e) => {
+      if (mode !== 'edit') return;
+      const gone = !e && shownEl && !place().elements.includes(shownEl);
+      shownEl = e || null;
+      if (e) edView = null;
+      if (gone) setPanel(false);
+      renderPanel();
+      renderLayers();
+    };
+    // A new element: a name of its own, and its panel opens to name it and give it sounds.
+    V.onCreate = (e) => {
+      if (mode !== 'edit') return;
+      if (!e.title) {
+        const sh = e.shape;
+        const kind = sh.type === 'stamp' ? stampLabel(sh.stamp) || 'Drawing' : sh.closed ? 'Area' : 'Line';
+        const same = place().elements.filter((x) => x !== e && x.title && x.title.startsWith(kind)).length;
+        e.title = same ? `${kind} ${same + 1}` : kind;
+        save(); V.redraw();
+      }
+      // A place laid: back to the select tool, to move it or open it. The panel stays as it was: open, it shows the new place.
+      if (e.shape.type === 'stamp') V.setTool('select');
+      edView = null;
+      renderPanel();
+      renderLayers();
+    };
+    // The tools stand beside the map, never over it: the whole map fits next to them.
+    V.insets = () => {
+      const t = $('#mw-tools'), cv = $('#mw-canvas');
+      if (mode !== 'edit' || !t.offsetWidth) return {};
+      const a = t.getBoundingClientRect(), c = cv.getBoundingClientRect();
+      const wide = a.width > a.height;
+      if (wide) return a.top - c.top < c.height / 2 ? { top: a.bottom - c.top + 8 } : { bottom: c.bottom - a.top + 8 };
+      return a.left - c.left < c.width / 2 ? { left: a.right - c.left + 8 } : { right: c.right - a.left + 8 };
+    };
+    // A double tap on an element opens its panel (over the map on a narrow screen), and its name to type.
+    V.onOpen = () => {
+      if (mode !== 'edit') return;
+      renderPanel();
+      $('#world').classList.add('panel');
+      const t = $('#mw-inspector input[type="text"]');
+      if (t && pc()) t.focus();
+    };
+    V.onHold = (e, cx, cy) => { if (mode === 'edit') elementMenu(e, cx, cy); };
+    $('#mw-saved').addEventListener('click', saveState);
+    $('#mw-title-in').addEventListener('input', (ev) => { if (!rec) return; rec.story.title = ev.target.value.slice(0, 120); $('#mw-title').textContent = rec.story.title || 'World'; document.title = `${rec.story.title || 'World'} | Troubadour Map`; save(); });
+    $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
+    $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
+    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (listening) prepare(worldFiles(rec), false).then(() => { if (listening && A.isOpen()) A.sync(); }); } };
+    V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
+    // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
+    V.onTap = (e) => {
+      tapped = e || null;
+      renderPanel();
+      setPanel(true);
+    };
+    // A long press on the way of an element: off to the map it leads to.
+    V.onLink = (e) => {
+      const to = rec.world.places.findIndex((q) => q.id === e.link);
+      if (to < 0 || to === pi) return;
+      toast(`To ${rec.world.places[to].title}`, 1600);
+      travel(to);
+    };
+    // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
+    A.onChange = () => { V.touch(); };
+    A.onPlace = (info) => { if (!info) { closeArrive(); return false; } return showArrive(info); };
+    // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
+    if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
+
+    // Browsers keep sound off until a touch or a click: every gesture wakes the audio, unless paused by hand.
+    // iPhone also wants a sound started inside that gesture: a silent one, once.
+    const unlock = () => {
+      const { ctx } = audio();
+      if (ctx.state !== 'running') ctx.resume().catch(() => {});
+      if (!unlock.done) {
+        unlock.done = true;
+        const src = ctx.createBufferSource();
+        src.buffer = ctx.createBuffer(1, 1, 22050);
+        src.connect(ctx.destination);
+        src.start(0);
+      }
+    };
+    ['pointerdown', 'touchend', 'keydown'].forEach((t) => document.addEventListener(t, unlock, { capture: true, passive: true }));
+    buildStamps();
+    paintStamps('lake');
+    V.setTool('select');
+
+    // Keys, while drawing.
+    document.addEventListener('keydown', (e) => {
+      if (screen !== 'world' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('dialog[open]')) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (mode === 'edit') V.undo(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '+' || e.key === '=') { V.zoomBy(1.25); return; }
+      if (e.key === '-') { V.zoomBy(1 / 1.25); return; }
+      if (mode === 'edit') {
+        const map = { v: 'select', h: 'hand', w: 'wall', e: 'eraser' };
+        const k = e.key.toLowerCase();
+        if (map[k]) { V.setTool(map[k]); return; }
+        if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
+        if (k === 's') { listen(!listening); return; }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
+        if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
+      }
+      if (e.key.toLowerCase() === 'f') V.fit();
+      if (mode === 'play' && e.code === 'Space') { e.preventDefault(); $('#mw-pause').click(); }
+    });
+
+    window.addEventListener('hashchange', route);
+    window.addEventListener('pagehide', flush);
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (settings.mode === 'system') applyTheme(); });
+    // A new theme or appearance: the map pictures of the library are drawn again in its colours.
+    new MutationObserver(() => { if (screen === 'library') requestAnimationFrame(() => renderLibrary()); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode'] });
+  }
+
+  /* ================= No page zoom ================= */
+  // Safari ignores user-scalable=no: its pinch (gesture events) and a quick second tap would still zoom
+  // the page. Only the map zooms, with its own two-finger gesture.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 && !(e.target.closest && e.target.closest('#mw-canvas'))) e.preventDefault(); }, { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const t = Date.now();
+    // A second tap within 300 ms: its default (zoom) is cancelled; the map handles its own double taps.
+    // Buttons keep their quick taps (touch-action: manipulation already stops the zoom on them).
+    if (t - lastTouchEnd < 300 && !(e.target.closest && e.target.closest('button, a, input, textarea, select, label, [role="button"]'))) e.preventDefault();
+    lastTouchEnd = t;
+  }, { passive: false });
+  document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+
+  /* ================= Smooth volume sliders (as in Troubadour) ================= */
+  // Safari's range inputs only move when the small thumb is hit exactly: here the whole bar is the handle.
+  function rangeValue(input, clientX) {
+    const r = input.getBoundingClientRect();
+    const pad = 8;
+    const f = Math.min(1, Math.max(0, (clientX - r.left - pad) / Math.max(1, r.width - 2 * pad)));
+    const min = +input.min || 0, max = input.max === '' ? 100 : +input.max, step = +input.step || 1;
+    return Math.round((min + f * (max - min)) / step) * step;
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const input = e.target.closest && e.target.closest('input[type="range"]');
+    if (!input || input.disabled || e.button > 0) return;
+    e.preventDefault();
+    const id = e.pointerId;
+    try { input.setPointerCapture(id); } catch (err) { /* older iOS */ }
+    const set = (x) => {
+      const v = rangeValue(input, x);
+      if (+input.value === v) return;
+      input.value = v;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    set(e.clientX);
+    let frame = 0, lastX = e.clientX;
+    const move = (ev) => {
+      if (ev.pointerId !== id) return;
+      ev.preventDefault();
+      lastX = ev.clientX;
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; set(lastX); });
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== id) return;
+      if (frame) { cancelAnimationFrame(frame); frame = 0; set(lastX); }
+      input.removeEventListener('pointermove', move);
+      input.removeEventListener('pointerup', up);
+      input.removeEventListener('pointercancel', up);
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    input.addEventListener('pointermove', move);
+    input.addEventListener('pointerup', up);
+    input.addEventListener('pointercancel', up);
+  }, { passive: false });
+
+  async function boot() {
+    applyTheme();
+    applyAudioSession();
+    wire();
+    buildSettings();
+    liveLoop();
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+    try { await DB.open(); DB.persistence().catch(() => {}); SHARED = (await DB.getKV('soundbox', [])) || []; } catch (e) {
+      document.body.append(el('p', 'fatal', `Troubadour Map cannot reach its storage here (${e.message || e}).`));
+      return;
+    }
+    await route();
+  }
+  boot();
+})();

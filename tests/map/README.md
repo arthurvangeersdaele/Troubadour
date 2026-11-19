@@ -15,3 +15,11 @@ node run.mjs path/to/world.troubadour-map
 Writes `report.json`. Exits 1 on a problem. It needs a world file, so it runs by hand (worlds are too heavy for the repo).
 
 The Wolves of Hollowmere, 14 November 2026: as the loops were, 17 had a hole at each turn (16 to 4441 ms). With Map 261114.02: no hole, no click; loudness apart by 0 dB (music), 3.2 dB (ambiances), 2.5 dB (events) once evened out, from 2, 8.7 and 8.3 dB; world open in under 1 s once measured, maps changed in under 100 ms.
+
+## Listening in the editor (M3)
+
+```
+node tests/map/listen.mjs [path/to/world.troubadour-map]
+```
+
+Runs `docs/map-preview` when it exists (`MAP_APP=map` for the live app), on the discovery world by default. Checks that the editor opens silent, that Listen (the headphones, or S) opens Heard now, that the panel lists what the golden point hears as it moves, the loudest on top, that the meter reads the mix, that a slider sets a card's volume, that listening follows a change of map, and that the table shows neither. Uses the Playwright of `tests/ballade`. Run by the Map editor workflow.

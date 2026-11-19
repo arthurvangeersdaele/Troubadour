@@ -1,0 +1,21 @@
+name: Map editor
+
+# 261114_map_plan.md, M3: the editor listens from the golden point (Heard now). Opens the discovery world,
+# listens, moves the point and checks the panel, the meter, a volume slider, a change of map and the table.
+on:
+  push:
+    paths: ['docs/map/**', 'docs/map-preview/**', 'docs/shared/**', 'tests/map/**', '.github/workflows/map-editor.yml']
+  workflow_dispatch:
+
+jobs:
+  listen:
+    runs-on: ubuntu-24.04  # Playwright 1.56 has no Chromium for ubuntu 26.04 (ubuntu-latest)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install Playwright and Chromium
+        working-directory: tests/ballade
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Heard now
+        run: node tests/map/listen.mjs

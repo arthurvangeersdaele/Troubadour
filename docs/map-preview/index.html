@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en" data-theme="obsidian" data-mode="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Troubadour Map (preview)</title>
+<meta name="description" content="Troubadour Map: draw the maps of your world, lay their sounds on the map, and hear what the party hears as it moves.">
+<meta name="theme-color" content="#15151B">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Troubadour Map">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="261031_troubadour_map.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/261031_troubadour_map_icon.svg">
+<link rel="apple-touch-icon" href="icons/261031_troubadour_map_180.png">
+<style>html{background:#0A0A0D}html[data-mode="light"]{background:#F3EBDD}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/components.css">
+<link rel="stylesheet" href="../play/style.css">
+<link rel="stylesheet" href="../troupe/troupe.css">
+<link rel="stylesheet" href="../shared/install.css">
+<link rel="stylesheet" href="map.css">
+<script src="../themes.js"></script>
+<script>
+  (function () {
+    var root = document.documentElement, ua = navigator.userAgent;
+    try {
+      var s = JSON.parse(localStorage.getItem('troubadour.map.settings') || localStorage.getItem('troubadour.settings') || '{}');
+      var mode = s.mode || 'dark';
+      if (mode === 'system') mode = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = window.TroubadourThemes ? TroubadourThemes.resolve(s.theme || 'obsidian') : (s.theme || 'obsidian');
+      root.dataset.mode = mode;
+    } catch (e) {}
+    try { root.classList.toggle('portrait-ok', !!(JSON.parse(localStorage.getItem('troubadour.map.settings') || '{}') || {}).portrait); } catch (e) {}
+    try { root.classList.toggle('pc', matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches); } catch (e) {}
+    var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    root.classList.toggle('ios', ios);
+    var standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    root.classList.toggle('standalone', standalone);
+    // Which face of the page, as the other Troubadour apps: on an iPhone or an iPad in a browser tab, this page is the
+    // app to add to the Home Screen (the install guide); from the Home Screen or on a computer, the app itself.
+    window.TROUBADOUR_DEVICE = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iPad' : 'iPhone';
+    // Android phones and tablets (and any other touch device): not available there for now, a notice instead.
+    var pc = root.classList.contains('pc');
+    root.classList.add(ios ? (standalone ? 'mode-app' : 'mode-install') : (pc ? 'mode-app' : 'mode-other'));
+  })();
+</script>
+</head>
+<body>
+
+<!-- ============ Not an iPhone, not an iPad, not a computer (Android): not available yet ============ -->
+<main class="gate gate-other">
+  <div class="gate-card">
+    <img class="gate-icon" src="icons/261031_troubadour_map_180.png" alt="" width="84" height="84">
+    <p class="kicker">Troubadour Map</p>
+    <h1>Made for iPhone and iPad</h1>
+    <p>Troubadour Map installs on an iPhone or an iPad, from Safari, as an app on the Home Screen. Open this page there to install it.</p>
+    <p class="small">On a computer, this page is the Map editor: draw your worlds there. On Android, Troubadour Map is coming as an app.</p>
+    <a class="btn primary" href="../troubadour-map/">Back to Troubadour Map</a>
+  </div>
+</main>
+
+<!-- ============ iPhone or iPad, in a browser: install guide (the same as Troubadour and Ballade) ============ -->
+<main class="gate gate-install">
+  <div class="gate-card inst">
+    <div class="inst-hero">
+      <img class="gate-icon" src="icons/261031_troubadour_map_180.png" alt="" width="72" height="72">
+      <div>
+        <p class="kicker">Troubadour Map</p>
+        <h1>Add this page to your Home Screen</h1>
+      </div>
+    </div>
+    <p class="inst-key"><b>This page is the app.</b> Add it to your Home Screen: it becomes the Troubadour Map icon, your worlds stay on the device, and you play from there.</p>
+
+    <div class="inst-inapp" id="inst-inapp" hidden>
+      <p><b>First, open this page in Safari.</b> The browser you are in cannot add apps to the Home Screen.</p>
+      <p class="muted small">Tap its menu and choose <b>Open in Safari</b> (or <b>Open in browser</b>), or copy the link and paste it in Safari.</p>
+      <button class="btn primary" type="button" id="inst-copy">Copy the link</button>
+    </div>
+
+    <ol class="isteps" id="isteps">
+      <li>
+        <div class="mock m-bar" id="m-bar" aria-hidden="true">
+          <i class="m-dot"></i><span class="m-url">arthurvangeersdaele.github.io</span><i class="m-btn" id="m-btn"></i>
+        </div>
+        <div class="itxt"><b id="step1-title">Tap Share</b><span id="step1-text"></span></div>
+      </li>
+      <li>
+        <div class="mock m-sheet" aria-hidden="true">
+          <span>Copy</span><span>Add to Reading List</span><span class="hl"><i class="m-plus"></i>Add to Home Screen</span>
+        </div>
+        <div class="itxt"><b>Tap Add to Home Screen</b><span>Scroll down the list if needed.</span></div>
+      </li>
+      <li>
+        <div class="mock m-add" aria-hidden="true">
+          <span class="m-top"><i>Cancel</i><em>Add</em></span>
+          <span class="m-name"><img src="icons/261031_troubadour_map_180.png" alt="">Troubadour Map</span>
+          <span class="m-toggle">Open as Web App<i></i></span>
+        </div>
+        <div class="itxt"><b>Tap Add</b><span>If you see <b>Open as Web App</b>, keep it on.</span></div>
+      </li>
+      <li>
+        <div class="mock m-home" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><img src="icons/261031_troubadour_map_180.png" alt="">
+        </div>
+        <div class="itxt"><b>Play from the Troubadour Map icon</b><span>Close the browser, open Troubadour Map from your Home Screen and hold your phone sideways.</span></div>
+      </li>
+    </ol>
+    <p class="muted small">Only once: iOS lets an app be added from a page through these steps only.</p>
+    <a class="back-link" href="../troubadour-map/">Back to the Troubadour Map page</a>
+  </div>
+  <div class="to-share" id="to-share" aria-hidden="true"><span id="to-share-label">Share</span><i></i></div>
+</main>
+
+<!-- Opening, after Troubadour's and Ballade's: the three bars of Troubadour glow up in the dark, the golden point of the
+     party lights in the middle, its sound rings out around it like the logo; the word Map rises in relief, gold climbs
+     its letters and a glint sweeps them, then it melts into a pure white Map under the mark, which keeps shining. -->
+<div class="splash mp-splash" id="splash" aria-hidden="true">
+  <div class="mps-stage" id="mps-stage">
+    <!-- The Troubadour Map logo, drawn exactly as the icon (map/icons/261031_troubadour_map_icon.svg). -->
+    <svg class="mps-mark" viewBox="196 236 632 632" aria-hidden="true">
+      <g class="mps-bars">
+        <rect x="224" y="416" width="128" height="320" rx="64" fill="#5C4627"/>
+        <rect x="448" y="256" width="128" height="512" rx="64" fill="#244E49"/>
+        <rect x="672" y="352" width="128" height="384" rx="64" fill="#5C302D"/>
+      </g>
+      <g class="mps-ring in">
+        <circle class="glow" cx="512" cy="560" r="150" stroke-width="30" stroke-dasharray="1 72"/>
+        <circle cx="512" cy="560" r="150" stroke-width="26" stroke-dasharray="1 72"/>
+      </g>
+      <g class="mps-ring out">
+        <circle class="glow" cx="512" cy="560" r="290" stroke-width="30" stroke-dasharray="1 82"/>
+        <circle cx="512" cy="560" r="290" stroke-width="22" stroke-dasharray="1 82"/>
+      </g>
+      <circle class="mps-wave" cx="512" cy="560" r="290"/>
+      <g class="mps-dot">
+        <circle cx="512" cy="560" r="96" fill="#F0C24F" class="glow"/>
+        <circle cx="512" cy="560" r="70" fill="#FFE08A"/>
+        <circle cx="512" cy="560" r="26" fill="#0A0A0D"/>
+      </g>
+    </svg>
+    <b class="sp-word mps-word" id="sp-word" data-text="Map">Map</b>
+  </div>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement, sp = document.getElementById('splash'), word = document.getElementById('sp-word'), stage = document.getElementById('mps-stage');
+    if (!root.classList.contains('mode-app')) { sp.remove(); return; }
+    var meta = document.querySelector('meta[name="theme-color"]'), was = meta && meta.getAttribute('content');
+    if (meta) meta.setAttribute('content', '#0A0A0D');
+    var started = false, gone = false;
+    // Small and quiet, at Troubadour's letter size (ios/index.html): 8 % of the short side of the screen, between 28
+    // and 46 px; the mark stands above the word at 1.7 times the height of its letters, as Ballade's.
+    function fit() {
+      var size = Math.max(28, Math.min(46, Math.min(window.innerWidth, window.innerHeight) * 0.08));
+      var logo = size * 1.7;
+      stage.style.gap = (size * 0.35) + 'px';
+      stage.querySelector('svg').style.height = logo + 'px';
+      stage.querySelector('svg').style.width = logo + 'px';
+      word.style.fontSize = size + 'px';
+    }
+    function hide() {
+      if (gone) return; gone = true;
+      sp.classList.add('sp-out');
+      if (meta && was) meta.setAttribute('content', was);
+      setTimeout(function () { sp.remove(); window.removeEventListener('resize', fit); }, 520);
+    }
+    function go() {
+      if (started) return; started = true;
+      fit();
+      sp.classList.add('sp-go');
+      var quiet = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(hide, quiet ? 900 : 3900);
+    }
+    window.addEventListener('resize', fit);
+    try {
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('700 100px "Cormorant SC"').then(go, go);
+        setTimeout(go, 800);
+      } else go();
+    } catch (e) { go(); }
+    sp.addEventListener('click', hide);
+    setTimeout(hide, 5600);
+  })();
+</script>
+
+<div class="rotate">
+  <div class="phone-turn" aria-hidden="true"><i></i></div>
+  <b>Turn your phone sideways</b>
+  <span>Troubadour Map plays best in landscape.</span>
+  <button class="btn" type="button" id="rotate-ok">Use it upright</button>
+</div>
+
+<div class="app" id="app">
+
+<!-- ============ Library ============ -->
+<main id="library" class="mp-screen" hidden>
+  <!-- On a computer: La Troupe's bar and the builder's main menu (troupe/builder-menu.js) -->
+  <header class="sbar bm-bar">
+    <a class="back" href="../troupe/" aria-label="Back to La Troupe"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>La Troupe</span></a>
+    <b class="here">Map builder</b>
+    <span class="grow"></span>
+    <a class="install" href="../#get" data-name="Map" data-ios="map/">Install now</a>
+    <button class="ico sbx-toggle" type="button" data-action="shared" aria-pressed="false" aria-label="Shared soundbox" title="Shared soundbox"></button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="bm-host" id="bm-host"></div>
+  <header class="sbar mp-sbar">
+    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="logo">Troubadour <em>Map</em></span>
+    <span class="grow"></span>
+    <button class="ico" type="button" data-action="add-world" aria-label="Add a world" title="Add a world"></button>
+    <button class="ico sbx-toggle" type="button" data-action="shared" aria-pressed="false" aria-label="Shared soundbox" title="Shared soundbox"></button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="lib-wrap">
+    <div id="world-list" class="lib-grid"></div>
+  </div>
+</main>
+
+<!-- ============ The shared soundbox ============ -->
+<main id="sbx" class="mp-screen" hidden>
+  <header class="sbar mp-sbar">
+    <span class="brand" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="logo">Troubadour <em>Map</em></span>
+    <span class="grow"></span>
+    <button class="btn slim primary" type="button" data-action="add-shared"></button>
+    <button class="ico sbx-toggle" type="button" data-action="shared" aria-pressed="true" aria-label="Back to the worlds" title="Back to the worlds"></button>
+    <button class="ico" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="lib-wrap">
+    <p class="lead small">Your shared soundbox: quick effects ready on every table, next to each world's own effects.</p>
+    <div id="shared-list"></div>
+  </div>
+</main>
+
+<!-- ============ A world ============ -->
+<main id="world" class="mp-screen mp-world" hidden>
+  <header class="tbar mp-top">
+    <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
+    <div class="ttl"><b id="mw-title"></b><input class="mp-title-in" id="mw-title-in" maxlength="120" placeholder="World name" aria-label="Name of the world" autocomplete="off" enterkeyhint="done"><span id="mw-sub"></span></div>
+    <div class="chip master" id="mw-master-chip">
+      <button class="mini" type="button" id="mw-pause" aria-label="Pause all" title="Pause all"></button>
+      <button class="mini" type="button" id="mw-fade" aria-label="Fade out the music" title="Fade out the music"></button>
+      <label class="mlabel" for="mw-master">Master</label>
+      <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
+      <b id="mw-master-val">80</b>
+    </div>
+    <button class="ico ed-save" type="button" id="mw-saved" aria-live="polite"></button>
+    <button class="ico" type="button" id="mw-panel" aria-label="Show the panel" title="Panel"></button>
+    <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
+    <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
+    <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
+    <button class="ico mp-listen" type="button" id="mw-listen" aria-pressed="false" aria-label="Listen from the golden point" title="Listen from the golden point (S)"></button>
+    <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
+    <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
+    <button class="ico mp-settings" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
+  </header>
+  <div class="mp-ctx" id="mw-ctx" role="menu" hidden></div>
+  <div class="mp-body">
+    <nav class="rail mp-rail" id="mw-places" aria-label="Maps"></nav>
+    <section class="mp-stage" id="mw-stage">
+      <canvas id="mw-canvas" aria-label="The map"></canvas>
+      <div class="mp-tools" id="mw-tools" role="toolbar" aria-label="Drawing tools">
+        <span class="mp-grip" id="mw-grip" title="Drag to move the tools" aria-hidden="true"></span>
+        <button type="button" data-tool="select" title="Select and move (V)"></button>
+        <button type="button" data-tool="hand" title="Move the map (H, or hold Space)"></button>
+        <i></i>
+        <button type="button" data-tool="wall" title="Wall: muffles the sounds behind it (W). Shift for a straight wall"></button>
+        <button type="button" data-tool="stamp" title="Places: the library, and your own (L)"></button>
+        <button type="button" data-tool="eraser" title="Eraser (E)"></button>
+        <i></i>
+        <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
+      </div>
+      <div class="mp-opts" id="mw-opts" hidden></div>
+      <section class="mp-heard" id="mw-heard" hidden aria-label="Heard now">
+        <div class="hn-head"><b>Heard now</b><button type="button" class="ico hn-x" id="mw-heard-x" aria-label="Stop listening" title="Stop listening"></button></div>
+        <div class="hn-meter" id="mw-meter" title="The level of the whole mix"><i class="lv"></i><i class="pk"></i></div>
+        <label class="hn-master"><span>Master</span><input type="range" id="mw-heard-master" min="0" max="1" step="0.01" aria-label="Master volume"><b id="mw-heard-master-val"></b></label>
+        <div class="hn-list" id="mw-heard-list"></div>
+        <p class="hn-tip" id="mw-heard-tip">Move the golden point with the select tool: what it hears changes here.</p>
+      </section>
+      <section class="mp-arrive" id="mw-arrive" hidden aria-live="polite" aria-label="The music of this place"></section>
+      <button type="button" class="ico tl-layers" id="mw-layers-btn" title="Layers: everything on this map" aria-label="Layers" aria-pressed="false"></button>
+      <div class="mp-stamps" id="mw-stamps" hidden></div>
+      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to draw the party's trail: it walks it a second later. Double tap an element, or the map, for its sounds. Long press a sign to take its way.</div>
+      <div class="mp-zoom">
+        <button type="button" class="ico zm" id="mw-zout" aria-label="Zoom out" title="Zoom out (-)"></button>
+        <button type="button" class="zv" id="mw-zval" aria-label="Zoom: back to the whole map" title="Back to the whole map (F)">100 %</button>
+        <button type="button" class="ico zm" id="mw-zin" aria-label="Zoom in" title="Zoom in (+)"></button>
+        <button type="button" class="ico" id="mw-fill" aria-label="See the whole map" title="See the whole map (F)"></button>
+      </div>
+    </section>
+    <aside class="mp-layers" id="mw-layers" aria-label="Layers">
+      <div class="ly-head"><h3>Layers</h3><span class="grow"></span><button class="ico small" type="button" id="mw-layers-close" aria-label="Close the layers"></button></div>
+      <div class="ly-list" id="mw-layers-list"></div>
+    </aside>
+    <aside class="mp-side" id="mw-side" aria-label="Panel">
+      <div class="mp-side-head"><b id="mw-side-title"></b><button class="ico small" type="button" id="mw-side-close" aria-label="Close the panel"></button></div>
+      <div class="mp-side-body" id="mw-inspector"></div>
+    </aside>
+    <aside class="soundbox mp-sbx" id="mw-sbx" hidden aria-label="Soundbox">
+      <div class="sb-head"><h2>Soundbox</h2><button class="ico small" type="button" id="mw-sbx-close" aria-label="Close the soundbox"></button></div>
+      <div class="sb-vol"><label for="mw-sbvol">Volume</label><input type="range" id="mw-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
+      <div class="pads" id="mw-pads"></div>
+      <p class="sb-hint">Tap to fire. ☆ pins an effect to the top.</p>
+    </aside>
+    <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
+      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
+      <div class="mus-now" id="mw-mus-now"></div>
+      <div class="mus-q"><input type="search" class="snd-search" id="mw-mus-q" placeholder="Search a music" aria-label="Search a music"></div>
+      <div class="mus-list" id="mw-mus-list"></div>
+    </aside>
+  </div>
+</main>
+
+</div><!-- .app -->
+
+<!-- Settings -->
+<dialog id="settings" class="settings" aria-labelledby="settings-title">
+  <form method="dialog" class="set-head">
+    <h2 id="settings-title">Settings</h2>
+    <button class="ico small" value="close" aria-label="Close settings"></button>
+  </form>
+  <section>
+    <h3>Theme</h3>
+    <div class="themes" id="theme-pick" role="radiogroup" aria-label="Theme"></div>
+  </section>
+  <section>
+    <h3>Appearance</h3>
+    <div class="seg" id="mode-pick" role="radiogroup" aria-label="Appearance">
+      <button type="button" role="radio" data-v="dark">Dark</button>
+      <button type="button" role="radio" data-v="light">Light</button>
+      <button type="button" role="radio" data-v="system">System</button>
+    </div>
+    <label class="row-set toggle"><span>Names of the places<small>Shown on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
+  </section>
+  <section>
+    <h3>Troubadour name</h3>
+    <div class="troubadour-account" id="troubadour-account"></div>
+  </section>
+  <section>
+    <h3>Screen</h3>
+    <label class="row-set toggle"><span>Upright phone too<small>Off: Troubadour Map asks to turn the phone sideways. On: it also works held upright</small></span><input type="checkbox" id="opt-portrait"><i></i></label>
+    <div data-t-rows="awake"></div>
+  </section>
+  <section>
+    <h3>Player interface</h3>
+    <div data-t-rows="cardvolume"></div>
+  </section>
+  <section>
+    <h3>At the table</h3>
+    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
+    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
+    <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
+    <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
+    <div class="row-set" id="trail-speed-row">
+      <span>Walking speed<small>How fast the point walks its trail</small></span>
+      <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
+        <button type="button" role="radio" data-v="0.05">Slow</button>
+        <button type="button" role="radio" data-v="0.1">Normal</button>
+        <button type="button" role="radio" data-v="0.2">Fast</button>
+        <button type="button" role="radio" data-v="0.4">Very fast</button>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
+  </section>
+  <section>
+    <h3>Playback</h3>
+    <div data-t-rows="fadein fade random life crossfade even silent.ios-only"></div>
+  </section>
+  <section>
+    <h3>Storage</h3>
+    <div class="store-info muted small" id="store-info">Checking…</div>
+    <div class="set-acts">
+      <button class="btn danger" type="button" data-action="wipe">Erase everything</button>
+    </div>
+    <p class="muted small">Your worlds live on this device only. Keep the <i>.troubadour-map</i> files you export: they are your backup.</p>
+  </section>
+  <section class="about">
+    <h3>About</h3>
+    <p class="muted">Troubadour Map, <span id="app-version"></span>. <a href="../troupe/" target="_blank" rel="noopener">La Troupe</a>, <a href="https://discord.gg/EkcyrgKQT" target="_blank" rel="noopener">Discord</a></p>
+  </section>
+</dialog>
+
+<dialog id="sheet" class="settings sheet" aria-labelledby="sheet-title">
+  <div class="set-head">
+    <h2 id="sheet-title"></h2>
+    <button class="ico small" type="button" data-action="close-sheet" aria-label="Close"></button>
+  </div>
+  <div id="sheet-body"></div>
+</dialog>
+
+<dialog id="ask" class="settings ask" aria-labelledby="ask-title">
+  <h2 id="ask-title"></h2>
+  <p id="ask-text"></p>
+  <div class="ask-acts" id="ask-acts"></div>
+</dialog>
+
+<button class="veil mp-gate" id="mw-gate" type="button" hidden>
+  <span class="forge"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><b>Tap to start the sound</b><small>Your phone keeps a page silent until you touch it.</small></span>
+</button>
+<div class="veil" id="busy" hidden>
+  <div class="forge loading">
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h2 id="busy-title"></h2>
+    <p class="step" id="busy-step"></p>
+    <div class="bar"><i id="busy-bar"></i></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="pick-file" hidden>
+<video id="awake-video" playsinline muted loop hidden></video>
+
+<script src="../shared/troubadour-settings.js"></script>
+<script src="../troupe/troubadour-format.js"></script>
+<script src="../auth/account.js"></script>
+<script src="../troupe/sound-credit.js"></script>
+<script src="map-format.js"></script>
+<script src="map-db.js"></script>
+<script src="../shared/troubadour-ui.js"></script>
+<script src="map-ui.js"></script>
+<script src="map-stamps.js"></script>
+<script src="../shared/troubadour-engine.js"></script>
+<script src="map-audio.js"></script>
+<script src="map-view.js"></script>
+<script src="../troupe/builder-menu.js"></script>
+<script src="../back.js"></script>
+<script src="app.js"></script>
+<script src="../install-now.js"></script>
+<script src="../shared/install.js"></script>
+<div aria-hidden="true" style="position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:9999;font:600 11px 'Barlow Semi Condensed',system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#F0C24F;color:#1A1206;pointer-events:none">Preview</div>
+</body>
+</html>
