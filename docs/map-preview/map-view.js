@@ -267,39 +267,6 @@
     edited();
     return c;
   }
-  /* ---------- Snapping and guides ---------- */
-  // A place moved snaps its left, middle or right (top, middle, bottom) to those of the other places of the map
-  // when it comes within 6 pixels of the screen; a gold line shows it. N turns it off; Ctrl or Cmd held, for once.
-  let snapOn = true;
-  try { snapOn = localStorage.getItem('troubadour.map.snap') !== '0'; } catch (e) { /* private mode */ }
-  let guides = []; // [{ x } | { y }] in units of the map, while a place is being moved
-  function setSnap(on) { snapOn = !!on; try { localStorage.setItem('troubadour.map.snap', on ? '1' : '0'); } catch (e) { /* private mode */ } }
-  function snapOffset(el, raw, off, free) {
-    guides = [];
-    if (!snapOn || free) return raw.slice();
-    // The bounds of the place where the finger would take it.
-    const b = M.bounds(el.shape);
-    const nb = [b[0] - off[0] + raw[0], b[1] - off[1] + raw[1], b[2] - off[0] + raw[0], b[3] - off[1] + raw[1]];
-    const mine = { x: [nb[0], (nb[0] + nb[2]) / 2, nb[2]], y: [nb[1], (nb[1] + nb[3]) / 2, nb[3]] };
-    const tol = 6 / view.k;
-    const best = { x: null, y: null };
-    place.elements.forEach((o) => {
-      if (o === el || layers.hidden.has(o.id) || (gesture && gesture.others && gesture.others.includes(o))) return;
-      const ob = M.bounds(o.shape);
-      const theirs = { x: [ob[0], (ob[0] + ob[2]) / 2, ob[2]], y: [ob[1], (ob[1] + ob[3]) / 2, ob[3]] };
-      ['x', 'y'].forEach((a) => mine[a].forEach((m) => theirs[a].forEach((t) => {
-        const d = t - m;
-        if (Math.abs(d) <= tol && (!best[a] || Math.abs(d) < Math.abs(best[a].d))) best[a] = { d, at: t };
-      })));
-    });
-    // The middle of the map too.
-    const mid = { x: place.width / 2, y: place.height / 2 };
-    ['x', 'y'].forEach((a) => { const m = mine[a][1], d = mid[a] - m; if (Math.abs(d) <= tol && (!best[a] || Math.abs(d) < Math.abs(best[a].d))) best[a] = { d, at: mid[a] }; });
-    const out = raw.slice();
-    if (best.x) { out[0] += best.x.d; guides.push({ x: best.x.at }); }
-    if (best.y) { out[1] += best.y.d; guides.push({ y: best.y.at }); }
-    return out;
-  }
   function copy() { if (!selected || !place) return false; clip = { world: world && world.id, from: place.id, els: JSON.stringify(selection()) }; return true; }
   /** Lays copies of several places together: their middle at `at`, or `off` aside; the first is the one shown. */
   function layMany(srcs, at, off) {
@@ -692,13 +659,6 @@
         clearTimeout(gesture.hold);
         let dx = w[0] - gesture.last[0], dy = w[1] - gesture.last[1];
         gesture.last = w; gesture.moved = true;
-        // Snapping: the raw way the finger went is kept, the place jumps to the edges and middles of the others.
-        gesture.raw = gesture.raw || [0, 0];
-        gesture.raw[0] += dx; gesture.raw[1] += dy;
-        const off = gesture.off || [0, 0];
-        const want = snapOffset(gesture.el, gesture.raw, off, e.ctrlKey || e.metaKey);
-        dx = want[0] - off[0]; dy = want[1] - off[1];
-        gesture.off = want;
         shiftShape(gesture.el.shape, dx, dy);
         (gesture.others || []).forEach((o) => shiftShape(o.shape, dx, dy));
         dirty = true;
@@ -844,10 +804,14 @@
   function drawReach(el, strength) {
     const c = zoneColour(el), sh = el.shape;
     ctx.save();
-    ctx.fillStyle = alpha(c, 0.06 + 0.16 * strength);
+    const edit = mode === 'edit';
+    ctx.fillStyle = alpha(c, (edit ? 0.1 : 0.06) + 0.16 * strength);
     ctx.strokeStyle = ctx.fillStyle;
-    if (sh.type === 'stamp') { ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.size / 2 + el.radius, 0, Math.PI * 2); ctx.fill(); }
-    else if (el.radius > 0) {
+    if (sh.type === 'stamp') {
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.size / 2 + el.radius, 0, Math.PI * 2); ctx.fill();
+      // In the editor, the circle of how far its sounds carry is drawn plainly.
+      if (edit && el.radius > 0) { ctx.setLineDash([10 / view.k, 8 / view.k]); ctx.lineWidth = 2 / view.k; ctx.strokeStyle = alpha(c, 0.7); ctx.stroke(); }
+    } else if (el.radius > 0) {
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.lineWidth = el.radius * 2;
       tracePath(sh.points, sh.closed);
@@ -1069,16 +1033,6 @@
         ctx.restore();
       }
     }
-    if (guides.length && gesture && gesture.kind === 'move') {
-      ctx.save(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-      guides.forEach((g) => {
-        ctx.beginPath();
-        if (g.x != null) { const a = toScreen([g.x, 0]), b = toScreen([g.x, place.height]); ctx.moveTo(Math.round(a[0]) + 0.5, a[1]); ctx.lineTo(Math.round(b[0]) + 0.5, b[1]); }
-        else { const a = toScreen([0, g.y]), b = toScreen([place.width, g.y]); ctx.moveTo(a[0], Math.round(a[1]) + 0.5); ctx.lineTo(b[0], Math.round(b[1]) + 0.5); }
-        ctx.stroke();
-      });
-      ctx.restore();
-    } else guides = [];
     drawTrail();
     const [px, py] = toScreen(place.player);
     ctx.beginPath(); ctx.arc(px, py, 22, 0, Math.PI * 2); ctx.fillStyle = alpha(pal.accent, 0.18); ctx.fill();
@@ -1351,7 +1305,7 @@
   Object.assign(api, {
     mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
-    __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, snap: (on) => (on === undefined ? snapOn : setSnap(on)), guides: () => guides.slice(), __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
+    __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),
   });
   global.MapView = api;

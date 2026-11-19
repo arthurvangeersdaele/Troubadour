@@ -256,7 +256,7 @@
     <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
     <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
     <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
-    <button class="ico mp-listen" type="button" id="mw-listen" aria-pressed="false" aria-label="Listen from the golden point" title="Listen from the golden point (S)"></button>
+    <button class="ico mp-listen" type="button" id="mw-listen" aria-pressed="false" aria-label="Hear what the party hears" title="Hear what the party hears (S)"></button>
     <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico mp-settings" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
@@ -280,13 +280,6 @@
         <button type="button" data-act="keys" title="Keyboard shortcuts (?)"></button>
       </div>
       <div class="mp-opts" id="mw-opts" hidden></div>
-      <section class="mp-heard" id="mw-heard" hidden aria-label="Heard now">
-        <div class="hn-head"><b>Heard now</b><button type="button" class="ico hn-x" id="mw-heard-x" aria-label="Stop listening" title="Stop listening"></button></div>
-        <div class="hn-meter" id="mw-meter" title="The level of the whole mix"><i class="lv"></i><i class="pk"></i></div>
-        <label class="hn-master"><span>Master</span><input type="range" id="mw-heard-master" min="0" max="1" step="0.01" aria-label="Master volume"><b id="mw-heard-master-val"></b></label>
-        <div class="hn-list" id="mw-heard-list"></div>
-        <p class="hn-tip" id="mw-heard-tip">Move the golden point with the select tool: what it hears changes here.</p>
-      </section>
       <div class="mp-pinstrip" id="mw-pinstrip" hidden aria-label="Pinned effects"></div>
       <section class="mp-arrive" id="mw-arrive" hidden aria-live="polite" aria-label="The music of this place"></section>
       <button type="button" class="ico tl-layers" id="mw-layers-btn" title="Layers: everything on this map" aria-label="Layers" aria-pressed="false"></button>
@@ -358,8 +351,7 @@
   </section>
   <section>
     <h3>At the table</h3>
-    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
-    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
+    <label class="row-set toggle"><span>Music starts on arrival<small>When the party stops on a place with another music, it plays 5 seconds after its name shows (Play now, or Skip to keep the music heard). Off: you are asked, Play or Skip</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
     <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
     <div class="row-set" id="trail-speed-row">
@@ -442,7 +434,7 @@
 <dialog id="preview-notes" class="settings" aria-labelledby="preview-notes-title" style="max-width:560px">
   <div class="set-head"><h2 id="preview-notes-title">Troubadour Map, preview of 19 November</h2><button class="ico small" type="button" aria-label="Close" onclick="this.closest('dialog').close()">✕</button></div>
   <p style="margin:0 0 8px;color:var(--muted)">This copy is for trying. Its worlds are its own: the app you use at the table is untouched.</p>
-  <ul style="margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:15px;line-height:1.4"><li style="padding-left:10px;border-left:3px solid #F0C24F">In the editor, the headphones (or S) hear the map from the golden point: move the point with the select tool, the Heard now panel says what it hears, each sound with its volume, the master and a level meter.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Undo and redo for everything (Ctrl+Z, Ctrl+Shift+Z), 200 steps per map.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Copy, cut, paste at the pointer, also on another map of the world (Ctrl+C, X, V), duplicate (Ctrl+D), Alt and a drag moves a copy.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Snapping to the other places, with a gold guide (N turns it off, Ctrl held moves freely).</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The round handle on the selected place drags its reach.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Many places at once: Shift and a click, Shift and a drag on the map, Ctrl+A; drag, arrows, copy and delete them together.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The keyboard button (or ?) shows every key.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: the music under the world's name, a lock in the sound menu keeps it, a long press on the map sends the party there around the walls, a tap on a sign the party stands on takes its way, pinned effects over the map, a music comes back where it was.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Five taps on the world's name: the debug overlay, to copy and send.</li></ul>
+  <ul style="margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:15px;line-height:1.4"><li style="padding-left:10px;border-left:3px solid #F0C24F">In the editor, the headphones (or S) let you hear what the party hears, from the golden point: move it with the select tool to walk. The ground around each place shows how far its sounds carry.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Undo and redo for everything (Ctrl+Z, Ctrl+Shift+Z), 200 steps per map.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Copy, cut, paste at the pointer, also on another map of the world (Ctrl+C, X, V), duplicate (Ctrl+D), Alt and a drag moves a copy.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The round handle on the selected place drags its reach.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Many places at once: Shift and a click, Shift and a drag on the map, Ctrl+A; drag, arrows, copy and delete them together.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The keyboard button (or ?) shows every key.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: arriving on a place with another music, its name shows: it plays in 5 seconds (Play now, or Skip), or, with Music starts on arrival off, you are asked (Play or Skip).</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: the music under the world's name, a long press on the map sends the party there around the walls, a tap on a sign the party stands on takes its way, pinned effects over the map, a music comes back where it was.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Five taps on the world's name: the debug overlay, to copy and send.</li></ul>
 </dialog>
 </body>
 </html>

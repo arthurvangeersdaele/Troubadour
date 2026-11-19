@@ -34,7 +34,8 @@ try {
   await page.waitForTimeout(600);
   await page.setInputFiles('#pick-file', world);
   // Imported, a world joins the list without opening.
-  await page.waitForFunction(async () => window.MapDB && (await window.MapDB.list()).length > 0, null, { timeout: 300000, polling: 500 });
+  // (An async test function would count as true at once: the list is asked from here, every half second.)
+  for (let t = 0; t < 600; t++) { if (await page.evaluate(async () => !!(window.MapDB && (await window.MapDB.list()).length))) break; await page.waitForTimeout(500); }
   await page.waitForTimeout(1500);
   // A second map (a copy of the first), to listen across a change of map.
   const uid = await page.evaluate(async () => {
@@ -133,30 +134,20 @@ try {
   await page.keyboard.press('Control+z');
   ok((await page.evaluate((id) => window.MapView.__place().elements.find((x) => x.id === id).radius, e0.id)) === e0.radius, 'undo puts the reach back');
 
-  // Snapping, on the second map (two places, far apart): a place dragged 3 pixels beside the middle of the other
-  // jumps to it, a gold guide shows; Ctrl held, it stays where the finger left it.
+  // No snapping: a place goes exactly where the hand takes it.
   await page.evaluate((u) => { location.hash = `#/edit/${u}/1`; }, uid);
   await page.waitForFunction(() => document.getElementById('mw-sub').textContent.startsWith('Map 2:'));
   await page.waitForTimeout(400);
-  const snapTry = async (ctrl) => {
+  {
     const a = await pick(0);
     const k = await page.evaluate(() => window.MapView.__toScreen([1, 0])[0] - window.MapView.__toScreen([0, 0])[0]);
-    const dxs = (1400 - 500) * k + 3, dys = 120;
-    await page.mouse.move(a.x, a.y);
-    if (ctrl) await page.keyboard.down('Control');
-    await page.mouse.down(); await page.mouse.move(a.x + dxs / 2, a.y + dys / 2, { steps: 6 }); await page.mouse.move(a.x + dxs, a.y + dys, { steps: 6 });
-    const shown = await page.evaluate(() => window.MapView.guides());
-    await page.mouse.up();
-    if (ctrl) await page.keyboard.up('Control');
+    const dxs = (1400 - 500) * k + 3;
+    await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(a.x + dxs / 2, a.y + 60, { steps: 6 }); await page.mouse.move(a.x + dxs, a.y + 120, { steps: 6 }); await page.mouse.up();
     const x = await page.evaluate(() => window.MapView.__place().elements[0].shape.x);
+    ok(Math.abs(x - (500 + dxs / k)) <= 1, `no snapping: the place goes where the hand takes it (x ${x}, the hand ${(500 + dxs / k).toFixed(1)})`);
     await page.keyboard.press('Control+z');
-    return { x, raw: 500 + dxs / k, shown };
-  };
-  const sn = await snapTry(false);
-  ok(sn.x === 1400 && sn.shown.some((g) => g.x != null && [1320, 1400, 1480].some((v) => Math.abs(g.x - v) < 0.5)), `a place 3 pixels beside the middle of another snaps to it, on a gold guide (x ${sn.x}, the finger ${sn.raw.toFixed(1)})`);
-  const fr = await snapTry(true);
-  ok(Math.abs(fr.x - fr.raw) <= 1 && !fr.shown.length, `Ctrl held: no snapping (x ${fr.x})`);
-  ok((await page.evaluate(() => window.MapView.__place().elements[0].shape.x)) === 500, 'both undone');
+    ok((await page.locator('#mw-opts .seg[aria-label="Snapping"]').count()) === 0, 'no Snap option any more');
+  }
   await page.evaluate((u) => { location.hash = `#/edit/${u}/0`; }, uid);
   await page.waitForFunction(() => document.getElementById('mw-sub').textContent.startsWith('Map 1:'));
   await page.waitForTimeout(300);
@@ -198,9 +189,7 @@ try {
     ok(/2 places selected/.test(await page.textContent('#mw-inspector')), 'the panel says two places are selected');
     const where = () => page.evaluate((ids) => ids.map((id) => window.TroubadourMap.centre(window.MapView.__place().elements.find((x) => x.id === id).shape)), [a.id, b.id]);
     const w0 = await where();
-    await page.keyboard.down('Control'); // no snapping: the exact way the hand went
     await page.mouse.move(b.x, b.y); await page.mouse.down(); await page.mouse.move(b.x + 40, b.y + 30, { steps: 6 }); await page.mouse.up();
-    await page.keyboard.up('Control');
     const w1 = await where();
     const d0 = [w1[0][0] - w0[0][0], w1[0][1] - w0[0][1]], d1 = [w1[1][0] - w0[1][0], w1[1][1] - w0[1][1]];
     ok(Math.abs(d0[0] - d1[0]) < 1.5 && Math.abs(d0[1] - d1[1]) < 1.5 && Math.hypot(d0[0], d0[1]) > 20, `dragging one moves both by the same (${d0.map(Math.round)} and ${d1.map(Math.round)})`);

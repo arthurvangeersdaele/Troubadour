@@ -596,7 +596,7 @@
     const theme = zoneMusic() || p.general.find(isMusic) || null;
     zoneKey = theme ? theme.file : 'map'; moving = false;
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
-    if (tv && tv.state !== 'playing' && !(musicLocked && currentMusic())) toggleVoice(tv);
+    if (tv && tv.state !== 'playing') toggleVoice(tv);
     changed();
   }
 
@@ -620,20 +620,17 @@
   /** Called as the party moves: stopping in a place with a music crossfades to it; stopping out of it brings back the
    *  music of the whole map. Only where the party stops counts: a place it only walks through leaves the music as it
    *  is. Only a change of zone switches the music, so a music chosen by hand plays on. */
-  // The music lock (261114_map_plan.md, M6): the music heard stays, whatever place the party reaches.
-  let musicLocked = false;
   function followZone() {
     if (!place || zoneKey === undefined || moving) return;
     const z = zoneMusic();
     const key = z ? z.file : 'map';
     if (key === zoneKey) return;
     zoneKey = key;
-    if (musicLocked) return;
-    // Arriving on a place with music: the app may show its musics first (setting Ask before a place's music); it
-    // starts one itself, or calls back the fallback when nothing was touched.
+    // Arriving on a place with music: the app shows it first (it plays in a few seconds, or the app asks), and
+    // calls start when it is to play.
     if (z && api.onPlace) {
       const el = zoneEl, cards = el.cards.filter(isMusic);
-      if (api.onPlace({ el, cards, start: () => { if (zoneKey === key && settings.musicAuto !== false) startZone(z.file); } })) return;
+      if (api.onPlace({ el, cards, start: () => { if (zoneKey === key) startZone(z.file); } })) return;
     }
     if (!z && api.onPlace) api.onPlace(null);
     // Music starts by itself on arrival (setting, on by default); off, the music heard plays on.
@@ -645,7 +642,6 @@
 
   /** Everything stops: the world is left, or drawn. */
   function close(ms = settings.fade) {
-    musicLocked = false;
     voices.forEach((v) => drop(v, ms));
     voices.clear();
     pausedByAll = []; heldRandom = []; queue = [];
@@ -740,23 +736,6 @@
       .map((v) => ({ card: v.card, heard: v.heard, level: v.heard * curve(v.card.volume), waiting: !!v.waiting }))
       .sort((a, b) => (a.waiting - b.waiting) || b.level - a.level || a.card.name.localeCompare(b.card.name));
   }
-  let analyser = null, meterBuf = null, peakHold = 0, peakAt = 0;
-  /** The level of the whole mix after the master, 0 to 1 (1 is full scale), with its peak held for 1 s. */
-  function meter() {
-    const { ctx, master } = audio();
-    if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 1024; master.connect(analyser); meterBuf = new Float32Array(analyser.fftSize); }
-    analyser.getFloatTimeDomainData(meterBuf);
-    let pk = 0;
-    for (let i = 0; i < meterBuf.length; i++) { const a = Math.abs(meterBuf[i]); if (a > pk) pk = a; }
-    const t = Date.now();
-    if (pk >= peakHold || t - peakAt > 1000) { peakHold = pk; peakAt = t; }
-    return { level: pk, peak: peakHold };
-  }
-  function meterOff() {
-    if (!analyser) return;
-    try { audio().master.disconnect(analyser); } catch (e) { /* already apart */ }
-    analyser = null; peakHold = 0;
-  }
 
   function fadeAll() { stopAll(); }
 
@@ -764,7 +743,7 @@
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
-    isOpen: () => !!place, point: () => point, position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, lockMusic: (on) => { musicLocked = !!on; changed(); }, musicLocked: () => musicLocked, heardNow, meter, meterOff,
+    isOpen: () => !!place, point: () => point, position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
   });
   global.MapAudio = api;
 })(window);

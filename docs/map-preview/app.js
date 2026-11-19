@@ -685,8 +685,8 @@
         setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 8000);
       } else $('#mw-play-tip').classList.add('gone');
     } else {
-      if (m === 'edit' && listening) openListen();
-      else { if (!keepAudio || A.isOpen()) A.close(); if (listening) listen(false); }
+      if (m === 'edit' && hearing) openHearing();
+      else { if (!keepAudio || A.isOpen()) A.close(); if (hearing) hear(false); }
       releaseWake();
     }
     renderPanel();
@@ -730,87 +730,27 @@
     DBG.timer = setInterval(paint, 500);
   }
 
-  /* ================= Listening in the editor: Heard now ================= */
-  // The editor hears the map from the golden point, as the table will: move the point with the select tool, and
-  // the panel says which sounds it hears, how much, and at what level. Nothing of this runs at the table.
-  let listening = false, heardTimer = 0, heardTick = 0, heardRows = new Map(), heardDrag = false;
-  async function openListen() {
+  /* ================= Hearing in the editor ================= */
+  // The headphones (or S): the editor hears the map as the party would, from the golden point. Moving the point
+  // with the select tool changes what is heard; the ground around each place shows how much of it reaches the
+  // point. Nothing of this runs at the table.
+  let hearing = false;
+  async function openHearing() {
     const r0 = rec, p0 = pi;
     audio(true);
     await prepare(worldFiles(rec));
-    if (!listening || rec !== r0 || pi !== p0 || mode !== 'edit' || screen !== 'world') return;
+    if (!hearing || rec !== r0 || pi !== p0 || mode !== 'edit' || screen !== 'world') return;
     A.open(place(), rec.world, sounds);
-    renderHeard(true);
+    V.redraw();
   }
-  function listen(on) {
+  function hear(on) {
     if (on && (mode !== 'edit' || !rec)) return;
-    listening = on;
+    hearing = on;
     $('#mw-listen').setAttribute('aria-pressed', String(on));
-    $('#mw-listen').title = on ? 'Stop listening (S)' : 'Listen from the golden point (S)';
-    $('#mw-heard').hidden = !on;
-    clearInterval(heardTimer);
-    if (on) {
-      $('#mw-heard-master').value = settings.master; paintRange($('#mw-heard-master'));
-      $('#mw-heard-master-val').textContent = String(Math.round(settings.master * 100));
-      heardRows.clear(); $('#mw-heard-list').textContent = '';
-      openListen();
-      heardTimer = setInterval(() => renderHeard(false), 100);
-    } else {
-      if (A.isOpen()) A.close();
-      A.meterOff();
-      V.redraw && V.redraw();
-    }
-  }
-  /** The meter every tenth of a second, the list every 400 ms (and never under a finger on a slider). */
-  function renderHeard(now) {
-    if (!listening) return;
-    if (A.isOpen()) {
-      const m = A.meter();
-      const db = (x) => Math.max(0, Math.min(1, 1 + (20 * Math.log10(Math.max(x, 1e-6))) / 48));
-      $('#mw-meter .lv').style.width = `${db(m.level) * 100}%`;
-      $('#mw-meter .pk').style.left = `calc(${db(m.peak) * 100}% - 2px)`;
-      $('#mw-meter').classList.toggle('hot', m.peak >= 0.98);
-    }
-    if (!now && (heardTick++ % 4)) return;
-    if (heardDrag) return;
-    const list = $('#mw-heard-list');
-    const all = A.isOpen() ? A.heardNow() : [];
-    const near = all.filter((h) => h.heard > 0.01), far = all.length - near.length;
-    const keep = new Set();
-    near.forEach((h) => {
-      let row = heardRows.get(h.card);
-      if (!row) {
-        row = el('div', `hn-row z-${h.card.zone}`);
-        const n = el('span', 'n', h.card.name), pc = el('span', 'h', ''), bar = el('div', 'bar'); bar.append(el('i'));
-        const vol = el('input'); vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01;
-        vol.setAttribute('aria-label', `Volume of ${h.card.name}`);
-        vol.value = h.card.volume; paintRange(vol);
-        vol.addEventListener('pointerdown', () => { heardDrag = true; });
-        const up = () => { heardDrag = false; };
-        vol.addEventListener('pointerup', up); vol.addEventListener('pointercancel', up); vol.addEventListener('blur', up);
-        vol.addEventListener('input', () => A.setVolume(h.card, Number(vol.value)));
-        vol.addEventListener('change', () => { heardDrag = false; save(); });
-        row.append(n, pc, bar, vol);
-        row.parts = { pc, bar: bar.firstChild, vol };
-        heardRows.set(h.card, row);
-      }
-      row.classList.toggle('wait', h.waiting);
-      row.parts.pc.textContent = h.waiting ? 'waits' : `heard ${Math.round(h.heard * 100)} %`;
-      row.parts.bar.style.width = `${Math.round(h.heard * 100)}%`;
-      if (document.activeElement !== row.parts.vol) { row.parts.vol.value = h.card.volume; paintRange(row.parts.vol); }
-      row.title = `${h.card.name}: heard ${Math.round(h.heard * 100)} %, volume ${Math.round(h.card.volume * 100)} %`;
-      keep.add(h.card);
-      list.append(row); // in order: the loudest first
-    });
-    heardRows.forEach((row, c) => { if (!keep.has(c)) { row.remove(); heardRows.delete(c); } });
-    let farEl = list.querySelector('.hn-far');
-    if (far) { if (!farEl) farEl = el('p', 'hn-far'); farEl.textContent = `${far} more out of reach`; list.append(farEl); } else if (farEl) farEl.remove();
-    $('#mw-heard-tip').hidden = near.length > 0;
-    let none = list.querySelector('.hn-none');
-    if (near.length) { if (none) none.remove(); } else {
-      if (!none) { none = el('p', 'hn-far hn-none'); list.prepend(none); }
-      none.textContent = A.isOpen() ? 'Nothing reaches the golden point here.' : 'Opening the sounds…';
-    }
+    $('#mw-listen').title = on ? 'Stop hearing (S)' : 'Hear what the party hears (S)';
+    $('#mw-listen').setAttribute('aria-label', $('#mw-listen').title);
+    if (on) { openHearing(); toast('You hear what the party hears. Move the golden point to walk.', 2400); }
+    else { if (A.isOpen()) A.close(); V.redraw(); }
   }
 
   /** The maps of the world, as Troubadour's chapters: a numbered rail (a strip under the top bar on a narrow
@@ -994,8 +934,8 @@
     const C = mac ? 'Cmd' : 'Ctrl';
     const groups = [
       ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['L', 'Places: the library'], ['E', 'Eraser']]],
-      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], [`${C}+A`, 'Select every place'], ['Shift + click', 'Add a place to the selection, or take it away'], ['Shift + drag on the map', 'Select every place in a band'], ['Arrows', 'Move the selection (Shift: further)'], ['Alt + drag', 'Move a copy'], ['N', 'Snapping on or off'], [`${C} + drag`, 'Move without snapping'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
-      ['Sound', [['S', 'Listen from the golden point: Heard now']]],
+      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], [`${C}+A`, 'Select every place'], ['Shift + click', 'Add a place to the selection, or take it away'], ['Shift + drag on the map', 'Select every place in a band'], ['Arrows', 'Move the selection (Shift: further)'], ['Alt + drag', 'Move a copy'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
+      ['Sound', [['S', 'Hear what the party hears, from the golden point']]],
       ['View', [['+ and -', 'Zoom'], ['F', 'The whole map'], ['?', 'This page']]],
     ];
     groups.forEach(([h, rows]) => {
@@ -1640,19 +1580,7 @@
     all.type = 'button';
     all.innerHTML = `${ICON.music}<span>All musics</span>`;
     all.addEventListener('click', openMusic);
-    // The lock: the music heard stays wherever the party goes (until it is unlocked).
-    const lock = el('button', 'ico small mp-mlock');
-    lock.type = 'button';
-    const paintLock = () => {
-      const on = A.musicLocked();
-      lock.innerHTML = on ? ICON.lock : ICON.unlock;
-      lock.setAttribute('aria-pressed', String(on));
-      lock.title = on ? 'The music stays wherever the party goes: tap to let places change it' : 'Keep this music wherever the party goes';
-      lock.setAttribute('aria-label', lock.title);
-    };
-    lock.addEventListener('click', () => { A.lockMusic(!A.musicLocked()); paintLock(); paintNowPlaying(); toast(A.musicLocked() ? 'The music stays wherever the party goes.' : 'Places change the music again.', 1800); });
-    paintLock();
-    s.querySelector('h3').append(lock, all);
+    s.querySelector('h3').append(all);
     const holder = el('div', 'el-cards');
     s.append(holder);
     let shown, rows = [];
@@ -1744,15 +1672,15 @@
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input[type="range"]')) paintRange(e.target); });
 
   let liveTimer = 0;
-  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); arriveRows.forEach((f) => f()); }
-  /** Now playing, under the world's name at the table: the map, and the music heard (kept or not). */
+  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); }
+  /** Now playing, under the world's name at the table: the map, and the music heard. */
   let nowShown = '';
   function paintNowPlaying() {
     if (!rec) return;
     let t = `Map ${pi + 1}: ${place().title}`;
     if (mode === 'play' && A.isOpen()) {
       const m = A.currentMusic();
-      if (m) t += `. Music: ${m.name}${A.musicLocked() ? ' (kept)' : ''}`;
+      if (m) t += `. Music: ${m.name}`;
     }
     if (t !== nowShown) { nowShown = t; $('#mw-sub').textContent = t; }
   }
@@ -2259,15 +2187,6 @@
       bar.append(label('Size'), placeSizeSeg(), el('small', 'op-h', currentStamp ? `${stampLabel(currentStamp)}: tap the map to lay it` : 'Pick a place in the library'));
     } else if (t === 'eraser') {
       bar.append(el('small', 'op-h', 'Tap a place, or a wall, to erase it. Undo brings it back.'));
-    } else if (t === 'select') {
-      const seg = el('div', 'seg small'); seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', 'Snapping');
-      [[true, 'On'], [false, 'Off']].forEach(([v, s]) => {
-        const b = el('button', '', s); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(V.snap() === v));
-        b.title = v ? 'A place moved snaps to the edges and middles of the others (N)' : 'Places move freely (N)';
-        b.addEventListener('click', () => { V.snap(v); renderOpts('select'); });
-        seg.append(b);
-      });
-      bar.append(label('Snap'), seg, el('small', 'op-h', 'Alt: move a copy. Ctrl or Cmd: no snapping, for once'));
     } else { bar.hidden = true; return; }
     bar.hidden = false;
   }
@@ -2706,8 +2625,7 @@
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
-    $('#opt-music-ask').addEventListener('change', (e) => { settings.musicAsk = e.target.checked; saveSettings(); if (!e.target.checked) closeArrive(); });
-    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); paintArriveClock(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); });
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
@@ -2747,7 +2665,6 @@
     $('#opt-rings').checked = settings.rings;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
-    $('#opt-music-ask').checked = settings.musicAsk !== false;
     $('#opt-music-auto').checked = settings.musicAuto !== false;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
@@ -2795,7 +2712,7 @@
     ['library', 'world', 'sbx'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
     screen = id;
     document.documentElement.dataset.screen = id;
-    if (id !== 'world') { if (listening) listen(false); A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
+    if (id !== 'world') { if (hearing) hear(false); A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
     if (id !== 'sbx') stopFxWhere((k) => k.startsWith('shared:'));
   }
 
@@ -2885,78 +2802,68 @@
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
   let musQueueView = false;
-  /* ================= Arriving on a place with music (setting Show a place's music on arrival) =================
-   * The party stops on a place with music: its music cards show over the map, as cards with all their controls, the
-   * party free to move on. One music, or several: each can be played or added to the queue. If nothing is touched for
-   * a few seconds, the setting Music starts on arrival decides (its music starts, or the music heard plays on). */
-  const ARRIVE_MS = 9000;
+  /* ================= Arriving on a place with music =================
+   * The party stops on a place whose music is not the one heard: a small card over the map names it. With the
+   * setting Music starts on arrival, it plays in a few seconds (Play now, or Skip to keep the music heard); without,
+   * the card asks (Play, or Skip). Several musics: the first plays, the others join the queue. */
+  const ARRIVE_S = 5;
   let arrive = null;
   function closeArrive() {
     if (!arrive) return;
-    clearTimeout(arrive.timer); cancelAnimationFrame(arrive.raf);
+    clearInterval(arrive.timer);
     arrive = null;
     const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
-    arriveRows.length = 0;
-  }
-  const arriveRows = [];
-  function paintArriveClock() {
-    if (!arrive) return;
-    const lab = $('#mw-arrive .ar-clock');
-    if (lab) lab.textContent = arrive.touched ? '' : settings.musicAuto !== false ? (arrive.cards.length > 1 ? 'The first starts by itself' : 'Starts by itself') : 'Leaves by itself';
   }
   function showArrive(info) {
     closeArrive();
-    if (!info || mode !== 'play' || settings.musicAsk === false) return false;
+    if (!info || mode !== 'play') return false;
     const all = worldMusic();
-    // The cards of the world's musics (the voices that play them), in the order of the place.
+    // The world's musics (the voices that play them), in the order of the place.
     const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
     if (!cards.length) return false;
-    // Already heard: nothing to propose.
     const cur = A.currentMusic();
-    if (cards.length === 1 && cur && cur.file === cards[0].file) return false;
+    if (cur && cards.some((c) => c.file === cur.file)) return false; // already heard
+    const auto = settings.musicAuto !== false;
     const box = $('#mw-arrive');
     box.textContent = '';
-    arrive = { info, cards, touched: false, t0: performance.now(), timer: 0, raf: 0 };
+    arrive = { info, cards, left: ARRIVE_S, timer: 0 };
     const head = el('div', 'ar-head');
     const ttl = el('div', 'ar-ttl');
     ttl.append(el('small', '', cards.length > 1 ? 'Musics of this place' : 'Music of this place'), el('b', '', elName(info.el)));
-    const x = el('button', 'ico small'); x.type = 'button'; x.innerHTML = ICON.close; x.setAttribute('aria-label', 'Close'); x.title = 'Close: nothing changes';
-    x.addEventListener('click', () => { closeArrive(); });
-    head.append(ttl, x);
-    box.append(head);
-    const list = el('div', 'ar-list');
-    cards.forEach((c) => {
-      const wrap = el('div', 'ar-card');
-      wrap.append(withRows(arriveRows, () => cardRow(c, all, null)));
-      const q = el('button', 'btn small ar-q'); q.type = 'button';
-      q.innerHTML = `${ICON.queueAdd}<span>Add to the queue</span>`;
-      q.addEventListener('click', () => { A.queueAdd(c); q.disabled = true; q.querySelector('span').textContent = 'In the queue'; refreshLive(); });
-      wrap.append(q);
-      list.append(wrap);
-    });
-    box.append(list);
-    if (cards.length > 1) {
-      const allQ = el('button', 'btn small ar-all'); allQ.type = 'button';
-      allQ.innerHTML = `${ICON.queueAdd}<span>Add them all to the queue</span>`;
-      allQ.addEventListener('click', () => { cards.forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); }); list.querySelectorAll('.ar-q').forEach((b) => { b.disabled = true; b.querySelector('span').textContent = 'In the queue'; }); allQ.disabled = true; refreshLive(); });
-      box.append(allQ);
-    }
-    // The time left before the fallback, as a thin gold line under the head.
-    const clock = el('div', 'ar-time'); const bar = el('i'); clock.append(bar);
-    box.append(el('small', 'ar-clock'), clock);
-    paintArriveClock();
-    // Any touch on the cards is a choice in hand: the clock stops, the cards stay until closed or the party moves on.
-    box.addEventListener('pointerdown', () => { if (!arrive || arrive.touched) return; arrive.touched = true; clearTimeout(arrive.timer); clock.hidden = true; paintArriveClock(); }, { once: true });
-    const tick = () => {
-      if (!arrive || arrive.touched) return;
-      bar.style.transform = `scaleX(${Math.max(0, 1 - (performance.now() - arrive.t0) / ARRIVE_MS)})`;
-      arrive.raf = requestAnimationFrame(tick);
+    head.append(ttl);
+    const names = el('p', 'ar-names', cards.map((c) => c.name).join(', '));
+    const ask = el('p', 'ar-clock');
+    const bar = el('div', 'ar-time'); const fill = el('i'); bar.append(fill);
+    bar.hidden = !auto;
+    const acts = el('div', 'ar-acts');
+    const play = el('button', 'btn small primary'); play.type = 'button';
+    play.innerHTML = `${ICON.play}<span>${auto ? 'Play now' : 'Play'}</span>`;
+    const skip = el('button', 'btn small'); skip.type = 'button';
+    skip.textContent = 'Skip';
+    skip.title = 'Keep the music heard';
+    const go = () => {
+      if (!arrive) return;
+      const { info: i, cards: cs } = arrive;
+      closeArrive();
+      i.start();
+      cs.slice(1).forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); });
+      refreshLive();
     };
-    tick();
-    arrive.timer = setTimeout(() => { if (!arrive || arrive.touched) return; const go = arrive.info.start; closeArrive(); go(); }, ARRIVE_MS);
+    play.addEventListener('click', go);
+    skip.addEventListener('click', closeArrive);
+    acts.append(play, skip);
+    box.append(head, names, ask, bar, acts);
+    const paint = () => {
+      if (!arrive) return;
+      if (auto) {
+        ask.textContent = `Plays in ${arrive.left} s`;
+        fill.style.transform = `scaleX(${arrive.left / ARRIVE_S})`;
+      } else ask.textContent = cards.length > 1 ? 'Move to these musics?' : 'Move to this music?';
+    };
+    paint();
+    if (auto) arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left <= 0) go(); else paint(); }, 1000);
     box.hidden = false;
     requestAnimationFrame(() => rollTitles(box));
-    refreshLive();
     return true;
   }
 
@@ -3620,18 +3527,7 @@
     });
     document.addEventListener('visibilitychange', () => { if (rec) noteDbg(document.hidden ? 'hidden' : 'shown'); });
     $('#mw-listen').innerHTML = ICON.listen;
-    $('#mw-listen').addEventListener('click', () => listen(!listening));
-    $('#mw-heard-x').innerHTML = ICON.close;
-    $('#mw-heard-x').addEventListener('click', () => listen(false));
-    $('#mw-heard-master').addEventListener('input', (e) => {
-      settings.master = Number(e.target.value);
-      $('#mw-heard-master-val').textContent = String(Math.round(settings.master * 100));
-      $('#mw-master').value = settings.master; paintRange($('#mw-master'));
-      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
-      const { ctx, master } = audio();
-      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
-    });
-    $('#mw-heard-master').addEventListener('change', saveSettings);
+    $('#mw-listen').addEventListener('click', () => hear(!hearing));
     $('#mw-sb .star').innerHTML = ICON.star;
     $('#mw-sb').addEventListener('click', () => { if (mode === 'edit') { showEdView('soundbox'); return; } if ($('#mw-sbx').hidden) openSoundbox(); else closeSoundbox(); });
     $('#mw-mus-btn .ic').innerHTML = ICON.music;
@@ -3782,7 +3678,7 @@
     V.onNoWay = () => toast('No way there: walls close it off.', 2000);
     V.onReach = reachDragged;
     V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
-    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (listening) prepare(worldFiles(rec), false).then(() => { if (listening && A.isOpen()) A.sync(); }); } };
+    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (hearing) prepare(worldFiles(rec), false).then(() => { if (hearing && A.isOpen()) A.sync(); }); } };
     V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
@@ -3839,8 +3735,7 @@
         const k = e.key.toLowerCase();
         if (map[k]) { V.setTool(map[k]); return; }
         if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
-        if (k === 's') { listen(!listening); return; }
-        if (k === 'n') { V.snap(!V.snap()); toast(V.snap() ? 'Snapping on.' : 'Snapping off.', 1200); if (V.tool() === 'select') renderOpts('select'); return; }
+        if (k === 's') { hear(!hearing); return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
         if (e.key.startsWith('Arrow') && V.selected()) {
