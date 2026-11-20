@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.6';
+  const VERSION = '261120.7';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1085,7 +1085,12 @@
     const loop = el('button');
     loop.type = 'button';
     paintLoop(loop, c);
-    loop.addEventListener('click', () => {
+    // With the waiting queue, a music plays once: no loop to pick, 1× shown.
+    if (c.zone === 'music' && settings.musicQueue) {
+      loop.className = 'loop fixed'; loop.textContent = '1×'; loop.disabled = true;
+      loop.title = 'Plays once: the waiting queue says what comes next';
+      loop.setAttribute('aria-label', `${c.name} plays once`);
+    } else loop.addEventListener('click', () => {
       // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
       const ways = c.zone === 'music' ? ['once', 'twice', 'loop'] : ['once', 'twice', 'loop', 'random'];
       const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
@@ -2661,6 +2666,14 @@
     $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
     $('#opt-music-stop').addEventListener('change', (e) => { settings.musicStop = e.target.checked; saveSettings(); paintSettings(); });
     $('#opt-music-full').addEventListener('change', (e) => { setMusicFull(e.target.checked); });
+    // The waiting queue: on, every music plays once and the queue says what comes next; off, no queue at all.
+    $('#opt-music-queue').addEventListener('change', (e) => {
+      settings.musicQueue = e.target.checked; saveSettings();
+      if (!settings.musicQueue) { musQueueView = false; A.queueClear(); }
+      A.loopsNow();
+      if (!$('#mw-mus').hidden) { paintMusicFull(); renderMusic(); }
+      if (mode === 'edit' || $('#world').classList.contains('panel')) renderPanel();
+    });
     const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeArrive(); paintSettings(); });
     pickSeg('#music-in', 'musicIn'); pickSeg('#music-out', 'musicOut');
     document.querySelectorAll('#music-in [data-v], #music-out [data-v]').forEach((b) => { b.innerHTML = b.dataset.v === 'place' ? ICON.onPlace : ICON.inCircle; });
@@ -2720,6 +2733,7 @@
     $('#music-in-hint').textContent = settings.musicIn === 'circle' ? 'When the party stops in its hearing circle' : 'When the party stops on the place';
     $('#music-out-hint').textContent = settings.musicOut === 'place' ? 'When the party is out of the place' : 'When the party is out of its hearing circle';
     $('#opt-music-full').checked = !!settings.musicFull;
+    $('#opt-music-queue').checked = !!settings.musicQueue;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
@@ -2736,6 +2750,15 @@
     const p = await DB.persistence();
     const size = (b) => window.Troubadour.formatSize(b || 0);
     info.textContent = `${p.usage != null ? `In use: about ${size(p.usage)}.` : ''} ${p.persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
+  }
+
+  /** A volume slider moves its gain at once, over 60 ms: what was scheduled on it is dropped first (iPhone keeps
+   *  piling up targets on a gain and let the master take seconds to arrive). */
+  function glide(param, value, ctx) {
+    const t = ctx.currentTime;
+    if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(t);
+    else { const v = param.value; param.cancelScheduledValues(t); param.setValueAtTime(v, t); }
+    param.linearRampToValueAtTime(value, t + 0.06);
   }
 
   /* ================= Keep the screen awake ================= */
@@ -2858,7 +2881,7 @@
       b.title = on ? 'Back to the side panel' : 'Full screen';
       b.setAttribute('aria-label', b.title);
     });
-    $('#mw-mus-queue').hidden = on;
+    $('#mw-mus-queue').hidden = on || !settings.musicQueue;
   }
   function openMusic() {
     closeSoundbox();
@@ -2983,12 +3006,15 @@
     now.textContent = ''; list.textContent = '';
     const all = rec.world.music || [];
     const full = !!settings.musicFull;
+    const useQ = !!settings.musicQueue;
+    if (!useQ) musQueueView = false;
+    $('#mw-mus-queue').hidden = full || !useQ;
     const queueOnly = musQueueView && !full;
     $('#mw-mus-queue').setAttribute('aria-pressed', String(musQueueView));
     $('.mus-q').hidden = queueOnly;
     const qlist = $('#mw-mus-qlist');
     qlist.textContent = '';
-    $('#mw-mus-upnext').hidden = !full;
+    $('#mw-mus-upnext').hidden = !full || !useQ;
     // The music heard now: its card (progress, play and pause, stop, volume).
     let shown, nowRows = [];
     musRows.push(() => {
@@ -3053,7 +3079,7 @@
       return r;
     };
 
-    if (queueOnly || full) {
+    if (queueOnly || (full && useQ)) {
       // The queue: what plays next, in order. A tap plays one now. In full screen it sits above the search.
       const into = full ? qlist : list;
       const q = A.queue();
@@ -3076,7 +3102,7 @@
       if (words.length && !words.every((k) => fold(c.name).includes(k))) return;
       const r = musicRow(c, {
         play: () => A.toggle(c),
-        buttons: (row, pb) => [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
+        buttons: (row, pb) => !useQ ? [] : [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
           if (!(await ensureMusic(c, row, pb))) return;
           A.setMusic(all);
           A.queueAdd(c);
@@ -3663,7 +3689,7 @@
     $('#mw-sbx-close').addEventListener('click', closeSoundbox);
     $('#mw-sbvol').value = settings.sbVolume;
     paintRange($('#mw-sbvol'));
-    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) sbGain.gain.setTargetAtTime(A.curve(settings.sbVolume), audio().ctx.currentTime, 0.03); });
+    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) glide(sbGain.gain, A.curve(settings.sbVolume), audio().ctx); });
     $('#mw-sbvol').addEventListener('change', saveSettings);
     wireToolsGrip();
     $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
@@ -3677,7 +3703,10 @@
       const open = $('#world').classList.contains('panel');
       // In the editor: the panel of the map, or of the element selected.
       if (mode === 'edit') { if (open && !edView) setPanel(false); else { edView = null; setPanel(true); renderPanel(); } return; }
-      if (open && !tapped) { setPanel(false); return; }
+      // At the table the sound menu takes the place of the Music and the Soundbox: they close.
+      const covered = !$('#mw-mus').hidden || !$('#mw-sbx').hidden;
+      closeMusic(); closeSoundbox();
+      if (open && !tapped && !covered) { setPanel(false); return; }
       tapped = null;
       setPanel(true);
       renderPanel();
@@ -3735,7 +3764,7 @@
       settings.master = Number(e.target.value);
       $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
       const { ctx, master } = audio();
-      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
+      glide(master.gain, A.curve(settings.master), ctx);
     });
     $('#mw-master').addEventListener('change', saveSettings);
 
@@ -3801,6 +3830,7 @@
     V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
+      closeMusic(); closeSoundbox();
       tapped = e || null;
       renderPanel();
       setPanel(true);

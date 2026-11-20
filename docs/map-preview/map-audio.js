@@ -35,6 +35,8 @@
   /** The master play, pause and stop buttons fade over 3 s. */
   const MASTER_FADE = 3000;
   const RANDOM_TOP = 30;
+  /** How a voice plays: with the waiting queue (setting), a music of the world plays once, the queue saying what comes next. */
+  const playOf = (v) => (v.world && settings.musicQueue ? 'once' : v.card.play);
   const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 17)));
   /** A card's own longest pause (1 to 30 s), else the one of the settings. */
   const ownPause = (card) => { const n = Number(card && card.randomMax); return n >= 1 && n <= RANDOM_TOP ? n : null; };
@@ -93,7 +95,7 @@
       let v = voices.get(c);
       if (!v) { v = makeVoice(c, null); v.world = true; voices.set(c, v); }
       if (!v.volMs) v.vg.gain.setTargetAtTime(curve(c.volume), now(), 0.03);
-      if (v.src) v.src.loop = c.play === 'loop' && !queue.length && !blendOf(v);
+      if (v.src) v.src.loop = playOf(v) === 'loop' && !queue.length && !blendOf(v);
     });
     voices.forEach((v, c) => { if (v.world && !live.has(c)) { drop(v); voices.delete(c); } });
     queue = queue.filter((c) => live.has(c));
@@ -138,7 +140,7 @@
   const STREAM_SEAM = 0.35;
   function blendOf(v) {
     const b = Number(v.card.blend || 0) || (isStream(v) ? STREAM_SEAM : 0), d = turnOf(v) - headOf(v);
-    return v.card.play === 'loop' && !(v.world && queue.length) && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
+    return playOf(v) === 'loop' && !(v.world && queue.length) && b > 0 && d > 1.5 ? Math.min(b, d / 3) : 0;
   }
   /** Where the round heard now is, in seconds from the trimmed start of the sound. */
   function position(v) {
@@ -165,7 +167,7 @@
     const xf = ctx.createGain(); xf.gain.value = 1;
     src.connect(xf).connect(v.vg);
     const t = now();
-    if (v.card.play === 'loop' && !(v.world && queue.length) && !blendOf(v)) {
+    if (playOf(v) === 'loop' && !(v.world && queue.length) && !blendOf(v)) {
       // The engine's gapless loop: ends trimmed, the seam crossfaded inside the buffer, the turn on a sample.
       const L = E.loopOf(buf, 0, true);
       src.buffer = L.buf; src.loop = true; src.loopStart = L.loopStart; src.loopEnd = L.loopEnd;
@@ -283,7 +285,7 @@
   /** A streamed loop nobody hears (its place is out of reach) rests: nothing is read from the device for it. */
   function restTick(v, t) {
     const m = v.src && v.src.media;
-    if (!m || !m.dataset.live || v.state !== 'playing' || v.twin || v.world || v.card.play !== 'loop') return;
+    if (!m || !m.dataset.live || v.state !== 'playing' || v.twin || v.world || playOf(v) !== 'loop') return;
     if (v.el && !v.near) {
       if (!v.quiet) v.quiet = t;
       else if (t - v.quiet > 2500 && !m.paused) m.pause();
@@ -470,9 +472,9 @@
   /** The sound came to its end on its own. */
   function ended(v) {
     // A loop that came to its end without a seam (too short to cross, or its length unknown): round again.
-    if (v.card.play === 'loop' && v.state === 'playing' && !(v.world && queue.length)) { stopSource(v); startSource(v, headOf(v)); return; }
+    if (playOf(v) === 'loop' && v.state === 'playing' && !(v.world && queue.length)) { stopSource(v); startSource(v, headOf(v)); return; }
     v.plays += 1;
-    if (v.card.play === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
+    if (playOf(v) === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
     const natural = v.state === 'playing';
     reset(v);
     // The world's music, at its end (1× or 2× played through, or the round of a loop when musics wait): the next one
@@ -480,7 +482,7 @@
     if (natural && v.world) {
       const next = queue.length ? voices.get(queue.shift()) : null;
       if (next && next !== v) toggleVoice(next);
-      else if (next === v || v.card.play === 'loop') play(v, 0.03);
+      else if (next === v || playOf(v) === 'loop') play(v, 0.03);
       changed();
       return;
     }
@@ -651,7 +653,7 @@
       if (!v) { v = makeVoice(card, el); voices.set(card, v); }
       v.el = el;
       if (!v.volMs) v.vg.gain.setTargetAtTime(curve(card.volume), now(), 0.03);
-      if (v.src) v.src.loop = card.play === 'loop' && !blendOf(v);
+      if (v.src) v.src.loop = playOf(v) === 'loop' && !blendOf(v);
       if (card.play !== 'random' && v.rnd) { v.rnd = false; v.next = 0; }
       if (card.play === 'random' && v.active && !heldRandom.includes(v)) v.rnd = true; // held by the master pause: stays held
     });
@@ -827,9 +829,10 @@
   }
   /* The queue of the world's music. */
   /** A loop playing ends its round when a music waits in the queue, and loops again when the queue empties. */
-  function loopsNow() { voices.forEach((v) => { if (v.world && v.src) v.src.loop = v.card.play === 'loop' && !queue.length && !blendOf(v); }); }
+  function loopsNow() { voices.forEach((v) => { if (v.world && v.src) v.src.loop = playOf(v) === 'loop' && !queue.length && !blendOf(v); }); }
   function queueAdd(card) { queue.push(card); loopsNow(); changed(); }
   function queueRemove(i) { queue.splice(i, 1); loopsNow(); changed(); }
+  function queueClear() { queue = []; loopsNow(); changed(); }
   function queueMove(i, d) { const j = i + d; if (j < 0 || j >= queue.length) return; [queue[i], queue[j]] = [queue[j], queue[i]]; changed(); }
   /** Plays a music now (crossfading the one playing), taking it out of the queue. */
   function playMusic(card, i) { if (i != null) queue.splice(i, 1); const v = voices.get(card); if (v && v.state !== 'playing') toggleVoice(v); changed(); }
@@ -854,8 +857,8 @@
     if (!v || !d) return { p: 0, left: null, next: null };
     if (v.waiting) return { p: 0, left: null, next: Math.max(0, (v.next - Date.now()) / 1000) };
     if (v.state === 'idle') return { p: 0, left: null, next: null };
-    if (card.play === 'loop') return { p: -1, left: null, next: null };
-    const total = card.play === 'twice' ? 2 * d : d;
+    if (playOf(v) === 'loop') return { p: -1, left: null, next: null };
+    const total = playOf(v) === 'twice' ? 2 * d : d;
     const done = v.plays * d + position(v);
     return { p: Math.min(1, done / total), left: Math.max(0, total - done), next: null };
   }
@@ -893,7 +896,7 @@
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
-    open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
+    open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, queueClear, loopsNow, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point, prime: (c) => prime(c), unprime: (c) => unprime(c), position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
   });

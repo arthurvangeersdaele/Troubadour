@@ -316,6 +316,26 @@ try {
       await page.evaluate((id) => { const e = window.MapView.__place().elements.find((x) => x.id === id); e.cards.pop(); window.MapAudio.sync(); window.MapUI.settings.musicAuto = true; window.MapUI.settings.musicWait = 5; }, geo.id);
     }
   }
+  // The waiting queue: off, no queue anywhere and loops kept; on, the queue comes back and every music shows 1×.
+  {
+    const q = await page.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms)), t = document.getElementById('opt-music-queue');
+      const set = async (on) => { t.checked = on; t.dispatchEvent(new Event('change')); await wait(200); };
+      await set(false);
+      document.getElementById('mw-mus-btn').click(); await wait(300);
+      const off = { btn: document.getElementById('mw-mus-queue').hidden, adds: document.querySelectorAll('#mw-mus-list .mus-i').length, loops: [...document.querySelectorAll('#mw-mus-now .loop')].filter((b) => !b.disabled).length };
+      await set(true); await wait(200);
+      const on = { btn: document.getElementById('mw-mus-queue').hidden, adds: document.querySelectorAll('#mw-mus-list .mus-i').length, fixed: [...document.querySelectorAll('#mw-mus-now .loop')].every((b) => b.disabled && b.textContent === '1×') };
+      await set(false);
+      // The sound menu button closes the Music and the Soundbox.
+      document.getElementById('mw-menu').click(); await wait(300);
+      const menu = { mus: document.getElementById('mw-mus').hidden, sbx: document.getElementById('mw-sbx').hidden, panel: document.getElementById('world').classList.contains('panel') };
+      return { off, on, menu };
+    });
+    ok(q.off.btn && q.off.adds === 0, `no waiting queue: no queue button, no Add to the queue (${JSON.stringify(q.off)})`);
+    ok(!q.on.btn && q.on.adds > 0 && q.on.fixed, `waiting queue: its buttons back, every music 1× (${JSON.stringify(q.on)})`);
+    ok(q.menu.mus && q.menu.sbx && q.menu.panel, 'the sound menu button closes the Music and the Soundbox');
+  }
   // The sound menu of a place goes back to the whole map in one tap.
   {
     const crumb = await page.evaluate(async () => {
@@ -414,7 +434,7 @@ try {
   // The music menu in full screen: the music heard, the queue, then the search.
   // Chosen in Settings only: no button in the menu.
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('mw-mus-full')).display === 'none' && getComputedStyle(document.getElementById('mw-sbx-full')).display === 'none'), 'full screen is set in Settings only (no button in the menus)');
-  await page.evaluate(() => { const t = document.getElementById('opt-music-full'); t.checked = true; t.dispatchEvent(new Event('change')); });
+  await page.evaluate(() => { window.MapUI.settings.musicQueue = true; const t = document.getElementById('opt-music-full'); t.checked = true; t.dispatchEvent(new Event('change')); });
   await page.click('#mw-mus-btn');
   await page.waitForSelector('#mw-mus:not([hidden])');
   await page.waitForTimeout(300);
@@ -424,7 +444,7 @@ try {
     return { full: m.width >= body.width - 2 && m.height >= body.height - 2, order: !document.getElementById('mw-mus-upnext').hidden && up.top < q.top, setting: window.MapUI.settings.musicFull };
   });
   ok(fs.full && fs.order && fs.setting, `the music menu takes the full screen, the queue above the search (${JSON.stringify(fs)})`);
-  await page.evaluate(() => { const t = document.getElementById('opt-music-full'); t.checked = false; t.dispatchEvent(new Event('change')); });
+  await page.evaluate(() => { window.MapUI.settings.musicQueue = false; const t = document.getElementById('opt-music-full'); t.checked = false; t.dispatchEvent(new Event('change')); });
   await page.click('#mw-mus-close');
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
