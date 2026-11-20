@@ -613,7 +613,9 @@
   /* ---------- Space ---------- */
   /** The gain of the space for every voice of an element, from where the player point stands. */
   /** p: where the party is; still: false while it walks or is dragged, true once it stops there. */
-  function hear(p, still) {
+  /** Where no party stands yet (a map opened without a way): far off every map, nothing of a place is heard. */
+  const NOWHERE = [-1e7, -1e7];
+  function hear(p, still, soft) {
     if (p) point = p;
     if (still === false) moving = true;
     else if (still === true) moving = false;
@@ -633,7 +635,8 @@
       }
       v.heard = g; v.near = near;
       v.space.gain.cancelScheduledValues(t);
-      v.space.gain.setTargetAtTime(g, t, 0.15);
+      // Laid by a long press: everything it hears comes in over about two seconds.
+      v.space.gain.setTargetAtTime(g, t, soft ? 0.6 : 0.15);
     });
   }
 
@@ -664,11 +667,11 @@
     changed();
   }
 
-  function open(p, w, bufs) {
+  function open(p, w, bufs, unplaced) {
     // The sounds of the map left fade out; the world's music plays on.
     voices.forEach((v, c) => { if (!v.world) { drop(v, settings.fade); voices.delete(c); } });
     pausedByAll = pausedByAll.filter((v) => v.world); heldRandom = heldRandom.filter((v) => v.world);
-    place = p; world = w; buffers = bufs; point = p.player.slice();
+    place = p; world = w; buffers = bufs; point = unplaced ? NOWHERE.slice() : p.player.slice();
     sync();
     audio(true);
     // Every card starts with its map (with the fade-in of Play; events strike at once): the map decides how much of

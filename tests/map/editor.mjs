@@ -215,6 +215,43 @@ try {
     await page.keyboard.press('Escape');
   }
 
+  // A drawn place (a path) turns and changes size from the inspector too.
+  {
+    const r = await page.evaluate(async () => {
+      const V = window.MapView, p = V.__place(), M = window.TroubadourMap, wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      const e = M.cleanElement({ id: 'pathtest', title: 'Drawn', radius: 100, cards: [], shape: { type: 'path', closed: true, points: [[400, 400], [600, 400], [600, 500], [400, 500]] } }, p.width, p.height);
+      p.elements.push(e); V.select(e); await wait(300);
+      const steps = [...document.querySelectorAll('.row-step')].map((r) => r.querySelector('span').textContent);
+      const turn = [...document.querySelectorAll('.row-step')].find((r) => r.querySelector('span').textContent === 'Turn');
+      const size = [...document.querySelectorAll('.row-step')].find((r) => r.querySelector('span').textContent === 'Size');
+      const b0 = M.bounds(e.shape);
+      if (turn) turn.querySelectorAll('button')[1].click();
+      await wait(100);
+      const b1 = M.bounds(e.shape);
+      if (size) size.querySelectorAll('button')[1].click();
+      await wait(100);
+      const b2 = M.bounds(e.shape);
+      p.elements.splice(p.elements.indexOf(e), 1); V.select(null);
+      return { steps, turned: e.shape.rotation, h0: b0[3] - b0[1], h1: b1[3] - b1[1], w1: b1[2] - b1[0], w2: b2[2] - b2[0] };
+    });
+    ok(r.steps.includes('Size') && r.steps.includes('Turn') && r.turned === 15 && r.h1 > r.h0 && r.w2 > r.w1, `a drawn place: Size and Turn in its inspector (${JSON.stringify(r)})`);
+  }
+  // Ways: every way has its in portal on the map it leads to; several there: a colour per pair.
+  {
+    const r = await page.evaluate(() => {
+      const M = window.TroubadourMap, w = { places: [M.newPlace('A', 'a'), M.newPlace('B', 'b')] };
+      const mk = (id, x, link) => M.cleanElement({ id, title: id, radius: 50, cards: [], link, shape: { type: 'stamp', stamp: 'lake', x, y: 300, size: 100 } }, 1600, 1000);
+      w.places[0].elements.push(mk('d1', 300, 'b'), mk('d2', 900, 'b'));
+      w.places[1].elements.push(mk('back', 500, 'a'));
+      M.syncPortals(w);
+      const insB = w.places[1].ins, insA = w.places[0].ins;
+      const c1 = M.portalColour(w, 'b', 'a', 'd1'), c2 = M.portalColour(w, 'b', 'a', 'd2'), cA = M.portalColour(w, 'a', 'b', 'back');
+      w.places[0].elements[1].link = null; M.syncPortals(w);
+      return { b: insB.length, a: insA.length, c1, c2, cA, after: w.places[1].ins.length };
+    });
+    ok(r.b === 2 && r.a === 1 && r.c1 && r.c2 && r.c1 !== r.c2 && r.cA === null && r.after === 1, `in portals made with their ways, a colour per pair when several (${JSON.stringify(r)})`);
+  }
+
   // The page of keys.
   await page.keyboard.press('?');
   ok(await page.isVisible('#sheet') && /Keyboard shortcuts/.test(await page.textContent('#sheet-title')), '? opens the page of keys');

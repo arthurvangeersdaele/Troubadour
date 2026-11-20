@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.7';
+  const VERSION = '261120.8';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -437,6 +437,8 @@
   /* ================= Saving ================= */
   let saveBad = false;
   function save() {
+    // Every way has its in portal on the map it leads to (laid, or taken away with the way).
+    if (rec && M.syncPortals(rec.world)) V.redraw();
     // Every change made while drawing is a step of the history (gathered once things settle).
     if (mode === 'edit' && V.commitSoon) V.commitSoon();
     clearTimeout(saveTimer);
@@ -616,22 +618,16 @@
     setTimeout(() => { if (check()) soundGate.timer = setInterval(() => { if (!check()) clearInterval(soundGate.timer); }, 200); }, 350);
   }
 
-  /** Takes the party to another map by a way (a door, stairs): it arrives beside the way that leads back,
-   *  on the side of the middle of the map, never on its sign. */
-  function travel(to) {
+  /** Takes the party to another map by a way (an out portal): it arrives at the in portal of that way, on the map
+   *  it leads to (laid beside the way back, else in the middle; moved by the troubadour in the editor). */
+  let arriving = false;
+  function travel(to, way) {
     const from = place(), dest = rec.world.places[to];
-    const back = dest.elements.find((e) => e.link === from.id);
-    if (back) {
-      const b = M.bounds(back.shape), c = M.centre(back.shape);
-      const mid = [dest.width / 2, dest.height / 2];
-      let dx = mid[0] - c[0], dy = mid[1] - c[1];
-      const d = Math.hypot(dx, dy) || 1;
-      dx /= d; dy /= d;
-      const half = Math.hypot(b[2] - b[0], b[3] - b[1]) / 2;
-      const gap = half + Math.max(80, Math.min(dest.width, dest.height) * 0.08);
-      dest.player = [Math.round(Math.max(20, Math.min(dest.width - 20, c[0] + dx * gap))), Math.round(Math.max(20, Math.min(dest.height - 20, c[1] + dy * gap)))];
-      save();
-    }
+    M.syncPortals(rec.world);
+    const inn = way && (dest.ins || []).find((i) => i.from === from.id && i.el === way.id);
+    dest.player = inn ? inn.at.slice() : (dest.ins || []).find((i) => i.from === from.id)?.at.slice() || dest.player;
+    save();
+    arriving = true;
     goPlace(to);
   }
 
@@ -647,6 +643,9 @@
     nowShown = '';
     paintNowPlaying();
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
+    // At the table, a map opened without a way (the first one too) has no party yet: a long press lays it.
+    V.setUnplaced(mode === 'play' && !arriving);
+    arriving = false;
     V.setMode(mode);
     V.show(place(), rec.world);
     paintHistory();
@@ -673,6 +672,7 @@
     // The cards heard while editing fall silent when the table opens, and the other way round.
     stopFxWhere(() => true);
     const was = V.mode();
+    if (m !== 'play') V.setUnplaced(false); else if (was !== 'play') V.setUnplaced(true);
     V.setMode(m);
     if (was !== m) { V.fit(); renderPlaces(); }
     $('#mw-stamps').hidden = true;
@@ -690,11 +690,12 @@
       idle();
       if (rec !== r0 || mode !== 'play') return;
       A.setMusic(music);
-      A.open(place(), rec.world, sounds);
+      A.open(place(), rec.world, sounds, V.unplaced());
+      if (V.unplaced()) toast('Long press the map to place the party.', 3200);
       soundGate();
       if (pins().length) loadPads(); else renderPinStrip();
       acquireWake();
-      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way (a tap is enough when the party stands on it).`;
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to place the party, then to send it there; a sign to take its way (a tap is enough when the party stands on it).`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
       let seen = 0;
       try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }
@@ -888,7 +889,13 @@
   }
   // The sizes a place steps through, in % of the width of its map.
   const SIZE_STEPS = [1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 23, 26, 30, 35, 40, 50, 60];
-  const pctOf = (e) => (e.shape.size / place().width) * 100;
+  // A drawn place (a path) has no size of its own: its widest side stands for it, and it scales around its middle.
+  const sizeOf = (e) => { if (e.shape.type === 'stamp') return e.shape.size; const b = M.bounds(e.shape); return Math.max(b[2] - b[0], b[3] - b[1], 1); };
+  const pctOf = (e) => (sizeOf(e) / place().width) * 100;
+  function transformPath(e, f) {
+    const c = M.centre(e.shape);
+    e.shape.points = e.shape.points.map((q) => { const [x, y] = f(q[0] - c[0], q[1] - c[1]); return [Math.round(c[0] + x), Math.round(c[1] + y)]; });
+  }
   const fmtPct = (v) => `${v < 10 ? Math.round(v * 2) / 2 : Math.round(v)} %`;
   function sizeStepper(e) {
     return stepper('Size', () => fmtPct(pctOf(e)), (d) => {
@@ -896,16 +903,21 @@
       const next = d > 0 ? SIZE_STEPS.find((x) => x > v + 0.05) : [...SIZE_STEPS].reverse().find((x) => x < v - 0.05);
       if (!next) return;
       // Its reach grows and shrinks with it: the same times its size.
-      const k = e.radius / Math.max(1, e.shape.size);
-      e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
-      e.radius = Math.round(k * e.shape.size);
+      const k = e.radius / Math.max(1, sizeOf(e));
+      const target = Math.max(10, Math.round((next / 100) * place().width));
+      if (e.shape.type === 'stamp') e.shape.size = target;
+      else { const f = target / sizeOf(e); transformPath(e, (x, y) => [x * f, y * f]); }
+      e.radius = Math.round(k * sizeOf(e));
       if (A.isOpen()) A.hear();
     });
   }
   function turnStepper(e) {
-    return stepper('Turn', () => `${e.shape.rotation}°`, (d) => {
-      let r = Math.round((e.shape.rotation + d * 15) / 15) * 15;
+    return stepper('Turn', () => `${e.shape.rotation || 0}°`, (d) => {
+      const was = e.shape.rotation || 0;
+      let r = Math.round((was + d * 15) / 15) * 15;
       if (r > 180) r -= 360; if (r <= -180) r += 360;
+      // A drawn place turns its points around its middle; it keeps the angle it was given, to show it.
+      if (e.shape.type !== 'stamp') { const a = ((r - was) * Math.PI) / 180, co = Math.cos(a), si = Math.sin(a); transformPath(e, (x, y) => [x * co - y * si, x * si + y * co]); }
       e.shape.rotation = r;
     });
   }
@@ -989,7 +1001,7 @@
     const head = el('div', 'ctx-head');
     head.append(el('b', '', elName(e)));
     m.append(head);
-    if (e.shape.type === 'stamp') m.append(sizeStepper(e), turnStepper(e));
+    m.append(sizeStepper(e), turnStepper(e));
     const item = (icon, label, fn, cls) => {
       const b = el('button', `ctx-item ${cls || ''}`);
       b.type = 'button'; b.setAttribute('role', 'menuitem');
@@ -1530,9 +1542,8 @@
     const t = el('input'); t.type = 'text'; t.value = e.title; t.maxLength = 80; t.placeholder = 'Name (shown on the map)';
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
-    if (sh.type === 'stamp') {
-      id.append(sizeStepper(e), turnStepper(e));
-    } else if (sh.points.length > 2) {
+    id.append(sizeStepper(e), turnStepper(e));
+    if (sh.type !== 'stamp' && sh.points.length > 2) {
       const l = el('label', 'row-set toggle');
       const span = el('span', '', 'Closed shape');
       span.append(el('small', '', 'An area (inside it, its sounds are at full volume), or a line'));
@@ -1684,7 +1695,7 @@
         const go = el('button', 'btn primary go-place');
         go.type = 'button';
         go.innerHTML = `${ICON.link}<span>Go to ${rec.world.places[to].title}</span>`;
-        go.addEventListener('click', () => travel(to));
+        go.addEventListener('click', () => travel(to, e));
         box.append(go);
       }
     }
@@ -3827,7 +3838,8 @@
     V.onReach = reachDragged;
     V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (hearing) prepare(worldFiles(rec), false).then(() => { if (hearing && A.isOpen()) A.sync(); }); } };
-    V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
+    // The party laid by a long press: its sounds come in softly.
+    V.onPlayer = (p, still, laid) => { if (A.isOpen()) A.hear(p, still, laid); };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
       closeMusic(); closeSoundbox();
@@ -3840,7 +3852,7 @@
       const to = rec.world.places.findIndex((q) => q.id === e.link);
       if (to < 0 || to === pi) return;
       toast(`To ${rec.world.places[to].title}`, 1600);
-      travel(to);
+      travel(to, e);
     };
     // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
     A.onChange = () => { V.touch(); };

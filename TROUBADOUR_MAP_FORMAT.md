@@ -93,7 +93,8 @@ A **place** (one map):
 | `title` | string | Shown at the top of the map. |
 | `width`, `height` | number | Size of the map, in map units (400 to 8000). Every coordinate below is in these units, from the top left corner. |
 | `ground` | string | Optional. What lies under the drawings of this map: `grid` (the default), `grass`, `dirt` or `empty`. |
-| `player` | [x, y] | Where the player point stands when the place opens. |
+| `player` | [x, y] | Where the player point stood last (the editor hears from it). At the table, a map opened without a way has no party until the troubadour lays it with a long press. |
+| `ins` | array | Optional. The in portals: `{ "from": id of a place, "el": id of its element whose `link` leads here, "at": [x, y] }`, one for every way leading to this place, kept in step with the links by the apps. Taking that way, the party arrives at `at`. When a place has several, each pair (the way and its in portal) is drawn in its own colour. |
 | `general` | array of cards | Sounds of the whole place: heard everywhere at their own volume, never muffled by distance or walls. |
 | `walls` | array | Each `{ "points": [[x, y], ...] }`, an open line of 2 points or more. |
 | `elements` | array of elements | Drawn shapes and library drawings, in drawing order (the last on top). |
@@ -107,7 +108,7 @@ An **element**:
 | `shape` | object | `{ "type": "path", "closed": bool, "points": [[x, y], ...] }` for a shape drawn by hand (closed: an area, open: a line such as a river), or `{ "type": "stamp", "stamp": "<name>", "x", "y", "size", "rotation" }` for a library drawing centred on `x`, `y`, `size` units wide, turned by `rotation` degrees. |
 | `radius` | number | 0 to 4000 map units: how far beyond its outline its sounds carry. Shared by all its cards. Troubadour Map shows it as a share of the place's width (200 on a 2000-wide place: 10 %). |
 | `cards` | array of cards | 0 or more sounds of the story. An element without cards is a drawing only. |
-| `link` | string or `null` | `id` of another place of the world: tapping the element at the table offers to go there. |
+| `link` | string or `null` | `id` of another place of the world: this element is a way (an out portal); at the table a long press on its sign goes there, to its in portal (`ins` of that place). |
 
 Library drawings known in version 1: `lake`, `mountains`, `hill`, `forest`, `tree`, `swamp`, `rocks`, `fire`, `tower`, `ruins`, `cave`, `stairs`, `door`, `bridge`, `tent`, `well`, `altar`, `grave`. A reader that does not know a stamp draws it as a plain circle of its size, and keeps it when it re-saves the file.
 

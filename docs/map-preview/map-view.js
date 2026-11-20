@@ -21,13 +21,16 @@
 
   let cv = null, ctx = null, place = null, world = null;
   let mode = 'edit', tool = 'select', stamp = 'lake', selected = null;
+  // At the table, a map opened without a way: no party yet, until a long press lays it.
+  let unplaced = false;
+  const partyShown = () => !(unplaced && mode === 'play');
   // More places selected with the one shown in the panel (Shift, a band, Ctrl+A): they move, go and copy together.
   const group = new Set();
   let view = { x: 0, y: 0, k: 1 };
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [], redoStack = [];
-  const api = { onNoWay: null, onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
+  const api = { onLaid: null, onNoWay: null, onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -88,7 +91,7 @@
     if (!place || W < 50 || H < 50) { needFit = 'fill'; return; }
     needFit = null;
     const k = Math.max(W / place.width, H / place.height);
-    const [px, py] = place.player;
+    const [px, py] = partyShown() ? place.player : [place.width / 2, place.height / 2];
     const x = Math.min(0, Math.max(W - place.width * k, W / 2 - px * k));
     view = { k, x, y: H / 2 - py * k };
     fillOnResize = true;
@@ -163,11 +166,12 @@
   let signTap = 0;
   /** The party stands on an element: inside its outline (a drawing, an area) or on its line, give or take its sign. */
   function partyOn(el) {
+    if (!partyShown()) return false;
     const sh = el.shape, p = place.player;
     if (sh.type === 'stamp') return Math.hypot(p[0] - sh.x, p[1] - sh.y) <= sh.size / 2 + 30;
     return M.reach(p, sh).d <= 30;
   }
-  function onPlayer(sx, sy) { const q = toScreen(place.player); return Math.hypot(sx - q[0], sy - q[1]) <= 26; }
+  function onPlayer(sx, sy) { if (!partyShown()) return false; const q = toScreen(place.player); return Math.hypot(sx - q[0], sy - q[1]) <= 26; }
 
   /* ---------- Undo and redo ---------- */
   // Every change of the map is a step: drawing, moving, the sounds of a place or of the whole map and their
@@ -178,7 +182,7 @@
   // What the app learns of a sound by itself (its length and weight, written once read) is no step of the history.
   const LEARNT = ['duration', 'size'];
   function skipLearnt(k, v) { return LEARNT.includes(k) && this && typeof this.file === 'string' ? undefined : v; }
-  const stateOf = () => JSON.stringify({ walls: place.walls, elements: place.elements, player: place.player, general: place.general }, skipLearnt);
+  const stateOf = () => JSON.stringify({ walls: place.walls, elements: place.elements, player: place.player, general: place.general, ins: place.ins || [] }, skipLearnt);
   /** Gives the cards of a state brought back what is known of their sounds now. */
   function relearn(o) {
     const known = new Map();
@@ -205,7 +209,7 @@
   function applyState(st) {
     const o = JSON.parse(st);
     relearn(o);
-    place.walls = o.walls; place.elements = o.elements; place.player = o.player;
+    place.walls = o.walls; place.elements = o.elements; place.player = o.player; if (o.ins) place.ins = o.ins;
     if (o.general) place.general = o.general;
     base = st;
     const ids = [...group].map((e) => e.id);
@@ -408,6 +412,15 @@
   /** Sends the party to w along its way: the trail is drawn, and walked a second later. */
   function sendTo(w) {
     const to = clampPoint(w);
+    // No party yet: the long press lays it there (its sounds come in softly).
+    if (!partyShown()) {
+      unplaced = false;
+      place.player = [Math.round(to[0]), Math.round(to[1])];
+      dirty = true;
+      if (api.onPlayer) api.onPlayer(place.player, true, true);
+      if (api.onLaid) api.onLaid(place.player);
+      return true;
+    }
     const path = findPath(place.player, to);
     if (!path) { if (api.onNoWay) api.onNoWay(); return false; }
     dropTrail();
@@ -568,6 +581,8 @@
     if (tool === 'select') {
       // The reach handle: drag the ring of what is heard, the number follows.
       if (onReachHandle(s[0], s[1])) { snapshot(); gesture = { kind: 'reach', el: selected }; cv.classList.add('grabbing'); dirty = true; return; }
+      const inn = inAt(s[0], s[1]);
+      if (inn) { snapshot(); gesture = { kind: 'portal', inn, moved: false }; cv.classList.add('grabbing'); return; }
       if (onPlayer(s[0], s[1])) { snapshot(); gesture = { kind: 'player', start: s, dragged: false }; cv.classList.add('grabbing'); return; }
       const el = elementAt(w);
       if (el && e.shiftKey) { toggleSelect(el); return; }
@@ -645,6 +660,7 @@
         if (api.onPlayer) api.onPlayer(place.player, false);
         break;
       case 'band': gesture.b = w; light = true; break;
+      case 'portal': { const c = clampPoint(w); gesture.inn.at = [Math.round(c[0]), Math.round(c[1])]; gesture.moved = true; dirty = true; break; }
       case 'reach': {
         const d = M.reach(w, gesture.el.shape).d;
         gesture.el.radius = Math.round(Math.max(0, Math.min(4000, d)) / 10) * 10;
@@ -716,6 +732,7 @@
       if (g.moved || tool === 'stamp') edited();
       if (g.created && api.onCreate) api.onCreate(g.el);
     } else if (g.kind === 'reach') { if (g.moved) edited(); }
+    else if (g.kind === 'portal') { if (g.moved) edited(); }
     else if (g.kind === 'band') {
       const lo = [Math.min(g.a[0], g.b[0]), Math.min(g.a[1], g.b[1])], hi = [Math.max(g.a[0], g.b[0]), Math.max(g.a[1], g.b[1])];
       const hit = place.elements.filter((x_) => { if (untouchable(x_)) return false; const b = M.bounds(x_.shape); return b[0] <= hi[0] && b[2] >= lo[0] && b[1] <= hi[1] && b[3] >= lo[1]; });
@@ -920,14 +937,50 @@
     if (!global.MapUI || global.MapUI.settings.names !== false) drawLabels();
     shown().forEach((el) => {
       if (!el.link) return;
-      // The way to another map, in the middle of the element: a long press on it goes there.
+      // The way to another map (its out portal), in the middle of the element: a long press on it goes there.
+      // Its colour, when the map it leads to has several in portals, is the one of its in portal there.
       const [lx, ly] = toScreen(M.centre(el.shape));
+      const pc = world && M.portalColour ? M.portalColour(world, el.link, place.id, el.id) : null;
+      if (pc) { ctx.beginPath(); ctx.arc(lx, ly, 19, 0, Math.PI * 2); ctx.lineWidth = 4; ctx.strokeStyle = pc; ctx.stroke(); }
       ctx.beginPath(); ctx.arc(lx, ly, 15, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
       ctx.lineWidth = 2.5; ctx.strokeStyle = pal.bg; ctx.stroke();
       ctx.lineWidth = 2.2;
       ctx.beginPath(); ctx.moveTo(lx - 5, ly + 5); ctx.lineTo(lx + 5, ly - 5); ctx.moveTo(lx - 1, ly - 5); ctx.lineTo(lx + 5, ly - 5); ctx.lineTo(lx + 5, ly + 1); ctx.stroke();
     });
+    drawIns();
     ctx = main;
+  }
+
+  /** The in portals: where the party arrives from another map. Not tied to a place; moved with the select tool. */
+  function drawIns() {
+    (place.ins || []).forEach((i) => {
+      const [x, y] = toScreen(i.at);
+      const pc = (world && M.portalColour && M.portalColour(world, place.id, i.from, i.el)) || pal.ink;
+      ctx.save();
+      if (mode === 'play') ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = pc; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+      // An arrow coming in, to a dot.
+      ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 1, y + 1); ctx.moveTo(x + 2, y - 4); ctx.lineTo(x + 2, y + 2); ctx.lineTo(x - 4, y + 2); ctx.stroke();
+      if (mode === 'edit' && world) {
+        const from = world.places.find((q) => q.id === i.from);
+        if (from) {
+          // Named after its way (the element leading here), else the map it comes from.
+          const way = from.elements.find((x) => x.id === i.el);
+          const t = `From ${(way && way.title) || from.title}`;
+          ctx.font = '600 12px "Barlow Semi Condensed", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.strokeText(t, x, y + 17); ctx.fillStyle = pc; ctx.fillText(t, x, y + 17);
+        }
+      }
+      ctx.restore();
+    });
+  }
+  function inAt(sx, sy) {
+    if (!place) return null;
+    const list = place.ins || [];
+    for (let k = list.length - 1; k >= 0; k--) { const q = toScreen(list[k].at); if (Math.hypot(sx - q[0], sy - q[1]) <= 20) return list[k]; }
+    return null;
   }
 
   function draw() {
@@ -1034,6 +1087,7 @@
       }
     }
     drawTrail();
+    if (!partyShown()) return;
     const [px, py] = toScreen(place.player);
     ctx.beginPath(); ctx.arc(px, py, 22, 0, Math.PI * 2); ctx.fillStyle = alpha(pal.accent, 0.18); ctx.fill();
     ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
@@ -1083,8 +1137,8 @@
       const b = M.bounds(el.shape), [x0, y0] = toScreen([b[0], b[1]]), [x1, y1] = toScreen([b[2], b[3]]), d = (x1 - x0) * 0.15;
       taken.push(Object.assign(box(x0 + d, y0 + d, x1 - x0 - 2 * d, y1 - y0 - 2 * d), { el }));
     });
-    const [px, py] = toScreen(place.player);
-    taken.push(box(px - 24, py - 24, 48, 48));
+    if (partyShown()) { const [px, py] = toScreen(place.player); taken.push(box(px - 24, py - 24, 48, 48)); }
+    (place.ins || []).forEach((i) => { const [ix, iy] = toScreen(i.at); taken.push(box(ix - 16, iy - 16, 32, 32)); });
     shown().forEach((el) => { if (el.link) { const [lx, ly] = toScreen(M.centre(el.shape)); taken.push(box(lx - 18, ly - 18, 36, 36)); } });
     const order = place.elements.map((el, i) => ({ el, i })).sort((a, b) => (b.el.cards.length > 0) - (a.el.cards.length > 0) || a.i - b.i);
     ctx.textBaseline = 'middle';
@@ -1251,6 +1305,7 @@
     dirty = true;
   }
   function setMode(m) { if (m !== mode) dropTrail(); mode = m; if (m === 'play') select(null); dirty = true; }
+  function setUnplaced(b) { unplaced = !!b; if (unplaced) dropTrail(); dirty = true; }
   function setTool(t) { tool = t; if (api.onTool) api.onTool(t); dirty = true; }
   function setStamp(id) { stamp = id; setTool('stamp'); }
   let stampSizer = null;
@@ -1303,7 +1358,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),

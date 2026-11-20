@@ -403,6 +403,19 @@ try {
   // On the screen: a long press beyond the wall draws the trail there.
   await page.evaluate(() => { const t = document.getElementById('mw-play-tip'); if (t) t.classList.add('gone'); document.getElementById('world').classList.remove('panel'); });
   await page.waitForTimeout(400);
+  // A map opened at the table without a way: no party yet; a long press lays it, its sounds coming in softly.
+  {
+    await page.evaluate((u) => { location.hash = `#/edit/${u}/0`; }, uid), await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'edit'), await page.evaluate((u) => { location.hash = `#/play/${u}/0`; }, uid), await page.waitForFunction(() => document.getElementById('world').dataset.mode === 'play' && window.MapAudio.isOpen(), null, { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    const un = await page.evaluate(() => ({ un: window.MapView.unplaced(), far: window.MapAudio.point()[0] < -1000, pt: window.MapAudio.point() }));
+    ok(un.un && un.far, `a map opened without a way has no party yet (${JSON.stringify(un)})`);
+    await page.evaluate(() => { const t = document.getElementById('mw-play-tip'); if (t) t.classList.add('gone'); document.getElementById('world').classList.remove('panel'); });
+    await page.waitForTimeout(400);
+    const at = await page.evaluate(() => { const V = window.MapView, p = V.__place(); const s = V.__toScreen([Math.round(p.width * 0.3), Math.round(p.height * 0.5)]), r = document.getElementById('mw-canvas').getBoundingClientRect(); return [r.left + s[0], r.top + s[1]]; });
+    await page.mouse.move(at[0], at[1]); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
+    const laid = await page.evaluate(() => { const p = window.MapView.__place(), q = window.MapAudio.point(); return { un: window.MapView.unplaced(), d: Math.hypot(q[0] - p.width * 0.3, q[1] - p.height * 0.5), trail: !!window.MapView.__trail() }; });
+    ok(!laid.un && laid.d < 40 && !laid.trail, `a long press lays the party there (${JSON.stringify(laid)})`);
+  }
   const lp = await page.evaluate(() => { const V = window.MapView, p = V.__place(); p.player = [Math.round(p.width * 0.3), Math.round(p.height * 0.5)]; const s = V.__toScreen([Math.round(p.width * 0.7), Math.round(p.height * 0.5)]), r = document.getElementById('mw-canvas').getBoundingClientRect(); return [r.left + s[0], r.top + s[1]]; });
   await page.mouse.move(lp[0], lp[1]); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
   const tr = await page.evaluate(() => window.MapView.__trail());
@@ -421,6 +434,7 @@ try {
     const V = window.MapView, p = V.__place();
     const e = p.elements.find((x) => x.shape.type === 'stamp');
     e.link = window.__mapIds && window.__mapIds[1];
+    V.setUnplaced(false);
     p.player = [e.shape.x, e.shape.y + Math.round(e.shape.size / 4)];
     V.redraw();
     const s = V.__toScreen([e.shape.x, e.shape.y]), r = document.getElementById('mw-canvas').getBoundingClientRect();
@@ -430,6 +444,10 @@ try {
     await page.mouse.click(sign.x, sign.y);
     await page.waitForFunction(() => document.getElementById('mw-sub').textContent.startsWith('Map 2:'), null, { timeout: 4000 }).catch(() => {});
     ok((await page.textContent('#mw-sub')).startsWith('Map 2:'), 'a tap on a sign the party stands on takes its way');
+    // Through a way, the party arrives at the in portal of that way, placed.
+    for (let t = 0; t < 40; t++) { if (await page.evaluate(() => window.MapAudio.point()[0] > -1000)) break; await page.waitForTimeout(250); }
+    const arr = await page.evaluate(() => { const p = window.MapView.__place(), q = window.MapAudio.point(), i = (p.ins || [])[0]; return { un: window.MapView.unplaced(), ins: (p.ins || []).length, d: i ? Math.hypot(q[0] - i.at[0], q[1] - i.at[1]) : -1 }; });
+    ok(!arr.un && arr.ins >= 1 && arr.d >= 0 && arr.d < 2, `through a way the party arrives on its in portal (${JSON.stringify(arr)})`);
   }
   // The music menu in full screen: the music heard, the queue, then the search.
   // Chosen in Settings only: no button in the menu.
