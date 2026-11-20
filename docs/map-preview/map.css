@@ -191,7 +191,12 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-top .mini.on { background: var(--text); color: var(--bg); }
 @media (max-width: 900px) { .mp-top .mlabel, .mp-top .master b { display: none; } .mp-top .master #mw-master { width: 80px; } }
 @media (max-height: 520px) { .mp-top .chip { height: 38px; } }
-@media (max-width: 640px) { .mp-top .master #mw-master { display: none; } }
+@media (max-width: 640px) { .mp-top .master .mslide, .mp-top .master #mw-master-val { display: none; } }
+/* On a narrow screen, the music volume is two buttons (- and +), the stop button's note at their bottom right. */
+.mvol { display: none; position: relative; align-items: center; gap: 2px; }
+.mvol .mnote { position: absolute; right: 2px; bottom: 4px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
+.mvol .mnote svg { display: block; width: 5px; height: 7px; overflow: visible; }
+@media (max-width: 640px) { .mp-top .master .mvol { display: inline-flex; margin-right: 4px; } }
 
 /* The sound menu scrolls up and down only. */
 .mp-side-body { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
@@ -204,7 +209,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-top #mw-pause .badge svg { width: 11px; height: 11px; stroke-width: 2.2; }
 /* The music volume: the note of the stop-the-music button, the same, at the bottom right under the slider's head. */
 .mslide { position: relative; display: inline-flex; align-items: center; --v: .8; }
-.mslide .mnote { position: absolute; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); margin: 1px 0 0 5px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
+.mslide .mnote { position: absolute; z-index: 1; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); margin: 3px 0 0 10px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
 .mslide .mnote svg { display: block; width: 5px; height: 7px; overflow: visible; }
 .mp-top #mw-pause.on .badge { background: var(--text); color: var(--bg); }
 .master b { width: 22px; text-align: right; }

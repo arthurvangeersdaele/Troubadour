@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261121.1';
+  const VERSION = '261121.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -3787,7 +3787,19 @@
     // The top bar's slider is the music volume (every music card shares it), going there in a 4 s slope; a small
     // note at the bottom right of its head says so. The master of the app stays where it is.
     // The stop-the-music icon's own note, at its own scale (viewBox units at 0.75 px, as in that 18 px icon).
-    $('#mw-master-note').innerHTML = '<svg viewBox="16.2 12.4 6.6 9.4" width="5" height="7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2v6.1"/><circle cx="18.6" cy="19.5" r="1.9" fill="currentColor" stroke="none"/><path d="M20.5 13.2l1.6.8"/></svg>';
+    const NOTE = '<svg viewBox="16.2 12.4 6.6 9.4" width="5" height="7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2v6.1"/><circle cx="18.6" cy="19.5" r="1.9" fill="currentColor" stroke="none"/><path d="M20.5 13.2l1.6.8"/></svg>';
+    $('#mw-master-note').innerHTML = NOTE; $('#mw-mvol-note').innerHTML = NOTE;
+    // A narrow screen: - and + instead of the slider, a 25 % step each, glided as the cards' buttons.
+    $('#mw-mvol-dn').innerHTML = ICON.volDown; $('#mw-mvol-up').innerHTML = ICON.volUp;
+    const musStep = (dir) => {
+      const any = (A.isOpen() && A.currentMusic()) || (rec && (rec.world.music || [])[0]);
+      if (!any) return;
+      if (A.isOpen()) A.stepVolume(any, dir);
+      else { const q = any.volume * 4; any.volume = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4); }
+      linkMusic(any); save(); paintMusicVol();
+    };
+    $('#mw-mvol-dn').addEventListener('click', () => musStep(-1));
+    $('#mw-mvol-up').addEventListener('click', () => musStep(1));
     let musDrag = false;
     const paintMusVol = (vol) => {
       const r = $('#mw-master');
