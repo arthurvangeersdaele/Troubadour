@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.5';
+  const VERSION = '261120.6';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1316,11 +1316,13 @@
       head.className = 'mp-menu-title';
       // On a place, the line above its name goes back to the whole map, one tap.
       if (sel) {
-        const back = el('button', 'mp-crumb'); back.type = 'button';
-        back.innerHTML = `${ICON.left}<span>Whole map</span>`;
-        back.title = 'Back to the sound menu of the whole map';
+        const back = el('button', 'mp-back'); back.type = 'button';
+        back.innerHTML = `${ICON.left}<span></span>`;
+        back.querySelector('span').textContent = elName(sel);
+        back.title = 'Back to the whole map';
+        back.setAttribute('aria-label', `${elName(sel)}: back to the whole map`);
         back.addEventListener('click', () => { tapped = null; renderPanel(); });
-        head.append(back, el('span', '', elName(sel)));
+        head.append(el('small', '', 'Sound menu'), back);
       } else head.append(el('small', '', 'Sound menu'), el('span', '', 'Whole map'));
     }
     else { head.className = ''; head.textContent = sel ? elName(sel) : p.title; }

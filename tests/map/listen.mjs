@@ -273,6 +273,25 @@ try {
       }
       if (cross && cross.both) ok(cross.shown && cross.alts >= 1, `crossing hearing circles: the musics of both places on the card (${cross.alts + 1})`);
       else console.log('skip crossing circles: no two crossing circles in this world');
+      // Walking from one place's circle into another's while the first card waits: the card then holds both.
+      const walked = await page.evaluate(async () => {
+        const P = window.MapView.__place(), M = window.TroubadourMap, A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        window.MapUI.settings.musicIn = 'circle'; window.MapUI.settings.musicAuto = false;
+        const m = A.currentMusic(); if (m) A.stop(m); A.hear([1, 1], true); await wait(1200);
+        const ms = P.elements.filter((x) => x.cards.some((c) => c.zone === 'music'));
+        for (const a of ms) for (const b of ms) {
+          if (a === b) continue;
+          const ba = M.bounds(a.shape), bb = M.bounds(b.shape);
+          const ca = [(ba[0] + ba[2]) / 2, (ba[1] + ba[3]) / 2], cb = [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2];
+          if (M.hearing(ca, b, [], 0).gain > 0) continue; // a's middle must be out of b's circle
+          let most = 0;
+          for (let k = 0; k <= 40; k++) { const t = k / 40; A.hear([ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t], k === 40); await wait(30); const box = document.getElementById('mw-arrive'); if (!box.hidden) most = Math.max(most, 1 + box.querySelectorAll('.ar-alt').length); }
+          A.hear([1, 1], true); await wait(300);
+          return most;
+        }
+        return -1;
+      });
+      if (walked >= 0) ok(walked >= 2, `walking into a crossing circle: both musics on the card (${walked})`);
       await page.evaluate(() => { window.MapUI.settings.musicIn = 'place'; window.MapUI.settings.musicAuto = true; window.MapAudio.hear([1, 1], true); });
       await page.waitForTimeout(600);
       // Every music of the place on the card: a second one is added, and played from its line.
@@ -302,12 +321,12 @@ try {
     const crumb = await page.evaluate(async () => {
       const P = window.MapView.__place(), e = P.elements.find((x) => x.cards.length);
       window.MapView.onTap(e); await new Promise((r) => setTimeout(r, 300));
-      const b = document.querySelector('#mw-side-title .mp-crumb');
+      const b = document.querySelector('#mw-side-title .mp-back');
       if (!b) return { b: false };
       b.click(); await new Promise((r) => setTimeout(r, 300));
-      return { b: true, back: /Whole map/.test(document.getElementById('mw-side-title').textContent) && !document.querySelector('#mw-side-title .mp-crumb') };
+      return { b: true, back: /Whole map/.test(document.getElementById('mw-side-title').textContent) && !document.querySelector('#mw-side-title .mp-back') };
     });
-    ok(crumb.b && crumb.back, 'the sound menu of a place has a Whole map button that goes back');
+    ok(crumb.b && crumb.back, 'the name of a place in its sound menu goes back to the whole map');
   }
   // A music let go for another keeps where it was, for when the party comes back (S6).
   const s6 = await page.evaluate(async () => {

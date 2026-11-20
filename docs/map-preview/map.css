@@ -258,10 +258,9 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 /* ---------- The sound menu's title: small, with what it shows ---------- */
 .mp-menu-title { display: flex; flex-direction: column; gap: 0; font-family: inherit !important; }
 .mp-menu-title small { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.mp-menu-title .mp-crumb { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; margin: 0 0 4px -6px; padding: 4px 10px 4px 6px; min-height: 30px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .4px; cursor: pointer; }
-.mp-menu-title .mp-crumb svg { flex: none; }
-.mp-menu-title .mp-crumb span { font-family: inherit; font-size: inherit; color: inherit; }
-.mp-menu-title .mp-crumb:active { background: var(--line); }
+.mp-menu-title .mp-back { display: flex; align-items: center; gap: 2px; margin: 0 0 0 -6px; padding: 2px 6px 2px 2px; min-width: 0; max-width: 100%; border: 0; border-radius: 12px; background: none; color: var(--accent); font: inherit; cursor: pointer; text-align: left; }
+.mp-menu-title .mp-back svg { flex: none; width: 20px; height: 20px; }
+.mp-menu-title .mp-back:hover, .mp-menu-title .mp-back:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .mp-menu-title span { font-family: 'Cormorant SC', serif; font-size: 20px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
 .heard-pct { font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 500; flex: none; }
 

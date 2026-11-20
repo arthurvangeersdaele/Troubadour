@@ -757,7 +757,7 @@
       const cards = [];
       els.forEach((e) => e.cards.forEach((c) => { if (isMusic(c) && !cards.some((o) => o.file === c.file)) cards.push(c); }));
       const key = cards.map((c) => c.file).join('|');
-      if (key === zoneKey || cards.some((c) => c.file === zoneKey)) { lastEls = owner && !els.includes(owner) ? els.concat(owner) : els; return; }
+      if (key === zoneKey) { lastEls = owner && !els.includes(owner) ? els.concat(owner) : els; return; }
       zoneKey = key;
       if (owner) lastEls = els.concat(owner); else lastEls = els;
       // What could play here, but the music already heard.
