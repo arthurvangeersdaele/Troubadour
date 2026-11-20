@@ -1019,7 +1019,8 @@
     ctx.drawImage(layerB, 0, 0);
     // What is heard right now, ringed.
     ctx.save(); world();
-    heard.forEach((h, el) => { if (h > 0.01) drawHeard(el, h); });
+    // Volume viewer (setting): the ring around what is heard, wider as it is louder.
+    if (global.MapUI.settings.heardRings !== false) heard.forEach((h, el) => { if (h > 0.01) drawHeard(el, h); });
     ctx.restore();
     ctx.setTransform(dpr * view.k, 0, 0, dpr * view.k, dpr * view.x, dpr * view.y);
 

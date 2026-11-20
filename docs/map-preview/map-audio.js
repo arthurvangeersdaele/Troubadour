@@ -883,7 +883,10 @@
     if (v.state === 'idle') return { p: 0, left: null, next: null };
     if (playOf(v) === 'loop') return { p: -1, left: null, next: null };
     const total = playOf(v) === 'twice' ? 2 * d : d;
-    const done = v.plays * d + position(v);
+    // Rounds already played count only up to the ones this way of playing has (a music that looped before the
+    // waiting queue was turned on is in its last round now).
+    const rounds = playOf(v) === 'twice' ? 1 : 0;
+    const done = Math.min(v.plays, rounds) * d + position(v);
     return { p: Math.min(1, done / total), left: Math.max(0, total - done), next: null };
   }
   /** A card's own volume (the slider): at once, with a click-free glide. */

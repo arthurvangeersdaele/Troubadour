@@ -61,7 +61,7 @@
   };
   global.MapUI = global.TroubadourUI.make({
     key: 'troubadour.map.settings',
-    defaults: { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, musicSuggest: true, musicAuto: true, musicWait: 5, musicIn: 'place', musicStop: true, musicOut: 'circle', musicFull: false, musicQueue: false, vol: { music: 'simple', ambience: 'simple', events: 'simple' } },
+    defaults: { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, randomMax: 17, life: true, lifeEvery: 13, awake: true, silent: true, master: 0.8, sbVolume: 0.8, rings: true, heardRings: true, trail: true, trailSpeed: 0.1, speeds: 2, trailWalls: true, portrait: false, pins: [], placeSize: 'auto', names: true, ground: 'grid', even: true, musicSuggest: true, musicAuto: true, musicWait: 5, musicIn: 'place', musicStop: true, musicOut: 'circle', musicFull: false, musicQueue: false, vol: { music: 'simple', ambience: 'simple', events: 'simple' } },
     icons: ICON,
     migrate(out, saved) {
       // Walking speeds were halved (Nov 2026): a speed kept from before walks at half its old pace.

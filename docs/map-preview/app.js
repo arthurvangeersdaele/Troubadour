@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.12';
+  const VERSION = '261120.13';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2695,6 +2695,7 @@
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
+    $('#opt-heard-rings').addEventListener('change', (e) => { settings.heardRings = e.target.checked; saveSettings(); V.redraw(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
     $('[data-action="wipe"]').addEventListener('click', async () => {
@@ -2728,6 +2729,7 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-rings').checked = settings.rings;
+    $('#opt-heard-rings').checked = settings.heardRings !== false;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
     const sug = settings.musicSuggest !== false;

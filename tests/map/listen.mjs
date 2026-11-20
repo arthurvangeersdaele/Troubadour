@@ -332,6 +332,18 @@ try {
     });
     ok(m.top > 0.9 && m.one < m.top && m.one > 0.6 && m.two < m.one && m.two > 0.35 && m.end < 0.02, `the master slides over 4 s (${JSON.stringify(m)})`);
   }
+  // A music that looped before the waiting queue was turned on: its time left is its last round's, not 0:00.
+  {
+    const pr = await page.evaluate(async () => {
+      const A = window.MapAudio, m = A.currentMusic(); if (!m) return null;
+      const v = A.voice(m); const was = v.plays; v.plays = 3;
+      window.MapUI.settings.musicQueue = true;
+      const r = A.progress(m);
+      window.MapUI.settings.musicQueue = false; v.plays = was;
+      return r;
+    });
+    if (pr) ok(pr.p < 1 && pr.left > 0, `a music that looped, then the waiting queue: its time left is right (${JSON.stringify(pr)})`);
+  }
   // The waiting queue: off, no queue anywhere and loops kept; on, the queue comes back and every music shows 1×.
   {
     const q = await page.evaluate(async () => {
