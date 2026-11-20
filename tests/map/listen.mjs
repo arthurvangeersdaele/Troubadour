@@ -267,6 +267,10 @@ try {
         }
         return null;
       }, geo.id);
+      if (cross && cross.both) {
+        const crossMore = await page.evaluate(() => ({ alts: document.querySelectorAll('#mw-arrive .ar-alt').length }));
+        ok(crossMore.alts >= 1, 'crossing circles: every music on the card');
+      }
       if (cross && cross.both) ok(cross.shown && cross.alts >= 1, `crossing hearing circles: the musics of both places on the card (${cross.alts + 1})`);
       else console.log('skip crossing circles: no two crossing circles in this world');
       await page.evaluate(() => { window.MapUI.settings.musicIn = 'place'; window.MapUI.settings.musicAuto = true; window.MapAudio.hear([1, 1], true); });
@@ -292,6 +296,18 @@ try {
       ok((await cur()) === second, 'a tap on the second plays it');
       await page.evaluate((id) => { const e = window.MapView.__place().elements.find((x) => x.id === id); e.cards.pop(); window.MapAudio.sync(); window.MapUI.settings.musicAuto = true; window.MapUI.settings.musicWait = 5; }, geo.id);
     }
+  }
+  // The sound menu of a place goes back to the whole map in one tap.
+  {
+    const crumb = await page.evaluate(async () => {
+      const P = window.MapView.__place(), e = P.elements.find((x) => x.cards.length);
+      window.MapView.onTap(e); await new Promise((r) => setTimeout(r, 300));
+      const b = document.querySelector('#mw-side-title .mp-crumb');
+      if (!b) return { b: false };
+      b.click(); await new Promise((r) => setTimeout(r, 300));
+      return { b: true, back: /Whole map/.test(document.getElementById('mw-side-title').textContent) && !document.querySelector('#mw-side-title .mp-crumb') };
+    });
+    ok(crumb.b && crumb.back, 'the sound menu of a place has a Whole map button that goes back');
   }
   // A music let go for another keeps where it was, for when the party comes back (S6).
   const s6 = await page.evaluate(async () => {

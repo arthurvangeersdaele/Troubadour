@@ -766,7 +766,9 @@
       const first = els.find((e) => e.cards.some((c) => c.file === offer[0].file)) || els[0];
       const auto = settings.musicAuto !== false;
       if (ownerOut && !auto) giveWay(heard);
-      if (api.onPlace && api.onPlace({ el: first, els, cards: offer, start: (file) => { if (zoneKey === key) startZone(file || offer[0].file); } })) return;
+      // The card lists every music of the area: the one already heard last, marked as playing.
+      const all = heard && cards.some((c) => c.file === heard.file) ? offer.concat(cards.find((c) => c.file === heard.file)) : offer;
+      if (api.onPlace && api.onPlace({ el: first, els, cards: all, heard: heard && heard.file, start: (file) => { if (zoneKey === key) startZone(file || offer[0].file); } })) return;
       if (!auto) return;
       startZone(offer[0].file);
       return;

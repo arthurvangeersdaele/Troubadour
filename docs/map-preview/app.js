@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.3';
+  const VERSION = '261120.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1312,7 +1312,17 @@
     // At the table, the panel is the sound menu: a small title, and what it shows (an element, or the whole map).
     const head = $('#mw-side-title');
     head.textContent = '';
-    if (mode === 'play') { head.className = 'mp-menu-title'; head.append(el('small', '', 'Sound menu'), el('span', '', sel ? elName(sel) : 'Whole map')); }
+    if (mode === 'play') {
+      head.className = 'mp-menu-title';
+      // On a place, the line above its name goes back to the whole map, one tap.
+      if (sel) {
+        const back = el('button', 'mp-crumb'); back.type = 'button';
+        back.innerHTML = `${ICON.left}<span>Whole map</span>`;
+        back.title = 'Back to the sound menu of the whole map';
+        back.addEventListener('click', () => { tapped = null; renderPanel(); });
+        head.append(back, el('span', '', elName(sel)));
+      } else head.append(el('small', '', 'Sound menu'), el('span', '', 'Whole map'));
+    }
     else { head.className = ''; head.textContent = sel ? elName(sel) : p.title; }
     if (mode === 'edit' && edView && !sel) {
       head.textContent = edView === 'music' ? 'Music of the world' : 'Soundbox of the world';
@@ -2891,7 +2901,9 @@
     if (!cards.length) return false;
     const cur = A.currentMusic();
     const curV = cur && A.voice(cur);
-    if (cur && (!curV || curV.state !== 'ending') && cards.some((c) => c.file === cur.file)) return false; // already heard (not one fading out)
+    const isHeard = (c) => cur && (!curV || curV.state !== 'ending') && c.file === cur.file;
+    if (!cards.some((c) => !isHeard(c))) return false; // nothing new here (a music fading out is not heard)
+    cards.sort((a, b) => isHeard(a) - isHeard(b)); // the music heard, last
     const auto = settings.musicAuto !== false, S = waitS();
     const box = $('#mw-arrive');
     box.textContent = '';
@@ -2929,9 +2941,11 @@
       const more = el('div', 'ar-more');
       cards.slice(1).forEach((c) => {
         const b = el('button', 'ar-alt'); b.type = 'button';
-        b.innerHTML = `${ICON.play}<span></span>${many ? '<small></small>' : ''}`;
+        const on = isHeard(c);
+        b.innerHTML = `${ICON.play}<span></span>${many || on ? '<small></small>' : ''}`;
         b.querySelector('span').textContent = c.name;
-        if (many) b.querySelector('small').textContent = placeOf(c);
+        if (many || on) b.querySelector('small').textContent = on ? 'Playing' : placeOf(c);
+        if (on) { b.classList.add('on'); b.disabled = true; b.title = 'Already playing'; }
         b.title = `Play ${c.name}`;
         b.addEventListener('click', () => go(c));
         more.append(b);
