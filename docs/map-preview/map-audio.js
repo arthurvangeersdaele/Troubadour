@@ -244,7 +244,7 @@
     try { m.pause(); } catch (e) { /* gone */ }
     m.removeAttribute('src'); try { m.load(); } catch (e) { /* gone */ }
     // A blessed element goes back to the pool, its listeners with it gone (a fresh token guards them anyway).
-    if (m.blessed && pool.length < POOL_MAX && !pool.includes(m)) { m.onended = null; m.onerror = null; m.onloadedmetadata = null; pool.push(m); }
+    if (m.blessed && pool.length < POOL_MAX && !pool.includes(m)) { m.onended = null; m.onerror = null; m.onloadedmetadata = null; m.onplay = null; pool.push(m); }
   }
   function startStream(v, s, from) {
     const { ctx } = audio();
@@ -264,15 +264,16 @@
     try { node = m.node || (m.node = ctx.createMediaElementSource(m)); node.connect(xf); } catch (e) { node = null; m.volume = curve(v.card.volume); }
     xf.connect(v.vg);
     const src = {
-      media: m, info, buffer: s,
+      media: m, info, buffer: s, node, off: false,
       get loop() { return m.loop; }, set loop(x) { /* a streamed loop turns by crossing two rounds (blendTick) */ },
       stop() { if (node) { try { node.disconnect(); } catch (e) { /* gone */ } } undeck(m); },
     };
     v.src = src; v.xf = xf; v.startedAt = now() - offset; v.quiet = 0;
     const token = ++v.token;
     m.onended = () => { if (token === v.token) ended(v); };
+    m.onplay = () => { if (token === v.token) plug(v); }; // however it starts again, it is heard
     m.onerror = () => { if (token === v.token && m.dataset.live) reset(v); };
-    if (!rest) tryPlay(m);
+    if (!rest) tryPlay(m); else if (node) { try { node.disconnect(); } catch (e) { /* gone */ } src.off = true; }
     return true;
   }
   /** A streamed sound ends where its sound ends, not where its file does (the encoder's silence is left out). */
@@ -288,12 +289,15 @@
     if (!m || !m.dataset.live || v.state !== 'playing' || v.twin || v.world || playOf(v) !== 'loop') return;
     if (v.el && !v.near) {
       if (!v.quiet) v.quiet = t;
-      else if (t - v.quiet > 2500 && !m.paused) m.pause();
+      else if (t - v.quiet > 2500 && !m.paused) { m.pause(); unplug(v); }
     } else {
       v.quiet = 0;
-      if (m.paused && !waitingTouch.has(m)) tryPlay(m);
+      if (m.paused && !waitingTouch.has(m)) { plug(v); tryPlay(m); }
     }
   }
+  /** A resting stream leaves the sound graph (nothing to mix while it waits), and comes back when the party nears. */
+  function unplug(v) { const n = v.src && v.src.node; if (n && !v.src.off) { try { n.disconnect(); } catch (e) { /* gone */ } v.src.off = true; } }
+  function plug(v) { const n = v.src && v.src.node; if (n && v.src.off) { try { n.connect(v.xf); } catch (e) { /* gone */ } v.src.off = false; } }
   function stopSource(v) {
     v.token += 1;
     if (v.primed) { undeck(v.primed.m); v.primed = null; }
@@ -615,6 +619,7 @@
   /** p: where the party is; still: false while it walks or is dragged, true once it stops there. */
   /** Where no party stands yet (a map opened without a way): far off every map, nothing of a place is heard. */
   const NOWHERE = [-1e7, -1e7];
+  let softUntil = 0;
   function hear(p, still, soft) {
     if (p) point = p;
     if (still === false) moving = true;
@@ -622,6 +627,10 @@
     if (!place) return;
     followZone();
     const t = now();
+    // Laid by a long press: everything it hears comes in over about two seconds, whatever moves meanwhile
+    // (a later call never cuts the slope short).
+    if (soft) softUntil = t + 3;
+    const left = softUntil - t;
     const memo = new Map();
     voices.forEach((v) => {
       let g = 1, near = true;
@@ -634,9 +643,21 @@
         [g, near] = memo.get(v.el);
       }
       v.heard = g; v.near = near;
-      v.space.gain.cancelScheduledValues(t);
-      // Laid by a long press: everything it hears comes in over about two seconds.
-      v.space.gain.setTargetAtTime(g, t, soft ? 0.6 : 0.15);
+      const sg = v.space.gain;
+      // Nothing changed for this sound: its gain is left alone (an iPhone chokes on a stream of new automations
+      // when the party is dragged, every sound of the map at every move).
+      if (left <= 0.2 && v.gainTo != null && Math.abs(v.gainTo - g) < 0.004) return;
+      v.gainTo = g;
+      if (left > 0.2) {
+        // A soft S-shaped rise from where it is to where it goes, ending when the lay's three seconds end.
+        const v0 = sg.value, n = 24, curve = new Float32Array(n + 1);
+        for (let i = 0; i <= n; i++) curve[i] = v0 + (g - v0) * Math.sin((Math.PI / 2) * (i / n)) ** 2;
+        sg.cancelScheduledValues(t);
+        try { sg.setValueCurveAtTime(curve, t, left); } catch (e) { sg.setTargetAtTime(g, t, left / 3); }
+      } else {
+        sg.cancelScheduledValues(t);
+        sg.setTargetAtTime(g, t, 0.15);
+      }
     });
   }
 

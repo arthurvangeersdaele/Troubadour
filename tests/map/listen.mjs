@@ -432,8 +432,16 @@ try {
     await page.waitForTimeout(400);
     const at = await page.evaluate(() => { const V = window.MapView, p = V.__place(); const s = V.__toScreen([Math.round(p.width * 0.3), Math.round(p.height * 0.5)]), r = document.getElementById('mw-canvas').getBoundingClientRect(); return [r.left + s[0], r.top + s[1]]; });
     await page.mouse.move(at[0], at[1]); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();
+    // Its sounds come in softly: a fraction at first, all of it after about two seconds.
+    const rise = async () => page.evaluate(() => window.MapAudio.voices().filter((v) => v.el && v.heard > 0.05 && v.state === 'playing').map((v) => Math.round(v.space.gain.value / v.heard * 100) / 100 + ':' + v.card.name + ':' + v.state));
+    await page.waitForTimeout(150);
+    const early = await rise();
+    await page.waitForTimeout(3200);
+    const late = await rise();
     const laid = await page.evaluate(() => { const p = window.MapView.__place(), q = window.MapAudio.point(); return { un: window.MapView.unplaced(), d: Math.hypot(q[0] - p.width * 0.3, q[1] - p.height * 0.5), trail: !!window.MapView.__trail() }; });
     ok(!laid.un && laid.d < 40 && !laid.trail, `a long press lays the party there (${JSON.stringify(laid)})`);
+        const eMax = Math.max(0, ...early.map((x) => parseFloat(x))), lMin = Math.min(1, ...late.map((x) => parseFloat(x)));
+    ok(early.length > 0 && eMax < 0.6 && lMin > 0.85, `its sounds come in softly (${eMax.toFixed(2)} then ${lMin.toFixed(2)}, ${early.length} sounds)`);
   }
   const lp = await page.evaluate(() => { const V = window.MapView, p = V.__place(); p.player = [Math.round(p.width * 0.3), Math.round(p.height * 0.5)]; const s = V.__toScreen([Math.round(p.width * 0.7), Math.round(p.height * 0.5)]), r = document.getElementById('mw-canvas').getBoundingClientRect(); return [r.left + s[0], r.top + s[1]]; });
   await page.mouse.move(lp[0], lp[1]); await page.mouse.down(); await page.waitForTimeout(900); await page.mouse.up();

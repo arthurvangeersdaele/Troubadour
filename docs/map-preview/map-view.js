@@ -1181,7 +1181,10 @@
   function resize() {
     const r = cv.parentNode.getBoundingClientRect();
     W = Math.max(1, r.width); H = Math.max(1, r.height);
-    dpr = Math.min(2, global.devicePixelRatio || 1); // two is sharp enough for a map, and less than half the pixels of three to paint each frame
+    // Two is sharp enough for a map on a computer; on a phone or a tablet, one and a half: half the pixels of two to
+    // paint at each frame of a walk, so the sound keeps the processor it needs.
+    const touch = global.matchMedia && global.matchMedia('(pointer: coarse)').matches;
+    dpr = Math.min(touch ? 1.5 : 2, global.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     if (!needFit && place && mode === 'play') { if (fillOnResize) fit(); else keepOnMap(); }
     cv.style.width = `${W}px`; cv.style.height = `${H}px`;

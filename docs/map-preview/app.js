@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.10';
+  const VERSION = '261120.12';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -3839,7 +3839,16 @@
     V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
     V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (hearing) prepare(worldFiles(rec), false).then(() => { if (hearing && A.isOpen()) A.sync(); }); } };
     // The party laid by a long press: its sounds come in softly.
-    V.onPlayer = (p, still, laid) => { if (A.isOpen()) A.hear(p, still, laid); };
+    // While the party is dragged, what it hears is worked out 20 times a second at most (a phone sends many more
+    // moves than that); the last move and the end of the drag always count.
+    let hearAt = 0, hearLate = null;
+    V.onPlayer = (p, still, laid) => {
+      if (!A.isOpen()) return;
+      const n = performance.now();
+      clearTimeout(hearLate);
+      if (still !== false || laid || n - hearAt >= 50) { hearAt = n; A.hear(p, still, laid); return; }
+      hearLate = setTimeout(() => { hearAt = performance.now(); A.hear(p, still); }, 50 - (n - hearAt));
+    };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
       closeMusic(); closeSoundbox();
