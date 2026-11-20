@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.2';
+  const VERSION = '261120.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2838,11 +2838,14 @@
   }
   function paintMusicFull() {
     const on = !!settings.musicFull;
-    $('#mw-mus').classList.toggle('full', on);
-    $('#mw-mus-full').innerHTML = on ? ICON.collapse : ICON.expand;
-    $('#mw-mus-full').setAttribute('aria-pressed', String(on));
-    $('#mw-mus-full').title = on ? 'Back to the side panel' : 'Full screen';
-    $('#mw-mus-full').setAttribute('aria-label', $('#mw-mus-full').title);
+    ['#mw-mus', '#mw-sbx'].forEach((id) => {
+      $(id).classList.toggle('full', on);
+      const b = $(`${id}-full`);
+      b.innerHTML = on ? ICON.collapse : ICON.expand;
+      b.setAttribute('aria-pressed', String(on));
+      b.title = on ? 'Back to the side panel' : 'Full screen';
+      b.setAttribute('aria-label', b.title);
+    });
     $('#mw-mus-queue').hidden = on;
   }
   function openMusic() {
@@ -2897,11 +2900,16 @@
     const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
     play.style.setProperty('--ar-s', `${S}s`);
     play.style.setProperty('--ar-c', C.toFixed(1));
-    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>`;
+    // With Autoplay, a gold ring fills around the button; without, the button alone, a little bigger.
+    play.innerHTML = auto ? `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>` : `<span class="ic">${ICON.play}</span>`;
+    if (!auto) play.classList.add('bare');
     play.setAttribute('aria-label', `Play ${cards[0].name} now`);
     play.title = auto ? 'Play it now' : 'Play it';
     const txt = el('div', 'ar-txt');
     const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${elName(info.el)}</span>`;
+    // Crossing hearing circles: each music says its place.
+    const many = (info.els || []).length > 1;
+    const placeOf = (c) => { const e = (info.els || []).find((x) => x.cards.some((k) => k.file === c.file)); return e ? elName(e) : ''; };
     const names = el('b', 'ar-names', cards[0].name);
     const ask = el('span', 'ar-clock');
     txt.append(where, names, ask);
@@ -2921,8 +2929,9 @@
       const more = el('div', 'ar-more');
       cards.slice(1).forEach((c) => {
         const b = el('button', 'ar-alt'); b.type = 'button';
-        b.innerHTML = `${ICON.play}<span></span>`;
+        b.innerHTML = `${ICON.play}<span></span>${many ? '<small></small>' : ''}`;
         b.querySelector('span').textContent = c.name;
+        if (many) b.querySelector('small').textContent = placeOf(c);
         b.title = `Play ${c.name}`;
         b.addEventListener('click', () => go(c));
         more.append(b);
@@ -3419,6 +3428,7 @@
   const sbSources = new Set();
   function openSoundbox() {
     closeMusic();
+    if (mode === 'play') paintMusicFull();
     $('#mw-sbx').hidden = false;
     $('#world').classList.add('over');
     $('#mw-sb').setAttribute('aria-pressed', 'true');
@@ -3627,6 +3637,7 @@
     $('#mw-mus-queue').addEventListener('click', () => { musQueueView = !musQueueView; renderMusic(); });
     $('#mw-mus-close').addEventListener('click', closeMusic);
     $('#mw-mus-full').addEventListener('click', () => setMusicFull(!settings.musicFull));
+    $('#mw-sbx-full').addEventListener('click', () => setMusicFull(!settings.musicFull));
     $('#mw-mus-q').addEventListener('input', (e) => { musQ = e.target.value; renderMusic(); });
     // The shared soundbox, from the worlds screen (as in Troubadour).
     document.querySelectorAll('[data-action="shared"]').forEach((b) => { b.innerHTML = ICON.star; b.addEventListener('click', () => { location.hash = location.hash === '#/soundbox' ? '#/' : '#/soundbox'; }); });

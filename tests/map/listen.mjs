@@ -231,6 +231,46 @@ try {
       await page.waitForTimeout(2200);
       ok(!!kept && (await cur()) === kept, 'Autostop off: the music plays on when the party leaves');
       await page.evaluate(() => { window.MapUI.settings.musicStop = true; });
+      // The card shows while walking, as soon as the party is in the area, and goes when it leaves before a music plays.
+      await reset();
+      await page.evaluate(() => { window.MapUI.settings.musicAuto = false; });
+      await page.evaluate((p) => window.MapAudio.hear(p, false), geo.on);
+      await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 3000 }).catch(() => {});
+      ok(!(await page.isHidden('#mw-arrive')), 'the card shows while the party walks onto the place');
+      ok((await page.locator('#mw-arrive .ar-go.bare').count()) === 1 && (await page.locator('#mw-arrive .ar-go > svg').count()) === 0, 'no Autoplay: the play button alone, no ring');
+      await page.evaluate(() => window.MapAudio.hear([1, 1], false));
+      await page.waitForTimeout(500);
+      ok(await page.isHidden('#mw-arrive'), 'the card goes when the party leaves before a music plays');
+      await page.evaluate(() => window.MapAudio.hear([1, 1], true));
+      // Crossing hearing circles: every music of every circle holding the party is on the card.
+      const cross = await page.evaluate(async (id) => {
+        const P = window.MapView.__place(), M = window.TroubadourMap, A = window.MapAudio, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const ms = P.elements.filter((x) => x.cards.some((c) => c.zone === 'music'));
+        // Two places with music whose circles cross: a point in both, on neither.
+        for (const a of ms) for (const b of ms) {
+          if (a === b) continue;
+          const ba = M.bounds(a.shape), bb = M.bounds(b.shape);
+          const ca = [(ba[0] + ba[2]) / 2, (ba[1] + ba[3]) / 2], cb = [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2];
+          for (let t = 0.05; t < 1; t += 0.05) {
+            const q = [ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t];
+            const ha = M.hearing(q, a, [], 0), hb = M.hearing(q, b, [], 0);
+            if (ha.gain > 0 && hb.gain > 0 && ha.d > 0 && hb.d > 0) {
+              window.MapUI.settings.musicIn = 'circle';
+              const m = A.currentMusic(); if (m) A.stop(m);
+              await wait(1200);
+              A.hear(q, true); await wait(400);
+              const files = [a, b].map((e) => e.cards.find((c) => c.zone === 'music').file);
+              const box = document.getElementById('mw-arrive');
+              return { shown: !box.hidden, alts: box.querySelectorAll('.ar-alt').length, both: files[0] !== files[1] };
+            }
+          }
+        }
+        return null;
+      }, geo.id);
+      if (cross && cross.both) ok(cross.shown && cross.alts >= 1, `crossing hearing circles: the musics of both places on the card (${cross.alts + 1})`);
+      else console.log('skip crossing circles: no two crossing circles in this world');
+      await page.evaluate(() => { window.MapUI.settings.musicIn = 'place'; window.MapUI.settings.musicAuto = true; window.MapAudio.hear([1, 1], true); });
+      await page.waitForTimeout(600);
       // Every music of the place on the card: a second one is added, and played from its line.
       await reset();
       const second = await page.evaluate((id) => {

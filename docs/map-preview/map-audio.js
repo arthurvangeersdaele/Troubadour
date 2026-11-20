@@ -677,6 +677,7 @@
     zoneKey = undefined; lastZoneEl = null;
     const theme = zoneMusic() || p.general.find(isMusic) || null;
     zoneKey = theme ? theme.file : 'map'; moving = false;
+    lastEls = zoneEl ? [zoneEl] : [];
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
     changed();
@@ -718,32 +719,65 @@
    *  or not, its music gives way: the map's music comes back, or, the map having none, it fades out. The music
    *  never stops while the party is still where it could start. A music chosen by hand plays on. Musics are never
    *  heard by distance: they belong to the world. The music menu works at any time. */
+  /** Every place with music whose area holds the party: on the place, the topmost only; in the hearing circle, every
+   *  circle that holds it (the ones it stands on first, then the nearest). */
+  function zoneEls(area) {
+    const on = [], near = [];
+    for (let i = place.elements.length - 1; i >= 0; i--) {
+      const e = place.elements[i];
+      if (!e.cards.some(isMusic)) continue;
+      const h = M.hearing(point, e, [], 0);
+      if (h.d === 0) on.push(e);
+      else if (area === 'circle' && h.gain > 0) near.push([e, h.d]);
+    }
+    if (area !== 'circle') return on.slice(0, 1);
+    return on.concat(near.sort((a, b) => a[1] - b[1]).map((x) => x[0]));
+  }
+  let lastEls = [];
+  /** The music heard gives way as its place is left (setting Autostop): the map's music comes back, else it fades. */
+  function giveWay(cur) {
+    if (settings.musicStop === false || !cur) return;
+    const target = place.general.find(isMusic) || null;
+    if (target && target.file === cur.file) return;
+    if (target) startZone(target.file); else fadeMusic();
+  }
   function followZone() {
     if (!place || zoneKey === undefined) return;
     if (settings.musicSuggest === false) { if (zoneKey !== 'map') zoneKey = 'map'; if (api.onPlace) api.onPlace(null); return; }
     const inArea = settings.musicIn === 'circle' ? 'circle' : 'place';
     const outArea = settings.musicOut === 'place' ? 'place' : 'circle';
-    const z = moving ? null : zoneMusic(inArea);
-    if (z) {
-      if (z.file === zoneKey || (zoneKey !== 'map' && zoneEl === lastZoneEl && zoneEl.cards.some((c) => c.file === zoneKey))) return;
-      zoneKey = z.file;
-      const el = zoneEl, cards = el.cards.filter(isMusic), key = zoneKey;
-      if (api.onPlace && api.onPlace({ el, cards, start: (file) => { if (zoneKey === key) startZone(file || z.file); } })) return;
-      if (settings.musicAuto === false) return;
-      startZone(z.file);
+    const els = zoneEls(inArea);
+    const cur = currentMusic(), cv = cur && voices.get(cur);
+    const heard = cur && cv && cv.state !== 'ending' ? cur : null;
+    // The place whose music is heard, and whether the party is now out of where that music stops.
+    const owner = heard ? lastEls.find((e) => e.cards.some((c) => isMusic(c) && c.file === heard.file)) : null;
+    const ownerOut = owner && !els.includes(owner) && !within(owner, outArea);
+    if (els.length) {
+      zoneEl = els[0]; lastZoneEl = els[0];
+      const cards = [];
+      els.forEach((e) => e.cards.forEach((c) => { if (isMusic(c) && !cards.some((o) => o.file === c.file)) cards.push(c); }));
+      const key = cards.map((c) => c.file).join('|');
+      if (key === zoneKey || cards.some((c) => c.file === zoneKey)) { lastEls = owner && !els.includes(owner) ? els.concat(owner) : els; return; }
+      zoneKey = key;
+      if (owner) lastEls = els.concat(owner); else lastEls = els;
+      // What could play here, but the music already heard.
+      const offer = cards.filter((c) => !heard || c.file !== heard.file);
+      if (!offer.length) { if (api.onPlace) api.onPlace(null); return; }
+      const first = els.find((e) => e.cards.some((c) => c.file === offer[0].file)) || els[0];
+      const auto = settings.musicAuto !== false;
+      if (ownerOut && !auto) giveWay(heard);
+      if (api.onPlace && api.onPlace({ el: first, els, cards: offer, start: (file) => { if (zoneKey === key) startZone(file || offer[0].file); } })) return;
+      if (!auto) return;
+      startZone(offer[0].file);
       return;
     }
     if (zoneKey === 'map') return;
-    // Still where its music could start, or where it stops: nothing changes.
-    const left = lastZoneEl;
-    if (within(left, inArea) || within(left, outArea)) return;
-    zoneKey = 'map';
+    // Out of every place's area: a card still waiting goes; a music heard stays while the party is where it stops.
+    if (!owner) { zoneKey = 'map'; lastEls = []; if (api.onPlace) api.onPlace(null); return; }
+    if (!ownerOut) return;
+    zoneKey = 'map'; lastEls = [];
     if (api.onPlace) api.onPlace(null);
-    if (settings.musicStop === false) return;
-    const cur = currentMusic();
-    const target = place.general.find(isMusic) || null;
-    if (!cur || !left || !left.cards.some((c) => isMusic(c) && c.file === cur.file) || (target && target.file === cur.file)) return;
-    if (target) startZone(target.file); else fadeMusic();
+    giveWay(heard);
   }
   /** The music heard fades out (the setting's fade), keeping where it was for when it comes back. */
   function fadeMusic() {
