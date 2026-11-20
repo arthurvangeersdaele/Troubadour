@@ -329,7 +329,7 @@ try {
       const end = v.vg.gain.value;
       const all = A.voices().filter((x) => x.card.zone === 'music').every((x) => x.card.volume === 0);
       sl.value = was; sl.dispatchEvent(new Event('input'));
-      return { top, mid, end, all, masterSame: Math.abs(master.gain.value - m0) < 1e-6, note: !document.querySelector('label[for="mw-master"]') && [...document.styleSheets].some((ss) => { try { return [...ss.cssRules].some((r) => /#mw-master::-webkit-slider-thumb/.test(r.selectorText || '') && /mask/.test(r.cssText)); } catch (e) { return false; } }), earth: !!document.querySelector('#mw-pause .badge svg') };
+      return { top, mid, end, all, masterSame: Math.abs(master.gain.value - m0) < 1e-6, note: !document.querySelector('label[for="mw-master"]') && !!document.querySelector('#mw-master-note svg'), earth: !!document.querySelector('#mw-pause .badge svg') };
     });
     if (m) ok(m.top > 0.9 && m.mid < m.top && m.mid > 0.2 && m.end < 0.02 && m.all && m.masterSame && m.note && m.earth, `the top slider is the music volume, in a 4 s slope (${JSON.stringify(m)})`);
   }
