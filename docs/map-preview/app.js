@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.15';
+  const VERSION = '261120.16';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -3786,7 +3786,6 @@
     $('#mw-pause').addEventListener('click', () => { A.pauseAll(); refreshLive(); paintMaster(); });
     // The top bar's slider is the music volume (every music card shares it), going there in a 4 s slope; a small
     // note at the bottom right of its head says so. The master of the app stays where it is.
-    $('#mw-master-note').innerHTML = ICON.note;
     let musDrag = false;
     const paintMusVol = (vol) => {
       const r = $('#mw-master');
