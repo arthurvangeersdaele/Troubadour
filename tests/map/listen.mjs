@@ -179,13 +179,78 @@ try {
       });
       await page.waitForTimeout(500);
       await arriveAt();
-      ok(/Move to th(is|ese) musics?\?/.test(await page.textContent('#mw-arrive')), 'not automatic: the card asks (Play or Skip)');
+      ok(/Play this music\?|Which music here\?/.test(await page.textContent('#mw-arrive')), 'not automatic: the card asks (Play or Skip)');
       await page.waitForTimeout(6000);
       ok(!(await page.isHidden('#mw-arrive')), 'not automatic: nothing plays by itself');
       await page.click('#mw-arrive .ar-go');
       await page.waitForTimeout(800);
       ok((await page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; })) !== other, 'Play moves to the music of the place');
       await page.evaluate(() => { window.MapUI.settings.musicAuto = true; });
+      // The music settings of 20 November.
+      const cur = () => page.evaluate(() => { const m = window.MapAudio.currentMusic(); return m && m.file; });
+      const geo = await page.evaluate((p0) => {
+        const P = window.MapView.__place(), M = window.TroubadourMap;
+        const e = P.elements.find((x) => x.cards.some((c) => c.zone === 'music') && M.hearing(p0, x, [], 0).d === 0);
+        const b = M.bounds(e.shape);
+        return { on: p0, ring: [b[2] + Math.min(e.radius / 3, 60), (b[1] + b[3]) / 2], id: e.id };
+      }, zoneAt);
+      const reset = async () => { await page.evaluate(() => { window.MapAudio.hear([1, 1], true); const m = window.MapAudio.currentMusic(); if (m) window.MapAudio.stop(m); }); await page.waitForTimeout(1600); };
+      // Suggestions off: no card, nothing changes.
+      await reset();
+      await page.evaluate(() => { window.MapUI.settings.musicSuggest = false; });
+      await page.evaluate((p) => window.MapAudio.hear(p, true), geo.on);
+      await page.waitForTimeout(1200);
+      ok(await page.isHidden('#mw-arrive'), 'Music suggestions off: no card on a place with music');
+      await page.evaluate(() => { window.MapUI.settings.musicSuggest = true; });
+      // The card shows in the hearing circle.
+      await reset();
+      await page.evaluate(() => { window.MapUI.settings.musicIn = 'circle'; window.MapUI.settings.musicWait = 2; });
+      await page.evaluate((p) => window.MapAudio.hear(p, true), geo.ring);
+      await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 3000 }).catch(() => {});
+      ok(/Plays in 2 s/.test((await page.textContent('#mw-arrive')) || ''), 'The card shows in its hearing circle, with the time set (2 s)');
+      await page.waitForTimeout(2600);
+      const inRing = await cur();
+      ok(!!inRing && await page.isHidden('#mw-arrive'), 'Autoplay after 2 s, in the circle');
+      // Stops out of the place: the party stands in the circle, off the place, where the card could show: it stays.
+      await page.evaluate(() => { window.MapUI.settings.musicOut = 'place'; });
+      await page.evaluate((p) => window.MapAudio.hear(p, false), geo.ring);
+      await page.waitForTimeout(800);
+      ok((await cur()) === inRing, 'Stops out of the place, but never while the party is where it could start');
+      await page.evaluate(() => { window.MapUI.settings.musicIn = 'place'; });
+      await page.evaluate((p) => window.MapAudio.hear(p, true), geo.on); await page.waitForTimeout(400);
+      await page.evaluate((p) => window.MapAudio.hear(p, false), geo.ring);
+      await page.waitForTimeout(2200);
+      ok((await cur()) !== inRing, 'Stops out of the place: off the place, it gives way');
+      // Autostop off: the music plays on, leaving.
+      await reset();
+      await page.evaluate(() => { window.MapUI.settings.musicOut = 'circle'; window.MapUI.settings.musicStop = false; });
+      await page.evaluate((p) => window.MapAudio.hear(p, true), geo.on);
+      await page.waitForTimeout(2800);
+      const kept = await cur();
+      await page.evaluate(() => window.MapAudio.hear([1, 1], true));
+      await page.waitForTimeout(2200);
+      ok(!!kept && (await cur()) === kept, 'Autostop off: the music plays on when the party leaves');
+      await page.evaluate(() => { window.MapUI.settings.musicStop = true; });
+      // Every music of the place on the card: a second one is added, and played from its line.
+      await reset();
+      const second = await page.evaluate((id) => {
+        const P = window.MapView.__place(), e = P.elements.find((x) => x.id === id);
+        const own = e.cards.find((c) => c.zone === 'music');
+        const mapM = (P.general.find((c) => c.zone === 'music') || {}).file;
+        const other = window.MapAudio.voices().filter((v) => v.world && v.card.file !== own.file && v.card.file !== mapM && v.state !== 'playing').map((v) => v.card)[0];
+        e.cards.push(Object.assign({}, own, { name: other.name, file: other.file }));
+        window.MapAudio.sync();
+        return other.file;
+      }, geo.id);
+      await page.evaluate(() => { window.MapUI.settings.musicAuto = false; const m = window.MapAudio.currentMusic(); if (m) window.MapAudio.stop(m); });
+      await page.waitForTimeout(1600);
+      await page.evaluate((p) => window.MapAudio.hear(p, true), geo.on);
+      await page.waitForSelector('#mw-arrive:not([hidden])', { timeout: 3000 }).catch(() => {});
+      ok((await page.locator('#mw-arrive .ar-alt').count()) === 1 && /Which music here\?/.test(await page.textContent('#mw-arrive')), 'a place with two musics: both on the card');
+      if (await page.locator('#mw-arrive .ar-alt').count()) await page.click('#mw-arrive .ar-alt');
+      await page.waitForTimeout(600);
+      ok((await cur()) === second, 'a tap on the second plays it');
+      await page.evaluate((id) => { const e = window.MapView.__place().elements.find((x) => x.id === id); e.cards.pop(); window.MapAudio.sync(); window.MapUI.settings.musicAuto = true; window.MapUI.settings.musicWait = 5; }, geo.id);
     }
   }
   // A music let go for another keeps where it was, for when the party comes back (S6).
@@ -271,6 +336,19 @@ try {
     await page.waitForFunction(() => document.getElementById('mw-sub').textContent.startsWith('Map 2:'), null, { timeout: 4000 }).catch(() => {});
     ok((await page.textContent('#mw-sub')).startsWith('Map 2:'), 'a tap on a sign the party stands on takes its way');
   }
+  // The music menu in full screen: the music heard, the queue, then the search.
+  await page.click('#mw-mus-btn');
+  await page.waitForSelector('#mw-mus:not([hidden])');
+  await page.click('#mw-mus-full');
+  await page.waitForTimeout(300);
+  const fs = await page.evaluate(() => {
+    const m = document.getElementById('mw-mus').getBoundingClientRect(), body = document.querySelector('.mp-body').getBoundingClientRect();
+    const up = document.getElementById('mw-mus-upnext').getBoundingClientRect(), q = document.querySelector('.mus-q').getBoundingClientRect();
+    return { full: m.width >= body.width - 2 && m.height >= body.height - 2, order: !document.getElementById('mw-mus-upnext').hidden && up.top < q.top, setting: window.MapUI.settings.musicFull };
+  });
+  ok(fs.full && fs.order && fs.setting, `the music menu takes the full screen, the queue above the search (${JSON.stringify(fs)})`);
+  await page.click('#mw-mus-full');
+  await page.click('#mw-mus-close');
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);
   const dbg = await page.evaluate(() => (document.querySelector('.mp-debug pre') || {}).textContent || '');

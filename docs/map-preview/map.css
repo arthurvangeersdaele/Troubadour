@@ -933,3 +933,31 @@ html:not(.mode-app) .splash { display: none; }
 .mp-arrive .ar-skip:active { background: var(--line); }
 @media (prefers-reduced-motion: reduce) { #mw-arrive.mp-arrive { animation: none; } }
 .mp-arrive .ar-go .ic.stop svg { transform: none; width: 20px; height: 20px; }
+
+/* ---------- Music settings: the rows that follow Music suggestions ---------- */
+.mus-sets { margin: -4px 0 4px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
+.mus-sets[hidden] { display: none; }
+.mus-sets .row-set[hidden] { display: none; }
+.mus-sets .row-set.stack { flex-direction: column; align-items: stretch; gap: 8px; }
+.mus-sets .row-set.stack .seg { display: flex; width: 100%; }
+.mus-sets .row-set.stack .seg button { flex: 1 1 0; white-space: normal; line-height: 1.25; }
+.mus-sets .stepper, #music-wait-row .stepper { display: inline-flex; align-items: center; gap: 6px; }
+#music-wait { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ---------- The music menu in full screen: the music heard, the queue, then every music to search ---------- */
+.mp-body { position: relative; }
+.mp-world .mp-body .mp-mus.full { position: absolute; inset: 0; width: auto; height: auto; z-index: 12; grid-row: auto; grid-column: auto; justify-self: stretch; align-self: stretch; box-shadow: none; border: 0; }
+.mp-mus.full .mus-now { padding: 8px 16px 0; }
+.mus-upnext[hidden] { display: none; }
+.mus-upnext { padding: 8px 16px 4px; display: grid; gap: 6px; }
+.mus-upnext h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mus-qlist { display: flex; flex-direction: column; gap: 6px; max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+.mp-mus.full .mus-q { padding: 8px 16px 4px; }
+.mp-mus.full .mus-list { padding-left: 16px; padding-right: 16px; }
+@media (min-width: 900px) { .mp-mus.full .mus-now, .mp-mus.full .mus-upnext, .mp-mus.full .mus-q, .mp-mus.full .mus-list { padding-left: max(16px, calc(50% - 380px)); padding-right: max(16px, calc(50% - 380px)); } }
+
+/* The card: the other musics of the place, a tap each. */
+.mp-arrive .ar-more { display: flex; flex-direction: column; gap: 6px; }
+.mp-arrive .ar-alt { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 12px 4px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-align: left; }
+.mp-arrive .ar-alt svg { flex: none; width: 18px; height: 18px; color: var(--gold); fill: currentColor; }
+.mp-arrive .ar-alt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

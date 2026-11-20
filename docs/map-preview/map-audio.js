@@ -684,12 +684,23 @@
 
   /* ---------- Music zones: a music laid on a place starts when the party walks into it ---------- */
   let zoneKey, moving = false;
-  function zoneMusic() {
+  /** The place with music the party is in: ON a place (the topmost), or, with area 'circle', within a place's
+   *  hearing circle (on a place first, else the nearest). */
+  function within(el, area) {
+    if (!el || !place.elements.includes(el)) return false;
+    const h = M.hearing(point, el, [], 0);
+    return area === 'circle' ? h.gain > 0 : h.d === 0;
+  }
+  function zoneMusic(area = 'place') {
+    let best = null, bd = Infinity;
     for (let i = place.elements.length - 1; i >= 0; i--) {
       const e = place.elements[i];
-      const m = e.cards.find(isMusic);
-      if (m && M.hearing(point, e, place.walls, world.wallLoss).d === 0) { zoneEl = e; lastZoneEl = e; return m; }
+      if (!e.cards.some(isMusic)) continue;
+      const h = M.hearing(point, e, [], 0);
+      if (h.d === 0) { best = e; break; }
+      if (area === 'circle' && h.gain > 0 && h.d < bd) { best = e; bd = h.d; }
     }
+    if (best) { zoneEl = best; lastZoneEl = best; return best.cards.find(isMusic); }
     zoneEl = null;
     return null;
   }
@@ -699,44 +710,40 @@
     const tv = [...voices.values()].find((o) => o.world && o.card.file === file);
     if (tv && tv.state !== 'playing') toggleVoice(tv);
   }
-  /** Called as the party moves. The setting Music follows the party (on by default) decides both ways.
-   *  Arriving: the party stops ON a place with its own music (not merely in its circle): the app shows its card,
-   *  and the music plays when the ring closes (asked, with the setting off).
-   *  Leaving: the moment the party goes out of the place's hearing circle (walking or not), its music gives way
-   *  at once: the map's music comes back, or, the map having none, it fades out (asked, with the setting off).
-   *  Only the music of that place is changed: a music chosen by hand plays on. Musics are never heard by
-   *  distance: they belong to the world. */
-  function inCircle(el) { return !!el && place.elements.includes(el) && M.hearing(point, el, [], 0).gain > 0; }
+  /** Called as the party moves. The settings of At the table decide:
+   *  Music suggestions (on by default): the party stops on a place with its own music (or within its hearing
+   *  circle, setting "The card shows") and it is not the music heard: the app shows a card with every music of the
+   *  place. Autoplay: the first plays when the card's ring closes (setting "Plays after"); off, the card waits.
+   *  Autostop: the moment the party is out of the place (or out of its hearing circle, setting "Stops"), walking
+   *  or not, its music gives way: the map's music comes back, or, the map having none, it fades out. The music
+   *  never stops while the party is still where it could start. A music chosen by hand plays on. Musics are never
+   *  heard by distance: they belong to the world. The music menu works at any time. */
   function followZone() {
     if (!place || zoneKey === undefined) return;
-    const z = moving ? null : zoneMusic();
+    if (settings.musicSuggest === false) { if (zoneKey !== 'map') zoneKey = 'map'; if (api.onPlace) api.onPlace(null); return; }
+    const inArea = settings.musicIn === 'circle' ? 'circle' : 'place';
+    const outArea = settings.musicOut === 'place' ? 'place' : 'circle';
+    const z = moving ? null : zoneMusic(inArea);
     if (z) {
-      if (z.file === zoneKey) return;
+      if (z.file === zoneKey || (zoneKey !== 'map' && zoneEl === lastZoneEl && zoneEl.cards.some((c) => c.file === zoneKey))) return;
       zoneKey = z.file;
-      if (api.onPlace) {
-        const el = zoneEl, cards = el.cards.filter(isMusic);
-        const key = zoneKey;
-        if (api.onPlace({ el, cards, start: () => { if (zoneKey === key) startZone(z.file); } })) return;
-      }
+      const el = zoneEl, cards = el.cards.filter(isMusic), key = zoneKey;
+      if (api.onPlace && api.onPlace({ el, cards, start: (file) => { if (zoneKey === key) startZone(file || z.file); } })) return;
       if (settings.musicAuto === false) return;
       startZone(z.file);
       return;
     }
     if (zoneKey === 'map') return;
-    // Still within the hearing circle of the place the music belongs to: nothing changes.
+    // Still where its music could start, or where it stops: nothing changes.
     const left = lastZoneEl;
-    if (inCircle(left)) return;
+    if (within(left, inArea) || within(left, outArea)) return;
     zoneKey = 'map';
+    if (api.onPlace) api.onPlace(null);
+    if (settings.musicStop === false) return;
     const cur = currentMusic();
     const target = place.general.find(isMusic) || null;
-    if (!cur || !left || !left.cards.some((c) => isMusic(c) && c.file === cur.file) || (target && target.file === cur.file)) { if (api.onPlace) api.onPlace(null); return; }
-    const act = () => { if (zoneKey !== 'map') return; if (target) startZone(target.file); else fadeMusic(); };
-    if (settings.musicAuto === false) {
-      if (api.onPlace && api.onPlace({ leaving: true, el: left, cards: target ? [target] : [], fading: cur, start: act })) return;
-      return;
-    }
-    if (api.onPlace) api.onPlace(null);
-    act();
+    if (!cur || !left || !left.cards.some((c) => isMusic(c) && c.file === cur.file) || (target && target.file === cur.file)) return;
+    if (target) startZone(target.file); else fadeMusic();
   }
   /** The music heard fades out (the setting's fade), keeping where it was for when it comes back. */
   function fadeMusic() {

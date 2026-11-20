@@ -307,8 +307,9 @@
       <p class="sb-hint">Tap to fire. ☆ pins an effect to the top.</p>
     </aside>
     <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
-      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
+      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small" type="button" id="mw-mus-full" aria-pressed="false" aria-label="Full screen" title="Full screen"></button><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
       <div class="mus-now" id="mw-mus-now"></div>
+      <section class="mus-upnext" id="mw-mus-upnext" hidden aria-label="The queue"><h3>Up next</h3><div class="mus-qlist" id="mw-mus-qlist"></div></section>
       <div class="mus-q"><input type="search" class="snd-search" id="mw-mus-q" placeholder="Search a music" aria-label="Search a music"></div>
       <div class="mus-list" id="mw-mus-list"></div>
     </aside>
@@ -351,7 +352,34 @@
   </section>
   <section>
     <h3>At the table</h3>
-    <label class="row-set toggle"><span>Music follows the party<small>Stopping on a place with its own music, it plays 5 s after its card shows (tap to play it now, Skip keeps the music heard). As soon as the party leaves the place's hearing circle, its music gives way: the map's music comes back, or, the map having none, it fades out. Off: the card asks, both ways. Musics are never quieter with distance.</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
+    <label class="row-set toggle"><span>Music suggestions<small>Reaching a place with its own music, a card shows all its musics: tap one to play it, or Skip. The music menu works at any time.</small></span><input type="checkbox" id="opt-music-suggest"><i></i></label>
+    <div class="mus-sets" id="music-sets">
+      <div class="row-set stack">
+        <span>The card shows<small>When the party stops</small></span>
+        <div class="seg small" id="music-in" role="radiogroup" aria-label="The card shows">
+          <button type="button" role="radio" data-v="place">On the place</button>
+          <button type="button" role="radio" data-v="circle">In its hearing circle</button>
+        </div>
+      </div>
+      <label class="row-set toggle"><span>Autoplay<small>The first music of the card plays when its ring closes</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
+      <div class="row-set" id="music-wait-row">
+        <span>Plays after</span>
+        <div class="stepper" role="group" aria-label="Plays after">
+          <button type="button" class="ico small" id="music-wait-less" aria-label="Sooner">−</button>
+          <b id="music-wait">5 s</b>
+          <button type="button" class="ico small" id="music-wait-more" aria-label="Later">+</button>
+        </div>
+      </div>
+      <label class="row-set toggle"><span>Autostop<small>Leaving, the place's music gives way: the map's music comes back, or, the map having none, it fades out</small></span><input type="checkbox" id="opt-music-stop"><i></i></label>
+      <div class="row-set stack" id="music-out-row">
+        <span>Stops<small>Never while the party is still where it could start</small></span>
+        <div class="seg small" id="music-out" role="radiogroup" aria-label="Stops">
+          <button type="button" role="radio" data-v="place">Out of the place</button>
+          <button type="button" role="radio" data-v="circle">Out of its hearing circle</button>
+        </div>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>Music menu in full screen<small>The music menu takes the whole screen: the music heard, the queue, then every music to search. The button at its top switches too</small></span><input type="checkbox" id="opt-music-full"><i></i></label>
     <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
     <div class="row-set" id="trail-speed-row">
@@ -434,7 +462,7 @@
 <dialog id="preview-notes" class="settings" aria-labelledby="preview-notes-title" style="max-width:560px">
   <div class="set-head"><h2 id="preview-notes-title">Troubadour Map, preview of 19 November</h2><button class="ico small" type="button" aria-label="Close" onclick="this.closest('dialog').close()">✕</button></div>
   <p style="margin:0 0 8px;color:var(--muted)">This copy is for trying. Its worlds are its own: the app you use at the table is untouched.</p>
-  <ul style="margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:15px;line-height:1.4"><li style="padding-left:10px;border-left:3px solid #F0C24F">In the editor, the headphones (or S) let you hear what the party hears, from the golden point: move it with the select tool to walk. The ground around each place shows how far its sounds carry.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Undo and redo for everything (Ctrl+Z, Ctrl+Shift+Z), 200 steps per map.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Copy, cut, paste at the pointer, also on another map of the world (Ctrl+C, X, V), duplicate (Ctrl+D), Alt and a drag moves a copy.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The round handle on the selected place drags its reach.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Many places at once: Shift and a click, Shift and a drag on the map, Ctrl+A; drag, arrows, copy and delete them together.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The keyboard button (or ?) shows every key.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: arriving on a place with another music, its name shows beside a round play button whose gold ring fills: it plays when the ring closes (tap it to play now, or Skip), and as soon as the party leaves the place's hearing circle, its music gives way (the map's music, or a fade out). The setting Music follows the party decides both; off, the card asks (Play or Skip).</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: the music under the world's name, a long press on the map sends the party there around the walls, a tap on a sign the party stands on takes its way, pinned effects over the map, a music comes back where it was.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Five taps on the world's name: the debug overlay, to copy and send.</li></ul>
+  <ul style="margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:15px;line-height:1.4"><li style="padding-left:10px;border-left:3px solid #F0C24F">In the editor, the headphones (or S) let you hear what the party hears, from the golden point: move it with the select tool to walk. The ground around each place shows how far its sounds carry.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Undo and redo for everything (Ctrl+Z, Ctrl+Shift+Z), 200 steps per map.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Copy, cut, paste at the pointer, also on another map of the world (Ctrl+C, X, V), duplicate (Ctrl+D), Alt and a drag moves a copy.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The round handle on the selected place drags its reach.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Many places at once: Shift and a click, Shift and a drag on the map, Ctrl+A; drag, arrows, copy and delete them together.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">The keyboard button (or ?) shows every key.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table, Music suggestions: reaching a place with its own music (on the place, or in its hearing circle), a card shows all its musics; with Autoplay the first plays when the gold ring closes (after 5 s, or the time you set), tap another to play it, or Skip. Autostop: leaving (the place, or its hearing circle), its music gives way to the map's music, or fades out. The music menu can take the full screen: the music heard, the queue, then every music to search.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">At the table: the music under the world's name, a long press on the map sends the party there around the walls, a tap on a sign the party stands on takes its way, pinned effects over the map, a music comes back where it was.</li><li style="padding-left:10px;border-left:3px solid #F0C24F">Five taps on the world's name: the debug overlay, to copy and send.</li></ul>
 </dialog>
 </body>
 </html>

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261119.7';
+  const VERSION = '261120.1';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2645,7 +2645,15 @@
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
-    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); });
+    $('#opt-music-suggest').addEventListener('change', (e) => { settings.musicSuggest = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
+    $('#opt-music-stop').addEventListener('change', (e) => { settings.musicStop = e.target.checked; saveSettings(); paintSettings(); });
+    $('#opt-music-full').addEventListener('change', (e) => { setMusicFull(e.target.checked); });
+    const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeArrive(); paintSettings(); });
+    pickSeg('#music-in', 'musicIn'); pickSeg('#music-out', 'musicOut');
+    const stepWait = (d) => { settings.musicWait = Math.max(2, Math.min(30, waitS() + d)); saveSettings(); paintSettings(); };
+    $('#music-wait-less').addEventListener('click', () => stepWait(-1));
+    $('#music-wait-more').addEventListener('click', () => stepWait(1));
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
@@ -2685,7 +2693,18 @@
     $('#opt-rings').checked = settings.rings;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
+    const sug = settings.musicSuggest !== false;
+    $('#opt-music-suggest').checked = sug;
+    $('#music-sets').hidden = !sug;
     $('#opt-music-auto').checked = settings.musicAuto !== false;
+    $('#music-wait-row').hidden = settings.musicAuto === false;
+    $('#music-wait').textContent = `${waitS()} s`;
+    $('#music-wait-less').disabled = waitS() <= 2; $('#music-wait-more').disabled = waitS() >= 30;
+    $('#opt-music-stop').checked = settings.musicStop !== false;
+    $('#music-out-row').hidden = settings.musicStop === false;
+    document.querySelectorAll('#music-in [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicIn === 'circle' ? 'circle' : 'place'))));
+    document.querySelectorAll('#music-out [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicOut === 'place' ? 'place' : 'circle'))));
+    $('#opt-music-full').checked = !!settings.musicFull;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
@@ -2806,8 +2825,26 @@
 
   const musRows = [];
   let musQ = '';
+  /** The music menu in full screen (a setting, and the button at its top): the music heard, the queue, then every
+   *  music to search, one under the other. */
+  function setMusicFull(on) {
+    settings.musicFull = !!on; saveSettings();
+    $('#opt-music-full').checked = !!on;
+    paintMusicFull();
+    if (!$('#mw-mus').hidden) renderMusic();
+  }
+  function paintMusicFull() {
+    const on = !!settings.musicFull;
+    $('#mw-mus').classList.toggle('full', on);
+    $('#mw-mus-full').innerHTML = on ? ICON.shrink : ICON.fit;
+    $('#mw-mus-full').setAttribute('aria-pressed', String(on));
+    $('#mw-mus-full').title = on ? 'Back to the side panel' : 'Full screen';
+    $('#mw-mus-full').setAttribute('aria-label', $('#mw-mus-full').title);
+    $('#mw-mus-queue').hidden = on;
+  }
   function openMusic() {
     closeSoundbox();
+    paintMusicFull();
     $('#mw-mus').hidden = false;
     $('#world').classList.add('over');
     $('#mw-mus-btn').setAttribute('aria-pressed', 'true');
@@ -2822,13 +2859,14 @@
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
   let musQueueView = false;
-  /* ================= Arriving on a place with music, and leaving it =================
-   * The party stops on a place with another music, or leaves the place whose music is heard: a small card says what
-   * comes (the place's music; the map's music, or the place's music fading out). With the setting Music follows the
-   * party, it happens when the ring closes (tap to do it now, or Skip to keep the music heard); without, the card
-   * asks (Play or Skip). Several musics: the first plays, the others join the queue. */
-  const ARRIVE_S = 5;
+  /* ================= Music suggestions: arriving on a place with music =================
+   * The party reaches a place with its own music, not the one heard (settings of At the table: Music suggestions,
+   * The card shows on the place or in its hearing circle): a small card shows every music of the place. The first
+   * sits in a round play button; with Autoplay its gold ring fills (Plays after, 5 s by default) and it plays when the
+   * ring closes. Any other music of the place plays with a tap on its line. Skip keeps the music heard. Leaving
+   * the place, Autostop lets its music give way (map-audio.js); the card is closed then. */
   let arrive = null;
+  const waitS = () => Math.max(2, Math.min(30, Math.round(settings.musicWait || 5)));
   function closeArrive() {
     if (!arrive) return;
     clearInterval(arrive.timer); clearTimeout(arrive.done);
@@ -2840,63 +2878,71 @@
   }
   function showArrive(info) {
     closeArrive();
-    if (!info || mode !== 'play') return false;
+    if (!info || mode !== 'play' || info.leaving) return false;
     const all = worldMusic();
     // The world's musics (the voices that play them), in the order of the place.
     const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
-    const leaving = !!info.leaving, fading = leaving && !cards.length;
-    if (!cards.length && !fading) return false;
+    if (!cards.length) return false;
     const cur = A.currentMusic();
-    if (!leaving && cur && cards.some((c) => c.file === cur.file)) return false; // already heard
-    const auto = settings.musicAuto !== false;
+    const curV = cur && A.voice(cur);
+    if (cur && (!curV || curV.state !== 'ending') && cards.some((c) => c.file === cur.file)) return false; // already heard (not one fading out)
+    const auto = settings.musicAuto !== false, S = waitS();
     const box = $('#mw-arrive');
     box.textContent = '';
-    arrive = { info, cards, left: ARRIVE_S, timer: 0 };
-    // Waze style: a round play button whose gold ring fills while the music waits (it plays when the ring closes),
-    // the place and its music beside it, and a plain Skip under them.
+    arrive = { info, cards, left: S, timer: 0 };
     const R = 27, C = 2 * Math.PI * R;
     const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
-    play.style.setProperty('--ar-s', `${ARRIVE_S}s`);
+    play.style.setProperty('--ar-s', `${S}s`);
     play.style.setProperty('--ar-c', C.toFixed(1));
-    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic${fading ? ' stop' : ''}">${fading ? ICON.stop : ICON.play}</span>`;
-    play.setAttribute('aria-label', fading ? `Fade ${info.fading.name} out now` : `Play ${cards[0].name} now`);
-    play.title = fading ? (auto ? 'Fade it out now' : 'Fade it out') : (auto ? 'Play it now' : 'Play it');
+    play.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>`;
+    play.setAttribute('aria-label', `Play ${cards[0].name} now`);
+    play.title = auto ? 'Play it now' : 'Play it';
     const txt = el('div', 'ar-txt');
-    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${leaving ? `Leaving ${elName(info.el)}` : elName(info.el)}</span>`;
-    const names = el('b', 'ar-names', fading ? info.fading.name : cards.map((c) => c.name).join(', '));
+    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${elName(info.el)}</span>`;
+    const names = el('b', 'ar-names', cards[0].name);
     const ask = el('span', 'ar-clock');
     txt.append(where, names, ask);
+    const go = (c) => {
+      if (!arrive) return;
+      const i = arrive.info;
+      closeArrive();
+      i.start(c.file);
+      refreshLive();
+    };
+    play.addEventListener('click', () => go(cards[0]));
+    const row = el('div', 'ar-row');
+    row.append(play, txt);
+    box.append(row);
+    // Every other music of the place: a tap plays it.
+    if (cards.length > 1) {
+      const more = el('div', 'ar-more');
+      cards.slice(1).forEach((c) => {
+        const b = el('button', 'ar-alt'); b.type = 'button';
+        b.innerHTML = `${ICON.play}<span></span>`;
+        b.querySelector('span').textContent = c.name;
+        b.title = `Play ${c.name}`;
+        b.addEventListener('click', () => go(c));
+        more.append(b);
+      });
+      box.append(more);
+    }
     const skip = el('button', 'ar-skip'); skip.type = 'button';
     skip.textContent = 'Skip';
     skip.title = 'Keep the music heard';
-    const go = () => {
-      if (!arrive) return;
-      const { info: i, cards: cs } = arrive;
-      closeArrive();
-      i.start();
-      cs.slice(1).forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); });
-      refreshLive();
-    };
-    play.addEventListener('click', go);
     skip.addEventListener('click', closeArrive);
-    const row = el('div', 'ar-row');
-    row.append(play, txt);
-    box.append(row, skip);
+    box.append(skip);
     const paint = () => {
       if (!arrive) return;
-      if (fading) ask.textContent = auto ? `Fades out in ${arrive.left} s` : 'Fade this music out?';
-      else if (leaving) ask.textContent = auto ? `The map's music, in ${arrive.left} s` : 'Back to the music of the map?';
-      else ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Move to these musics?' : 'Move to this music?');
+      ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Which music here?' : 'Play this music?');
     };
     paint();
     // The music to come is made ready now: it starts at once when asked.
-    (fading ? [] : cards.slice(0, 1)).forEach((c) => { warmMusic(c.file); A.prime(c); });
-    if (leaving && cards[0]) warmMusic(cards[0].file);
-    arrive.primed = fading ? [] : cards.slice(0, 1);
+    warmMusic(cards[0].file); A.prime(cards[0]);
+    arrive.primed = cards.slice(0, 1);
     if (auto) {
       arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left > 0) paint(); }, 1000);
       // The ring is drawn by the browser (one smooth fill); the music starts when it closes.
-      arrive.done = setTimeout(go, ARRIVE_S * 1000);
+      arrive.done = setTimeout(() => go(cards[0]), S * 1000);
     }
     box.hidden = false;
     requestAnimationFrame(() => rollTitles(box));
@@ -2908,8 +2954,13 @@
     const now = $('#mw-mus-now'), list = $('#mw-mus-list');
     now.textContent = ''; list.textContent = '';
     const all = rec.world.music || [];
+    const full = !!settings.musicFull;
+    const queueOnly = musQueueView && !full;
     $('#mw-mus-queue').setAttribute('aria-pressed', String(musQueueView));
-    $('.mus-q').hidden = musQueueView;
+    $('.mus-q').hidden = queueOnly;
+    const qlist = $('#mw-mus-qlist');
+    qlist.textContent = '';
+    $('#mw-mus-upnext').hidden = !full;
     // The music heard now: its card (progress, play and pause, stop, volume).
     let shown, nowRows = [];
     musRows.push(() => {
@@ -2932,7 +2983,7 @@
       qn = n;
       paintQ(n);
       // The queue moved on by itself (a music ended): its view is drawn again, outside this paint.
-      if (musQueueView) setTimeout(renderMusic, 0);
+      if (musQueueView || settings.musicFull) setTimeout(renderMusic, 0);
     });
     if (!all.length) { list.append(el('p', 'sb-empty', 'No music in this world yet. Add some in the editor, behind its Music button.')); refreshLive(); return; }
     const iconBtn = (cls, icon, label, fn) => {
@@ -2974,11 +3025,12 @@
       return r;
     };
 
-    if (musQueueView) {
-      // The queue: what plays next, in order. A tap plays one now.
+    if (queueOnly || full) {
+      // The queue: what plays next, in order. A tap plays one now. In full screen it sits above the search.
+      const into = full ? qlist : list;
       const q = A.queue();
-      if (!q.length) list.append(el('p', 'sb-empty', 'The queue is empty. Add musics to it with their queue button.'));
-      q.forEach((c, i) => list.append(musicRow(c, {
+      if (!q.length) into.append(el('p', 'sb-empty', full ? 'Nothing in the queue: add musics with their queue button below.' : 'The queue is empty. Add musics to it with their queue button.'));
+      q.forEach((c, i) => into.append(musicRow(c, {
         play: () => A.playMusic(c, i),
         buttons: () => [
           iconBtn('', ICON.up, 'Play earlier', () => { A.queueMove(i, -1); renderMusic(); }),
@@ -2986,9 +3038,8 @@
           iconBtn('', ICON.x, 'Take out of the queue', () => { A.queueRemove(i); renderMusic(); }),
         ],
       })));
-      list.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
-      refreshLive();
-      return;
+      into.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
+      if (!full) { refreshLive(); return; }
     }
 
     const words = fold(musQ).split(/\s+/).filter(Boolean);
@@ -3003,6 +3054,7 @@
           A.queueAdd(c);
           b.classList.remove('done'); void b.offsetWidth; b.classList.add('done');
           toast(`${c.name}: in the queue.`, 1400);
+          if (settings.musicFull) renderMusic();
         })],
       });
       rows.set(c, r);
@@ -3571,6 +3623,7 @@
     $('#mw-mus-close').innerHTML = ICON.close;
     $('#mw-mus-queue').addEventListener('click', () => { musQueueView = !musQueueView; renderMusic(); });
     $('#mw-mus-close').addEventListener('click', closeMusic);
+    $('#mw-mus-full').addEventListener('click', () => setMusicFull(!settings.musicFull));
     $('#mw-mus-q').addEventListener('input', (e) => { musQ = e.target.value; renderMusic(); });
     // The shared soundbox, from the worlds screen (as in Troubadour).
     document.querySelectorAll('[data-action="shared"]').forEach((b) => { b.innerHTML = ICON.star; b.addEventListener('click', () => { location.hash = location.hash === '#/soundbox' ? '#/' : '#/soundbox'; }); });
