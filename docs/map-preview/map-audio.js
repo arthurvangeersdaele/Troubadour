@@ -35,8 +35,8 @@
   /** The master play, pause and stop buttons fade over 3 s. */
   const MASTER_FADE = 3000;
   const RANDOM_TOP = 30;
-  /** How a voice plays: with the waiting queue (setting), a music of the world plays once, the queue saying what comes next. */
-  const playOf = (v) => (v.world && settings.musicQueue ? 'once' : v.card.play);
+  /** How a voice plays: with the waiting queue (setting), a music has no loop (a looping one plays once); 1× and 2× stay. */
+  const playOf = (v) => (v.world && settings.musicQueue && v.card.play === 'loop' ? 'once' : v.card.play);
   const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 17)));
   /** A card's own longest pause (1 to 30 s), else the one of the settings. */
   const ownPause = (card) => { const n = Number(card && card.randomMax); return n >= 1 && n <= RANDOM_TOP ? n : null; };

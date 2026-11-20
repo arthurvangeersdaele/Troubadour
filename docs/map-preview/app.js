@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.8';
+  const VERSION = '261120.10';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1065,11 +1065,15 @@
   /** The loop button, as in Troubadour: 1×, 2×, ∞, then random (ambiances, events) or play after (music). */
   const LOOP_LABEL = { once: '1×', twice: '2×', loop: '∞' };
   const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause', after: 'Play after: starts when another music ends on its own' };
+  /** With the waiting queue, a music has no loop: 1× or 2×, a looping one played once (and shown 1×). */
+  const playShown = (c) => (c.zone === 'music' && settings.musicQueue && c.play === 'loop' ? 'once' : c.play);
+  const musicWays = () => (settings.musicQueue ? ['once', 'twice'] : ['once', 'twice', 'loop']);
   function paintLoop(btn, c) {
-    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : c.play === 'after' ? ' aft' : ''}`;
-    if (c.play === 'random') btn.innerHTML = ICON.random; else if (c.play === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[c.play];
-    btn.title = `${LOOP_TITLE[c.play]} (tap to change)`;
-    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[c.play]}`);
+    const p = playShown(c);
+    btn.className = `loop${p === 'loop' ? ' inf' : p === 'random' ? ' rnd' : p === 'after' ? ' aft' : ''}`;
+    if (p === 'random') btn.innerHTML = ICON.random; else if (p === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[p];
+    btn.title = `${LOOP_TITLE[p]} (tap to change)`;
+    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[p]}`);
   }
   const fmtLeft = (sec) => { sec = Math.ceil(sec || 0); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
   const clockOf = (sec) => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
@@ -1097,15 +1101,10 @@
     const loop = el('button');
     loop.type = 'button';
     paintLoop(loop, c);
-    // With the waiting queue, a music plays once: no loop to pick, 1× shown.
-    if (c.zone === 'music' && settings.musicQueue) {
-      loop.className = 'loop fixed'; loop.textContent = '1×'; loop.disabled = true;
-      loop.title = 'Plays once: the waiting queue says what comes next';
-      loop.setAttribute('aria-label', `${c.name} plays once`);
-    } else loop.addEventListener('click', () => {
-      // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
-      const ways = c.zone === 'music' ? ['once', 'twice', 'loop'] : ['once', 'twice', 'loop', 'random'];
-      const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
+    loop.addEventListener('click', () => {
+      // The musics: 1×, 2× or ∞; with the waiting queue 1× or 2× only (what comes next is the queue's).
+      const ways = c.zone === 'music' ? musicWays() : ['once', 'twice', 'loop', 'random'];
+      const next = ways[(ways.indexOf(playShown(c)) + 1) % ways.length];
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
       if (A.isOpen()) A.sync();
@@ -1242,7 +1241,7 @@
         if (waiting) txt = `next ${fmtLeft(pr.next)}`;
         else if (v && v.held) txt = 'held';
         else if (on || st === 'paused') {
-          if (c.play === 'loop') txt = '∞ loop';
+          if (playShown(c) === 'loop') txt = '∞ loop';
           else if (pr.left != null) { txt = fmtLeft(pr.left); warn = pr.left <= 10; }
         }
         if (rem && rem.textContent !== txt) rem.textContent = txt;
@@ -1279,7 +1278,8 @@
     const others = list.filter((c) => !EDIT_ZONES.some(([z]) => z === zoneOf(c)));
     // A card moved, removed or renamed in its zone: the list of the element follows, kind after kind.
     const back = () => { list.splice(0, list.length, ...subs.flat(), ...others); };
-    EDIT_ZONES.forEach(([z, label, colour, loops], k) => {
+    EDIT_ZONES.forEach(([z, label, colour, loops0], k) => {
+      const loops = z === 'music' ? musicWays() : loops0;
       const sub = subs[k];
       if (!sub.length) return;
       const h = el('h4', 'zh', label);
@@ -1424,7 +1424,7 @@
     const list = worldMusic();
     box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on the whole map starts when the party arrives there; laid on a place, when the party walks into it (and the map\'s comes back when it walks out).'));
     const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
-    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: ['once', 'twice', 'loop'] }),
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: musicWays(), music: true }),
       'Add musics: from this device, the Recueil or Files', () => {
         fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
           for (const r of picked) {
@@ -2763,13 +2763,13 @@
     info.textContent = `${p.usage != null ? `In use: about ${size(p.usage)}.` : ''} ${p.persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
   }
 
-  /** A volume slider moves its gain at once, over 60 ms: what was scheduled on it is dropped first (iPhone keeps
-   *  piling up targets on a gain and let the master take seconds to arrive). */
-  function glide(param, value, ctx) {
+  /** A volume slider moves its gain in a straight slope over `secs` (the master: 4 s, so a change at the table is
+   *  never a jump); what was scheduled on it is dropped first, the slope starting from where the gain is now. */
+  function glide(param, value, ctx, secs = 0.06) {
     const t = ctx.currentTime;
     if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(t);
     else { const v = param.value; param.cancelScheduledValues(t); param.setValueAtTime(v, t); }
-    param.linearRampToValueAtTime(value, t + 0.06);
+    param.linearRampToValueAtTime(value, t + secs);
   }
 
   /* ================= Keep the screen awake ================= */
@@ -3186,7 +3186,7 @@
   function fxCard(s, i, list, o) {
     const c = el('div', 'sc');
     c.style.setProperty('--z', o.colour || 'var(--accent)');
-    if (o.loops && s.play === 'loop') c.dataset.loop = '1';
+    if (o.loops && playShown(s) === 'loop') c.dataset.loop = '1';
     const top = el('div', 'row');
     const name = el('input');
     name.value = s.name;
@@ -3241,12 +3241,12 @@
       loop.type = 'button';
       paintLoop(loop, s);
       loop.addEventListener('click', () => {
-        const next = o.loops[(o.loops.indexOf(s.play) + 1) % o.loops.length];
+        const next = o.loops[(o.loops.indexOf(playShown(s)) + 1) % o.loops.length];
         Object.assign(s, M.cleanCard(Object.assign({}, s, { play: next })));
         paintLoop(loop, s);
-        c.dataset.loop = s.play === 'loop' ? '1' : '';
+        c.dataset.loop = playShown(s) === 'loop' ? '1' : '';
         const pv = fxPreviews.get(o.key);
-        if (pv) pv.src.loop = s.play === 'loop';
+        if (pv) pv.src.loop = playShown(s) === 'loop';
         o.save();
         if (o.onLoop) o.onLoop();
       });
@@ -3775,7 +3775,7 @@
       settings.master = Number(e.target.value);
       $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
       const { ctx, master } = audio();
-      glide(master.gain, A.curve(settings.master), ctx);
+      glide(master.gain, A.curve(settings.master), ctx, 4);
     });
     $('#mw-master').addEventListener('change', saveSettings);
 

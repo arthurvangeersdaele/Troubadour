@@ -316,6 +316,22 @@ try {
       await page.evaluate((id) => { const e = window.MapView.__place().elements.find((x) => x.id === id); e.cards.pop(); window.MapAudio.sync(); window.MapUI.settings.musicAuto = true; window.MapUI.settings.musicWait = 5; }, geo.id);
     }
   }
+  // The master volume slides to its new value over 4 s.
+  {
+    const m = await page.evaluate(async () => {
+      const { master } = window.MapUI.audio(), sl = document.getElementById('mw-master'), wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const was = Number(sl.value);
+      sl.value = 100; sl.dispatchEvent(new Event('input')); await wait(4300);
+      const top = master.gain.value;
+      sl.value = 0; sl.dispatchEvent(new Event('input')); await wait(1000);
+      const one = master.gain.value; await wait(1000);
+      const two = master.gain.value; await wait(2400);
+      const end = master.gain.value;
+      sl.value = was; sl.dispatchEvent(new Event('input'));
+      return { top, one, two, end };
+    });
+    ok(m.top > 0.9 && m.one < m.top && m.one > 0.6 && m.two < m.one && m.two > 0.35 && m.end < 0.02, `the master slides over 4 s (${JSON.stringify(m)})`);
+  }
   // The waiting queue: off, no queue anywhere and loops kept; on, the queue comes back and every music shows 1×.
   {
     const q = await page.evaluate(async () => {
@@ -325,7 +341,10 @@ try {
       document.getElementById('mw-mus-btn').click(); await wait(300);
       const off = { btn: document.getElementById('mw-mus-queue').hidden, adds: document.querySelectorAll('#mw-mus-list .mus-i').length, loops: [...document.querySelectorAll('#mw-mus-now .loop')].filter((b) => !b.disabled).length };
       await set(true); await wait(200);
-      const on = { btn: document.getElementById('mw-mus-queue').hidden, adds: document.querySelectorAll('#mw-mus-list .mus-i').length, fixed: [...document.querySelectorAll('#mw-mus-now .loop')].every((b) => b.disabled && b.textContent === '1×') };
+      const on = { btn: document.getElementById('mw-mus-queue').hidden, adds: document.querySelectorAll('#mw-mus-list .mus-i').length, fixed: [...document.querySelectorAll('#mw-mus-now .loop')].every((b) => b.textContent !== '∞'), noLoopText: !/loop/.test(document.getElementById('mw-mus-now').textContent) };
+      // 1× and 2× still: a tap goes from one to the other, never to ∞.
+      const b = document.querySelector('#mw-mus-now .loop');
+      if (b) { const seen = new Set(); for (let k = 0; k < 4; k++) { seen.add(b.textContent); b.click(); await wait(100); } on.ways = [...seen].sort().join(' '); }
       await set(false);
       // The sound menu button closes the Music and the Soundbox.
       document.getElementById('mw-menu').click(); await wait(300);
@@ -333,7 +352,7 @@ try {
       return { off, on, menu };
     });
     ok(q.off.btn && q.off.adds === 0, `no waiting queue: no queue button, no Add to the queue (${JSON.stringify(q.off)})`);
-    ok(!q.on.btn && q.on.adds > 0 && q.on.fixed, `waiting queue: its buttons back, every music 1× (${JSON.stringify(q.on)})`);
+    ok(!q.on.btn && q.on.adds > 0 && q.on.fixed && q.on.noLoopText && (!q.on.ways || q.on.ways === '1× 2×'), `waiting queue: its buttons back, musics 1× or 2×, no loop shown (${JSON.stringify(q.on)})`);
     ok(q.menu.mus && q.menu.sbx && q.menu.panel, 'the sound menu button closes the Music and the Soundbox');
   }
   // The sound menu of a place goes back to the whole map in one tap.
