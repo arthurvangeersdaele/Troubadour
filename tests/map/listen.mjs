@@ -393,9 +393,11 @@ try {
     ok((await page.textContent('#mw-sub')).startsWith('Map 2:'), 'a tap on a sign the party stands on takes its way');
   }
   // The music menu in full screen: the music heard, the queue, then the search.
+  // Chosen in Settings only: no button in the menu.
+  ok(await page.evaluate(() => getComputedStyle(document.getElementById('mw-mus-full')).display === 'none' && getComputedStyle(document.getElementById('mw-sbx-full')).display === 'none'), 'full screen is set in Settings only (no button in the menus)');
+  await page.evaluate(() => { const t = document.getElementById('opt-music-full'); t.checked = true; t.dispatchEvent(new Event('change')); });
   await page.click('#mw-mus-btn');
   await page.waitForSelector('#mw-mus:not([hidden])');
-  await page.click('#mw-mus-full');
   await page.waitForTimeout(300);
   const fs = await page.evaluate(() => {
     const m = document.getElementById('mw-mus').getBoundingClientRect(), body = document.querySelector('.mp-body').getBoundingClientRect();
@@ -403,7 +405,7 @@ try {
     return { full: m.width >= body.width - 2 && m.height >= body.height - 2, order: !document.getElementById('mw-mus-upnext').hidden && up.top < q.top, setting: window.MapUI.settings.musicFull };
   });
   ok(fs.full && fs.order && fs.setting, `the music menu takes the full screen, the queue above the search (${JSON.stringify(fs)})`);
-  await page.click('#mw-mus-full');
+  await page.evaluate(() => { const t = document.getElementById('opt-music-full'); t.checked = false; t.dispatchEvent(new Event('change')); });
   await page.click('#mw-mus-close');
   for (let i = 0; i < 5; i++) await page.click('#mw-title');
   await page.waitForTimeout(700);

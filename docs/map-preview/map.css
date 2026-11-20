@@ -925,7 +925,7 @@ html:not(.mode-app) .splash { display: none; }
 .mp-arrive .ar-go.counting .ring { animation: ar-fill var(--ar-s) linear forwards; }
 @keyframes ar-fill { from { stroke-dashoffset: var(--ar-c); } to { stroke-dashoffset: 0; } }
 .mp-arrive .ar-go .ic { position: absolute; inset: 9px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; transition: transform .15s; }
-.mp-arrive .ar-go .ic svg { position: static; transform: translateX(2px); width: 24px; height: 24px; fill: currentColor; }
+.mp-arrive .ar-go .ic svg { position: static; transform: none; width: 24px; height: 24px; fill: currentColor; }
 .mp-arrive .ar-go:active .ic { transform: scale(.92); }
 .mp-arrive .ar-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .mp-arrive .ar-where { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--music); white-space: nowrap; overflow: hidden; }
@@ -990,7 +990,7 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 /* Without Autoplay: the play button alone, bigger, its triangle in the middle. */
 .mp-arrive .ar-go.bare { width: 60px; height: 60px; align-self: center; }
 .mp-arrive .ar-go.bare .ic { inset: 0; }
-.mp-arrive .ar-go.bare .ic svg { width: 28px; height: 28px; transform: translateX(2px); }
+.mp-arrive .ar-go.bare .ic svg { width: 28px; height: 28px; transform: none; }
 
 /* A narrow screen: the walking speeds go under their name. */
 @media (max-width: 480px) {
@@ -1008,3 +1008,6 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 @media (min-width: 900px) and (min-height: 601px) { .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .pads, .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-vol, .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-hint { padding-left: max(16px, calc(50% - 480px)); padding-right: max(16px, calc(50% - 480px)); } }
 .mp-sbx .sb-head .grow { flex: 1; }
 #mw-sbx .sb-head { gap: 6px; }
+
+/* Full screen is chosen in Settings only. */
+#mw-mus-full, #mw-sbx-full { display: none !important; }
