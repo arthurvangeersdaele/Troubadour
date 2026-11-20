@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.13';
+  const VERSION = '261120.15';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1184,7 +1184,7 @@
       vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
       vol.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
       vol.setAttribute('aria-label', `${c.name} volume`);
-      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); paintRange(vol); });
+      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); linkMusic(c); paintRange(vol); });
       vol.addEventListener('change', save);
       ctrl.append(vol);
     } else if (vm === 'simple') {
@@ -1198,6 +1198,7 @@
       };
       const step = (dir) => {
         if (!A.stepVolume(c, dir)) return;
+        linkMusic(c);
         paintLvl();
         save();
       };
@@ -1431,7 +1432,7 @@
             const key = r.blobKey || await DB.putBlob(await r.getBlob());
             const path = freePath(`sounds/map/music/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
             rec.files[path] = key;
-            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
+            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: (list[0] && typeof list[0].volume === 'number') ? list[0].volume : 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
           }
           flush();
           renderPanel();
@@ -1741,6 +1742,7 @@
       const w = $('#world').classList;
       if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
       paintMaster();
+      paintMusicVol();
       paintNowPlaying();
     }, 100);
   }
@@ -2765,6 +2767,15 @@
     info.textContent = `${p.usage != null ? `In use: about ${size(p.usage)}.` : ''} ${p.persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
   }
 
+  /** Every music card shares one volume in Map: the others take the one just set (those sounding glide there, see
+   *  MapAudio.setVolume and stepVolume; this keeps the rest, the editor's included, in step). */
+  function linkMusic(c) {
+    if (!rec || c.zone !== 'music') return;
+    const all = (rec.world.music || []).slice();
+    rec.world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((k) => { if (k.zone === 'music') all.push(k); }));
+    all.forEach((k) => { if (k !== c && !(A.isOpen() && A.voice(k))) k.volume = c.volume; });
+  }
+
   /** A volume slider moves its gain in a straight slope over `secs` (the master: 4 s, so a change at the table is
    *  never a jump); what was scheduled on it is dropped first, the slope starting from where the gain is now. */
   function glide(param, value, ctx, secs = 0.06) {
@@ -3264,6 +3275,7 @@
     const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
     vr.addEventListener('input', () => {
       s.volume = Math.round(+vr.value * 100) / 100;
+      if (o.music) linkMusic(s);
       const p = fxPreviews.get(o.key);
       if (p) p.gain.gain.setTargetAtTime(A.curve(s.volume), audio().ctx.currentTime, 0.03);
       vp.textContent = `${Math.round(s.volume * 100)}`;
@@ -3585,14 +3597,16 @@
     sbSources.forEach((s) => { try { s.stop(); } catch (e) { /* already stopped */ } });
     sbSources.clear();
   }
+  let paintMusicVol = () => {};
   function paintMaster() {
     const b = $('#mw-pause');
     const resume = A.resumePending();
     if (b.dataset.i === (resume ? 'play' : 'pause')) return;
     b.dataset.i = resume ? 'play' : 'pause';
-    b.innerHTML = resume ? ICON.play : ICON.pause;
+    // A small earth at its corner: it pauses everything (sounds, musics, random events).
+    b.innerHTML = `${resume ? ICON.play : ICON.pause}<span class="badge" aria-hidden="true">${ICON.globe}</span>`;
     b.classList.toggle('on', resume);
-    b.setAttribute('aria-label', resume ? 'Resume all' : 'Pause all');
+    b.setAttribute('aria-label', resume ? 'Resume everything' : 'Pause everything');
   }
 
   /* ================= The drawing tools: moved by their grip, always inside the map ================= */
@@ -3770,16 +3784,28 @@
     $('#mw-fade').addEventListener('click', () => { A.stopMusic(); refreshLive(); paintMaster(); });
     $('#mw-pause').innerHTML = ICON.pause;
     $('#mw-pause').addEventListener('click', () => { A.pauseAll(); refreshLive(); paintMaster(); });
-    $('#mw-master').value = settings.master;
-    paintRange($('#mw-master'));
-    $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
+    // The top bar's slider is the music volume (every music card shares it), going there in a 4 s slope; a small
+    // note at the bottom right of its head says so. The master of the app stays where it is.
+    $('#mw-master-note').innerHTML = ICON.note;
+    let musDrag = false;
+    const paintMusVol = (vol) => {
+      const r = $('#mw-master');
+      if (vol != null && !musDrag && Math.abs(Number(r.value) - vol) > 0.001) r.value = vol;
+      paintRange(r);
+      $('#mw-master-val').textContent = String(Math.round(Number(r.value) * 100));
+      r.parentNode.style.setProperty('--v', r.value);
+    };
+    paintMusVol.go = () => { if (A.isOpen()) paintMusVol(A.musicVolume()); else if (rec) paintMusVol(((rec.world.music || [])[0] || {}).volume ?? null); };
+    paintMusicVol = paintMusVol.go;
+    paintMusVol(((rec && (rec.world.music || [])[0]) || {}).volume ?? 0.75);
+    $('#mw-master').addEventListener('pointerdown', () => { musDrag = true; });
     $('#mw-master').addEventListener('input', (e) => {
-      settings.master = Number(e.target.value);
-      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
-      const { ctx, master } = audio();
-      glide(master.gain, A.curve(settings.master), ctx, 4);
+      const vol = Number(e.target.value);
+      if (A.isOpen()) A.setMusicVolume(vol, 4);
+      if (rec) { const any = (rec.world.music || [])[0]; if (any) { any.volume = vol; linkMusic(any); } }
+      paintMusVol(null);
     });
-    $('#mw-master').addEventListener('change', saveSettings);
+    $('#mw-master').addEventListener('change', () => { musDrag = false; save(); });
 
     // The map.
     V.mount($('#mw-canvas'));

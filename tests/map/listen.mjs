@@ -316,21 +316,22 @@ try {
       await page.evaluate((id) => { const e = window.MapView.__place().elements.find((x) => x.id === id); e.cards.pop(); window.MapAudio.sync(); window.MapUI.settings.musicAuto = true; window.MapUI.settings.musicWait = 5; }, geo.id);
     }
   }
-  // The master volume slides to its new value over 4 s.
+  // The top bar's slider is the music volume: every music goes there in a 4 s slope; the master stays.
   {
     const m = await page.evaluate(async () => {
-      const { master } = window.MapUI.audio(), sl = document.getElementById('mw-master'), wait = (ms) => new Promise((r) => setTimeout(r, ms));
-      const was = Number(sl.value);
-      sl.value = 100; sl.dispatchEvent(new Event('input')); await wait(4300);
-      const top = master.gain.value;
-      sl.value = 0; sl.dispatchEvent(new Event('input')); await wait(1000);
-      const one = master.gain.value; await wait(1000);
-      const two = master.gain.value; await wait(2400);
-      const end = master.gain.value;
+      const A = window.MapAudio, { master } = window.MapUI.audio(), sl = document.getElementById('mw-master'), wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const cur = A.currentMusic(); if (!cur) return null;
+      const v = A.voice(cur), was = Number(sl.value), m0 = master.gain.value;
+      sl.value = 1; sl.dispatchEvent(new Event('input')); await wait(4300);
+      const top = v.vg.gain.value;
+      sl.value = 0; sl.dispatchEvent(new Event('input')); await wait(2000);
+      const mid = v.vg.gain.value; await wait(2400);
+      const end = v.vg.gain.value;
+      const all = A.voices().filter((x) => x.card.zone === 'music').every((x) => x.card.volume === 0);
       sl.value = was; sl.dispatchEvent(new Event('input'));
-      return { top, one, two, end };
+      return { top, mid, end, all, masterSame: Math.abs(master.gain.value - m0) < 1e-6, note: !!document.querySelector('#mw-master-note svg'), earth: !!document.querySelector('#mw-pause .badge svg') };
     });
-    ok(m.top > 0.9 && m.one < m.top && m.one > 0.6 && m.two < m.one && m.two > 0.35 && m.end < 0.02, `the master slides over 4 s (${JSON.stringify(m)})`);
+    if (m) ok(m.top > 0.9 && m.mid < m.top && m.mid > 0.2 && m.end < 0.02 && m.all && m.masterSame && m.note && m.earth, `the top slider is the music volume, in a 4 s slope (${JSON.stringify(m)})`);
   }
   // A music that looped before the waiting queue was turned on: its time left is its last round's, not 0:00.
   {
@@ -343,6 +344,19 @@ try {
       return r;
     });
     if (pr) ok(pr.p < 1 && pr.left > 0, `a music that looped, then the waiting queue: its time left is right (${JSON.stringify(pr)})`);
+  }
+  // In Map every music card shares one volume.
+  {
+    const lv = await page.evaluate(() => {
+      const A = window.MapAudio, w = window.MapView.__world ? window.MapView.__world() : null;
+      const m = A.currentMusic(); if (!m) return null;
+      const before = m.volume;
+      A.setVolume(m, 0.4);
+      const all = A.voices().filter((v) => v.card.zone === 'music').map((v) => v.card.volume);
+      A.setVolume(m, before);
+      return { all, same: all.every((x) => x === 0.4) };
+    });
+    if (lv) ok(lv.same && lv.all.length > 1, `every music card shares one volume (${lv.all.length} musics)`);
   }
   // The waiting queue: off, no queue anywhere and loops kept; on, the queue comes back and every music shows 1×.
   {

@@ -57,6 +57,8 @@
     stopMusic: svg('<rect x="3.5" y="3.5" width="12" height="12" rx="2" fill="currentColor" stroke="none"/><path d="M20.5 13.2v6.1"/><circle cx="18.6" cy="19.5" r="1.9" fill="currentColor" stroke="none"/><path d="M20.5 13.2l1.6.8"/>', 18),
     queue: svg('<path d="M4 6h16M4 11h16M4 16h9"/><path d="M16.5 14v6l5-3z"/>', 17),
     queueAdd: svg('<path d="M4 6h12M4 11h12M4 16h7"/><path d="M18 13v7M14.5 16.5h7"/>', 17),
+    // The note of the stop-the-music button, alone.
+    note: svg('<path d="M14 4.5v12"/><circle cx="11" cy="17" r="3" fill="currentColor" stroke="none"/><path d="M14 4.5l3.5 1.8"/>', 12),
     music: svg('<path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', 17),
   };
   global.MapUI = global.TroubadourUI.make({

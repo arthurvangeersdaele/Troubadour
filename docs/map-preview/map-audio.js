@@ -542,6 +542,11 @@
     const vol = v.card.volume, q = vol * 4;
     const t = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4);
     if (t === vol) return false;
+    glideVol(v, t);
+    return true;
+  }
+  function glideVol(v, t) {
+    if (t === v.card.volume && !v.volMs) return;
     const shown = shownVol(v);
     const secs = Math.max(0.3, Math.abs(t - shown) / 0.25 * 2);
     v.volFrom = shown; v.volAt = performance.now(); v.volMs = secs * 1000;
@@ -549,7 +554,6 @@
     const g = v.vg.gain, at = now();
     g.cancelScheduledValues(at); g.setValueAtTime(g.value, at);
     g.linearRampToValueAtTime(curve(t), at + secs);
-    return true;
   }
   /** The volume heard right now (follows a glide in progress). */
   function shownVol(v) {
@@ -891,17 +895,43 @@
   }
   /** A card's own volume (the slider): at once, with a click-free glide. */
   function setVolume(card, vol) {
-    const v = voices.get(card);
-    if (v) setVol(v, vol); else card.volume = vol;
+    linked(card).forEach((c) => { const v = voices.get(c); if (v) setVol(v, vol); else c.volume = vol; });
+  }
+  /** The music volume of the top bar: every music card goes there, those sounding in a straight slope over `secs`. */
+  function setMusicVolume(vol, secs = 4) {
+    const any = (world && (world.music || [])[0]) || [...voices.values()].map((v) => v.card).find((c) => c.zone === 'music');
+    if (!any) return;
+    linked(any).forEach((c) => {
+      const v = voices.get(c);
+      if (!v) { c.volume = vol; return; }
+      const shown = shownVol(v);
+      v.volFrom = shown; v.volAt = performance.now(); v.volMs = secs * 1000;
+      c.volume = vol;
+      const g = v.vg.gain, at = now();
+      g.cancelScheduledValues(at); g.setValueAtTime(g.value, at);
+      g.linearRampToValueAtTime(curve(vol), at + secs);
+    });
+  }
+  function musicVolume() {
+    const any = (world && (world.music || [])[0]) || [...voices.values()].map((v) => v.card).find((c) => c.zone === 'music');
+    return any ? any.volume : null;
+  }
+  /** In Map, every music card shares one volume: changing one changes them all (the world's musics and the ones
+   *  laid on places, on every map). */
+  function linked(card) {
+    if (card.zone !== 'music' || !world) return [card];
+    const all = new Set([card]);
+    (world.music || []).forEach((c) => all.add(c));
+    world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') all.add(c); }));
+    return [...all];
   }
   /** The simple buttons: a 25 % step, glided over 2 s. */
   function stepVolume(card, dir) {
-    const v = voices.get(card);
-    if (v) return stepVol(v, dir);
     const q = card.volume * 4;
     const t = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4);
     if (t === card.volume) return false;
-    card.volume = t;
+    // Every linked card (all the musics) goes to the same step, each from the volume it is heard at now.
+    linked(card).forEach((c) => { const v = voices.get(c); if (v) glideVol(v, t); else c.volume = t; });
     return true;
   }
   function shownVolume(card) { const v = voices.get(card); return v ? shownVol(v) : card.volume; }
@@ -923,7 +953,7 @@
 
   const list = () => [...voices.values()].map((v) => ({ name: v.card.name, state: v.state, waiting: v.waiting, heard: Math.round(v.heard * 100) / 100, gain: Math.round(v.space.gain.value * 100) / 100, env: Math.round(v.env.gain.value * 100) / 100, vg: Math.round(v.vg.gain.value * 1000) / 1000, life: Math.round(v.life.gain.value * 1000) / 1000 }));
   Object.assign(api, {
-    open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, queueClear, loopsNow, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, stepVolume, shownVolume, living,
+    open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, queueClear, loopsNow, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, setMusicVolume, musicVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
     isOpen: () => !!place, point: () => point, prime: (c) => prime(c), unprime: (c) => unprime(c), position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
   });

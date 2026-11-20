@@ -197,7 +197,15 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-side-body { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .mp-side-body > *, .mp-side-body .c, .mp-side-body .ch, .mp-side-body .ctrl, .pn { min-width: 0; max-width: 100%; }
 .pn-sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.master #mw-master { width: 120px; --z: var(--text); }
+.master #mw-master { width: 120px; --z: var(--music, var(--text)); }
+/* The pause of everything: a small earth at its bottom right. */
+.mp-top #mw-pause.badged { position: relative; }
+.mp-top #mw-pause .badge { position: absolute; right: 2px; bottom: 2px; width: 13px; height: 13px; display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: currentColor; pointer-events: none; }
+.mp-top #mw-pause .badge svg { width: 11px; height: 11px; stroke-width: 2.2; }
+/* The music volume: a small note at the bottom right of the slider's head, following it. */
+.mslide { position: relative; display: inline-flex; align-items: center; --v: .8; }
+.mslide .mnote { position: absolute; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); width: 13px; height: 13px; margin: 3px 0 0 3px; display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: var(--music, var(--text)); pointer-events: none; }
+.mslide .mnote svg { width: 10px; height: 10px; stroke-width: 2.4; }
 .master b { width: 22px; text-align: right; }
 
 /* ---------- The sound picker (its own names: .pick is a soundbox pad in Troubadour's sheet) ---------- */
