@@ -352,13 +352,25 @@
   </section>
   <section>
     <h3>At the table</h3>
+    <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
+    <div class="row-set" id="trail-speed-row">
+      <span>Walking speed<small>How fast the point walks its trail</small></span>
+      <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
+        <button type="button" role="radio" data-v="0.05">Slow</button>
+        <button type="button" role="radio" data-v="0.1">Normal</button>
+        <button type="button" role="radio" data-v="0.2">Fast</button>
+        <button type="button" role="radio" data-v="0.4">Very fast</button>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
+    <label class="row-set toggle"><span>Hearing circles<small>The tinted ground around every element with sounds: how far each is heard, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Music suggestions<small>Reaching a place with its own music, a card shows all its musics: tap one to play it, or Skip. The music menu works at any time.</small></span><input type="checkbox" id="opt-music-suggest"><i></i></label>
     <div class="mus-sets" id="music-sets">
-      <div class="row-set stack">
-        <span>The card shows<small>When the party stops</small></span>
-        <div class="seg small" id="music-in" role="radiogroup" aria-label="The card shows">
-          <button type="button" role="radio" data-v="place">On the place</button>
-          <button type="button" role="radio" data-v="circle">In its hearing circle</button>
+      <div class="row-set">
+        <span>The card shows<small id="music-in-hint">When the party stops on the place</small></span>
+        <div class="seg small where" id="music-in" role="radiogroup" aria-label="The card shows">
+          <button type="button" role="radio" data-v="place" aria-label="On the place" title="On the place"></button>
+          <button type="button" role="radio" data-v="circle" aria-label="In its hearing circle" title="In its hearing circle"></button>
         </div>
       </div>
       <label class="row-set toggle"><span>Autoplay<small>The first music of the card plays when its ring closes</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
@@ -371,27 +383,15 @@
         </div>
       </div>
       <label class="row-set toggle"><span>Autostop<small>Leaving, the place's music gives way: the map's music comes back, or, the map having none, it fades out</small></span><input type="checkbox" id="opt-music-stop"><i></i></label>
-      <div class="row-set stack" id="music-out-row">
-        <span>Stops<small>Never while the party is still where it could start</small></span>
-        <div class="seg small" id="music-out" role="radiogroup" aria-label="Stops">
-          <button type="button" role="radio" data-v="place">Out of the place</button>
-          <button type="button" role="radio" data-v="circle">Out of its hearing circle</button>
+      <div class="row-set" id="music-out-row">
+        <span>Stops<small id="music-out-hint">When the party is out of its hearing circle</small></span>
+        <div class="seg small where" id="music-out" role="radiogroup" aria-label="Stops">
+          <button type="button" role="radio" data-v="place" aria-label="Out of the place" title="Out of the place"></button>
+          <button type="button" role="radio" data-v="circle" aria-label="Out of its hearing circle" title="Out of its hearing circle"></button>
         </div>
       </div>
     </div>
     <label class="row-set toggle"><span>Music menu in full screen<small>The music menu takes the whole screen: the music heard, the queue, then every music to search. The button at its top switches too</small></span><input type="checkbox" id="opt-music-full"><i></i></label>
-    <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
-    <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
-    <div class="row-set" id="trail-speed-row">
-      <span>Walking speed<small>How fast the point walks its trail</small></span>
-      <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
-        <button type="button" role="radio" data-v="0.05">Slow</button>
-        <button type="button" role="radio" data-v="0.1">Normal</button>
-        <button type="button" role="radio" data-v="0.2">Fast</button>
-        <button type="button" role="radio" data-v="0.4">Very fast</button>
-      </div>
-    </div>
-    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
   </section>
   <section>
     <h3>Playback</h3>

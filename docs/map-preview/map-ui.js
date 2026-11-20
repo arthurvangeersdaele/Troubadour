@@ -31,6 +31,12 @@
     redo: svg('<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>', 18),
     keys: svg('<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>', 18),
     shrink: svg('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>', 18),
+    // The music menu in full screen (not the map's frame: arrows out and in).
+    expand: svg('<path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5"/>', 18),
+    collapse: svg('<path d="M20 10h-6V4M4 14h6v6M14 10l6.5-6.5M10 14l-6.5 6.5"/>', 18),
+    // Where: on the place (a dot), in its hearing circle (a dashed circle).
+    onPlace: svg('<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/>', 22),
+    inCircle: svg('<circle cx="12" cy="12" r="8.5" stroke-dasharray="3.2 2.6"/>', 22),
     fit: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>', 18),
     undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', 18),
     // The Sounds button: a folded map with a speaker on it (the sounds of the map).

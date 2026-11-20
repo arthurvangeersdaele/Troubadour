@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261120.1';
+  const VERSION = '261120.2';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2651,6 +2651,7 @@
     $('#opt-music-full').addEventListener('change', (e) => { setMusicFull(e.target.checked); });
     const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeArrive(); paintSettings(); });
     pickSeg('#music-in', 'musicIn'); pickSeg('#music-out', 'musicOut');
+    document.querySelectorAll('#music-in [data-v], #music-out [data-v]').forEach((b) => { b.innerHTML = b.dataset.v === 'place' ? ICON.onPlace : ICON.inCircle; });
     const stepWait = (d) => { settings.musicWait = Math.max(2, Math.min(30, waitS() + d)); saveSettings(); paintSettings(); };
     $('#music-wait-less').addEventListener('click', () => stepWait(-1));
     $('#music-wait-more').addEventListener('click', () => stepWait(1));
@@ -2704,6 +2705,8 @@
     $('#music-out-row').hidden = settings.musicStop === false;
     document.querySelectorAll('#music-in [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicIn === 'circle' ? 'circle' : 'place'))));
     document.querySelectorAll('#music-out [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicOut === 'place' ? 'place' : 'circle'))));
+    $('#music-in-hint').textContent = settings.musicIn === 'circle' ? 'When the party stops in its hearing circle' : 'When the party stops on the place';
+    $('#music-out-hint').textContent = settings.musicOut === 'place' ? 'When the party is out of the place' : 'When the party is out of its hearing circle';
     $('#opt-music-full').checked = !!settings.musicFull;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
@@ -2836,7 +2839,7 @@
   function paintMusicFull() {
     const on = !!settings.musicFull;
     $('#mw-mus').classList.toggle('full', on);
-    $('#mw-mus-full').innerHTML = on ? ICON.shrink : ICON.fit;
+    $('#mw-mus-full').innerHTML = on ? ICON.collapse : ICON.expand;
     $('#mw-mus-full').setAttribute('aria-pressed', String(on));
     $('#mw-mus-full').title = on ? 'Back to the side panel' : 'Full screen';
     $('#mw-mus-full').setAttribute('aria-label', $('#mw-mus-full').title);

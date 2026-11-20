@@ -938,15 +938,16 @@ html:not(.mode-app) .splash { display: none; }
 .mus-sets { margin: -4px 0 4px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
 .mus-sets[hidden] { display: none; }
 .mus-sets .row-set[hidden] { display: none; }
-.mus-sets .row-set.stack { flex-direction: column; align-items: stretch; gap: 8px; }
-.mus-sets .row-set.stack .seg { display: flex; width: 100%; }
-.mus-sets .row-set.stack .seg button { flex: 1 1 0; white-space: normal; line-height: 1.25; }
+.seg.where { flex: none; }
+.seg.where button { width: 44px; min-width: 44px; height: 32px; padding: 0; display: grid; place-items: center; color: var(--muted); opacity: .55; }
+.seg.where button[aria-checked="true"] { color: var(--text); opacity: 1; background: color-mix(in srgb, var(--text) 14%, transparent); }
+.seg.where button svg { display: block; }
 .mus-sets .stepper, #music-wait-row .stepper { display: inline-flex; align-items: center; gap: 6px; }
 #music-wait { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* ---------- The music menu in full screen: the music heard, the queue, then every music to search ---------- */
 .mp-body { position: relative; }
-.mp-world .mp-body .mp-mus.full { position: absolute; inset: 0; width: auto; height: auto; z-index: 12; grid-row: auto; grid-column: auto; justify-self: stretch; align-self: stretch; box-shadow: none; border: 0; }
+html .mp-world .mp-body .mp-sbx.mp-mus.full { position: absolute; inset: 0; width: auto; height: auto; z-index: 12; grid-row: auto; grid-column: auto; justify-self: stretch; align-self: stretch; box-shadow: none; border: 0; }
 .mp-mus.full .mus-now { padding: 8px 16px 0; }
 .mus-upnext[hidden] { display: none; }
 .mus-upnext { padding: 8px 16px 4px; display: grid; gap: 6px; }
@@ -954,10 +955,38 @@ html:not(.mode-app) .splash { display: none; }
 .mus-qlist { display: flex; flex-direction: column; gap: 6px; max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
 .mp-mus.full .mus-q { padding: 8px 16px 4px; }
 .mp-mus.full .mus-list { padding-left: 16px; padding-right: 16px; }
-@media (min-width: 900px) { .mp-mus.full .mus-now, .mp-mus.full .mus-upnext, .mp-mus.full .mus-q, .mp-mus.full .mus-list { padding-left: max(16px, calc(50% - 380px)); padding-right: max(16px, calc(50% - 380px)); } }
+/* Upright phone: the music heard, the queue, then the search, one under the other, over the whole world. */
+@media (orientation: portrait) and (max-width: 700px) {
+  html .mp-world .mp-body .mp-sbx.mp-mus.full { position: absolute; inset: 0; height: auto; grid-row: auto; grid-column: auto; border-top: 0; }
+  .mus-qlist { max-height: 26vh; }
+}
+/* Phone on its side: two columns, the music heard and the queue on the left, the search and every music on the right. */
+@media (orientation: landscape) and (max-height: 600px) {
+  html .mp-world .mp-body .mp-sbx.mp-mus.full { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "head head" "now q" "up list"; column-gap: 0; }
+  .mp-mus.full .sb-head { grid-area: head; }
+  .mp-mus.full .mus-now { grid-area: now; padding: 4px 8px 0 12px; }
+  .mp-mus.full .mus-upnext { grid-area: up; padding: 6px 8px 8px 12px; min-height: 0; grid-template-rows: auto minmax(0, 1fr); border-right: 1px solid var(--line); }
+  .mp-mus.full .mus-upnext[hidden] { display: none; }
+  .mp-mus.full .mus-qlist { max-height: none; min-height: 0; }
+  .mp-mus.full .mus-q { grid-area: q; padding: 4px 12px 0 8px; align-self: start; }
+  .mp-mus.full .mus-list { grid-area: list; padding-left: 8px; padding-right: 12px; }
+}
+@media (min-width: 900px) and (min-height: 601px) { .mp-mus.full .mus-now, .mp-mus.full .mus-upnext, .mp-mus.full .mus-q, .mp-mus.full .mus-list { padding-left: max(16px, calc(50% - 380px)); padding-right: max(16px, calc(50% - 380px)); } }
 
 /* The card: the other musics of the place, a tap each. */
 .mp-arrive .ar-more { display: flex; flex-direction: column; gap: 6px; }
 .mp-arrive .ar-alt { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 12px 4px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-align: left; }
 .mp-arrive .ar-alt svg { flex: none; width: 18px; height: 18px; color: var(--gold); fill: currentColor; }
 .mp-arrive .ar-alt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A narrow screen: the walking speeds go under their name. */
+@media (max-width: 480px) {
+  #trail-speed-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  #trail-speed-row .seg { display: flex; width: 100%; }
+  #trail-speed-row .seg button { flex: 1 1 0; padding: 0 4px; }
+}
+/* Phone on its side, music in full screen: a slimmer head. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .mp-mus.full .sb-head { padding-top: 6px; padding-bottom: 4px; }
+  .mp-mus.full .sb-head h2 { font-size: 20px; }
+}
