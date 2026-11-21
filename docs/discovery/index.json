@@ -86,12 +86,17 @@
      {
       "name": "Forest theme",
       "file": "sounds/forest/1-in-the-forest/music/01_forest-theme.mp3",
-      "size": 3025003
+      "size": 4321175
      },
      {
       "name": "Silvan sanctuary",
       "file": "sounds/forest/1-in-the-forest/music/02_silvan-sanctuary.mp3",
-      "size": 3039268
+      "size": 4341551
+     },
+     {
+      "name": "Highland mist",
+      "file": "sounds/forest/1-in-the-forest/music/03_highland-mist.mp3",
+      "size": 4701518
      }
     ],
     "ambience": [
@@ -109,23 +114,48 @@
       "name": "Wind in the leaves",
       "file": "sounds/forest/1-in-the-forest/ambience/03_wind-in-the-leaves.mp3",
       "size": 236741
+     },
+     {
+      "name": "The creek",
+      "file": "sounds/forest/1-in-the-forest/ambience/04_the-creek.mp3",
+      "size": 379506
      }
     ],
     "events": [
      {
       "name": "Wolf growl",
       "file": "sounds/forest/1-in-the-forest/events/01_wolf-growl.mp3",
-      "size": 12404
+      "size": 16299
      },
      {
       "name": "Raven calls",
       "file": "sounds/forest/1-in-the-forest/events/02_raven-calls.mp3",
-      "size": 49412
+      "size": 65618
      },
      {
       "name": "Owl hoots",
       "file": "sounds/forest/1-in-the-forest/events/03_owl-hoots.mp3",
-      "size": 136868
+      "size": 182229
+     },
+     {
+      "name": "Woodpecker",
+      "file": "sounds/forest/1-in-the-forest/events/04_woodpecker.mp3",
+      "size": 28002
+     },
+     {
+      "name": "Blackbird sings",
+      "file": "sounds/forest/1-in-the-forest/events/05_blackbird-sings.mp3",
+      "size": 45138
+     },
+     {
+      "name": "A branch snaps",
+      "file": "sounds/forest/1-in-the-forest/events/06_a-branch-snaps.mp3",
+      "size": 14627
+     },
+     {
+      "name": "Rustling leaves",
+      "file": "sounds/forest/1-in-the-forest/events/07_rustling-leaves.mp3",
+      "size": 61021
      }
     ]
    },
@@ -134,12 +164,17 @@
      {
       "name": "Battle theme",
       "file": "sounds/forest/2-fight-with-a-bear/music/01_battle-theme.mp3",
-      "size": 2871037
+      "size": 4101224
      },
      {
       "name": "Frantic",
       "file": "sounds/forest/2-fight-with-a-bear/music/02_frantic.mp3",
-      "size": 2280044
+      "size": 3256947
+     },
+     {
+      "name": "Calm before the storm",
+      "file": "sounds/forest/2-fight-with-a-bear/music/03_calm-before-the-storm.mp3",
+      "size": 2855183
      }
     ],
     "ambience": [
@@ -158,27 +193,32 @@
      {
       "name": "Bear roar",
       "file": "sounds/forest/2-fight-with-a-bear/events/01_bear-roar.mp3",
-      "size": 18346
+      "size": 36361
      },
      {
       "name": "Bear growl",
       "file": "sounds/forest/2-fight-with-a-bear/events/02_bear-growl.mp3",
-      "size": 11050
+      "size": 21732
      },
      {
       "name": "Claw swipe",
       "file": "sounds/forest/2-fight-with-a-bear/events/03_claw-swipe.mp3",
-      "size": 3730
+      "size": 7104
      },
      {
       "name": "Sword strike",
       "file": "sounds/forest/2-fight-with-a-bear/events/04_sword-strike.mp3",
-      "size": 5395
+      "size": 10448
      },
      {
       "name": "The bear falls",
       "file": "sounds/forest/2-fight-with-a-bear/events/05_the-bear-falls.mp3",
       "size": 24841
+     },
+     {
+      "name": "Wings in the trees",
+      "file": "sounds/forest/2-fight-with-a-bear/events/06_wings-in-the-trees.mp3",
+      "size": 43048
      }
     ]
    },
@@ -187,12 +227,12 @@
      {
       "name": "Tavern in the mist",
       "file": "sounds/forest/3-a-night-at-the-pub/music/01_tavern-in-the-mist.mp3",
-      "size": 2198851
+      "size": 3140963
      },
      {
       "name": "Traveling minstrels",
       "file": "sounds/forest/3-a-night-at-the-pub/music/02_traveling-minstrels.mp3",
-      "size": 3011842
+      "size": 4302367
      }
     ],
     "ambience": [
@@ -211,27 +251,27 @@
      {
       "name": "Door opens",
       "file": "sounds/forest/3-a-night-at-the-pub/events/01_door-opens.mp3",
-      "size": 5211
+      "size": 10030
      },
      {
       "name": "Coins on the table",
       "file": "sounds/forest/3-a-night-at-the-pub/events/02_coins-on-the-table.mp3",
-      "size": 4801
+      "size": 9194
      },
      {
       "name": "Hearty laugh",
       "file": "sounds/forest/3-a-night-at-the-pub/events/03_hearty-laugh.mp3",
-      "size": 21913
+      "size": 43466
      },
      {
       "name": "Bar fight punch",
       "file": "sounds/forest/3-a-night-at-the-pub/events/04_bar-fight-punch.mp3",
-      "size": 2481
+      "size": 4596
      },
      {
       "name": "Bottle",
       "file": "sounds/forest/3-a-night-at-the-pub/events/05_bottle.mp3",
-      "size": 4789
+      "size": 9194
      }
     ]
    },
@@ -240,12 +280,12 @@
      {
       "name": "Town theme",
       "file": "sounds/forest/4-the-human-village/music/01_town-theme.mp3",
-      "size": 2880909
+      "size": 4115330
      },
      {
       "name": "Harvest festival",
       "file": "sounds/forest/4-the-human-village/music/02_harvest-festival.mp3",
-      "size": 3080952
+      "size": 4401110
      }
     ],
     "ambience": [
@@ -269,7 +309,7 @@
      {
       "name": "Church bell",
       "file": "sounds/forest/4-the-human-village/events/01_church-bell.mp3",
-      "size": 110512
+      "size": 147120
      },
      {
       "name": "Horse passes",
@@ -284,7 +324,12 @@
      {
       "name": "Chickens",
       "file": "sounds/forest/4-the-human-village/events/04_chickens.mp3",
-      "size": 18766
+      "size": 37197
+     },
+     {
+      "name": "Horse whinnies",
+      "file": "sounds/forest/4-the-human-village/events/05_horse-whinnies.mp3",
+      "size": 35107
      }
     ]
    },
@@ -869,6 +914,14 @@
  },
  "ballades": [
   {
+   "file": "ballades/261121_the-forest-adventure.troubadour-ballade",
+   "title": "The Forest Adventure",
+   "blurb": "Four chapters already timed: the old forest at dawn, a bear in the dark, a warm pub, a village waking up.",
+   "id": "8d2c7a19-4e6b-4f3a-9c51-0b7e2d6f4a83",
+   "revision": 1,
+   "size": 45579152
+  },
+  {
    "file": "ballades/261017_underwater-adventure.troubadour-ballade",
    "title": "Underwater Adventure",
    "blurb": "Five chapters already timed, from a lazy beach to the Kraken.",
@@ -886,6 +939,14 @@
   }
  ],
  "maps": [
+  {
+   "file": "maps/261121_the_forest_adventure.troubadour-map",
+   "title": "The Forest Adventure",
+   "blurb": "The old forest, its creek, the owl glade, the bear's den, the pub and the village on one map. Lay the party with a long press and walk it: each place rises as you come near.",
+   "id": "a8497c53-660f-5943-89a5-6de9d03634e6",
+   "revision": 1,
+   "size": 29258302
+  },
   {
    "file": "maps/261117_the_four_lands.troubadour-map",
    "title": "The Four Lands",

@@ -39,4 +39,4 @@ discovery/
 
 A sound card's title comes from its file name: `01_rain-on-leaves.mp3` shows as **Rain on leaves**; a leading number only sets the order. Keep each file under 100 MB (GitHub limit). The apps offer a new revision of a ballade or a map when its `revision` grows.
 
-Built by scripts in `.github/scripts/`: `build_flow_discovery.py` and `build_flow_choices.py` (the ballades), `map-worlds/four_lands.py` (the map).
+Built by scripts in `.github/scripts/`: `build_flow_forest.py`, `build_flow_discovery.py` and `build_flow_choices.py` (the ballades), `map-worlds/forest.py` and `map-worlds/four_lands.py` (the maps). The forest's sounds of 21 November 2026 (higher quality, and the new ones): `web-sounds/forest_hq_261121.py`.
