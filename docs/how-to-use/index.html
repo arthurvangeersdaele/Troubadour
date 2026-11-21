@@ -36,7 +36,7 @@
   <section id="tutorial">
     <p class="kicker">Tutorial</p>
     <h2>How does a Troubadour play?</h2>
-    <p class="intro">Put your headphones on. In three minutes, The Forest Adventure: one sound card, then the whole table, then Troubadour Map and Troubadour Ballade. Subtitles in English and in French are under the CC button.</p>
+    <p class="intro">Put your headphones on. In two minutes, The Forest Adventure on an iPhone: one sound card up close, then the whole table. Subtitles in English and in French are under the CC button.</p>
     <div class="film" id="film">
       <video id="tuto" playsinline preload="metadata" poster="../tutorial/261121_troubadour_demo_poster.jpg">
         <source src="../tutorial/261121_troubadour_demo.mp4" type="video/mp4">
@@ -47,7 +47,7 @@
     </div>
     <div class="vbar" id="vbar">
       <button type="button" id="v-play" aria-label="Play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></button>
-      <span class="time" id="v-time">0:00 / 3:12</span>
+      <span class="time" id="v-time">0:00 / 2:11</span>
       <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Position in the tutorial">
       <button type="button" id="v-cc" aria-pressed="false" aria-label="Subtitles" title="Subtitles"><svg width="20" height="16" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="15" rx="3"/><path d="M10.2 7a2.6 2.6 0 1 0 0 4M17.2 7a2.6 2.6 0 1 0 0 4"/></svg></button>
       <span class="lang" role="group" aria-label="Subtitles language" hidden>
@@ -220,7 +220,7 @@
     film.classList.toggle('playing',on);
     playB.innerHTML=on?PAUSE:PLAY; playB.setAttribute('aria-label',on?'Pause':'Play');
     if(!seeking&&v.duration) seek.value=Math.round(v.currentTime/v.duration*1000);
-    time.textContent=fmt(v.currentTime)+' / '+fmt(v.duration||192);
+    time.textContent=fmt(v.currentTime)+' / '+fmt(v.duration||131);
   }
   ['play','pause','ended','timeupdate','loadedmetadata'].forEach(function(e){v.addEventListener(e,paint)});
   film.addEventListener('click',toggle);

@@ -10,7 +10,7 @@ Project page: https://arthurvangeersdaele.github.io/Troubadour/
 
 [![Troubadour: watch the demonstration](docs/tutorial/261121_troubadour_demo_poster.jpg)](https://arthurvangeersdaele.github.io/Troubadour/how-to-use/#tutorial)
 
-Three minutes, headphones on, eyes open: The Forest Adventure, from one sound card to the whole table, then Troubadour Map and Troubadour Ballade. No voice over and no text in the picture: English and French subtitles are under the CC button of the [How to use page](https://arthurvangeersdaele.github.io/Troubadour/how-to-use/#tutorial). The [video file](https://arthurvangeersdaele.github.io/Troubadour/tutorial/261121_troubadour_demo.mp4), its subtitles (`.vtt`) and sound credits are in [`docs/tutorial/`](docs/tutorial/).
+Two minutes, headphones on, eyes open: The Forest Adventure on an iPhone, from one sound card up close to the whole table. No voice over and no text in the picture: English and French subtitles are under the CC button of the [How to use page](https://arthurvangeersdaele.github.io/Troubadour/how-to-use/#tutorial). The [video file](https://arthurvangeersdaele.github.io/Troubadour/tutorial/261121_troubadour_demo.mp4), its subtitles (`.vtt`) and sound credits are in [`docs/tutorial/`](docs/tutorial/).
 
 **Play it in your browser:** https://arthurvangeersdaele.github.io/Troubadour/play/ with three ready-made stories (The Forest Adventure, The Big War, Underwater Adventure), the mixing table and the soundbox. More tales, like Werewolf, are in La Troupe. No import and no story editing in the web edition; its sounds live in [`docs/discovery/sounds/`](docs/discovery/sounds/).
 
