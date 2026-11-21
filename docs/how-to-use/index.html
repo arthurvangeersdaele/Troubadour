@@ -36,23 +36,26 @@
   <section id="tutorial">
     <p class="kicker">Tutorial</p>
     <h2>How does a Troubadour play?</h2>
-    <p class="intro">Put your headphones on, and discover Troubadour. This tutorial shows you how to play a story and how to build and share your own stories. Then step into La Troupe: the Recueil of shared tales, and the expansions born from Troubadour to command time and space.</p>
+    <p class="intro">Put your headphones on. In three minutes, The Forest Adventure: one sound card, then the whole table, then Troubadour Map and Troubadour Ballade. Subtitles in English and in French are under the CC button.</p>
     <div class="film" id="film">
-      <video id="tuto" playsinline preload="metadata" poster="../tutorial/261015_troubadour_tutorial_poster.jpg">
-        <source src="../tutorial/261015_troubadour_tutorial_en.mp4" type="video/mp4">
+      <video id="tuto" playsinline preload="metadata" poster="../tutorial/261121_troubadour_demo_poster.jpg">
+        <source src="../tutorial/261121_troubadour_demo.mp4" type="video/mp4">
+        <track kind="subtitles" srclang="en" label="English" src="../tutorial/261121_troubadour_demo_en.vtt">
+        <track kind="subtitles" srclang="fr" label="Français" src="../tutorial/261121_troubadour_demo_fr.vtt">
       </video>
       <button class="big-play" id="big-play" type="button" aria-label="Play the tutorial"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L9.5 3.94A1 1 0 0 0 8 4.8z"/></svg></button>
     </div>
     <div class="vbar" id="vbar">
       <button type="button" id="v-play" aria-label="Play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></button>
-      <span class="time" id="v-time">0:00 / 3:18</span>
+      <span class="time" id="v-time">0:00 / 3:12</span>
       <input type="range" id="v-seek" min="0" max="1000" value="0" aria-label="Position in the tutorial">
-      <span class="lang" role="group" aria-label="Subtitles language">
+      <button type="button" id="v-cc" aria-pressed="false" aria-label="Subtitles" title="Subtitles"><svg width="20" height="16" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="15" rx="3"/><path d="M10.2 7a2.6 2.6 0 1 0 0 4M17.2 7a2.6 2.6 0 1 0 0 4"/></svg></button>
+      <span class="lang" role="group" aria-label="Subtitles language" hidden>
         <button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="fr" aria-pressed="false">FR</button>
       </span>
       <button type="button" id="v-full" aria-label="Full screen" title="Full screen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
-    <p class="video-note">Sound credits: <a href="https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/tutorial/261015_troubadour_tutorial_credits.md">tutorial credits</a>.</p>
+    <p class="video-note">Sound credits: <a href="https://github.com/arthurvangeersdaele/Troubadour/blob/main/docs/tutorial/261121_troubadour_demo_credits.md">demonstration credits</a>.</p>
   </section>
 
 
@@ -217,7 +220,7 @@
     film.classList.toggle('playing',on);
     playB.innerHTML=on?PAUSE:PLAY; playB.setAttribute('aria-label',on?'Pause':'Play');
     if(!seeking&&v.duration) seek.value=Math.round(v.currentTime/v.duration*1000);
-    time.textContent=fmt(v.currentTime)+' / '+fmt(v.duration||198);
+    time.textContent=fmt(v.currentTime)+' / '+fmt(v.duration||192);
   }
   ['play','pause','ended','timeupdate','loadedmetadata'].forEach(function(e){v.addEventListener(e,paint)});
   film.addEventListener('click',toggle);
@@ -227,14 +230,16 @@
   document.getElementById('v-full').addEventListener('click',function(){
     if(v.requestFullscreen)v.requestFullscreen();else if(v.webkitEnterFullscreen)v.webkitEnterFullscreen();
   });
-  document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener('click',function(){
-    var lang=b.getAttribute('data-lang'), at=v.currentTime, wasPlaying=!v.paused;
-    document.querySelectorAll('.lang button').forEach(function(o){o.setAttribute('aria-pressed',String(o===b))});
-    v.src='../tutorial/261015_troubadour_tutorial_'+lang+'.mp4';
-    v.addEventListener('loadedmetadata',function once(){v.removeEventListener('loadedmetadata',once);v.currentTime=Math.min(at,v.duration||at);if(wasPlaying)v.play()});
-    v.load();
-  })});
-  if(/^fr\b/i.test(navigator.language||''))document.querySelector('.lang button[data-lang="fr"]').click();
+  /* Subtitles: off until the CC button; then in the page's language, EN or FR. */
+  var ccB=document.getElementById('v-cc'), langs=document.querySelector('.lang'), lang=/^fr\b/i.test(navigator.language||'')?'fr':'en', cc=false;
+  function subs(){
+    for(var i=0;i<v.textTracks.length;i++){var t=v.textTracks[i];t.mode=(cc&&t.language===lang)?'showing':'disabled';}
+    ccB.setAttribute('aria-pressed',String(cc)); langs.hidden=!cc;
+    document.querySelectorAll('.lang button').forEach(function(o){o.setAttribute('aria-pressed',String(o.getAttribute('data-lang')===lang))});
+  }
+  ccB.addEventListener('click',function(){cc=!cc;subs()});
+  document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener('click',function(){lang=b.getAttribute('data-lang');subs()})});
+  subs();
   paint();
   paint();
 })();
