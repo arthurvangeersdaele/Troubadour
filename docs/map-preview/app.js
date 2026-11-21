@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261121.3';
+  const VERSION = '261121.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2676,7 +2676,14 @@
       else { settings.trailHand = false; settings.trailSpeed = Number(b.dataset.v); }
       saveSettings(); paintSettings();
     });
-    const handStep = (d) => { const x = Math.round(settings.trailSpeed * 20) / 2 + d * 0.5; settings.trailSpeed = Math.max(0.5, Math.min(10, x)) / 10; saveSettings(); paintSettings(); };
+    // Times the normal speed: fine steps down to 0,05×, then by halves up to 10×.
+    const HAND = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10];
+    const handStep = (d) => {
+      const x = settings.trailSpeed * 10;
+      const h = d > 0 ? HAND.find((v) => v > x + 1e-6) : [...HAND].reverse().find((v) => v < x - 1e-6);
+      if (h == null) return;
+      settings.trailSpeed = h / 10; saveSettings(); paintSettings();
+    };
     $('#trail-hand-less').addEventListener('click', () => handStep(-1));
     $('#trail-hand-more').addEventListener('click', () => handStep(1));
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
@@ -2762,7 +2769,7 @@
     $('#trail-sets').hidden = !settings.trail;
     document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === 'hand' ? !!settings.trailHand : !settings.trailHand && Number(b.dataset.v) === settings.trailSpeed)));
     $('#trail-hand-row').hidden = !settings.trailHand;
-    $('#trail-hand-val').textContent = `${String(Math.round(settings.trailSpeed * 20) / 2).replace('.', ',')}×`;
+    $('#trail-hand-val').textContent = `${String(Math.round(settings.trailSpeed * 1000) / 100).replace('.', ',')}×`;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
   }
