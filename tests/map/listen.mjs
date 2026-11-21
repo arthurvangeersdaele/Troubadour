@@ -462,8 +462,9 @@ try {
     const rise = async () => page.evaluate(() => window.MapAudio.voices().filter((v) => v.el && v.heard > 0.05 && v.state === 'playing').map((v) => Math.round(v.space.gain.value / v.heard * 100) / 100 + ':' + v.card.name + ':' + v.state));
     await page.waitForTimeout(150);
     const early = await rise();
-    await page.waitForTimeout(3200);
-    const late = await rise();
+    // Within about three seconds of the sound's own clock (a slow machine's may run behind the wall clock).
+    let late = [];
+    for (let k = 0; k < 16; k++) { await page.waitForTimeout(k ? 500 : 3200); late = await rise(); if (late.length && Math.min(...late.map((x) => parseFloat(x))) > 0.85) break; }
     const laid = await page.evaluate(() => { const p = window.MapView.__place(), q = window.MapAudio.point(); return { un: window.MapView.unplaced(), d: Math.hypot(q[0] - p.width * 0.3, q[1] - p.height * 0.5), trail: !!window.MapView.__trail() }; });
     ok(!laid.un && laid.d < 40 && !laid.trail, `a long press lays the party there (${JSON.stringify(laid)})`);
         const eMax = Math.max(0, ...early.map((x) => parseFloat(x))), lMin = Math.min(1, ...late.map((x) => parseFloat(x)));
