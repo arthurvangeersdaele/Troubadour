@@ -209,7 +209,7 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-top #mw-pause .badge svg { width: 11px; height: 11px; stroke-width: 2.2; }
 /* The music volume: the note of the stop-the-music button, the same, at the bottom right under the slider's head. */
 .mslide { position: relative; display: inline-flex; align-items: center; --v: .8; }
-.mslide .mnote { position: absolute; z-index: 1; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); margin: 3px 0 0 10px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
+.mslide .mnote { position: absolute; z-index: 1; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); margin: 1px 0 0 7px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
 .mslide .mnote svg { display: block; width: 5px; height: 7px; overflow: visible; }
 .mp-top #mw-pause.on .badge { background: var(--text); color: var(--bg); }
 .master b { width: 22px; text-align: right; }
@@ -954,7 +954,17 @@ html:not(.mode-app) .splash { display: none; }
 /* ---------- Music settings: the rows that follow Music suggestions ---------- */
 .mus-sets { margin: -4px 0 4px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
 .mus-sets[hidden] { display: none; }
-.mus-sets .row-set[hidden] { display: none; }
+.mus-sets .row-set[hidden], .mus-sets[hidden] { display: none; }
+#trail-speed .hand { display: grid; place-items: center; min-width: 40px; }
+#trail-speed .hand svg { width: 16px; height: 16px; }
+#trail-hand-val { min-width: 44px; text-align: center; }
+/* Full screen: Music and Soundbox are two tabs, joined; the open one filled. */
+.mp-top.tabs #mw-mus-btn { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
+.mp-top.tabs #mw-sb { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+.mp-top.tabs #mw-mus-btn + #mw-sb, .mp-top.tabs #mw-mus-btn { position: relative; }
+.mp-top.tabs #mw-mus-btn[aria-pressed="true"], .mp-top.tabs #mw-sb[aria-pressed="true"] { z-index: 1; }
+/* An upright phone: no back button in the table's top bar (room for the music buttons). */
+@media (max-width: 640px) and (orientation: portrait) { .mp-world[data-mode="play"] .mp-top #mw-back { display: none; } }
 .seg.where { flex: none; }
 .seg.where button { width: 44px; min-width: 44px; height: 32px; padding: 0; display: grid; place-items: center; color: var(--muted); opacity: .55; }
 .seg.where button[aria-checked="true"] { color: var(--text); opacity: 1; background: color-mix(in srgb, var(--text) 14%, transparent); }

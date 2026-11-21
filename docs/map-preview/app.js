@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261121.2';
+  const VERSION = '261121.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2668,10 +2668,17 @@
       if (rec && mode === 'play') renderPanel();
     }));
     $('#opt-trail').addEventListener('change', (e) => { settings.trail = e.target.checked; saveSettings(); paintSettings(); });
+    // Walking speed: slow, normal, fast, or by hand (the hand), set below in steps of half the normal speed.
+    $('#trail-speed .hand').innerHTML = ICON.hand;
     $('#trail-speed').addEventListener('click', (e) => {
       const b = e.target.closest('[data-v]'); if (!b) return;
-      settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
+      if (b.dataset.v === 'hand') { settings.trailHand = true; if (settings.trailSpeed <= 0.2) settings.trailSpeed = 0.4; }
+      else { settings.trailHand = false; settings.trailSpeed = Number(b.dataset.v); }
+      saveSettings(); paintSettings();
     });
+    const handStep = (d) => { const x = Math.round(settings.trailSpeed * 20) / 2 + d * 0.5; settings.trailSpeed = Math.max(0.5, Math.min(10, x)) / 10; saveSettings(); paintSettings(); };
+    $('#trail-hand-less').addEventListener('click', () => handStep(-1));
+    $('#trail-hand-more').addEventListener('click', () => handStep(1));
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
@@ -2752,8 +2759,10 @@
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
-    $('#trail-speed-row').hidden = !settings.trail;
-    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.trailSpeed)));
+    $('#trail-sets').hidden = !settings.trail;
+    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === 'hand' ? !!settings.trailHand : !settings.trailHand && Number(b.dataset.v) === settings.trailSpeed)));
+    $('#trail-hand-row').hidden = !settings.trailHand;
+    $('#trail-hand-val').textContent = `${String(Math.round(settings.trailSpeed * 20) / 2).replace('.', ',')}×`;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
   }
@@ -2897,6 +2906,8 @@
   }
   function paintMusicFull() {
     const on = !!settings.musicFull;
+    // In full screen, Music and Soundbox are two tabs.
+    $('.mp-top').classList.toggle('tabs', on);
     ['#mw-mus', '#mw-sbx'].forEach((id) => {
       $(id).classList.toggle('full', on);
       const b = $(`${id}-full`);
@@ -3798,6 +3809,8 @@
       else { const q = any.volume * 4; any.volume = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4); }
       linkMusic(any); save(); paintMusicVol();
     };
+    // A volume button never keeps the focus (nor its pressed look) once tapped.
+    document.addEventListener('pointerup', (e) => { const b = e.target.closest && e.target.closest('#mw-mvol-dn, #mw-mvol-up, .lvl button, .vol button, button.step'); if (b) setTimeout(() => b.blur(), 0); });
     $('#mw-mvol-dn').addEventListener('click', () => musStep(-1));
     $('#mw-mvol-up').addEventListener('click', () => musStep(1));
     let musDrag = false;

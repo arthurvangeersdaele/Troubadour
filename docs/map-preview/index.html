@@ -352,14 +352,20 @@
   <section>
     <h3>At the table</h3>
     <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
+    <div class="mus-sets" id="trail-sets">
     <div class="row-set" id="trail-speed-row">
       <span>Walking speed<small>How fast the point walks its trail</small></span>
       <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
         <button type="button" role="radio" data-v="0.05">Slow</button>
         <button type="button" role="radio" data-v="0.1">Normal</button>
         <button type="button" role="radio" data-v="0.2">Fast</button>
-        <button type="button" role="radio" data-v="0.4">Very fast</button>
+        <button type="button" role="radio" data-v="hand" class="hand" aria-label="Set by hand" title="Set by hand"></button>
       </div>
+    </div>
+    <div class="row-set" id="trail-hand-row" hidden>
+      <span>Speed<small>Times the normal speed</small></span>
+      <div class="stepper"><button class="ico small" type="button" id="trail-hand-less" aria-label="Slower">−</button><b id="trail-hand-val">4×</b><button class="ico small" type="button" id="trail-hand-more" aria-label="Faster">+</button></div>
+    </div>
     </div>
     <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
     <label class="row-set toggle"><span>Volume viewer<small>A ring around every place heard, wider as it is louder</small></span><input type="checkbox" id="opt-heard-rings"><i></i></label>
