@@ -95,7 +95,61 @@
     out.general = (p.general || []).map(cleanCard);
     out.walls = (p.walls || []).map((w) => Object.assign({}, w, { points: (w.points || []).map((q) => pt(q, out.width, out.height)) })).filter((w) => w.points.length >= 2);
     out.elements = (p.elements || []).map((e) => cleanElement(e, out.width, out.height)).filter(Boolean);
+    // The in portals: where the party arrives by a way of another map ({ from: that map, el: its way, at }).
+    out.ins = (Array.isArray(p.ins) ? p.ins : []).filter((i) => i && i.from && i.el).map((i) => ({ from: String(i.from), el: String(i.el), at: pt(i.at, out.width, out.height) }));
     return out;
+  }
+
+  /** Every way (an out portal: an element leading to another map) has its in portal on that map, where the party
+   *  arrives. The ones missing are laid beside the way leading back, else in the middle; the ones whose way is gone
+   *  go. Returns whether anything changed. */
+  function syncPortals(world) {
+    let changed = false;
+    const byId = new Map(world.places.map((p) => [p.id, p]));
+    const want = new Map(world.places.map((p) => [p.id, []]));
+    world.places.forEach((p) => p.elements.forEach((e) => { if (e.link && byId.has(e.link) && e.link !== p.id) want.get(e.link).push({ from: p.id, el: e.id }); }));
+    world.places.forEach((dest) => {
+      const old = Array.isArray(dest.ins) ? dest.ins : [];
+      const made = [];
+      const list = want.get(dest.id).map((w) => {
+        const had = old.find((i) => i.from === w.from && i.el === w.el);
+        if (had) return had;
+        changed = true;
+        // Never on top of another in portal: a step aside, round and round.
+        let at = arrivalBeside(dest, w.from);
+        const unit = Math.max(dest.width, dest.height) * 0.07;
+        const taken = () => old.concat(made).some((i) => Math.hypot(i.at[0] - at[0], i.at[1] - at[1]) < unit);
+        const at0 = at.slice();
+        for (let k = 1; k < 24 && taken(); k++) { const a = k * 1.05, r = unit * 1.3 * Math.ceil(k / 6); at = at0.slice(); at = [Math.round(Math.max(20, Math.min(dest.width - 20, at[0] + Math.cos(a) * r))), Math.round(Math.max(20, Math.min(dest.height - 20, at[1] + Math.sin(a) * r)))]; }
+        const inn = { from: w.from, el: w.el, at };
+        made.push(inn);
+        return inn;
+      });
+      if (list.length !== old.length) changed = true;
+      dest.ins = list;
+    });
+    return changed;
+  }
+  /** Beside the way leading back to `from`, on the side of the middle of the map, never on its sign; else the middle. */
+  function arrivalBeside(dest, from) {
+    const mid = [dest.width / 2, dest.height / 2];
+    const back = dest.elements.find((e) => e.link === from);
+    if (!back) return [Math.round(mid[0]), Math.round(mid[1])];
+    const b = bounds(back.shape), c = centre(back.shape);
+    let dx = mid[0] - c[0], dy = mid[1] - c[1];
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d; dy /= d;
+    const half = Math.hypot(b[2] - b[0], b[3] - b[1]) / 2;
+    const gap = half + Math.max(80, Math.min(dest.width, dest.height) * 0.08);
+    return [Math.round(Math.max(20, Math.min(dest.width - 20, c[0] + dx * gap))), Math.round(Math.max(20, Math.min(dest.height - 20, c[1] + dy * gap)))];
+  }
+  /** The colours of the portals: when a map has several in portals, each pair (the way and its in) has its own. */
+  const PORTAL_COLOURS = ['#9d7bff', '#4cc3e0', '#ff7aa8', '#8fd14f', '#ff9f43', '#6c8cff', '#e0e04c', '#c96bff'];
+  function portalColour(world, destId, from, el) {
+    const dest = world.places.find((p) => p.id === destId);
+    if (!dest || !dest.ins || dest.ins.length < 2) return null;
+    const i = dest.ins.findIndex((x) => x.from === from && x.el === el);
+    return i < 0 ? null : PORTAL_COLOURS[i % PORTAL_COLOURS.length];
   }
 
   const FILL_KEYS = ['water', 'leaf', 'stone', 'ground', 'fire', 'ambience', 'events', 'soundbox', 'music', 'hole'];
@@ -143,6 +197,7 @@
         if (e.link && !ids.has(e.link)) e.link = null;
       });
     });
+    syncPortals(out);
     return out;
   }
 
@@ -406,7 +461,7 @@
   }
 
   global.TroubadourMap = {
-    MAP_VERSION, ZONES, PLAYS, STAMPS, OWN, soundsOf, ownChapter, blankStory, blankWorld, cleanCard, cleanElement, cleanPlace, normalize, newPlace, card, defaultWorld,
+    MAP_VERSION, ZONES, PLAYS, STAMPS, OWN, soundsOf, ownChapter, blankStory, blankWorld, cleanCard, cleanElement, cleanPlace, normalize, newPlace, syncPortals, portalColour, PORTAL_COLOURS, card, defaultWorld,
     reach, crosses, wallsBetween, hearing, placeState, bounds, centre, simplify, inside, nearestOnSegment, shortId,
     read, pack, packTroubadour, yymmdd,
   };

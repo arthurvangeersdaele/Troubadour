@@ -191,13 +191,27 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 .mp-top .mini.on { background: var(--text); color: var(--bg); }
 @media (max-width: 900px) { .mp-top .mlabel, .mp-top .master b { display: none; } .mp-top .master #mw-master { width: 80px; } }
 @media (max-height: 520px) { .mp-top .chip { height: 38px; } }
-@media (max-width: 640px) { .mp-top .master #mw-master { display: none; } }
+@media (max-width: 640px) { .mp-top .master .mslide, .mp-top .master #mw-master-val { display: none; } }
+/* On a narrow screen, the music volume is two buttons (- and +), the stop button's note at their bottom right. */
+.mvol { display: none; position: relative; align-items: center; gap: 2px; }
+.mvol .mnote { position: absolute; right: 2px; bottom: 4px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
+.mvol .mnote svg { display: block; width: 5px; height: 7px; overflow: visible; }
+@media (max-width: 640px) { .mp-top .master .mvol { display: inline-flex; margin-right: 4px; } }
 
 /* The sound menu scrolls up and down only. */
 .mp-side-body { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .mp-side-body > *, .mp-side-body .c, .mp-side-body .ch, .mp-side-body .ctrl, .pn { min-width: 0; max-width: 100%; }
 .pn-sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.master #mw-master { width: 120px; --z: var(--text); }
+.master #mw-master { width: 120px; --z: var(--music, var(--text)); }
+/* The pause of everything: a small earth at its bottom right. */
+.mp-top #mw-pause.badged { position: relative; }
+.mp-top #mw-pause .badge { position: absolute; right: 2px; bottom: 2px; width: 13px; height: 13px; display: grid; place-items: center; border-radius: 50%; background: var(--bg); color: currentColor; pointer-events: none; }
+.mp-top #mw-pause .badge svg { width: 11px; height: 11px; stroke-width: 2.2; }
+/* The music volume: the note of the stop-the-music button, the same, at the bottom right under the slider's head. */
+.mslide { position: relative; display: inline-flex; align-items: center; --v: .8; }
+.mslide .mnote { position: absolute; z-index: 1; top: 50%; left: calc(8px + (100% - 16px) * var(--v)); margin: 1px 0 0 7px; width: 5px; height: 7px; line-height: 0; color: var(--text); pointer-events: none; }
+.mslide .mnote svg { display: block; width: 5px; height: 7px; overflow: visible; }
+.mp-top #mw-pause.on .badge { background: var(--text); color: var(--bg); }
 .master b { width: 22px; text-align: right; }
 
 /* ---------- The sound picker (its own names: .pick is a soundbox pad in Troubadour's sheet) ---------- */
@@ -258,6 +272,9 @@ button, a, input, select, label, .c, .snd, .ldoor, .srow, .chap { touch-action: 
 /* ---------- The sound menu's title: small, with what it shows ---------- */
 .mp-menu-title { display: flex; flex-direction: column; gap: 0; font-family: inherit !important; }
 .mp-menu-title small { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.mp-menu-title .mp-back { display: flex; align-items: center; gap: 2px; margin: 0 0 0 -6px; padding: 2px 6px 2px 2px; min-width: 0; max-width: 100%; border: 0; border-radius: 12px; background: none; color: var(--accent); font: inherit; cursor: pointer; text-align: left; }
+.mp-menu-title .mp-back svg { flex: none; width: 20px; height: 20px; }
+.mp-menu-title .mp-back:hover, .mp-menu-title .mp-back:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .mp-menu-title span { font-family: 'Cormorant SC', serif; font-size: 20px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
 .heard-pct { font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 500; flex: none; }
 
@@ -881,3 +898,139 @@ html:not(.mode-app) .splash { display: none; }
 @media (orientation: portrait) { .mp-arrive { width: calc(100% - 24px); } }
 @media (prefers-reduced-motion: reduce) { .mp-arrive { animation: none; } }
 .mp-arrive .ar-card > .c { width: 100%; max-width: none; min-width: 0; box-sizing: border-box; }
+
+/* ---------- Hearing in the editor ---------- */
+.mp-world[data-mode="play"] #mw-listen { display: none; }
+#mw-listen[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Redo, and the page of keys ---------- */
+.mp-tools button:disabled { opacity: .35; cursor: default; }
+.kb-h { margin: 14px 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kb-h:first-child { margin-top: 0; }
+.kb { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+.kb kbd { justify-self: start; font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); border-bottom-width: 2px; background: var(--card); color: var(--text); white-space: nowrap; }
+.kb span { font-size: 14px; }
+@media (hover: none) and (pointer: coarse) { .mp-tools [data-act="keys"] { display: none; } }
+.mp-many h3 { margin: 0; }
+.mp-many .hint { margin: 4px 0 8px; color: var(--muted); font-size: 14px; }
+.mp-many-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* The debug overlay (five taps on the world's name). */
+.mp-debug { position: fixed; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 60; padding: 10px 12px; border-radius: 12px; background: var(--bar); border: 1px solid var(--line); box-shadow: 0 14px 40px var(--shadow); }
+.mp-debug pre { margin: 0 0 8px; max-height: 40vh; overflow: auto; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: pre-wrap; }
+.mp-debug-acts { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* The pinned effects at the table, as a strip over the map (one tap fires one). */
+.mp-pinstrip { position: absolute; left: 12px; bottom: 12px; z-index: 3; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 200px); }
+.mp-pinstrip[hidden], .mp-world[data-mode="edit"] .mp-pinstrip { display: none; }
+.mp-pinstrip .pad.mini { min-height: 40px; padding: 6px 12px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px var(--shadow); }
+
+/* Arriving on a place with another music (Waze style): a round play button whose gold ring fills, the place
+ * and its music beside it, a plain Skip under them. */
+#mw-arrive.mp-arrive { width: min(330px, calc(100% - 140px)); gap: 10px; padding: 12px; border-radius: 16px; animation: ar-pop .32s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes ar-pop { from { opacity: 0; transform: translate(-50%, -14px) scale(.94); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.mp-arrive .ar-row { display: flex; align-items: center; gap: 12px; }
+.mp-arrive .ar-go { position: relative; flex: none; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; color: var(--gold-ink); }
+.mp-arrive .ar-go svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mp-arrive .ar-go .trk { fill: none; stroke: color-mix(in srgb, var(--gold) 22%, transparent); stroke-width: 5; }
+.mp-arrive .ar-go .ring { fill: none; stroke: var(--gold); stroke-width: 5; stroke-linecap: round; }
+.mp-arrive .ar-go:not(.counting) .ring { stroke-dashoffset: 0; }
+.mp-arrive .ar-go.counting .ring { animation: ar-fill var(--ar-s) linear forwards; }
+@keyframes ar-fill { from { stroke-dashoffset: var(--ar-c); } to { stroke-dashoffset: 0; } }
+.mp-arrive .ar-go .ic { position: absolute; inset: 9px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; transition: transform .15s; }
+.mp-arrive .ar-go .ic svg { position: static; transform: none; width: 24px; height: 24px; fill: currentColor; }
+.mp-arrive .ar-go:active .ic { transform: scale(.92); }
+.mp-arrive .ar-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.mp-arrive .ar-where { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--music); white-space: nowrap; overflow: hidden; }
+.mp-arrive .ar-where svg { flex: none; width: 14px; height: 14px; }
+.mp-arrive .ar-where span { overflow: hidden; text-overflow: ellipsis; }
+.mp-arrive .ar-names { font-family: 'Cormorant SC', serif; font-size: 21px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-arrive .ar-clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mp-arrive .ar-skip { width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.mp-arrive .ar-skip:active { background: var(--line); }
+@media (prefers-reduced-motion: reduce) { #mw-arrive.mp-arrive { animation: none; } }
+.mp-arrive .ar-go .ic.stop svg { transform: none; width: 20px; height: 20px; }
+
+/* ---------- Music settings: the rows that follow Music suggestions ---------- */
+.mus-sets { margin: -4px 0 4px 14px; padding-left: 12px; border-left: 2px solid var(--line); }
+.mus-sets[hidden] { display: none; }
+.mus-sets .row-set[hidden], .mus-sets[hidden] { display: none; }
+#trail-speed .hand { display: grid; place-items: center; min-width: 40px; }
+#trail-speed .hand svg { width: 16px; height: 16px; }
+#trail-hand-val { min-width: 44px; text-align: center; }
+/* Full screen: Music and Soundbox are two tabs, joined; the open one filled. */
+.mp-top.tabs #mw-mus-btn { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
+.mp-top.tabs #mw-sb { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+.mp-top.tabs #mw-mus-btn + #mw-sb, .mp-top.tabs #mw-mus-btn { position: relative; }
+.mp-top.tabs #mw-mus-btn[aria-pressed="true"], .mp-top.tabs #mw-sb[aria-pressed="true"] { z-index: 1; }
+/* An upright phone: no back button in the table's top bar (room for the music buttons). */
+@media (max-width: 640px) and (orientation: portrait) { .mp-world[data-mode="play"] .mp-top #mw-back { display: none; } }
+.seg.where { flex: none; }
+.seg.where button { width: 44px; min-width: 44px; height: 32px; padding: 0; display: grid; place-items: center; color: var(--muted); opacity: .55; }
+.seg.where button[aria-checked="true"] { color: var(--text); opacity: 1; background: color-mix(in srgb, var(--text) 14%, transparent); }
+.seg.where button svg { display: block; }
+.mus-sets .stepper, #music-wait-row .stepper { display: inline-flex; align-items: center; gap: 6px; }
+#music-wait { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ---------- The music menu in full screen: the music heard, the queue, then every music to search ---------- */
+.mp-body { position: relative; }
+html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; inset: 0; width: auto; height: auto; z-index: 12; grid-row: auto; grid-column: auto; justify-self: stretch; align-self: stretch; box-shadow: none; border: 0; }
+.mp-mus.full .mus-now { padding: 8px 16px 0; }
+.mus-upnext[hidden] { display: none; }
+.mus-upnext { padding: 8px 16px 4px; display: grid; gap: 6px; }
+.mus-upnext h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mus-qlist { display: flex; flex-direction: column; gap: 6px; max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+.mp-mus.full .mus-q { padding: 8px 16px 4px; }
+.mp-mus.full .mus-list { padding-left: 16px; padding-right: 16px; }
+/* Upright phone: the music heard, the queue, then the search, one under the other, over the whole world. */
+@media (orientation: portrait) and (max-width: 700px) {
+  html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; inset: 0; height: auto; grid-row: auto; grid-column: auto; border-top: 0; }
+  .mus-qlist { max-height: 26vh; }
+}
+/* Phone on its side: two columns, the music heard and the queue on the left, the search and every music on the right. */
+@media (orientation: landscape) and (max-height: 600px) {
+  html .mp-world[data-mode="play"] .mp-body .mp-sbx.mp-mus.full { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "head q" "now list" "up list"; column-gap: 0; }
+  html .mp-mus.full .sb-head { grid-area: head; padding-top: 6px; padding-bottom: 2px; }
+  .mp-mus.full .mus-now { grid-area: now; padding: 4px 8px 0 12px; }
+  .mp-mus.full .mus-upnext { grid-area: up; padding: 6px 8px 8px 12px; min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
+  .mp-mus.full .mus-now { border-right: 0; }
+  .mp-mus.full .mus-list { border-left: 1px solid var(--line); }
+  .mp-mus.full .mus-upnext[hidden] { display: none; }
+  .mp-mus.full .mus-qlist { max-height: none; min-height: 0; }
+  .mp-mus.full .mus-q { grid-area: q; padding: 8px 12px 4px 8px; align-self: center; }
+  .mp-mus.full .mus-list { grid-area: list; padding-left: 8px; padding-right: 12px; }
+}
+@media (min-width: 900px) and (min-height: 601px) { .mp-mus.full .mus-now, .mp-mus.full .mus-upnext, .mp-mus.full .mus-q, .mp-mus.full .mus-list { padding-left: max(16px, calc(50% - 380px)); padding-right: max(16px, calc(50% - 380px)); } }
+
+/* The card: the other musics of the place, a tap each. */
+.mp-arrive .ar-more { display: flex; flex-direction: column; gap: 6px; }
+.mp-arrive .ar-alt { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 12px 4px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-align: left; }
+.mp-arrive .ar-alt svg { flex: none; width: 18px; height: 18px; color: var(--gold); fill: currentColor; }
+.mp-arrive .ar-alt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-arrive .ar-alt.on { cursor: default; border-color: var(--gold); }
+.mp-arrive .ar-alt.on small { color: var(--gold); }
+.mp-arrive .ar-alt small { margin-left: auto; flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--music); }
+/* Without Autoplay: the play button alone, bigger, its triangle in the middle. */
+.mp-arrive .ar-go.bare { width: 60px; height: 60px; align-self: center; }
+.mp-arrive .ar-go.bare .ic { inset: 0; }
+.mp-arrive .ar-go.bare .ic svg { width: 28px; height: 28px; transform: none; }
+
+/* A narrow screen: the walking speeds go under their name. */
+@media (max-width: 480px) {
+  #trail-speed-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  #trail-speed-row .seg { display: flex; width: 100%; }
+  #trail-speed-row .seg button { flex: 1 1 0; padding: 0 4px; }
+}
+/* Phone on its side, music in full screen: a slimmer head. */
+@media (orientation: landscape) and (max-height: 600px) {
+  html .mp-sbx.full .sb-head h2 { font-size: 20px; }
+}
+/* The Soundbox in full screen: its effects over the whole world, as many in a row as fit. */
+.mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .pads { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding-left: 16px; padding-right: 16px; }
+.mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-vol, .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-hint { padding-left: 16px; padding-right: 16px; }
+@media (min-width: 900px) and (min-height: 601px) { .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .pads, .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-vol, .mp-world[data-mode="play"] .mp-sbx.full:not(.mp-mus) .sb-hint { padding-left: max(16px, calc(50% - 480px)); padding-right: max(16px, calc(50% - 480px)); } }
+.mp-sbx .sb-head .grow { flex: 1; }
+#mw-sbx .sb-head { gap: 6px; }
+
+/* Full screen is chosen in Settings only. */
+#mw-mus-full, #mw-sbx-full { display: none !important; }

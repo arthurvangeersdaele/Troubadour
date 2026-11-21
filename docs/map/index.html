@@ -245,10 +245,10 @@
     <button class="ico" type="button" id="mw-back" aria-label="Back to the worlds" title="Back"></button>
     <div class="ttl"><b id="mw-title"></b><input class="mp-title-in" id="mw-title-in" maxlength="120" placeholder="World name" aria-label="Name of the world" autocomplete="off" enterkeyhint="done"><span id="mw-sub"></span></div>
     <div class="chip master" id="mw-master-chip">
-      <button class="mini" type="button" id="mw-pause" aria-label="Pause all" title="Pause all"></button>
+      <button class="mini badged" type="button" id="mw-pause" aria-label="Pause everything" title="Pause everything"></button>
       <button class="mini" type="button" id="mw-fade" aria-label="Fade out the music" title="Fade out the music"></button>
-      <label class="mlabel" for="mw-master">Master</label>
-      <input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume">
+      <span class="mslide"><input type="range" id="mw-master" min="0" max="1" step="0.01" value="0.8" aria-label="Music volume" title="Music volume"><span class="mnote" id="mw-master-note" aria-hidden="true"></span></span>
+      <span class="mvol" id="mw-mvol"><button class="mini" type="button" id="mw-mvol-dn" aria-label="Lower the music" title="Lower the music"></button><button class="mini" type="button" id="mw-mvol-up" aria-label="Raise the music" title="Raise the music"></button><span class="mnote" id="mw-mvol-note" aria-hidden="true"></span></span>
       <b id="mw-master-val">80</b>
     </div>
     <button class="ico ed-save" type="button" id="mw-saved" aria-live="polite"></button>
@@ -256,6 +256,7 @@
     <button class="chip sb-toggle mp-menu-btn" type="button" id="mw-menu" aria-pressed="false" title="Sound menu of the whole map"><span class="ic"></span><span class="sb-label">Sounds</span></button>
     <button class="chip sb-toggle mp-mus-btn" type="button" id="mw-mus-btn" aria-pressed="false" title="The musics of the world"><span class="ic"></span><span class="sb-label">Music</span></button>
     <button class="chip sb-toggle" type="button" id="mw-sb" aria-pressed="false"><span class="star"></span><span class="sb-label">Soundbox</span></button>
+    <button class="ico mp-listen" type="button" id="mw-listen" aria-pressed="false" aria-label="Hear what the party hears" title="Hear what the party hears (S)"></button>
     <button class="ico mp-switch" type="button" id="mw-switch" aria-label="Play this map at the table" title="Play this map at the table"></button>
     <button class="ico" type="button" id="mw-more" aria-label="Export and more" title="Export"></button>
     <button class="ico mp-settings" type="button" data-action="settings" aria-label="Settings" title="Settings"></button>
@@ -275,12 +276,15 @@
         <button type="button" data-tool="eraser" title="Eraser (E)"></button>
         <i></i>
         <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
+        <button type="button" data-act="redo" title="Redo (Ctrl+Shift+Z)"></button>
+        <button type="button" data-act="keys" title="Keyboard shortcuts (?)"></button>
       </div>
       <div class="mp-opts" id="mw-opts" hidden></div>
+      <div class="mp-pinstrip" id="mw-pinstrip" hidden aria-label="Pinned effects"></div>
       <section class="mp-arrive" id="mw-arrive" hidden aria-live="polite" aria-label="The music of this place"></section>
       <button type="button" class="ico tl-layers" id="mw-layers-btn" title="Layers: everything on this map" aria-label="Layers" aria-pressed="false"></button>
       <div class="mp-stamps" id="mw-stamps" hidden></div>
-      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to draw the party's trail: it walks it a second later. Double tap an element, or the map, for its sounds. Long press a sign to take its way.</div>
+      <div class="mp-play-tip" id="mw-play-tip">Drag the golden point to draw the party's trail: it walks it a second later. Double tap an element, or the map, for its sounds. Long press the map to send the party there, a sign to take its way (a tap is enough when the party stands on it).</div>
       <div class="mp-zoom">
         <button type="button" class="ico zm" id="mw-zout" aria-label="Zoom out" title="Zoom out (-)"></button>
         <button type="button" class="zv" id="mw-zval" aria-label="Zoom: back to the whole map" title="Back to the whole map (F)">100 %</button>
@@ -297,14 +301,15 @@
       <div class="mp-side-body" id="mw-inspector"></div>
     </aside>
     <aside class="soundbox mp-sbx" id="mw-sbx" hidden aria-label="Soundbox">
-      <div class="sb-head"><h2>Soundbox</h2><button class="ico small" type="button" id="mw-sbx-close" aria-label="Close the soundbox"></button></div>
+      <div class="sb-head"><h2>Soundbox</h2><span class="grow"></span><button class="ico small" type="button" id="mw-sbx-full" aria-pressed="false" aria-label="Full screen" title="Full screen"></button><button class="ico small" type="button" id="mw-sbx-close" aria-label="Close the soundbox"></button></div>
       <div class="sb-vol"><label for="mw-sbvol">Volume</label><input type="range" id="mw-sbvol" min="0" max="1" step="0.01" value="0.8"></div>
       <div class="pads" id="mw-pads"></div>
       <p class="sb-hint">Tap to fire. ☆ pins an effect to the top.</p>
     </aside>
     <aside class="soundbox mp-sbx mp-mus" id="mw-mus" hidden aria-label="Music">
-      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
+      <div class="sb-head"><h2>Music</h2><span class="grow"></span><button class="ico small" type="button" id="mw-mus-full" aria-pressed="false" aria-label="Full screen" title="Full screen"></button><button class="ico small mus-qbtn" type="button" id="mw-mus-queue" aria-pressed="false" aria-label="See the queue" title="See the queue"></button><button class="ico small" type="button" id="mw-mus-close" aria-label="Close the music"></button></div>
       <div class="mus-now" id="mw-mus-now"></div>
+      <section class="mus-upnext" id="mw-mus-upnext" hidden aria-label="The queue"><h3>Up next</h3><div class="mus-qlist" id="mw-mus-qlist"></div></section>
       <div class="mus-q"><input type="search" class="snd-search" id="mw-mus-q" placeholder="Search a music" aria-label="Search a music"></div>
       <div class="mus-list" id="mw-mus-list"></div>
     </aside>
@@ -330,7 +335,6 @@
       <button type="button" role="radio" data-v="light">Light</button>
       <button type="button" role="radio" data-v="system">System</button>
     </div>
-    <label class="row-set toggle"><span>Names of the places<small>Shown on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
   </section>
   <section>
     <h3>Troubadour name</h3>
@@ -347,20 +351,55 @@
   </section>
   <section>
     <h3>At the table</h3>
-    <label class="row-set toggle"><span>Show a place's music on arrival<small>When the party stops on a place with music, its music cards show up for a few seconds: play one, or add them to the queue. The party can keep moving.</small></span><input type="checkbox" id="opt-music-ask"><i></i></label>
-    <label class="row-set toggle"><span>Music starts on arrival<small>The music of a place starts by itself when the party stops there (after its cards, if they show and nothing is touched)</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
-    <label class="row-set toggle"><span>Show how far sounds carry<small>The tinted ground around every element with sounds, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Party's trail<small>Dragging the golden point draws a trail it walks a second later. Off: the point follows your finger</small></span><input type="checkbox" id="opt-trail"><i></i></label>
+    <div class="mus-sets" id="trail-sets">
     <div class="row-set" id="trail-speed-row">
       <span>Walking speed<small>How fast the point walks its trail</small></span>
       <div class="seg small" id="trail-speed" role="radiogroup" aria-label="Walking speed">
         <button type="button" role="radio" data-v="0.05">Slow</button>
         <button type="button" role="radio" data-v="0.1">Normal</button>
         <button type="button" role="radio" data-v="0.2">Fast</button>
-        <button type="button" role="radio" data-v="0.4">Very fast</button>
+        <button type="button" role="radio" data-v="hand" class="hand" aria-label="Set by hand" title="Set by hand"></button>
       </div>
     </div>
+    <div class="row-set" id="trail-hand-row" hidden>
+      <span>Speed<small>Times the normal speed, from 0,05× to 10×</small></span>
+      <div class="stepper"><button class="ico small" type="button" id="trail-hand-less" aria-label="Slower">−</button><b id="trail-hand-val">4×</b><button class="ico small" type="button" id="trail-hand-more" aria-label="Faster">+</button></div>
+    </div>
+    </div>
     <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
+    <label class="row-set toggle"><span>Volume viewer<small>A ring around every place heard, wider as it is louder</small></span><input type="checkbox" id="opt-heard-rings"><i></i></label>
+    <label class="row-set toggle"><span>Hearing circles<small>The tinted ground around every element with sounds: how far each is heard, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
+    <label class="row-set toggle"><span>Place names<small>Written on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>
+    <label class="row-set toggle"><span>Music suggestions<small>Reaching a place with its own music, a card shows all its musics: tap one to play it, or Skip. The music menu works at any time.</small></span><input type="checkbox" id="opt-music-suggest"><i></i></label>
+    <div class="mus-sets" id="music-sets">
+      <div class="row-set">
+        <span>The card shows<small id="music-in-hint">When the party stops on the place</small></span>
+        <div class="seg small where" id="music-in" role="radiogroup" aria-label="The card shows">
+          <button type="button" role="radio" data-v="place" aria-label="On the place" title="On the place"></button>
+          <button type="button" role="radio" data-v="circle" aria-label="In its hearing circle" title="In its hearing circle"></button>
+        </div>
+      </div>
+      <label class="row-set toggle"><span>Autoplay<small>The first music of the card plays when its ring closes</small></span><input type="checkbox" id="opt-music-auto"><i></i></label>
+      <div class="row-set" id="music-wait-row">
+        <span>Plays after</span>
+        <div class="stepper" role="group" aria-label="Plays after">
+          <button type="button" class="ico small" id="music-wait-less" aria-label="Sooner">−</button>
+          <b id="music-wait">5 s</b>
+          <button type="button" class="ico small" id="music-wait-more" aria-label="Later">+</button>
+        </div>
+      </div>
+      <label class="row-set toggle"><span>Autostop<small>Leaving, the place's music gives way: the map's music comes back, or, the map having none, it fades out</small></span><input type="checkbox" id="opt-music-stop"><i></i></label>
+      <div class="row-set" id="music-out-row">
+        <span>Stops<small id="music-out-hint">When the party is out of its hearing circle</small></span>
+        <div class="seg small where" id="music-out" role="radiogroup" aria-label="Stops">
+          <button type="button" role="radio" data-v="place" aria-label="Out of the place" title="Out of the place"></button>
+          <button type="button" role="radio" data-v="circle" aria-label="Out of its hearing circle" title="Out of its hearing circle"></button>
+        </div>
+      </div>
+    </div>
+    <label class="row-set toggle"><span>Use a waiting queue<small>On: add musics to a queue that plays them one after the other; a music plays 1× or 2×, never in a loop. Off: no queue, and a music can loop</small></span><input type="checkbox" id="opt-music-queue"><i></i></label>
+    <label class="row-set toggle"><span>Music and Soundbox in full screen<small>They take the whole screen: the music heard, the queue if used and every music to search; the Soundbox's effects, larger</small></span><input type="checkbox" id="opt-music-full"><i></i></label>
   </section>
   <section>
     <h3>Playback</h3>

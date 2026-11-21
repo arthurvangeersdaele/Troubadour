@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261119.1';
+  const VERSION = '261121.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -437,6 +437,10 @@
   /* ================= Saving ================= */
   let saveBad = false;
   function save() {
+    // Every way has its in portal on the map it leads to (laid, or taken away with the way).
+    if (rec && M.syncPortals(rec.world)) V.redraw();
+    // Every change made while drawing is a step of the history (gathered once things settle).
+    if (mode === 'edit' && V.commitSoon) V.commitSoon();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 500);
     paintSave();
@@ -486,7 +490,27 @@
    * Short sounds are decoded (they strike at once, their loops have no seam); long ones (the musics, the long
    * ambiances) are streamed from the device, since decoding them all would take more memory than a phone has. */
   const streams = new Map(); // file => { stream: true, url, duration }
-  const sounds = { get: (f) => streams.get(f) || buffers.get(f) };
+  const sounds = { get: (f) => warm.get(f) || streams.get(f) || buffers.get(f) };
+  /* A music up to two and a half minutes is also decoded when it is about to play (a place's card counting down) or
+   * as it starts: from then on it starts at once, loops on a sample (no crossing of two rounds) and needs no element
+   * a phone might refuse to start. Two at most, the oldest one not heard let go: a phone's memory stays low. The
+   * decoding runs off the page's thread; the sound's measures (its ends, its loudness) come from its stream. */
+  const WARM_MAX = 2, WARM_LEN = 150;
+  const warm = new Map(), warming = new Set();
+  const musicActive = (f) => A.isOpen() && A.voices().some((v) => v.card.file === f && (v.active || v.state === 'paused'));
+  async function warmMusic(file) {
+    if (warm.has(file)) { const b = warm.get(file); warm.delete(file); warm.set(file, b); return; }
+    const s = streams.get(file);
+    if (!s || !(s.duration > 0) || s.duration > WARM_LEN || warming.has(file)) return;
+    warming.add(file);
+    try {
+      const buf = await decode(await (await fetch(s.url)).blob());
+      if (streams.get(file) !== s) return; // the world was left meanwhile
+      if (s.b > 0) buf._ballade = { a: s.a, b: s.b, la: s.la, lb: s.lb, lufs: s.lufs, loops: new Map() };
+      warm.set(file, buf);
+      for (const f of [...warm.keys()]) { if (warm.size <= WARM_MAX) break; if (f !== file && !musicActive(f)) warm.delete(f); }
+    } catch (e) { /* stays streamed */ } finally { warming.delete(file); }
+  }
   const STREAM_OVER = 300 * 1024;
   function probe(url, ms) {
     return new Promise((ok) => {
@@ -503,7 +527,7 @@
   /** A long sound is listened to once, whole, to learn where it really starts and ends (the encoder's silence), where
    *  it loops and how loud it is. Kept on the device with the sound; one at a time, so the memory stays low. */
   function measure(blob) { return window.TroubadourEngine.measure(audio().ctx, blob); }
-  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); }
+  function dropStreams() { streams.forEach((s) => { try { URL.revokeObjectURL(s.url); } catch (e) { /* gone */ } }); streams.clear(); warm.clear(); }
   async function prepare(fileList, label) {
     const r = rec;
     const music = new Set((r.world.music || []).map((c) => c.file));
@@ -583,6 +607,7 @@
   function soundGate() {
     const g = $('#mw-gate');
     const { ctx } = audio(true);
+    if (!soundGate.noted && ctx.addEventListener) { soundGate.noted = true; ctx.addEventListener('statechange', () => noteDbg(`audio ${ctx.state}`)); }
     const check = () => {
       const off = screen === 'world' && mode === 'play' && ctx.state !== 'running';
       g.hidden = !off;
@@ -593,22 +618,16 @@
     setTimeout(() => { if (check()) soundGate.timer = setInterval(() => { if (!check()) clearInterval(soundGate.timer); }, 200); }, 350);
   }
 
-  /** Takes the party to another map by a way (a door, stairs): it arrives beside the way that leads back,
-   *  on the side of the middle of the map, never on its sign. */
-  function travel(to) {
+  /** Takes the party to another map by a way (an out portal): it arrives at the in portal of that way, on the map
+   *  it leads to (laid beside the way back, else in the middle; moved by the troubadour in the editor). */
+  let arriving = false;
+  function travel(to, way) {
     const from = place(), dest = rec.world.places[to];
-    const back = dest.elements.find((e) => e.link === from.id);
-    if (back) {
-      const b = M.bounds(back.shape), c = M.centre(back.shape);
-      const mid = [dest.width / 2, dest.height / 2];
-      let dx = mid[0] - c[0], dy = mid[1] - c[1];
-      const d = Math.hypot(dx, dy) || 1;
-      dx /= d; dy /= d;
-      const half = Math.hypot(b[2] - b[0], b[3] - b[1]) / 2;
-      const gap = half + Math.max(80, Math.min(dest.width, dest.height) * 0.08);
-      dest.player = [Math.round(Math.max(20, Math.min(dest.width - 20, c[0] + dx * gap))), Math.round(Math.max(20, Math.min(dest.height - 20, c[1] + dy * gap)))];
-      save();
-    }
+    M.syncPortals(rec.world);
+    const inn = way && (dest.ins || []).find((i) => i.from === from.id && i.el === way.id);
+    dest.player = inn ? inn.at.slice() : (dest.ins || []).find((i) => i.from === from.id)?.at.slice() || dest.player;
+    save();
+    arriving = true;
     goPlace(to);
   }
 
@@ -621,10 +640,15 @@
     if (mode === 'play') setPanel(true);
     $('#mw-title').textContent = rec.story.title || 'World';
     if (document.activeElement !== $('#mw-title-in')) $('#mw-title-in').value = rec.story.title || '';
-    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    nowShown = '';
+    paintNowPlaying();
     $('#world').dataset.mode = mode; // the tools are laid out before the map fits beside them
+    // At the table, a map opened without a way (the first one too) has no party yet: a long press lays it.
+    V.setUnplaced(mode === 'play' && !arriving);
+    arriving = false;
     V.setMode(mode);
     V.show(place(), rec.world);
+    paintHistory();
     V.layers.hidden.clear(); V.layers.locked.clear(); V.layers.wallsHidden = false; V.layers.wallsLocked = false;
     renderPlaces();
     if (location.hash !== here()) history.replaceState(null, '', here());
@@ -648,6 +672,7 @@
     // The cards heard while editing fall silent when the table opens, and the other way round.
     stopFxWhere(() => true);
     const was = V.mode();
+    if (m !== 'play') V.setUnplaced(false); else if (was !== 'play') V.setUnplaced(true);
     V.setMode(m);
     if (was !== m) { V.fit(); renderPlaces(); }
     $('#mw-stamps').hidden = true;
@@ -665,10 +690,12 @@
       idle();
       if (rec !== r0 || mode !== 'play') return;
       A.setMusic(music);
-      A.open(place(), rec.world, sounds);
+      A.open(place(), rec.world, sounds, V.unplaced());
+      if (V.unplaced()) toast('Long press the map to place the party.', 3200);
       soundGate();
+      if (pins().length) loadPads(); else renderPinStrip();
       acquireWake();
-      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press a sign to take its way.`;
+      $('#mw-play-tip').textContent = `${settings.trail ? "Drag the golden point to draw the party's trail: it walks it a second later." : 'Drag the golden point to move the party.'} Double tap an element, or the map, for its sounds. Long press the map to place the party, then to send it there; a sign to take its way (a tap is enough when the party stands on it).`;
       // The tip shows the first three times a world is played, and goes at the first touch of the map.
       let seen = 0;
       try { seen = Number(localStorage.getItem('troubadour.map.tips') || 0); } catch (e) { /* private mode */ }
@@ -679,10 +706,72 @@
         setMode.tip = setTimeout(() => $('#mw-play-tip').classList.add('gone'), 8000);
       } else $('#mw-play-tip').classList.add('gone');
     } else {
-      if (!keepAudio || A.isOpen()) A.close();
+      if (m === 'edit' && hearing) openHearing();
+      else { if (!keepAudio || A.isOpen()) A.close(); if (hearing) hear(false); }
       releaseWake();
     }
     renderPanel();
+  }
+
+  /* ================= The debug overlay (261114_map_plan.md, 5): five taps on the world's name ================= */
+  // What a troubadour can copy and send when the sound misbehaves: the audio clock, the voices and the streams,
+  // the sounds in memory, the last interruptions.
+  const DBG = { taps: [], box: null, timer: 0, events: [] };
+  function noteDbg(what) { DBG.events.push(`${new Date().toLocaleTimeString()} ${what}`); if (DBG.events.length > 30) DBG.events.shift(); }
+  function debugText() {
+    const { ctx } = audio();
+    let mem = 0; buffers.forEach((b) => { if (b && b.length) mem += b.length * b.numberOfChannels * 4; });
+    const vs = A.isOpen() ? A.list() : [];
+    const playing = vs.filter((v) => v.state === 'playing');
+    return [
+      `Map ${rec ? rec.story.title : ''}, ${mode === 'play' ? 'at the table' : 'drawing'}${rec ? `, map ${pi + 1}` : ''}`,
+      `audio clock ${ctx.currentTime.toFixed(2)} s, ${ctx.state}, ${ctx.sampleRate} Hz`,
+      `voices ${vs.length}, playing ${playing.length}, heard ${playing.filter((v) => v.heard > 0.01).length}; streamed ${A.isOpen() ? A.streams().length : 0}`,
+      `in memory ${buffers.size} sounds decoded (about ${Math.round(mem / 1048576)} MB of samples), ${streams.size} streamed`,
+      ...playing.slice(0, 8).map((v) => `  ${v.name}: heard ${Math.round(v.heard * 100)} %`),
+      `device ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 120)}`,
+      ...DBG.events.slice(-8),
+    ].join('\n');
+  }
+  function toggleDebug() {
+    if (DBG.box) { DBG.box.remove(); DBG.box = null; clearInterval(DBG.timer); return; }
+    const box = el('div', 'mp-debug');
+    const pre = el('pre');
+    const row = el('div', 'mp-debug-acts');
+    const copy = el('button', 'btn slim', 'Copy'); copy.type = 'button';
+    copy.addEventListener('click', () => { if (navigator.clipboard) navigator.clipboard.writeText(debugText()).then(() => toast('Copied: paste it in a message.', 1800), () => toast('Could not copy.')); });
+    const shut = el('button', 'btn slim', 'Close'); shut.type = 'button';
+    shut.addEventListener('click', toggleDebug);
+    row.append(copy, shut);
+    box.append(pre, row);
+    document.body.append(box);
+    DBG.box = box;
+    const paint = () => { pre.textContent = debugText(); };
+    paint();
+    DBG.timer = setInterval(paint, 500);
+  }
+
+  /* ================= Hearing in the editor ================= */
+  // The headphones (or S): the editor hears the map as the party would, from the golden point. Moving the point
+  // with the select tool changes what is heard; the ground around each place shows how much of it reaches the
+  // point. Nothing of this runs at the table.
+  let hearing = false;
+  async function openHearing() {
+    const r0 = rec, p0 = pi;
+    audio(true);
+    await prepare(worldFiles(rec));
+    if (!hearing || rec !== r0 || pi !== p0 || mode !== 'edit' || screen !== 'world') return;
+    A.open(place(), rec.world, sounds);
+    V.redraw();
+  }
+  function hear(on) {
+    if (on && (mode !== 'edit' || !rec)) return;
+    hearing = on;
+    $('#mw-listen').setAttribute('aria-pressed', String(on));
+    $('#mw-listen').title = on ? 'Stop hearing (S)' : 'Hear what the party hears (S)';
+    $('#mw-listen').setAttribute('aria-label', $('#mw-listen').title);
+    if (on) { openHearing(); toast('You hear what the party hears. Move the golden point to walk.', 2400); }
+    else { if (A.isOpen()) A.close(); V.redraw(); }
   }
 
   /** The maps of the world, as Troubadour's chapters: a numbered rail (a strip under the top bar on a narrow
@@ -715,7 +804,8 @@
       add.addEventListener('click', () => addPlace());
       rail.append(add);
     }
-    $('#mw-sub').textContent = `Map ${pi + 1}: ${place().title}`;
+    nowShown = '';
+    paintNowPlaying();
   }
 
   async function renamePlace(p) {
@@ -799,7 +889,13 @@
   }
   // The sizes a place steps through, in % of the width of its map.
   const SIZE_STEPS = [1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 23, 26, 30, 35, 40, 50, 60];
-  const pctOf = (e) => (e.shape.size / place().width) * 100;
+  // A drawn place (a path) has no size of its own: its widest side stands for it, and it scales around its middle.
+  const sizeOf = (e) => { if (e.shape.type === 'stamp') return e.shape.size; const b = M.bounds(e.shape); return Math.max(b[2] - b[0], b[3] - b[1], 1); };
+  const pctOf = (e) => (sizeOf(e) / place().width) * 100;
+  function transformPath(e, f) {
+    const c = M.centre(e.shape);
+    e.shape.points = e.shape.points.map((q) => { const [x, y] = f(q[0] - c[0], q[1] - c[1]); return [Math.round(c[0] + x), Math.round(c[1] + y)]; });
+  }
   const fmtPct = (v) => `${v < 10 ? Math.round(v * 2) / 2 : Math.round(v)} %`;
   function sizeStepper(e) {
     return stepper('Size', () => fmtPct(pctOf(e)), (d) => {
@@ -807,18 +903,80 @@
       const next = d > 0 ? SIZE_STEPS.find((x) => x > v + 0.05) : [...SIZE_STEPS].reverse().find((x) => x < v - 0.05);
       if (!next) return;
       // Its reach grows and shrinks with it: the same times its size.
-      const k = e.radius / Math.max(1, e.shape.size);
-      e.shape.size = Math.max(10, Math.round((next / 100) * place().width));
-      e.radius = Math.round(k * e.shape.size);
+      const k = e.radius / Math.max(1, sizeOf(e));
+      const target = Math.max(10, Math.round((next / 100) * place().width));
+      if (e.shape.type === 'stamp') e.shape.size = target;
+      else { const f = target / sizeOf(e); transformPath(e, (x, y) => [x * f, y * f]); }
+      e.radius = Math.round(k * sizeOf(e));
       if (A.isOpen()) A.hear();
     });
   }
   function turnStepper(e) {
-    return stepper('Turn', () => `${e.shape.rotation}°`, (d) => {
-      let r = Math.round((e.shape.rotation + d * 15) / 15) * 15;
+    return stepper('Turn', () => `${e.shape.rotation || 0}°`, (d) => {
+      const was = e.shape.rotation || 0;
+      let r = Math.round((was + d * 15) / 15) * 15;
       if (r > 180) r -= 360; if (r <= -180) r += 360;
+      // A drawn place turns its points around its middle; it keeps the angle it was given, to show it.
+      if (e.shape.type !== 'stamp') { const a = ((r - was) * Math.PI) / 180, co = Math.cos(a), si = Math.sin(a); transformPath(e, (x, y) => [x * co - y * si, x * si + y * co]); }
       e.shape.rotation = r;
     });
+  }
+  /** Undo and redo: the panel shows the map as it is again. */
+  function undoRedo(back) {
+    if (mode !== 'edit') return;
+    const done = back ? V.undo() : V.redo();
+    if (!done) { toast(back ? 'Nothing to undo.' : 'Nothing to redo.', 1400); return; }
+    renderPanel(); renderPlaces(); renderLayers();
+  }
+  function paintHistory() {
+    const h = V.history ? V.history() : { undo: 0, redo: 0 };
+    const u = document.querySelector('#mw-tools [data-act="undo"]'), r = document.querySelector('#mw-tools [data-act="redo"]');
+    if (u) { u.disabled = !h.undo; u.title = h.undo ? `Undo (Ctrl+Z): ${h.undo} step${h.undo > 1 ? 's' : ''}` : 'Nothing to undo'; }
+    if (r) { r.disabled = !h.redo; r.title = h.redo ? `Redo (Ctrl+Shift+Z): ${h.redo} step${h.redo > 1 ? 's' : ''}` : 'Nothing to redo'; }
+  }
+  /** A pasted or duplicated element takes the next number of its kind. */
+  function numbered(c, from) {
+    const kind = (c.title || '').replace(/\s+\d+$/, '') || elName(from || c);
+    const same = place().elements.filter((x) => x !== c && x.title && x.title.startsWith(kind)).length;
+    c.title = `${kind} ${same + 1}`.slice(0, 80);
+  }
+  function clipboard(k) {
+    if (mode !== 'edit') return false;
+    const sel = V.selected();
+    const many = V.selection().length;
+    if (k === 'c') { if (!sel) return false; V.copy(); toast(many > 1 ? `${many} places copied.` : `${elName(sel)} copied.`, 1200); return true; }
+    if (k === 'x') { if (!sel) return false; const n = many > 1 ? `${many} places` : elName(sel); V.cut(); renderPanel(); renderPlaces(); renderLayers(); toast(`${n} cut.`, 1200); return true; }
+    if (k === 'v') {
+      const c = V.paste();
+      if (c === false) { toast('A place can be pasted in the world it comes from.', 2400); return true; }
+      if (!c) return false;
+      V.selection().forEach((x) => numbered(x)); save(); renderPanel(); renderPlaces(); renderLayers();
+      return true;
+    }
+    if (k === 'd') { if (!sel) return false; if (V.selection().length > 1) { V.duplicate(); renderPanel(); renderPlaces(); renderLayers(); } else duplicateElement(sel); return true; }
+    if (k === 'a') { const n = V.selectAll(); if (n) toast(`${n} places selected.`, 1200); return true; }
+    return false;
+  }
+  /** The keys of the editor, on one page (?). */
+  function shortcuts() {
+    $('#sheet-title').textContent = 'Keyboard shortcuts';
+    const body = $('#sheet-body');
+    body.textContent = '';
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform || '');
+    const C = mac ? 'Cmd' : 'Ctrl';
+    const groups = [
+      ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['L', 'Places: the library'], ['E', 'Eraser']]],
+      ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], [`${C}+A`, 'Select every place'], ['Shift + click', 'Add a place to the selection, or take it away'], ['Shift + drag on the map', 'Select every place in a band'], ['Arrows', 'Move the selection (Shift: further)'], ['Alt + drag', 'Move a copy'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
+      ['Sound', [['S', 'Hear what the party hears, from the golden point']]],
+      ['View', [['+ and -', 'Zoom'], ['F', 'The whole map'], ['?', 'This page']]],
+    ];
+    groups.forEach(([h, rows]) => {
+      body.append(el('h3', 'kb-h', h));
+      const t = el('div', 'kb');
+      rows.forEach(([k, what]) => { t.append(el('kbd', '', k), el('span', '', what)); });
+      body.append(t);
+    });
+    if (!$('#sheet').open) $('#sheet').showModal();
   }
   /** A copy of an element, a little aside, with the same sounds. */
   function duplicateElement(e) {
@@ -843,7 +1001,7 @@
     const head = el('div', 'ctx-head');
     head.append(el('b', '', elName(e)));
     m.append(head);
-    if (e.shape.type === 'stamp') m.append(sizeStepper(e), turnStepper(e));
+    m.append(sizeStepper(e), turnStepper(e));
     const item = (icon, label, fn, cls) => {
       const b = el('button', `ctx-item ${cls || ''}`);
       b.type = 'button'; b.setAttribute('role', 'menuitem');
@@ -875,11 +1033,24 @@
   const posOf = (m) => (m < REACH_MIN * 0.75 ? 0 : Math.max(1, Math.min(100, Math.round(1 + (99 * Math.log(m / REACH_MIN)) / Math.log(REACH_MAX / REACH_MIN)))));
   const fmtReach = (m) => (m <= 0 ? 'its edge' : `${m < 1 ? m.toFixed(1) : m < 3 ? (Math.round(m * 4) / 4).toString() : Math.round(m)}× its size`);
   function reachSlider(e) {
-    return slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
+    const row = slider('Heard up to', posOf(e.radius / elSize(e)), 0, 100, 1, (v) => fmtReach(reachOf(v)), (v) => {
       e.radius = Math.round(reachOf(v) * elSize(e));
       if (A.isOpen()) A.hear();
       V.redraw();
     });
+    row.classList.add('reach-row');
+    row.reachOf = e;
+    return row;
+  }
+  /** The reach handle on the map: the slider of the panel and what is heard follow it. */
+  function reachDragged(e) {
+    document.querySelectorAll('.reach-row').forEach((row) => {
+      if (row.reachOf !== e) return;
+      const i = row.querySelector('input'), b = row.querySelector('b');
+      i.value = posOf(e.radius / elSize(e)); paintRange(i);
+      b.textContent = fmtReach(e.radius / elSize(e));
+    });
+    if (A.isOpen()) A.hear();
   }
   function section(title, extra) {
     const s = el('section', 'pn');
@@ -894,11 +1065,15 @@
   /** The loop button, as in Troubadour: 1×, 2×, ∞, then random (ambiances, events) or play after (music). */
   const LOOP_LABEL = { once: '1×', twice: '2×', loop: '∞' };
   const LOOP_TITLE = { once: 'Plays once', twice: 'Plays twice', loop: 'Plays again and again', random: 'Random: plays again after a random pause', after: 'Play after: starts when another music ends on its own' };
+  /** With the waiting queue, a music has no loop: 1× or 2×, a looping one played once (and shown 1×). */
+  const playShown = (c) => (c.zone === 'music' && settings.musicQueue && c.play === 'loop' ? 'once' : c.play);
+  const musicWays = () => (settings.musicQueue ? ['once', 'twice'] : ['once', 'twice', 'loop']);
   function paintLoop(btn, c) {
-    btn.className = `loop${c.play === 'loop' ? ' inf' : c.play === 'random' ? ' rnd' : c.play === 'after' ? ' aft' : ''}`;
-    if (c.play === 'random') btn.innerHTML = ICON.random; else if (c.play === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[c.play];
-    btn.title = `${LOOP_TITLE[c.play]} (tap to change)`;
-    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[c.play]}`);
+    const p = playShown(c);
+    btn.className = `loop${p === 'loop' ? ' inf' : p === 'random' ? ' rnd' : p === 'after' ? ' aft' : ''}`;
+    if (p === 'random') btn.innerHTML = ICON.random; else if (p === 'after') btn.innerHTML = ICON.after; else btn.textContent = LOOP_LABEL[p];
+    btn.title = `${LOOP_TITLE[p]} (tap to change)`;
+    btn.setAttribute('aria-label', `Loop of ${c.name}: ${LOOP_TITLE[p]}`);
   }
   const fmtLeft = (sec) => { sec = Math.ceil(sec || 0); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
   const clockOf = (sec) => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
@@ -927,9 +1102,9 @@
     loop.type = 'button';
     paintLoop(loop, c);
     loop.addEventListener('click', () => {
-      // The world's musics: 1×, 2× or ∞ (what comes next is the queue's).
-      const ways = c.zone === 'music' ? ['once', 'twice', 'loop'] : ['once', 'twice', 'loop', 'random'];
-      const next = ways[(ways.indexOf(c.play) + 1) % ways.length];
+      // The musics: 1×, 2× or ∞; with the waiting queue 1× or 2× only (what comes next is the queue's).
+      const ways = c.zone === 'music' ? musicWays() : ['once', 'twice', 'loop', 'random'];
+      const next = ways[(ways.indexOf(playShown(c)) + 1) % ways.length];
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
       if (A.isOpen()) A.sync();
@@ -1009,7 +1184,7 @@
       vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = c.volume;
       vol.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
       vol.setAttribute('aria-label', `${c.name} volume`);
-      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); paintRange(vol); });
+      vol.addEventListener('input', () => { A.setVolume(c, Number(vol.value)); linkMusic(c); paintRange(vol); });
       vol.addEventListener('change', save);
       ctrl.append(vol);
     } else if (vm === 'simple') {
@@ -1023,6 +1198,7 @@
       };
       const step = (dir) => {
         if (!A.stepVolume(c, dir)) return;
+        linkMusic(c);
         paintLvl();
         save();
       };
@@ -1066,7 +1242,7 @@
         if (waiting) txt = `next ${fmtLeft(pr.next)}`;
         else if (v && v.held) txt = 'held';
         else if (on || st === 'paused') {
-          if (c.play === 'loop') txt = '∞ loop';
+          if (playShown(c) === 'loop') txt = '∞ loop';
           else if (pr.left != null) { txt = fmtLeft(pr.left); warn = pr.left <= 10; }
         }
         if (rem && rem.textContent !== txt) rem.textContent = txt;
@@ -1103,7 +1279,8 @@
     const others = list.filter((c) => !EDIT_ZONES.some(([z]) => z === zoneOf(c)));
     // A card moved, removed or renamed in its zone: the list of the element follows, kind after kind.
     const back = () => { list.splice(0, list.length, ...subs.flat(), ...others); };
-    EDIT_ZONES.forEach(([z, label, colour, loops], k) => {
+    EDIT_ZONES.forEach(([z, label, colour, loops0], k) => {
+      const loops = z === 'music' ? musicWays() : loops0;
       const sub = subs[k];
       if (!sub.length) return;
       const h = el('h4', 'zh', label);
@@ -1153,12 +1330,40 @@
     // At the table, the panel is the sound menu: a small title, and what it shows (an element, or the whole map).
     const head = $('#mw-side-title');
     head.textContent = '';
-    if (mode === 'play') { head.className = 'mp-menu-title'; head.append(el('small', '', 'Sound menu'), el('span', '', sel ? elName(sel) : 'Whole map')); }
+    if (mode === 'play') {
+      head.className = 'mp-menu-title';
+      // On a place, the line above its name goes back to the whole map, one tap.
+      if (sel) {
+        const back = el('button', 'mp-back'); back.type = 'button';
+        back.innerHTML = `${ICON.left}<span></span>`;
+        back.querySelector('span').textContent = elName(sel);
+        back.title = 'Back to the whole map';
+        back.setAttribute('aria-label', `${elName(sel)}: back to the whole map`);
+        back.addEventListener('click', () => { tapped = null; renderPanel(); });
+        head.append(el('small', '', 'Sound menu'), back);
+      } else head.append(el('small', '', 'Sound menu'), el('span', '', 'Whole map'));
+    }
     else { head.className = ''; head.textContent = sel ? elName(sel) : p.title; }
     if (mode === 'edit' && edView && !sel) {
       head.textContent = edView === 'music' ? 'Music of the world' : 'Soundbox of the world';
       if (edView === 'music') editMusic(box); else editSoundbox(box);
-    } else if (mode === 'edit') { if (sel) editElement(box, sel); else editPlace(box, p); }
+    } else if (mode === 'edit') {
+      const many = sel ? V.selection().length : 0;
+      if (many > 1) {
+        // Several places selected: what they do together, then the one shown.
+        const s = el('section', 'pn mp-many');
+        s.append(el('h3', '', `${many} places selected`), el('p', 'hint', 'Drag one of them to move them together; arrows move them too. Shift and a click adds or takes one away. Below: the last one picked.'));
+        const row = el('div', 'mp-many-acts');
+        const dup = el('button', 'btn slim', 'Duplicate them'); dup.type = 'button';
+        dup.addEventListener('click', () => { V.duplicate(); V.selection().forEach((x) => numbered(x)); save(); renderPanel(); renderPlaces(); renderLayers(); });
+        const del = el('button', 'btn slim danger', 'Delete them'); del.type = 'button';
+        del.addEventListener('click', () => { V.deleteSelected(); renderPanel(); renderPlaces(); renderLayers(); });
+        row.append(dup, del);
+        s.append(row);
+        box.append(s);
+      }
+      if (sel) editElement(box, sel); else editPlace(box, p);
+    }
     else if (sel) playElement(box, sel); else playPlace(box, p);
     paintEdView();
     paintRanges(box);
@@ -1220,14 +1425,14 @@
     const list = worldMusic();
     box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on the whole map starts when the party arrives there; laid on a place, when the party walks into it (and the map\'s comes back when it walks out).'));
     const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
-    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: ['once', 'twice', 'loop'] }),
+    box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: musicWays(), music: true }),
       'Add musics: from this device, the Recueil or Files', () => {
         fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
           for (const r of picked) {
             const key = r.blobKey || await DB.putBlob(await r.getBlob());
             const path = freePath(`sounds/map/music/${window.Troubadour.slug(r.name, 'sound')}.${r.ext || 'mp3'}`);
             rec.files[path] = key;
-            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
+            list.push(Object.assign(M.card({ name: String(r.name || 'Music').slice(0, 80), file: path, zone: 'music', volume: (list[0] && typeof list[0].volume === 'number') ? list[0].volume : 0.75 }, { play: 'loop' }), { size: r.size || 0, duration: r.duration || 0 }));
           }
           flush();
           renderPanel();
@@ -1338,9 +1543,8 @@
     const t = el('input'); t.type = 'text'; t.value = e.title; t.maxLength = 80; t.placeholder = 'Name (shown on the map)';
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
-    if (sh.type === 'stamp') {
-      id.append(sizeStepper(e), turnStepper(e));
-    } else if (sh.points.length > 2) {
+    id.append(sizeStepper(e), turnStepper(e));
+    if (sh.type !== 'stamp' && sh.points.length > 2) {
       const l = el('label', 'row-set toggle');
       const span = el('span', '', 'Closed shape');
       span.append(el('small', '', 'An area (inside it, its sounds are at full volume), or a line'));
@@ -1492,7 +1696,7 @@
         const go = el('button', 'btn primary go-place');
         go.type = 'button';
         go.innerHTML = `${ICON.link}<span>Go to ${rec.world.places[to].title}</span>`;
-        go.addEventListener('click', () => travel(to));
+        go.addEventListener('click', () => travel(to, e));
         box.append(go);
       }
     }
@@ -1517,7 +1721,18 @@
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input[type="range"]')) paintRange(e.target); });
 
   let liveTimer = 0;
-  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); arriveRows.forEach((f) => f()); }
+  function refreshLive() { liveRows.forEach((f) => f()); musRows.forEach((f) => f()); }
+  /** Now playing, under the world's name at the table: the map, and the music heard. */
+  let nowShown = '';
+  function paintNowPlaying() {
+    if (!rec) return;
+    let t = `Map ${pi + 1}: ${place().title}`;
+    if (mode === 'play' && A.isOpen()) {
+      const m = A.currentMusic();
+      if (m) t += `. Music: ${m.name}`;
+    }
+    if (t !== nowShown) { nowShown = t; $('#mw-sub').textContent = t; }
+  }
   function liveLoop() {
     clearInterval(liveTimer);
     // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
@@ -1527,6 +1742,8 @@
       const w = $('#world').classList;
       if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
       paintMaster();
+      paintMusicVol();
+      paintNowPlaying();
     }, 100);
   }
 
@@ -2451,19 +2668,50 @@
       if (rec && mode === 'play') renderPanel();
     }));
     $('#opt-trail').addEventListener('change', (e) => { settings.trail = e.target.checked; saveSettings(); paintSettings(); });
+    // Walking speed: slow, normal, fast, or by hand (the hand), set below in steps of half the normal speed.
+    $('#trail-speed .hand').innerHTML = ICON.hand;
     $('#trail-speed').addEventListener('click', (e) => {
       const b = e.target.closest('[data-v]'); if (!b) return;
-      settings.trailSpeed = Number(b.dataset.v); saveSettings(); paintSettings();
+      if (b.dataset.v === 'hand') { settings.trailHand = true; if (settings.trailSpeed <= 0.2) settings.trailSpeed = 0.4; }
+      else { settings.trailHand = false; settings.trailSpeed = Number(b.dataset.v); }
+      saveSettings(); paintSettings();
     });
+    // Times the normal speed: fine steps down to 0,05×, then by halves up to 10×.
+    const HAND = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 6, 7, 8, 9, 10];
+    const handStep = (d) => {
+      const x = settings.trailSpeed * 10;
+      const h = d > 0 ? HAND.find((v) => v > x + 1e-6) : [...HAND].reverse().find((v) => v < x - 1e-6);
+      if (h == null) return;
+      settings.trailSpeed = h / 10; saveSettings(); paintSettings();
+    };
+    $('#trail-hand-less').addEventListener('click', () => handStep(-1));
+    $('#trail-hand-more').addEventListener('click', () => handStep(1));
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
-    $('#opt-music-ask').addEventListener('change', (e) => { settings.musicAsk = e.target.checked; saveSettings(); if (!e.target.checked) closeArrive(); });
-    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); paintArriveClock(); });
+    $('#opt-music-suggest').addEventListener('change', (e) => { settings.musicSuggest = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
+    $('#opt-music-stop').addEventListener('change', (e) => { settings.musicStop = e.target.checked; saveSettings(); paintSettings(); });
+    $('#opt-music-full').addEventListener('change', (e) => { setMusicFull(e.target.checked); });
+    // The waiting queue: on, every music plays once and the queue says what comes next; off, no queue at all.
+    $('#opt-music-queue').addEventListener('change', (e) => {
+      settings.musicQueue = e.target.checked; saveSettings();
+      if (!settings.musicQueue) { musQueueView = false; A.queueClear(); }
+      A.loopsNow();
+      if (!$('#mw-mus').hidden) { paintMusicFull(); renderMusic(); }
+      if (mode === 'edit' || $('#world').classList.contains('panel')) renderPanel();
+    });
+    const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeArrive(); paintSettings(); });
+    pickSeg('#music-in', 'musicIn'); pickSeg('#music-out', 'musicOut');
+    document.querySelectorAll('#music-in [data-v], #music-out [data-v]').forEach((b) => { b.innerHTML = b.dataset.v === 'place' ? ICON.onPlace : ICON.inCircle; });
+    const stepWait = (d) => { settings.musicWait = Math.max(2, Math.min(30, waitS() + d)); saveSettings(); paintSettings(); };
+    $('#music-wait-less').addEventListener('click', () => stepWait(-1));
+    $('#music-wait-more').addEventListener('click', () => stepWait(1));
     $('#opt-names').addEventListener('change', (e) => { settings.names = e.target.checked; saveSettings(); V.redraw(); });
     $('#rotate-ok').addEventListener('click', () => { settings.portrait = true; saveSettings(); document.documentElement.classList.add('portrait-ok'); if (V.fit && screen === 'world') requestAnimationFrame(() => V.fit()); });
     $('#opt-portrait').addEventListener('change', (e) => { settings.portrait = e.target.checked; saveSettings(); document.documentElement.classList.toggle('portrait-ok', settings.portrait); });
     $('#opt-rings').addEventListener('change', (e) => { settings.rings = e.target.checked; saveSettings(); V.redraw(); });
+    $('#opt-heard-rings').addEventListener('change', (e) => { settings.heardRings = e.target.checked; saveSettings(); V.redraw(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; saveSettings(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; saveSettings(); applyAudioSession(); });
     $('[data-action="wipe"]').addEventListener('click', async () => {
@@ -2497,15 +2745,31 @@
     $('#life-row').classList.toggle('off', !settings.life);
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-rings').checked = settings.rings;
+    $('#opt-heard-rings').checked = settings.heardRings !== false;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
-    $('#opt-music-ask').checked = settings.musicAsk !== false;
+    const sug = settings.musicSuggest !== false;
+    $('#opt-music-suggest').checked = sug;
+    $('#music-sets').hidden = !sug;
     $('#opt-music-auto').checked = settings.musicAuto !== false;
+    $('#music-wait-row').hidden = settings.musicAuto === false;
+    $('#music-wait').textContent = `${waitS()} s`;
+    $('#music-wait-less').disabled = waitS() <= 2; $('#music-wait-more').disabled = waitS() >= 30;
+    $('#opt-music-stop').checked = settings.musicStop !== false;
+    $('#music-out-row').hidden = settings.musicStop === false;
+    document.querySelectorAll('#music-in [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicIn === 'circle' ? 'circle' : 'place'))));
+    document.querySelectorAll('#music-out [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === (settings.musicOut === 'place' ? 'place' : 'circle'))));
+    $('#music-in-hint').textContent = settings.musicIn === 'circle' ? 'When the party stops in its hearing circle' : 'When the party stops on the place';
+    $('#music-out-hint').textContent = settings.musicOut === 'place' ? 'When the party is out of the place' : 'When the party is out of its hearing circle';
+    $('#opt-music-full').checked = !!settings.musicFull;
+    $('#opt-music-queue').checked = !!settings.musicQueue;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-portrait').checked = !!settings.portrait;
     $('#opt-trail').checked = settings.trail;
-    $('#trail-speed-row').hidden = !settings.trail;
-    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.v) === settings.trailSpeed)));
+    $('#trail-sets').hidden = !settings.trail;
+    document.querySelectorAll('#trail-speed [data-v]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.v === 'hand' ? !!settings.trailHand : !settings.trailHand && Number(b.dataset.v) === settings.trailSpeed)));
+    $('#trail-hand-row').hidden = !settings.trailHand;
+    $('#trail-hand-val').textContent = `${String(Math.round(settings.trailSpeed * 1000) / 100).replace('.', ',')}×`;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
   }
@@ -2517,6 +2781,24 @@
     const p = await DB.persistence();
     const size = (b) => window.Troubadour.formatSize(b || 0);
     info.textContent = `${p.usage != null ? `In use: about ${size(p.usage)}.` : ''} ${p.persisted ? 'Protected: the browser keeps it even when space runs low.' : 'Not protected: the browser may clear it if space runs low.'}`;
+  }
+
+  /** Every music card shares one volume in Map: the others take the one just set (those sounding glide there, see
+   *  MapAudio.setVolume and stepVolume; this keeps the rest, the editor's included, in step). */
+  function linkMusic(c) {
+    if (!rec || c.zone !== 'music') return;
+    const all = (rec.world.music || []).slice();
+    rec.world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((k) => { if (k.zone === 'music') all.push(k); }));
+    all.forEach((k) => { if (k !== c && !(A.isOpen() && A.voice(k))) k.volume = c.volume; });
+  }
+
+  /** A volume slider moves its gain in a straight slope over `secs` (the master: 4 s, so a change at the table is
+   *  never a jump); what was scheduled on it is dropped first, the slope starting from where the gain is now. */
+  function glide(param, value, ctx, secs = 0.06) {
+    const t = ctx.currentTime;
+    if (param.cancelAndHoldAtTime) param.cancelAndHoldAtTime(t);
+    else { const v = param.value; param.cancelScheduledValues(t); param.setValueAtTime(v, t); }
+    param.linearRampToValueAtTime(value, t + secs);
   }
 
   /* ================= Keep the screen awake ================= */
@@ -2547,7 +2829,7 @@
     ['library', 'world', 'sbx'].forEach((s) => { $(`#${s}`).hidden = s !== id; });
     screen = id;
     document.documentElement.dataset.screen = id;
-    if (id !== 'world') { A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
+    if (id !== 'world') { if (hearing) hear(false); A.close(); releaseWake(); stopPreview(); closeMusic(); closeSoundbox(); stopPads(); }
     if (id !== 'sbx') stopFxWhere((k) => k.startsWith('shared:'));
   }
 
@@ -2621,8 +2903,31 @@
 
   const musRows = [];
   let musQ = '';
+  /** The music menu in full screen (a setting, and the button at its top): the music heard, the queue, then every
+   *  music to search, one under the other. */
+  function setMusicFull(on) {
+    settings.musicFull = !!on; saveSettings();
+    $('#opt-music-full').checked = !!on;
+    paintMusicFull();
+    if (!$('#mw-mus').hidden) renderMusic();
+  }
+  function paintMusicFull() {
+    const on = !!settings.musicFull;
+    // In full screen, Music and Soundbox are two tabs.
+    $('.mp-top').classList.toggle('tabs', on);
+    ['#mw-mus', '#mw-sbx'].forEach((id) => {
+      $(id).classList.toggle('full', on);
+      const b = $(`${id}-full`);
+      b.innerHTML = on ? ICON.collapse : ICON.expand;
+      b.setAttribute('aria-pressed', String(on));
+      b.title = on ? 'Back to the side panel' : 'Full screen';
+      b.setAttribute('aria-label', b.title);
+    });
+    $('#mw-mus-queue').hidden = on || !settings.musicQueue;
+  }
   function openMusic() {
     closeSoundbox();
+    paintMusicFull();
     $('#mw-mus').hidden = false;
     $('#world').classList.add('over');
     $('#mw-mus-btn').setAttribute('aria-pressed', 'true');
@@ -2637,78 +2942,103 @@
   }
   /** Every music of the world, the one heard now first: a tap plays it (crossfading the one playing). */
   let musQueueView = false;
-  /* ================= Arriving on a place with music (setting Show a place's music on arrival) =================
-   * The party stops on a place with music: its music cards show over the map, as cards with all their controls, the
-   * party free to move on. One music, or several: each can be played or added to the queue. If nothing is touched for
-   * a few seconds, the setting Music starts on arrival decides (its music starts, or the music heard plays on). */
-  const ARRIVE_MS = 9000;
+  /* ================= Music suggestions: arriving on a place with music =================
+   * The party reaches a place with its own music, not the one heard (settings of At the table: Music suggestions,
+   * The card shows on the place or in its hearing circle): a small card shows every music of the place. The first
+   * sits in a round play button; with Autoplay its gold ring fills (Plays after, 5 s by default) and it plays when the
+   * ring closes. Any other music of the place plays with a tap on its line. Skip keeps the music heard. Leaving
+   * the place, Autostop lets its music give way (map-audio.js); the card is closed then. */
   let arrive = null;
+  const waitS = () => Math.max(2, Math.min(30, Math.round(settings.musicWait || 5)));
   function closeArrive() {
     if (!arrive) return;
-    clearTimeout(arrive.timer); cancelAnimationFrame(arrive.raf);
+    clearInterval(arrive.timer); clearTimeout(arrive.done);
+    const was = arrive;
     arrive = null;
+    // Skipped: what was made ready is let go (played: it is the music heard now, prime has nothing to free).
+    setTimeout(() => (was.primed || []).forEach((c) => A.unprime(c)), 0);
     const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
-    arriveRows.length = 0;
-  }
-  const arriveRows = [];
-  function paintArriveClock() {
-    if (!arrive) return;
-    const lab = $('#mw-arrive .ar-clock');
-    if (lab) lab.textContent = arrive.touched ? '' : settings.musicAuto !== false ? (arrive.cards.length > 1 ? 'The first starts by itself' : 'Starts by itself') : 'Leaves by itself';
   }
   function showArrive(info) {
     closeArrive();
-    if (!info || mode !== 'play' || settings.musicAsk === false) return false;
+    if (!info || mode !== 'play' || info.leaving) return false;
     const all = worldMusic();
-    // The cards of the world's musics (the voices that play them), in the order of the place.
+    // The world's musics (the voices that play them), in the order of the place.
     const cards = info.cards.map((c) => all.find((w) => w.file === c.file)).filter(Boolean);
     if (!cards.length) return false;
-    // Already heard: nothing to propose.
     const cur = A.currentMusic();
-    if (cards.length === 1 && cur && cur.file === cards[0].file) return false;
+    const curV = cur && A.voice(cur);
+    const isHeard = (c) => cur && (!curV || curV.state !== 'ending') && c.file === cur.file;
+    if (!cards.some((c) => !isHeard(c))) return false; // nothing new here (a music fading out is not heard)
+    cards.sort((a, b) => isHeard(a) - isHeard(b)); // the music heard, last
+    const auto = settings.musicAuto !== false, S = waitS();
     const box = $('#mw-arrive');
     box.textContent = '';
-    arrive = { info, cards, touched: false, t0: performance.now(), timer: 0, raf: 0 };
-    const head = el('div', 'ar-head');
-    const ttl = el('div', 'ar-ttl');
-    ttl.append(el('small', '', cards.length > 1 ? 'Musics of this place' : 'Music of this place'), el('b', '', elName(info.el)));
-    const x = el('button', 'ico small'); x.type = 'button'; x.innerHTML = ICON.close; x.setAttribute('aria-label', 'Close'); x.title = 'Close: nothing changes';
-    x.addEventListener('click', () => { closeArrive(); });
-    head.append(ttl, x);
-    box.append(head);
-    const list = el('div', 'ar-list');
-    cards.forEach((c) => {
-      const wrap = el('div', 'ar-card');
-      wrap.append(withRows(arriveRows, () => cardRow(c, all, null)));
-      const q = el('button', 'btn small ar-q'); q.type = 'button';
-      q.innerHTML = `${ICON.queueAdd}<span>Add to the queue</span>`;
-      q.addEventListener('click', () => { A.queueAdd(c); q.disabled = true; q.querySelector('span').textContent = 'In the queue'; refreshLive(); });
-      wrap.append(q);
-      list.append(wrap);
-    });
-    box.append(list);
-    if (cards.length > 1) {
-      const allQ = el('button', 'btn small ar-all'); allQ.type = 'button';
-      allQ.innerHTML = `${ICON.queueAdd}<span>Add them all to the queue</span>`;
-      allQ.addEventListener('click', () => { cards.forEach((c) => { if (!A.queue().includes(c)) A.queueAdd(c); }); list.querySelectorAll('.ar-q').forEach((b) => { b.disabled = true; b.querySelector('span').textContent = 'In the queue'; }); allQ.disabled = true; refreshLive(); });
-      box.append(allQ);
-    }
-    // The time left before the fallback, as a thin gold line under the head.
-    const clock = el('div', 'ar-time'); const bar = el('i'); clock.append(bar);
-    box.append(el('small', 'ar-clock'), clock);
-    paintArriveClock();
-    // Any touch on the cards is a choice in hand: the clock stops, the cards stay until closed or the party moves on.
-    box.addEventListener('pointerdown', () => { if (!arrive || arrive.touched) return; arrive.touched = true; clearTimeout(arrive.timer); clock.hidden = true; paintArriveClock(); }, { once: true });
-    const tick = () => {
-      if (!arrive || arrive.touched) return;
-      bar.style.transform = `scaleX(${Math.max(0, 1 - (performance.now() - arrive.t0) / ARRIVE_MS)})`;
-      arrive.raf = requestAnimationFrame(tick);
+    arrive = { info, cards, left: S, timer: 0 };
+    const R = 27, C = 2 * Math.PI * R;
+    const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
+    play.style.setProperty('--ar-s', `${S}s`);
+    play.style.setProperty('--ar-c', C.toFixed(1));
+    // With Autoplay, a gold ring fills around the button; without, the button alone, a little bigger.
+    play.innerHTML = auto ? `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>` : `<span class="ic">${ICON.play}</span>`;
+    if (!auto) play.classList.add('bare');
+    play.setAttribute('aria-label', `Play ${cards[0].name} now`);
+    play.title = auto ? 'Play it now' : 'Play it';
+    const txt = el('div', 'ar-txt');
+    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${elName(info.el)}</span>`;
+    // Crossing hearing circles: each music says its place.
+    const many = (info.els || []).length > 1;
+    const placeOf = (c) => { const e = (info.els || []).find((x) => x.cards.some((k) => k.file === c.file)); return e ? elName(e) : ''; };
+    const names = el('b', 'ar-names', cards[0].name);
+    const ask = el('span', 'ar-clock');
+    txt.append(where, names, ask);
+    const go = (c) => {
+      if (!arrive) return;
+      const i = arrive.info;
+      closeArrive();
+      i.start(c.file);
+      refreshLive();
     };
-    tick();
-    arrive.timer = setTimeout(() => { if (!arrive || arrive.touched) return; const go = arrive.info.start; closeArrive(); go(); }, ARRIVE_MS);
+    play.addEventListener('click', () => go(cards[0]));
+    const row = el('div', 'ar-row');
+    row.append(play, txt);
+    box.append(row);
+    // Every other music of the place: a tap plays it.
+    if (cards.length > 1) {
+      const more = el('div', 'ar-more');
+      cards.slice(1).forEach((c) => {
+        const b = el('button', 'ar-alt'); b.type = 'button';
+        const on = isHeard(c);
+        b.innerHTML = `${ICON.play}<span></span>${many || on ? '<small></small>' : ''}`;
+        b.querySelector('span').textContent = c.name;
+        if (many || on) b.querySelector('small').textContent = on ? 'Playing' : placeOf(c);
+        if (on) { b.classList.add('on'); b.disabled = true; b.title = 'Already playing'; }
+        b.title = `Play ${c.name}`;
+        b.addEventListener('click', () => go(c));
+        more.append(b);
+      });
+      box.append(more);
+    }
+    const skip = el('button', 'ar-skip'); skip.type = 'button';
+    skip.textContent = 'Skip';
+    skip.title = 'Keep the music heard';
+    skip.addEventListener('click', closeArrive);
+    box.append(skip);
+    const paint = () => {
+      if (!arrive) return;
+      ask.textContent = auto ? `Plays in ${arrive.left} s` : (cards.length > 1 ? 'Which music here?' : 'Play this music?');
+    };
+    paint();
+    // The music to come is made ready now: it starts at once when asked.
+    warmMusic(cards[0].file); A.prime(cards[0]);
+    arrive.primed = cards.slice(0, 1);
+    if (auto) {
+      arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left > 0) paint(); }, 1000);
+      // The ring is drawn by the browser (one smooth fill); the music starts when it closes.
+      arrive.done = setTimeout(() => go(cards[0]), S * 1000);
+    }
     box.hidden = false;
     requestAnimationFrame(() => rollTitles(box));
-    refreshLive();
     return true;
   }
 
@@ -2717,8 +3047,16 @@
     const now = $('#mw-mus-now'), list = $('#mw-mus-list');
     now.textContent = ''; list.textContent = '';
     const all = rec.world.music || [];
+    const full = !!settings.musicFull;
+    const useQ = !!settings.musicQueue;
+    if (!useQ) musQueueView = false;
+    $('#mw-mus-queue').hidden = full || !useQ;
+    const queueOnly = musQueueView && !full;
     $('#mw-mus-queue').setAttribute('aria-pressed', String(musQueueView));
-    $('.mus-q').hidden = musQueueView;
+    $('.mus-q').hidden = queueOnly;
+    const qlist = $('#mw-mus-qlist');
+    qlist.textContent = '';
+    $('#mw-mus-upnext').hidden = !full || !useQ;
     // The music heard now: its card (progress, play and pause, stop, volume).
     let shown, nowRows = [];
     musRows.push(() => {
@@ -2741,7 +3079,7 @@
       qn = n;
       paintQ(n);
       // The queue moved on by itself (a music ended): its view is drawn again, outside this paint.
-      if (musQueueView) setTimeout(renderMusic, 0);
+      if (musQueueView || settings.musicFull) setTimeout(renderMusic, 0);
     });
     if (!all.length) { list.append(el('p', 'sb-empty', 'No music in this world yet. Add some in the editor, behind its Music button.')); refreshLive(); return; }
     const iconBtn = (cls, icon, label, fn) => {
@@ -2783,11 +3121,12 @@
       return r;
     };
 
-    if (musQueueView) {
-      // The queue: what plays next, in order. A tap plays one now.
+    if (queueOnly || (full && useQ)) {
+      // The queue: what plays next, in order. A tap plays one now. In full screen it sits above the search.
+      const into = full ? qlist : list;
       const q = A.queue();
-      if (!q.length) list.append(el('p', 'sb-empty', 'The queue is empty. Add musics to it with their queue button.'));
-      q.forEach((c, i) => list.append(musicRow(c, {
+      if (!q.length) into.append(el('p', 'sb-empty', full ? 'Nothing in the queue: add musics with their queue button below.' : 'The queue is empty. Add musics to it with their queue button.'));
+      q.forEach((c, i) => into.append(musicRow(c, {
         play: () => A.playMusic(c, i),
         buttons: () => [
           iconBtn('', ICON.up, 'Play earlier', () => { A.queueMove(i, -1); renderMusic(); }),
@@ -2795,9 +3134,8 @@
           iconBtn('', ICON.x, 'Take out of the queue', () => { A.queueRemove(i); renderMusic(); }),
         ],
       })));
-      list.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
-      refreshLive();
-      return;
+      into.querySelectorAll('.mus-row').forEach((r, i, rows) => { const bs = r.querySelectorAll('.mus-i'); bs[0].disabled = i === 0; bs[1].disabled = i === rows.length - 1; });
+      if (!full) { refreshLive(); return; }
     }
 
     const words = fold(musQ).split(/\s+/).filter(Boolean);
@@ -2806,12 +3144,13 @@
       if (words.length && !words.every((k) => fold(c.name).includes(k))) return;
       const r = musicRow(c, {
         play: () => A.toggle(c),
-        buttons: (row, pb) => [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
+        buttons: (row, pb) => !useQ ? [] : [iconBtn('', ICON.queueAdd, 'Add to the queue', async (b) => {
           if (!(await ensureMusic(c, row, pb))) return;
           A.setMusic(all);
           A.queueAdd(c);
           b.classList.remove('done'); void b.offsetWidth; b.classList.add('done');
           toast(`${c.name}: in the queue.`, 1400);
+          if (settings.musicFull) renderMusic();
         })],
       });
       rows.set(c, r);
@@ -2878,7 +3217,7 @@
   function fxCard(s, i, list, o) {
     const c = el('div', 'sc');
     c.style.setProperty('--z', o.colour || 'var(--accent)');
-    if (o.loops && s.play === 'loop') c.dataset.loop = '1';
+    if (o.loops && playShown(s) === 'loop') c.dataset.loop = '1';
     const top = el('div', 'row');
     const name = el('input');
     name.value = s.name;
@@ -2933,12 +3272,12 @@
       loop.type = 'button';
       paintLoop(loop, s);
       loop.addEventListener('click', () => {
-        const next = o.loops[(o.loops.indexOf(s.play) + 1) % o.loops.length];
+        const next = o.loops[(o.loops.indexOf(playShown(s)) + 1) % o.loops.length];
         Object.assign(s, M.cleanCard(Object.assign({}, s, { play: next })));
         paintLoop(loop, s);
-        c.dataset.loop = s.play === 'loop' ? '1' : '';
+        c.dataset.loop = playShown(s) === 'loop' ? '1' : '';
         const pv = fxPreviews.get(o.key);
-        if (pv) pv.src.loop = s.play === 'loop';
+        if (pv) pv.src.loop = playShown(s) === 'loop';
         o.save();
         if (o.onLoop) o.onLoop();
       });
@@ -2954,6 +3293,7 @@
     const vp = el('b', 'vp', `${Math.round(+vr.value * 100)}`);
     vr.addEventListener('input', () => {
       s.volume = Math.round(+vr.value * 100) / 100;
+      if (o.music) linkMusic(s);
       const p = fxPreviews.get(o.key);
       if (p) p.gain.gain.setTargetAtTime(A.curve(s.volume), audio().ctx.currentTime, 0.03);
       vp.textContent = `${Math.round(s.volume * 100)}`;
@@ -3173,6 +3513,7 @@
   const sbSources = new Set();
   function openSoundbox() {
     closeMusic();
+    if (mode === 'play') paintMusicFull();
     $('#mw-sbx').hidden = false;
     $('#world').classList.add('over');
     $('#mw-sb').setAttribute('aria-pressed', 'true');
@@ -3189,7 +3530,7 @@
       ...(rec.world.soundbox || []).map((c) => ({ s: c, own: true, id: `${rec.uid}:${c.file}`, key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]) })),
       ...SHARED.map((c) => ({ s: c, own: false, id: c.id, key: `shared:${c.blob}`, getBlob: () => DB.getBlob(c.blob) })),
     ].map((p) => Object.assign(p, { buffer: buffers.get(p.key) || null, state: buffers.get(p.key) ? 'ready' : 'loading' }));
-    renderPads();
+    renderPads(); renderPinStrip();
     for (const p of pads) {
       if (p.buffer) continue;
       try {
@@ -3200,7 +3541,7 @@
         p.state = 'ready';
       } catch (e) { p.state = 'error'; }
       if (rec !== r) return;
-      renderPads();
+      renderPads(); renderPinStrip();
     }
   }
   const pins = () => (Array.isArray(settings.pins) ? settings.pins : (settings.pins = []));
@@ -3235,7 +3576,24 @@
     const list = pins();
     const i = list.indexOf(id);
     if (i >= 0) list.splice(i, 1); else list.push(id);
-    saveSettings(); renderPads();
+    saveSettings(); renderPads(); renderPinStrip();
+  }
+  /** The pinned effects, also as a strip over the map at the table: one tap fires one (M6). */
+  function renderPinStrip() {
+    const box = $('#mw-pinstrip');
+    if (!box) return;
+    box.textContent = '';
+    const list = mode === 'play' && rec ? pins().map((u) => pads.find((p) => p.id === u)).filter(Boolean).slice(0, 8) : [];
+    box.hidden = !list.length;
+    list.forEach((p) => {
+      const b = el('button', 'pad pinned mini');
+      b.type = 'button';
+      b.disabled = p.state !== 'ready';
+      b.title = `${p.s.name}: one tap plays it`;
+      b.append(el('span', '', p.s.name));
+      b.addEventListener('click', () => firePad(p, b));
+      box.append(b);
+    });
   }
   /** A pad fires its effect once, at once (a tap again fires it again). */
   function firePad(p, b) {
@@ -3257,14 +3615,16 @@
     sbSources.forEach((s) => { try { s.stop(); } catch (e) { /* already stopped */ } });
     sbSources.clear();
   }
+  let paintMusicVol = () => {};
   function paintMaster() {
     const b = $('#mw-pause');
     const resume = A.resumePending();
     if (b.dataset.i === (resume ? 'play' : 'pause')) return;
     b.dataset.i = resume ? 'play' : 'pause';
-    b.innerHTML = resume ? ICON.play : ICON.pause;
+    // A small earth at its corner: it pauses everything (sounds, musics, random events).
+    b.innerHTML = `${resume ? ICON.play : ICON.pause}<span class="badge" aria-hidden="true">${ICON.globe}</span>`;
     b.classList.toggle('on', resume);
-    b.setAttribute('aria-label', resume ? 'Resume all' : 'Pause all');
+    b.setAttribute('aria-label', resume ? 'Resume everything' : 'Pause everything');
   }
 
   /* ================= The drawing tools: moved by their grip, always inside the map ================= */
@@ -3348,6 +3708,14 @@
     $('#mw-back').addEventListener('click', () => leaveWorld());
     $('#mw-more').innerHTML = ICON.share;
     $('#mw-switch').innerHTML = ICON.go;
+    $('#mw-title').addEventListener('click', () => {
+      const t = Date.now();
+      DBG.taps = DBG.taps.filter((x) => t - x < 2000).concat(t);
+      if (DBG.taps.length >= 5) { DBG.taps = []; toggleDebug(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (rec) noteDbg(document.hidden ? 'hidden' : 'shown'); });
+    $('#mw-listen').innerHTML = ICON.listen;
+    $('#mw-listen').addEventListener('click', () => hear(!hearing));
     $('#mw-sb .star').innerHTML = ICON.star;
     $('#mw-sb').addEventListener('click', () => { if (mode === 'edit') { showEdView('soundbox'); return; } if ($('#mw-sbx').hidden) openSoundbox(); else closeSoundbox(); });
     $('#mw-mus-btn .ic').innerHTML = ICON.music;
@@ -3355,6 +3723,8 @@
     $('#mw-mus-close').innerHTML = ICON.close;
     $('#mw-mus-queue').addEventListener('click', () => { musQueueView = !musQueueView; renderMusic(); });
     $('#mw-mus-close').addEventListener('click', closeMusic);
+    $('#mw-mus-full').addEventListener('click', () => setMusicFull(!settings.musicFull));
+    $('#mw-sbx-full').addEventListener('click', () => setMusicFull(!settings.musicFull));
     $('#mw-mus-q').addEventListener('input', (e) => { musQ = e.target.value; renderMusic(); });
     // The shared soundbox, from the worlds screen (as in Troubadour).
     document.querySelectorAll('[data-action="shared"]').forEach((b) => { b.innerHTML = ICON.star; b.addEventListener('click', () => { location.hash = location.hash === '#/soundbox' ? '#/' : '#/soundbox'; }); });
@@ -3364,7 +3734,7 @@
     $('#mw-sbx-close').addEventListener('click', closeSoundbox);
     $('#mw-sbvol').value = settings.sbVolume;
     paintRange($('#mw-sbvol'));
-    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) sbGain.gain.setTargetAtTime(A.curve(settings.sbVolume), audio().ctx.currentTime, 0.03); });
+    $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) glide(sbGain.gain, A.curve(settings.sbVolume), audio().ctx); });
     $('#mw-sbvol').addEventListener('change', saveSettings);
     wireToolsGrip();
     $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
@@ -3378,7 +3748,10 @@
       const open = $('#world').classList.contains('panel');
       // In the editor: the panel of the map, or of the element selected.
       if (mode === 'edit') { if (open && !edView) setPanel(false); else { edView = null; setPanel(true); renderPanel(); } return; }
-      if (open && !tapped) { setPanel(false); return; }
+      // At the table the sound menu takes the place of the Music and the Soundbox: they close.
+      const covered = !$('#mw-mus').hidden || !$('#mw-sbx').hidden;
+      closeMusic(); closeSoundbox();
+      if (open && !tapped && !covered) { setPanel(false); return; }
       tapped = null;
       setPanel(true);
       renderPanel();
@@ -3386,6 +3759,8 @@
     $('#mw-switch').addEventListener('click', () => { location.hash = `#/play/${rec.uid}/${pi}`; });
     document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => { b.innerHTML = TOOL_ICON[b.dataset.tool]; });
     $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
+    $('#mw-tools [data-act="redo"]').innerHTML = ICON.redo;
+    $('#mw-tools [data-act="keys"]').innerHTML = ICON.keys;
     $('#mw-tools').addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
@@ -3403,7 +3778,9 @@
       }
       $('#mw-stamps').hidden = true;
       if (b.dataset.tool) V.setTool(b.dataset.tool);
-      else if (b.dataset.act === 'undo') { if (!V.undo()) toast('Nothing to undo.', 1400); }
+      else if (b.dataset.act === 'undo') undoRedo(true);
+      else if (b.dataset.act === 'redo') undoRedo(false);
+      else if (b.dataset.act === 'keys') shortcuts();
       else if (b.dataset.act === 'fit') V.fit();
 
     });
@@ -3425,16 +3802,43 @@
     $('#mw-fade').addEventListener('click', () => { A.stopMusic(); refreshLive(); paintMaster(); });
     $('#mw-pause').innerHTML = ICON.pause;
     $('#mw-pause').addEventListener('click', () => { A.pauseAll(); refreshLive(); paintMaster(); });
-    $('#mw-master').value = settings.master;
-    paintRange($('#mw-master'));
-    $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
+    // The top bar's slider is the music volume (every music card shares it), going there in a 4 s slope; a small
+    // note at the bottom right of its head says so. The master of the app stays where it is.
+    // The stop-the-music icon's own note, at its own scale (viewBox units at 0.75 px, as in that 18 px icon).
+    const NOTE = '<svg viewBox="16.2 12.4 6.6 9.4" width="5" height="7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2v6.1"/><circle cx="18.6" cy="19.5" r="1.9" fill="currentColor" stroke="none"/><path d="M20.5 13.2l1.6.8"/></svg>';
+    $('#mw-master-note').innerHTML = NOTE; $('#mw-mvol-note').innerHTML = NOTE;
+    // A narrow screen: - and + instead of the slider, a 25 % step each, glided as the cards' buttons.
+    $('#mw-mvol-dn').innerHTML = ICON.volDown; $('#mw-mvol-up').innerHTML = ICON.volUp;
+    const musStep = (dir) => {
+      const any = (A.isOpen() && A.currentMusic()) || (rec && (rec.world.music || [])[0]);
+      if (!any) return;
+      if (A.isOpen()) A.stepVolume(any, dir);
+      else { const q = any.volume * 4; any.volume = dir > 0 ? Math.min(1, (Math.floor(q + 1e-6) + 1) / 4) : Math.max(0, (Math.ceil(q - 1e-6) - 1) / 4); }
+      linkMusic(any); save(); paintMusicVol();
+    };
+    // A volume button never keeps the focus (nor its pressed look) once tapped.
+    document.addEventListener('pointerup', (e) => { const b = e.target.closest && e.target.closest('#mw-mvol-dn, #mw-mvol-up, .lvl button, .vol button, button.step'); if (b) setTimeout(() => b.blur(), 0); });
+    $('#mw-mvol-dn').addEventListener('click', () => musStep(-1));
+    $('#mw-mvol-up').addEventListener('click', () => musStep(1));
+    let musDrag = false;
+    const paintMusVol = (vol) => {
+      const r = $('#mw-master');
+      if (vol != null && !musDrag && Math.abs(Number(r.value) - vol) > 0.001) r.value = vol;
+      paintRange(r);
+      $('#mw-master-val').textContent = String(Math.round(Number(r.value) * 100));
+      r.parentNode.style.setProperty('--v', r.value);
+    };
+    paintMusVol.go = () => { if (A.isOpen()) paintMusVol(A.musicVolume()); else if (rec) paintMusVol(((rec.world.music || [])[0] || {}).volume ?? null); };
+    paintMusicVol = paintMusVol.go;
+    paintMusVol(((rec && (rec.world.music || [])[0]) || {}).volume ?? 0.75);
+    $('#mw-master').addEventListener('pointerdown', () => { musDrag = true; });
     $('#mw-master').addEventListener('input', (e) => {
-      settings.master = Number(e.target.value);
-      $('#mw-master-val').textContent = String(Math.round(settings.master * 100));
-      const { ctx, master } = audio();
-      master.gain.setTargetAtTime(A.curve(settings.master), ctx.currentTime, 0.03);
+      const vol = Number(e.target.value);
+      if (A.isOpen()) A.setMusicVolume(vol, 4);
+      if (rec) { const any = (rec.world.music || [])[0]; if (any) { any.volume = vol; linkMusic(any); } }
+      paintMusVol(null);
     });
-    $('#mw-master').addEventListener('change', saveSettings);
+    $('#mw-master').addEventListener('change', () => { musDrag = false; save(); });
 
     // The map.
     V.mount($('#mw-canvas'));
@@ -3490,10 +3894,25 @@
     $('#mw-title-in').addEventListener('input', (ev) => { if (!rec) return; rec.story.title = ev.target.value.slice(0, 120); $('#mw-title').textContent = rec.story.title || 'World'; document.title = `${rec.story.title || 'World'} | Troubadour Map`; save(); });
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
-    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); } };
-    V.onPlayer = (p, still) => { if (A.isOpen()) A.hear(p, still); };
+    V.onHistory = paintHistory;
+    V.onNoWay = () => toast('No way there: walls close it off.', 2000);
+    V.onReach = reachDragged;
+    V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;
+    V.onEdit = () => { save(); if (mode === 'edit') { renderPlaces(); renderLayers(); } if (A.isOpen()) { A.sync(); if (hearing) prepare(worldFiles(rec), false).then(() => { if (hearing && A.isOpen()) A.sync(); }); } };
+    // The party laid by a long press: its sounds come in softly.
+    // While the party is dragged, what it hears is worked out 20 times a second at most (a phone sends many more
+    // moves than that); the last move and the end of the drag always count.
+    let hearAt = 0, hearLate = null;
+    V.onPlayer = (p, still, laid) => {
+      if (!A.isOpen()) return;
+      const n = performance.now();
+      clearTimeout(hearLate);
+      if (still !== false || laid || n - hearAt >= 50) { hearAt = n; A.hear(p, still, laid); return; }
+      hearLate = setTimeout(() => { hearAt = performance.now(); A.hear(p, still); }, 50 - (n - hearAt));
+    };
     // At the table, a double tap opens the sound menu: of the element tapped, or of the whole map.
     V.onTap = (e) => {
+      closeMusic(); closeSoundbox();
       tapped = e || null;
       renderPanel();
       setPanel(true);
@@ -3503,10 +3922,11 @@
       const to = rec.world.places.findIndex((q) => q.id === e.link);
       if (to < 0 || to === pi) return;
       toast(`To ${rec.world.places[to].title}`, 1600);
-      travel(to);
+      travel(to, e);
     };
     // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
     A.onChange = () => { V.touch(); };
+    A.onMusic = (c) => { warmMusic(c.file); };
     A.onPlace = (info) => { if (!info) { closeArrive(); return false; } return showArrive(info); };
     // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
     if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
@@ -3532,7 +3952,13 @@
     // Keys, while drawing.
     document.addEventListener('keydown', (e) => {
       if (screen !== 'world' || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.querySelector('dialog[open]')) return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (mode === 'edit') V.undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'z') { e.preventDefault(); undoRedo(!e.shiftKey); return; }
+        if (k === 'y') { e.preventDefault(); undoRedo(false); return; }
+        if ('cxvda'.includes(k) && k.length === 1 && mode === 'edit' && !(window.getSelection && String(window.getSelection()))) { if (clipboard(k)) e.preventDefault(); return; }
+      }
+      if (e.key === '?' && mode === 'edit') { shortcuts(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === '+' || e.key === '=') { V.zoomBy(1.25); return; }
       if (e.key === '-') { V.zoomBy(1 / 1.25); return; }
@@ -3541,8 +3967,15 @@
         const k = e.key.toLowerCase();
         if (map[k]) { V.setTool(map[k]); return; }
         if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
+        if (k === 's') { hear(!hearing); return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
         if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
+        if (e.key.startsWith('Arrow') && V.selected()) {
+          e.preventDefault();
+          const d = e.shiftKey ? 50 : 10;
+          V.nudge(e.key === 'ArrowLeft' ? -d : e.key === 'ArrowRight' ? d : 0, e.key === 'ArrowUp' ? -d : e.key === 'ArrowDown' ? d : 0);
+          return;
+        }
       }
       if (e.key.toLowerCase() === 'f') V.fit();
       if (mode === 'play' && e.code === 'Space') { e.preventDefault(); $('#mw-pause').click(); }
