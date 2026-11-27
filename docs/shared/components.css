@@ -39,3 +39,28 @@ dialog.ask { height: fit-content; }
 /* At least 16 px, so iOS never zooms into it (charter 4.4). */
 .ask-field { display: block; width: 100%; box-sizing: border-box; height: 42px; border-radius: var(--r-button); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 17px; padding: 0 12px; }
 .ask-field:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- Intro and outro (TroubadourIntro): the music card of Map's arrival, top centre: a round play button
+ * whose gold ring fills in 5 s, the music beside it, Skip (or Leave now) under them ---------- */
+.t-oneshot {
+  position: fixed; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 40;
+  width: min(330px, calc(100vw - 32px)); box-sizing: border-box; display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px 12px;
+  padding: 12px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); color: var(--text);
+  box-shadow: 0 16px 40px var(--shadow); animation: os-pop .32s cubic-bezier(.2, 1.3, .4, 1);
+}
+@keyframes os-pop { from { opacity: 0; transform: translate(-50%, -14px) scale(.94); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.t-oneshot .os-go { position: relative; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; color: var(--gold-ink); }
+.t-oneshot .os-go > svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.t-oneshot .os-go .trk { fill: none; stroke: color-mix(in srgb, var(--gold) 22%, transparent); stroke-width: 5; }
+.t-oneshot .os-go .ring { fill: none; stroke: var(--gold); stroke-width: 5; stroke-linecap: round; }
+.t-oneshot.counting .os-go .ring { animation: os-fill var(--os-s) linear forwards; }
+@keyframes os-fill { from { stroke-dashoffset: var(--os-c); } to { stroke-dashoffset: 0; } }
+.t-oneshot .os-go .ic { position: absolute; inset: 9px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; transition: transform .15s; }
+.t-oneshot .os-go:active .ic { transform: scale(.92); }
+.t-oneshot .os-txt { min-width: 0; display: grid; gap: 2px; }
+.t-oneshot .os-txt small { font-size: 12px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--music); }
+.t-oneshot .os-txt b { font-family: 'Cormorant SC', serif; font-size: 21px; font-weight: 600; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-oneshot .os-clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.t-oneshot .os-skip { grid-column: 1 / -1; min-height: 44px; border-radius: var(--r-button); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.t-oneshot .os-skip:active { background: var(--line); }
+@media (prefers-reduced-motion: reduce) { .t-oneshot { animation: none; } }

@@ -123,6 +123,7 @@ class TableSession(
                 ) pausedByAll = emptyList()
                 runRandom()
                 runAfter()
+                runOneShot()
                 runLife()
                 PlaybackController.update(anyPlaying())
                 delay(66)
@@ -135,6 +136,8 @@ class TableSession(
     fun close(): Job? {
         if (closed) return null
         closed = true
+        offer = null
+        oneShot = null
         poll?.cancel()
         flushSave()
         PlaybackController.detach(this)
@@ -331,6 +334,101 @@ class TableSession(
         }
         card.slot?.let { if (owner[it] === card) NativeEngine.setLoop(it, loop.engine) }
         saveSoon()
+    }
+
+    // ------------------------------------------------------------------ intro and outro
+
+    /** The intro or outro card offered: the gold ring closes at [until] (uptime ms) and the music plays. */
+    class OneShotOffer(val card: Card, val kind: String, val until: Long)
+    var offer by mutableStateOf<OneShotOffer?>(null)
+        private set
+    private var oneShot: Card? = null
+    private var oneShotKind = ""
+    private var oneShotStarted = false
+    private var oneShotLoop: LoopMode? = null
+    /** The outro played through (or Leave now): the table closes. Set by the app. */
+    var onOutroDone: (() -> Unit)? = null
+    /** True while the outro plays: a second Leave leaves at once. */
+    val leaving: Boolean get() = oneShot != null && oneShotKind == "outro"
+
+    private fun roleCard(kind: String) = cards.firstOrNull { it.zone == Zone.MUSIC && it.sound.role == kind }
+
+    fun offerIntro() {
+        if (!settings.introOutro) return
+        roleCard("intro")?.let { offer = OneShotOffer(it, "intro", SystemClock.uptimeMillis() + ONE_SHOT_WAIT_MS) }
+    }
+
+    /** The outro to offer before leaving, or null (none, the setting off, or it already plays). */
+    fun outroToOffer(): Card? {
+        if (!settings.introOutro) return null
+        val c = roleCard("outro") ?: return null
+        return if (stateOf(c) == NativeEngine.PLAYING || c.failed) null else c
+    }
+
+    fun offerOutro(c: Card) { offer = OneShotOffer(c, "outro", SystemClock.uptimeMillis() + ONE_SHOT_WAIT_MS) }
+
+    /** Play now (or the ring closed). */
+    fun takeOffer() {
+        val o = offer ?: return
+        offer = null
+        playOnce(o.card, o.kind)
+    }
+
+    /** Skip the intro, or Leave now. */
+    fun skipOffer() {
+        val o = offer ?: return
+        offer = null
+        if (o.kind == "outro") onOutroDone?.invoke()
+    }
+
+    /** The table closes: the music played once gets its own loop back. */
+    fun resetOneShot() {
+        offer = null
+        finishOneShot(stay = true)
+    }
+
+    /** Plays the card once (1×) whatever its loop, which it gets back at its end. The outro fades every other sound out. */
+    private fun playOnce(card: Card, kind: String) {
+        oneShot = card
+        oneShotKind = kind
+        oneShotStarted = false
+        oneShotLoop = card.sound.loop
+        card.sound = card.sound.copy(loop = LoopMode.ONCE)
+        card.randomOn = false
+        card.slot?.let { if (owner[it] === card) NativeEngine.setLoop(it, LoopMode.ONCE.engine) }
+        if (kind == "outro") {
+            cards.filter { it !== card }.forEach { end(it) }
+            pausedByAll = emptyList()
+            heldRandom = emptyList()
+            NativeEngine.stopPads()
+        }
+        if (stateOf(card) != NativeEngine.PLAYING) toggle(card)
+    }
+
+    private fun runOneShot() {
+        offer?.let { o ->
+            if (SystemClock.uptimeMillis() >= o.until) takeOffer()
+            // A music started meanwhile: the intro gives way.
+            else if (o.kind == "intro" && cards.any { it !== o.card && it.zone == Zone.MUSIC && isActive(it) }) offer = null
+        }
+        val c = oneShot ?: return
+        val st = stateOf(c)
+        if (st == NativeEngine.PLAYING || st == NativeEngine.ENDING || st == NativeEngine.PAUSING) oneShotStarted = true
+        else if (oneShotStarted && st != NativeEngine.PAUSED) { finishOneShot(stay = false); return }
+        // Another music taken during the outro: the troubadour stays.
+        if (oneShotKind == "outro" && cards.any { it !== c && it.zone == Zone.MUSIC && stateOf(it) == NativeEngine.PLAYING }) finishOneShot(stay = true)
+    }
+
+    private fun finishOneShot(stay: Boolean) {
+        val c = oneShot ?: return
+        val kind = oneShotKind
+        oneShot = null
+        oneShotLoop?.let { l ->
+            c.sound = c.sound.copy(loop = l)
+            c.slot?.let { if (owner[it] === c) NativeEngine.setLoop(it, l.engine) }
+        }
+        oneShotLoop = null
+        if (kind == "outro" && !stay) onOutroDone?.invoke()
     }
 
     /** Living ambiances: while an ambiance plays, it drifts up to 10 points above or below its volume, a new drift about
@@ -574,7 +672,7 @@ class TableSession(
         val bySound = cards.associateBy { it.sound.uid }
         val updated = story.copy(chapters = story.chapters.map { c ->
             c.copy(
-                music = c.music.map { bySound[it.uid]?.sound ?: it },
+                music = c.music.map { s -> bySound[s.uid]?.let { c0 -> if (c0 === oneShot && oneShotLoop != null) c0.sound.copy(loop = oneShotLoop!!) else c0.sound } ?: s },
                 ambience = c.ambience.map { bySound[it.uid]?.sound ?: it },
                 events = c.events.map { bySound[it.uid]?.sound ?: it },
             )
@@ -587,6 +685,8 @@ class TableSession(
         const val N = NativeEngine.MAX_VOICES
         /** The master play, pause and stop buttons fade over 3 s. */
         const val MASTER_FADE_MS = 3000
+        /** The gold ring of the intro and outro card: the music plays by itself after 5 s. */
+        const val ONE_SHOT_WAIT_MS = 5000L
         fun curve(v: Float) = v * v
     }
 }

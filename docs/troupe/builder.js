@@ -490,6 +490,8 @@
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow, blendRow, pauseRow);
+    // A music may open or close the story (its intro or outro): one of each per story.
+    if (zone === 'music') c.append(window.TroubadourIntro.roleRow(document, state.chapters, s, () => { saveSoon(); renderEditor(); }));
     c.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-troubadour-sound', s.id);
       e.dataTransfer.effectAllowed = 'move';

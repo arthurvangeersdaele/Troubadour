@@ -4,7 +4,7 @@ name: Map editor
 # editor (undo and redo for everything, clipboard, snapping, the reach handle, the page of keys).
 on:
   push:
-    paths: ['docs/map/**', 'docs/map-preview/**', 'docs/shared/**', 'tests/map/**', '.github/workflows/map-editor.yml']
+    paths: ['docs/map/**', 'docs/map-preview/**', 'docs/shared/**', 'docs/ios/**', 'docs/play/**', 'tests/map/**', 'tests/intro/**', '.github/workflows/map-editor.yml']
   workflow_dispatch:
 
 jobs:
@@ -25,3 +25,5 @@ jobs:
         run: node tests/map/music-walk.mjs 40
       - name: The intro and the outro
         run: node tests/map/intro-outro.mjs
+      - name: The intro and the outro of a story (Troubadour for iPhone, web player)
+        run: node tests/intro/run.mjs

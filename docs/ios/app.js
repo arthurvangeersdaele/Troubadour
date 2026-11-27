@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261119.1';
+  const VERSION = '261127.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -63,7 +63,7 @@
   /* ================= Settings ================= */
   const KEY = 'troubadour.settings';
   const DEFAULTS = {
-    theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, silence: true, awake: true, silent: true,
+    theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, introOutro: true, silence: true, awake: true, silent: true,
     master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, even: true,
     // Volume on the table cards, per row: 'hidden' (no control, narrowest cards), 'simple' (two buttons) or 'full' (a slider).
     vol: { music: 'simple', ambience: 'simple', events: 'simple' },
@@ -1050,6 +1050,8 @@
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow, pauseRow);
+    // A music may open or close the story (its intro or outro): one of each per story.
+    if (zone.id === 'music') c.append(TroubadourIntro.roleRow(document, ed.story.chapters, s, () => { dirty(); rerender(); }));
     return c;
   }
 
@@ -1551,6 +1553,20 @@
     audio: () => audio(), ctx: () => ctx, master: () => masterGain, settings, curve: (v) => curve(v),
     paintCard: (v) => paintCard(v), playAfter: (v) => playAfter(v), dirty: () => tableDirty(),
   });
+  /* The story's intro and outro (../shared/troubadour-intro.js). */
+  const IO = TroubadourIntro.define({
+    on: () => settings.introOutro !== false,
+    voices: () => (tbl ? tbl.all : []),
+    start: (v) => toggleVoice(v),
+    fadeAll: (except) => {
+      if (!tbl) return;
+      tbl.all.forEach((x) => { if (x !== except && (x.active || x.waiting || x.state === 'paused')) { x.end(settings.fade); x.paint(); } });
+      pausedByAll = []; heldRandom = [];
+      stopSoundbox();
+      paintMaster();
+    },
+    leave: () => leaveNow(),
+  });
 
 
   /* ================= Mixing table ================= */
@@ -1613,6 +1629,8 @@
     paintMaster();
     mediaSession(story);
     acquireWake();
+    // The story's intro (setting Intro and outro): offered as it opens, it plays once.
+    IO.intro();
     // Everything is already on the phone: hand each sound its stored audio, the chapter on screen first.
     const t = tbl;
     const order = [...ZONES.flatMap((z) => t.chapters[idx] ? t.chapters[idx].voices[z.id] : [])];
@@ -1633,6 +1651,7 @@
   }
 
   function closeTable() {
+    IO.reset();
     if (!tbl) return;
     tableSave.flush();
     const voices = tbl.all;
@@ -2044,6 +2063,7 @@
     // Even out the loudness: each sound takes it at its next start (never a change of level while it is heard).
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
+    $('#opt-intro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; save(); });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; save(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; save(); applyAudioSession(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
@@ -2083,6 +2103,7 @@
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
+    $('#opt-intro').checked = settings.introOutro !== false;
     $('#opt-awake').checked = settings.awake;
     $('#opt-silent').checked = settings.silent;
     applyTheme();
@@ -2141,11 +2162,21 @@
   /** Leaving the table is asked first (it cuts the scene), then every sound fades out before the table closes. */
   async function leaveTable() {
     if (!tbl) { location.hash = '#/'; return; }
+    if (IO.leaving()) { leaveNow(); return; } // Leave again while the outro plays: at once
     const t = tbl;
-    const v = await ask('Leave the story?', 'Every sound fades out and the table closes.', [
+    const out = IO.outro();
+    const v = await ask('Leave the story?', out ? `${out.sound.name}, its outro, is offered: every other sound fades out as it starts, and the table closes when it ends.` : 'Every sound fades out and the table closes.', [
       { label: 'Stay', value: null }, { label: 'Leave', value: 'leave', cls: 'danger' },
     ]);
     if (v !== 'leave' || tbl !== t) return;
+    if (out) { IO.offerOutro(out); return; }
+    leaveNow();
+  }
+  /** Every sound fades out, then the table closes. */
+  async function leaveNow() {
+    if (!tbl) return;
+    const t = tbl;
+    IO.reset();
     const back = tableFrom === 'editor' ? `#/edit/${encodeURIComponent(t.story.uid)}/${chapterIdx + 1}` : '#/';
     const sounding = t.all.some((x) => x.active || x.waiting || (x.state === 'paused' && x.fadingOut));
     t.all.forEach((x) => x.end(settings.fade));

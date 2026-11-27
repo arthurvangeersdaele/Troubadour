@@ -34,7 +34,7 @@
 
   /* ---------------- Settings ---------------- */
   // vol: volume control on the cards of each row: 'hidden' (narrowest cards), 'simple' (two buttons, 25 % steps over 2 s) or 'full' (a slider).
-  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, silence: true, awake: true, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, even: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
+  const DEFAULTS = { theme: 'obsidian', mode: 'dark', fade: 4000, fadeIn: 2000, crossfade: true, introOutro: true, silence: true, awake: true, master: 0.8, sbVol: 0.8, sbOpen: null, pins: [], randomMax: 17, life: true, lifeEvery: 13, even: true, vol: { music: 'simple', ambience: 'simple', events: 'simple' } };
   const settings = Object.assign({}, DEFAULTS, readJSON('troubadour.settings'));
   settings.vol = Object.assign({}, DEFAULTS.vol, settings.vol || {});
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }
@@ -129,6 +129,20 @@
     paintCard: (v) => paintCard(v), playAfter: (v) => playAfter(v),
     onState: () => { if (opening) paintLoad(); },
   });
+  /* The story's intro and outro (../shared/troubadour-intro.js). */
+  const IO = TroubadourIntro.define({
+    on: () => settings.introOutro !== false,
+    voices: () => (story ? story.all : []),
+    start: (v) => toggleVoice(v),
+    fadeAll: (except) => {
+      if (!story) return;
+      story.all.forEach((x) => { if (x !== except && (x.active || x.waiting || x.state === 'paused')) { x.end(settings.fade); x.paint(); } });
+      pausedByAll = []; heldRandom = [];
+      stopSoundbox();
+      paintMaster();
+    },
+    leave: () => leaveNow(),
+  });
 
 
   /* ---------------- Data ---------------- */
@@ -201,28 +215,38 @@
   function leaveTable() {
     const d = $('#leave');
     if (!story) { location.hash = '#/'; return; }
+    if (IO.leaving()) { leaveNow(); return; } // Leave again while the outro plays: at once
     const s = story;
-    d.onclick = async (e) => {
+    const out = IO.outro();
+    $('#leave-text').textContent = out ? `${out.sound.name}, its outro, is offered: every other sound fades out as it starts, and the table closes when it ends.` : 'Every sound fades out and the table closes.';
+    d.onclick = (e) => {
       const b = e.target.closest('[data-leave]');
       if (e.target === d || (b && b.dataset.leave === 'stay')) { d.close(); return; }
       if (!b) return;
       d.close();
       if (story !== s) return;
-      const sounding = s.all.some((x) => x.active || x.waiting || (x.state === 'paused' && x.fadingOut));
-      s.all.forEach((x) => x.end(settings.fade));
-      pausedByAll = []; heldRandom = [];
-      stopSoundbox();
-      paintMaster();
-      // The same popup in every online player: the sounds fade out under it (or it shows a moment).
-      busy('Leaving the story', s.meta.title, null);
-      await new Promise((r) => setTimeout(r, sounding ? settings.fade + 60 : 700));
-      idle();
-      if (story !== s) return;
-      const custom = s.meta.custom;
-      if (custom) CUSTOM = null;
-      location.hash = custom ? '#/troubadour' : '#/';
+      if (out) IO.offerOutro(out); else leaveNow();
     };
     d.showModal();
+  }
+  /** Every sound fades out under the leaving popup, then the table closes. */
+  async function leaveNow() {
+    const s = story;
+    if (!s) return;
+    IO.reset();
+    const sounding = s.all.some((x) => x.active || x.waiting || (x.state === 'paused' && x.fadingOut));
+    s.all.forEach((x) => x.end(settings.fade));
+    pausedByAll = []; heldRandom = [];
+    stopSoundbox();
+    paintMaster();
+    // The same popup in every online player: the sounds fade out under it (or it shows a moment).
+    busy('Leaving the story', s.meta.title, null);
+    await new Promise((r) => setTimeout(r, sounding ? settings.fade + 60 : 700));
+    idle();
+    if (story !== s) return;
+    const custom = s.meta.custom;
+    if (custom) CUSTOM = null;
+    location.hash = custom ? '#/troubadour' : '#/';
   }
 
   /* ---------------- Stories screen ---------------- */
@@ -342,6 +366,7 @@
   }
 
   function closeStory() {
+    IO.reset();
     if (!story) return;
     if (loader) loader.abort();
     story.all.forEach((v) => v.destroy());
@@ -427,7 +452,7 @@
       const vs = story.chapters[chapterIdx] ? ZONES.flatMap((z) => story.chapters[chapterIdx].voices[z.id]) : [];
       const ok = vs.filter((v) => v.state !== 'loading').length;
       // Shown long enough to be read, even when the sounds are already in this browser.
-      if (ok >= vs.length) { const s0 = story; opening = null; busy('Opening the story', story.meta.title, 1); setTimeout(() => { if (!opening && story === s0) idle(); }, Math.max(0, 700 - (Date.now() - openedAt))); }
+      if (ok >= vs.length) { const s0 = story; opening = null; busy('Opening the story', story.meta.title, 1); setTimeout(() => { if (!opening && story === s0) { idle(); IO.intro(); } }, Math.max(0, 700 - (Date.now() - openedAt))); }
       else busy('Opening the story', `${story.meta.title}, ${ok} of ${vs.length} sounds`, ok / vs.length);
     }
     const ready = story.all.filter((v) => v.state !== 'loading').length;
@@ -570,7 +595,7 @@
       busy('Opening the tale', '', 0.5);
       const d = await Draft.load(uid);
       if (!d) throw new Error('it is not in this browser any more');
-      const conv = (s) => ({ name: s.name, blob: s.blob, size: s.blob.size, loop: s.loop, volume: s.volume });
+      const conv = (s) => ({ name: s.name, blob: s.blob, size: s.blob.size, loop: s.loop, volume: s.volume, extra: s.extra || {} });
       CUSTOM = {
         meta: { id: `s/${uid}`, kept: uid, key: uid, custom: true, title: d.story.title || 'Untitled tale', revision: d.story.revision,
           chapters: d.story.chapters.map((c, i) => ({ id: `c${i + 1}`, title: c.title || `Chapter ${i + 1}` })) },
@@ -921,6 +946,7 @@
     // Even out the loudness: each sound takes it at its next start (never a change of level while it is heard).
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
+    $('#opt-intro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; save(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       settings.vol[g.dataset.zone] = b.dataset.v; save(); syncSettings();
       // Rebuild the cards of the table with their new controls.
@@ -956,6 +982,7 @@
     $('#opt-crossfade').checked = settings.crossfade;
     $('#opt-even').checked = settings.even !== false;
     $('#opt-silence').checked = !!settings.silence;
+    $('#opt-intro').checked = settings.introOutro !== false;
     $('#opt-awake').checked = settings.awake;
     applyTheme();
   }

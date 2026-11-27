@@ -29,6 +29,7 @@
     life: (cls) => toggle('opt-life', 'Living ambiances', 'Each ambiance drifts up to 10 above or below its volume, now and then, so it feels alive')(cls)
       + row('<span>Drift every<small id="life-note">A new volume about every 6&nbsp;s</small></span><div class="stepper" role="group" aria-label="Time between two drifts"><button type="button" id="life-less" aria-label="Shorter">‹</button><b id="life-val">6 s</b><button type="button" id="life-more" aria-label="Longer">›</button></div>', ' id="life-row"')(cls),
     crossfade: toggle('opt-crossfade', 'Crossfade music tracks', 'Starting a track fades out the one playing'),
+    intro: toggle('opt-intro', 'Intro and outro', 'A story\'s intro is offered as it opens, its outro before you leave: each plays once, and the outro fades every other sound out'),
     silence: toggle('opt-silence', 'Silence between chapters', 'Opening another chapter fades out the sounds of the previous one over 4 s'),
     even: toggle('opt-even', 'Even out the loudness', 'Every music, ambiance and event sits at the level of its kind, so no sound jumps out or gets lost'),
     silent: toggle('opt-silent', 'Ignore silent mode', 'Sounds still play when your iPhone or iPad is set to silent (the side switch or Control Center)'),

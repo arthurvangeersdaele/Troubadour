@@ -140,6 +140,54 @@ fun TableScreen(m: AppModel) {
                 SoundboxDrawer(m, s)
             }
         }
+        // The story's intro or outro, offered: the music card of Map's arrival.
+        s.offer?.let { o -> Box(Modifier.fillMaxSize().padding(top = 12.dp), contentAlignment = Alignment.TopCenter) { OneShotCard(s, o) } }
+    }
+}
+
+/** A round play button whose gold ring fills in 5 s (then the music plays), the music beside it, Skip or Leave now under them. */
+@Composable
+private fun OneShotCard(s: TableSession, o: TableSession.OneShotOffer) {
+    var now by remember(o) { mutableStateOf(android.os.SystemClock.uptimeMillis()) }
+    LaunchedEffect(o) { while (true) { now = android.os.SystemClock.uptimeMillis(); delay(40) } }
+    val left = ((o.until - now).coerceAtLeast(0L))
+    val frac = 1f - left / TableSession.ONE_SHOT_WAIT_MS.toFloat()
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        Modifier
+            .width(330.dp)
+            .clip(shape)
+            .background(C.card)
+            .border(1.dp, C.line, shape)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                Modifier.size(64.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = "Play ${o.card.sound.name} now") { s.takeOffer() },
+                contentAlignment = Alignment.Center,
+            ) {
+                val gold = C.music
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    val w = 5.dp.toPx()
+                    val inset = w / 2 + 2.dp.toPx()
+                    val sz = androidx.compose.ui.geometry.Size(size.width - 2 * inset, size.height - 2 * inset)
+                    val tl = androidx.compose.ui.geometry.Offset(inset, inset)
+                    drawArc(gold.copy(alpha = 0.22f), 0f, 360f, false, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(w))
+                    drawArc(gold, -90f, 360f * frac.coerceIn(0f, 1f), false, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                }
+                Box(Modifier.size(46.dp).clip(CircleShape).background(C.music), contentAlignment = Alignment.Center) {
+                    Icon(BIcons.play, null, tint = C.onZ, modifier = Modifier.size(20.dp))
+                }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                T(if (o.kind == "intro") "INTRO" else "OUTRO", color = C.music, size = 12.sp, weight = FontWeight.SemiBold)
+                Title(o.card.sound.name, 21)
+                val secs = ((left + 999) / 1000).toInt()
+                T(if (o.kind == "intro") "Plays in $secs s" else "Plays in $secs s, then the table closes", color = C.muted, size = 13.sp, maxLines = 2)
+            }
+        }
+        Btn(if (o.kind == "intro") "Skip" else "Leave now", Modifier.fillMaxWidth(), height = 44.dp) { s.skipOffer() }
     }
 }
 

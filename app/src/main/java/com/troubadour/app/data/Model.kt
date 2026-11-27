@@ -39,6 +39,16 @@ data class Sound(
         return copy(extra = o.toString())
     }
 
+    /** A music's part in the story: "intro" (offered as the story opens), "outro" (before leaving), or null. */
+    val role: String?
+        get() = runCatching { org.json.JSONObject(extra).optString("role", "") }.getOrDefault("").takeIf { it == "intro" || it == "outro" }
+
+    fun withRole(r: String?): Sound {
+        val o = runCatching { org.json.JSONObject(extra) }.getOrDefault(org.json.JSONObject())
+        if (r == null) o.remove("role") else o.put("role", r)
+        return copy(extra = o.toString())
+    }
+
     companion object {
         /** The longest pause a random sound may wait, in seconds (settings and cards). */
         const val RANDOM_TOP = 30

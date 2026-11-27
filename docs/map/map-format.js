@@ -92,7 +92,8 @@
     out.height = Math.round(num(p.height, H, 400, 8000));
     if (['grid', 'grass', 'dirt', 'empty'].includes(p.ground)) out.ground = p.ground; else delete out.ground;
     out.player = pt(p.player || [out.width / 2, out.height / 2], out.width, out.height);
-    out.general = (p.general || []).map(cleanCard);
+    // No music for a whole map: a music belongs to the world, and is laid on a place (or is its intro or outro).
+    out.general = (p.general || []).map(cleanCard).filter((c) => c.zone !== 'music');
     out.walls = (p.walls || []).map((w) => Object.assign({}, w, { points: (w.points || []).map((q) => pt(q, out.width, out.height)) })).filter((w) => w.points.length >= 2);
     out.elements = (p.elements || []).map((e) => cleanElement(e, out.width, out.height)).filter(Boolean);
     // The in portals: where the party arrives by a way of another map ({ from: that map, el: its way, at }).
@@ -178,6 +179,9 @@
     // The world's musics, behind the Music button at the table (absent from older worlds: made from the story then).
     if (world.musicLoops === 1) out.musicLoops = 1;
     if (Array.isArray(world.music)) out.music = world.music.map(cleanCard).filter((c) => !files || files.has(c.file)).map((c) => Object.assign(c, { zone: 'music' }));
+    // The intro and the outro: the file of a music of the world, played once as the world opens at the table, and
+    // before going back to the worlds.
+    ['intro', 'outro'].forEach((k) => { if (typeof world[k] === 'string' && world[k] && (!files || files.has(world[k]))) out[k] = world[k]; else delete out[k]; });
     const seen = new Set();
     out.places = (world.places || []).map(cleanPlace).map((p) => {
       while (seen.has(p.id)) p.id = `${p.id}-${shortId()}`;

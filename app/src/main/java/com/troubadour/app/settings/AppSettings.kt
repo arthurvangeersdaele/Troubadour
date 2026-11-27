@@ -82,6 +82,8 @@ class AppSettings(context: Context) {
         private set
     /** Opening another chapter fades out the sounds of the previous one over 4 s. */
     var silenceChapters by mutableStateOf(prefs.getBoolean("silence", true))
+    /** Intro and outro: a story's intro is offered as it opens, its outro before leaving (each plays once). */
+    var introOutro by mutableStateOf(prefs.getBoolean("introOutro", true))
         private set
     var master by mutableFloatStateOf(prefs.getFloat("master", 0.8f))
         private set
@@ -129,6 +131,7 @@ class AppSettings(context: Context) {
     fun changeCrossfade(v: Boolean) { crossfade = v; prefs.edit().putBoolean("crossfade", v).apply() }
     fun changeEvenLoudness(v: Boolean) { evenLoudness = v; prefs.edit().putBoolean("even", v).apply() }
     fun changeSilenceChapters(v: Boolean) { silenceChapters = v; prefs.edit().putBoolean("silence", v).apply() }
+    fun changeIntroOutro(v: Boolean) { introOutro = v; prefs.edit().putBoolean("introOutro", v).apply() }
     fun changeKeepAwake(v: Boolean) { keepAwake = v; prefs.edit().putBoolean("awake", v).apply() }
     fun changeMaster(v: Float) { master = v; prefs.edit().putFloat("master", v).apply() }
     fun changeSoundboxVolume(v: Float) { soundboxVolume = v; prefs.edit().putFloat("sbVol", v).apply() }

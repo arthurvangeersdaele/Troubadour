@@ -761,6 +761,19 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         setSounds(t, list)
     }
 
+    /** Marks a music as the story's intro or outro (or neither): one of each per story. */
+    fun setRole(uid: String, role: String?) = edit { st ->
+        st.copy(chapters = st.chapters.map { c ->
+            c.copy(music = c.music.map { s ->
+                when {
+                    s.uid == uid -> s.withRole(role)
+                    role != null && s.role == role -> s.withRole(null)
+                    else -> s
+                }
+            })
+        })
+    }
+
     fun removeSound(t: Target, uid: String) {
         if (uid in previewing) stopPreview(uid)
         setSounds(t, soundsFor(t).filter { it.uid != uid })
@@ -870,16 +883,31 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
         table = session
         session.open(chapter.coerceIn(0, story.chapters.lastIndex))
         screen = Screen.Table(if (from is Screen.Table) from.from else from)
+        // The story's intro (setting Intro and outro): offered as it opens, it plays once.
+        session.onOutroDone = { scope.launch { leaveAfterFade(session) } }
+        session.offerIntro()
     }
 
     /** The back button of the table: asked first (it cuts the scene), then every sound fades out before the table closes. */
     fun askLeaveTable() = scope.launch {
         val t = table ?: return@launch
+        if (t.leaving) { leaveAfterFade(t); return@launch } // Leave again while the outro plays: at once
+        val out = t.outroToOffer()
         val v = ask(
-            "Leave the story?", "Every sound fades out and the table closes.",
+            "Leave the story?",
+            if (out != null) "${out.sound.name}, its outro, is offered: every other sound fades out as it starts, and the table closes when it ends."
+            else "Every sound fades out and the table closes.",
             listOf(AskButton("Stay", null), AskButton("Leave", "leave", BtnKind.DANGER)),
         )
         if (v?.value != "leave" || table !== t) return@launch
+        if (out != null) { t.offerOutro(out); return@launch }
+        leaveAfterFade(t)
+    }
+
+    /** Every sound fades out, then the table closes. */
+    private suspend fun leaveAfterFade(t: TableSession) {
+        if (table !== t) return
+        t.resetOneShot()
         if (t.fadeAll(settings.fadeMs)) delay(settings.fadeMs + 60L)
         if (table === t) leaveTable()
     }

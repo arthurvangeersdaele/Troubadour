@@ -420,6 +420,9 @@ private fun SettingsPanel(m: AppModel) {
         SetRow("Even out the loudness", "Every music, ambiance and event sits at the level of its kind, so no sound jumps out or gets lost") {
             Toggle(st.evenLoudness) { st.changeEvenLoudness(it); m.table?.evenLoudnessChanged() }
         }
+        SetRow("Intro and outro", "A story's intro is offered as it opens, its outro before you leave: each plays once, and the outro fades every other sound out") {
+            Toggle(st.introOutro) { st.changeIntroOutro(it) }
+        }
         SetRow("Silence between chapters", "Opening another chapter fades out the sounds of the previous one over 4 s") {
             Toggle(st.silenceChapters) { st.changeSilenceChapters(it) }
         }

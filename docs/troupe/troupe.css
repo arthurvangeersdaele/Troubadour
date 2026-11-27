@@ -686,3 +686,6 @@ html.tablet .oath { max-width: 640px; }
 /* Until the builders and the online players work in a tablet's browser, a tablet shows the apps to install and the
    same quiet line as a phone, never a door to a page that only asks to install. */
 html.tablet .pc-info { max-width: 520px; }
+.sc .edrole { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.sc .edrole .vl { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sc .edrole select { flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; }
