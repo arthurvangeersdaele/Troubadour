@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261121.4';
+  const VERSION = '261127.1';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -595,6 +595,12 @@
       buffers.clear();
       dropStreams();
       rec = r;
+      // No music for a whole map any more: one laid there by an older version stays among the world's musics.
+      if (rec.world.places.some((p) => p.general.some((c) => c.zone === 'music'))) {
+        worldMusic();
+        rec.world.places.forEach((p) => { p.general = p.general.filter((c) => c.zone !== 'music'); });
+        save();
+      }
       window.MapStamps.register(rec.world.stamps);
       buildStamps();
     }
@@ -690,7 +696,11 @@
       idle();
       if (rec !== r0 || mode !== 'play') return;
       A.setMusic(music);
+      // The world's intro (setting Intro and outro): the sounds of the map wait for it, offered by the arrival card.
+      const intro = keepAudio ? null : introOutro('intro');
+      if (intro) A.holdMap(0);
       A.open(place(), rec.world, sounds, V.unplaced());
+      if (intro) offerOneShot('intro', intro);
       if (V.unplaced()) toast('Long press the map to place the party.', 3200);
       soundGate();
       if (pins().length) loadPads(); else renderPinStrip();
@@ -1423,8 +1433,9 @@
   }
   function editMusic(box) {
     const list = worldMusic();
-    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on the whole map starts when the party arrives there; laid on a place, when the party walks into it (and the map\'s comes back when it walks out).'));
-    const offMaps = (c) => rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); });
+    box.append(el('p', 'pn-note', 'The musics of the world, behind the Music button at the table. They play on from one map to the next. A music laid on a place starts when the party walks into it, and fades out when it walks out.'));
+    box.append(introOutroPick(list));
+    const offMaps = (c) => { rec.world.places.forEach((p) => { p.general = p.general.filter((o) => !(o.zone === 'music' && o.file === c.file)); p.elements.forEach((e) => { e.cards = e.cards.filter((o) => !(o.zone === 'music' && o.file === c.file)); }); }); ['intro', 'outro'].forEach((k) => { if (rec.world[k] === c.file) delete rec.world[k]; }); };
     box.append(fxZone(list, (c) => ({ key: `w:${c.file}`, getBlob: () => DB.getBlob(rec.files[c.file]), save: () => { save(); syncAudio(); }, rerender: () => { renderPanel(); V.redraw(); }, removeText: 'It leaves the music of this world, and the maps it is laid on.', onRemove: offMaps, colour: 'var(--music)', loops: musicWays(), music: true }),
       'Add musics: from this device, the Recueil or Files', () => {
         fxPicker('the music', new Set(list.map((c) => rec.files[c.file])), async (picked) => {
@@ -1441,6 +1452,26 @@
   }
 
 
+
+  /** The intro and the outro of the world: a music of the world each, or none. Played once (1×), whatever its loop. */
+  function introOutroPick(list) {
+    const s = section('Intro and outro');
+    [['intro', 'Intro', 'Offered as the world opens at the table. The ambiances and events of the map fade in when it ends.'],
+      ['outro', 'Outro', 'Offered before going back to your worlds. The ambiances and events fade out as it starts.']].forEach(([k, label, hint]) => {
+      const row = el('div', 'row-set');
+      const t = el('span', '', label); t.append(el('small', '', hint));
+      const sel = el('select');
+      sel.setAttribute('aria-label', `${label} of this world`);
+      const none = el('option', '', 'None'); none.value = ''; sel.append(none);
+      list.forEach((c) => { const o = el('option', '', c.name); o.value = c.file; sel.append(o); });
+      sel.value = list.some((c) => c.file === rec.world[k]) ? rec.world[k] : '';
+      sel.addEventListener('change', () => { if (sel.value) rec.world[k] = sel.value; else delete rec.world[k]; save(); });
+      row.append(t, sel);
+      s.append(row);
+    });
+    if (settings.introOutro === false) s.append(el('p', 'pn-note', 'The setting Intro and outro is off: they are not offered at the table.'));
+    return s;
+  }
 
   /* The inspector, as an editor's: what is selected in tabs. A place: Place, Sounds, Way. The map: Map, Sounds. */
   const inspTab = { el: 'place', map: 'map' };
@@ -1487,7 +1518,7 @@
     name.append(sz);
     box.append(name);
 
-    box.append(inTab(cardsBlock('Whole map', p.general, null, 'Sounds heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music laid here starts when the party arrives.'), 'sounds'));
+    box.append(inTab(cardsBlock('Whole map', p.general, null, 'Ambiances and events heard everywhere on this map, whatever the distance and the walls: the wind, the rain. A music goes on a place, or is the world\'s intro or outro (Music).'), 'sounds'));
 
     // The ground under the drawings, map by map: a forest on grass, a cave on dirt.
     const ground = inTab(section('Ground'), 'map');
@@ -1890,6 +1921,8 @@
 
   /* ================= The sound browser (the Add sheet, and the library drawer of the editor) ================= */
   const pickState = { src: 'world', type: 'all', q: '' };
+  const NO_MAP_MUSIC = 'A music goes on a place, not on the whole map. The world\'s intro and outro are chosen behind Music.';
+  const isGeneral = (list) => !!rec && rec.world.places.some((p) => p.general === list);
   const TYPE_LABEL = { music: 'Music', ambience: 'Ambiance', events: 'Event', soundbox: 'Soundbox' };
 
   /** Fills `root` with the sounds of the world or of the Recueil, filtered by kind and search.
@@ -1949,6 +1982,7 @@
     async function toggleIn(list, get) {
       const x = await get();
       const had = inList(list, x.file);
+      if (!had && x.zone === 'music' && isGeneral(list)) { toast(NO_MAP_MUSIC, 3200); return false; }
       if (had) list.splice(list.indexOf(had), 1); else list.push(M.card(x));
       changed();
       return !had;
@@ -2022,6 +2056,7 @@
             const hit = V.elementAtClient(e2.clientX, e2.clientY);
             if (hit === undefined) return;
             const list = hit ? hit.cards : place().general;
+            if (!hit && zone === 'music') { toast(NO_MAP_MUSIC, 3200); return; }
             r.classList.add('busy'); paintMark(true);
             try {
               const x = await get();
@@ -2689,8 +2724,9 @@
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
-    $('#opt-music-suggest').addEventListener('change', (e) => { settings.musicSuggest = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
-    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeArrive(); paintSettings(); });
+    $('#opt-intro-outro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; saveSettings(); if (!e.target.checked && arrive && arrive.kind === 'intro') closeArrive(); });
+    $('#opt-music-suggest').addEventListener('change', (e) => { settings.musicSuggest = e.target.checked; saveSettings(); closeSuggest(); paintSettings(); });
+    $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeSuggest(); paintSettings(); });
     $('#opt-music-stop').addEventListener('change', (e) => { settings.musicStop = e.target.checked; saveSettings(); paintSettings(); });
     $('#opt-music-full').addEventListener('change', (e) => { setMusicFull(e.target.checked); });
     // The waiting queue: on, every music plays once and the queue says what comes next; off, no queue at all.
@@ -2701,7 +2737,7 @@
       if (!$('#mw-mus').hidden) { paintMusicFull(); renderMusic(); }
       if (mode === 'edit' || $('#world').classList.contains('panel')) renderPanel();
     });
-    const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeArrive(); paintSettings(); });
+    const pickSeg = (id, key) => $(id).addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; settings[key] = b.dataset.v; saveSettings(); closeSuggest(); paintSettings(); });
     pickSeg('#music-in', 'musicIn'); pickSeg('#music-out', 'musicOut');
     document.querySelectorAll('#music-in [data-v], #music-out [data-v]').forEach((b) => { b.innerHTML = b.dataset.v === 'place' ? ICON.onPlace : ICON.inCircle; });
     const stepWait = (d) => { settings.musicWait = Math.max(2, Math.min(30, waitS() + d)); saveSettings(); paintSettings(); };
@@ -2748,6 +2784,7 @@
     $('#opt-heard-rings').checked = settings.heardRings !== false;
     $('#opt-trail-walls').checked = settings.trailWalls === false;
     $('#opt-names').checked = settings.names !== false;
+    $('#opt-intro-outro').checked = settings.introOutro !== false;
     const sug = settings.musicSuggest !== false;
     $('#opt-music-suggest').checked = sug;
     $('#music-sets').hidden = !sug;
@@ -2838,10 +2875,21 @@
   async function leaveWorld() {
     if (screen !== 'world' || !rec) { location.hash = '#/'; return; }
     const playing = mode === 'play';
+    if (playing && outro.on) { outroFinish(); return; } // asked again while the outro plays: leave now
+    // The outro (setting Intro and outro), unless it already plays.
+    const out = playing ? introOutro('outro') : null;
+    const cur = out && A.currentMusic(), cv = cur && A.voice(cur);
+    const offer = out && !(cur && cur.file === out.file && cv && cv.state === 'playing');
     const ok = await ask(`Leave ${rec.story.title || 'this world'}?`,
-      playing ? 'Its sounds fade out and you go back to your worlds.' : 'Your drawing is saved. You go back to your worlds.',
+      playing ? (offer ? `${out.name}, the outro, is offered: the sounds of the map fade out as it starts, and you go back to your worlds when it ends.` : 'Its sounds fade out and you go back to your worlds.') : 'Your drawing is saved. You go back to your worlds.',
       [{ label: 'Stay', value: false }, { label: 'Leave', value: true, cls: 'danger' }]);
     if (!ok) return;
+    if (offer && rec && mode === 'play') { offerOneShot('outro', out); return; }
+    await leaveNow();
+  }
+  async function leaveNow() {
+    outro.on = false; introCard = null;
+    const playing = mode === 'play';
     if (playing && rec) {
       // As every online player: the sounds fade out under the same popup before the table closes.
       const r0 = rec;
@@ -2955,10 +3003,83 @@
     clearInterval(arrive.timer); clearTimeout(arrive.done);
     const was = arrive;
     arrive = null;
+    if (was.onClose) was.onClose();
     // Skipped: what was made ready is let go (played: it is the music heard now, prime has nothing to free).
     setTimeout(() => (was.primed || []).forEach((c) => A.unprime(c)), 0);
     const box = $('#mw-arrive'); box.hidden = true; box.textContent = '';
   }
+  /** The world's intro or outro (setting Intro and outro): the card of the world's music, or null. */
+  function introOutro(k) {
+    if (settings.introOutro === false || !rec || !rec.world[k]) return null;
+    return worldMusic().find((c) => c.file === rec.world[k]) || null;
+  }
+  const outro = { on: false, card: null };
+  /** Closes the card of a place's musics (not the intro's or the outro's). */
+  const closeSuggest = () => { if (!(arrive && arrive.kind)) closeArrive(); };
+  let introCard = null;
+  /** The arrival card, for the intro or the outro: one music, Play (or its gold ring with Autoplay), and Skip.
+   *  Skipped, the intro lets the map's sounds fade in at once, the outro leaves at once. */
+  function offerOneShot(kind, card) {
+    closeArrive();
+    const auto = settings.musicAuto !== false, S = waitS();
+    const box = $('#mw-arrive');
+    box.textContent = '';
+    let played = false;
+    arrive = {
+      kind, cards: [card], left: S, timer: 0,
+      onClose: () => { if (played) return; if (kind === 'intro') A.release(); else leaveNow(); },
+    };
+    const R = 27, C = 2 * Math.PI * R;
+    const play = el('button', `ar-go${auto ? ' counting' : ''}`); play.type = 'button';
+    play.style.setProperty('--ar-s', `${S}s`);
+    play.style.setProperty('--ar-c', C.toFixed(1));
+    play.innerHTML = auto ? `<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="${R}"/><circle class="ring" cx="32" cy="32" r="${R}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg><span class="ic">${ICON.play}</span>` : `<span class="ic">${ICON.play}</span>`;
+    if (!auto) play.classList.add('bare');
+    play.setAttribute('aria-label', `Play ${card.name} now`);
+    play.title = auto ? 'Play it now' : 'Play it';
+    const txt = el('div', 'ar-txt');
+    const where = el('small', 'ar-where'); where.innerHTML = `${ICON.music}<span>${kind === 'intro' ? 'Intro' : 'Outro'}</span>`;
+    const ask = el('span', 'ar-clock');
+    txt.append(where, el('b', 'ar-names', card.name), ask);
+    const go = () => {
+      if (!arrive || arrive.kind !== kind) return;
+      played = true;
+      closeArrive();
+      if (kind === 'intro') { introCard = card; A.playOnce(card); }
+      else { outro.on = true; outro.card = card; A.holdMap(settings.fade); A.playOnce(card); toast(`${card.name}: back to your worlds when it ends.`, 3200); }
+      refreshLive();
+    };
+    play.addEventListener('click', go);
+    const row = el('div', 'ar-row');
+    row.append(play, txt);
+    box.append(row);
+    const skip = el('button', 'ar-skip'); skip.type = 'button';
+    skip.textContent = kind === 'intro' ? 'Skip' : 'Leave now';
+    skip.title = kind === 'intro' ? 'The sounds of the map start now' : 'Back to your worlds now';
+    skip.addEventListener('click', closeArrive);
+    box.append(skip);
+    const paint = () => { if (arrive) ask.textContent = auto ? `Plays in ${arrive.left} s` : `Play the ${kind}?`; };
+    paint();
+    warmMusic(card.file); A.prime(card);
+    arrive.primed = [card];
+    if (auto) {
+      arrive.timer = setInterval(() => { if (!arrive) return; arrive.left -= 1; if (arrive.left > 0) paint(); }, 1000);
+      arrive.done = setTimeout(go, S * 1000);
+    }
+    box.hidden = false;
+    requestAnimationFrame(() => rollTitles(box));
+  }
+  /** The intro or the outro is over (played through, stopped, or replaced by another music). */
+  function oneShotEnded(card) {
+    if (introCard === card) { introCard = null; A.release(); return; }
+    if (outro.on && outro.card === card) {
+      // Another music chosen meanwhile: the troubadour stays, and the map's sounds come back.
+      const cur = A.currentMusic(), cv = cur && A.voice(cur);
+      if (cur && cur !== card && cv && cv.state === 'playing') { outro.on = false; A.release(); toast('Staying here.', 1800); return; }
+      outroFinish();
+    }
+  }
+  function outroFinish() { if (!outro.on) return; outro.on = false; leaveNow(); }
   function showArrive(info) {
     closeArrive();
     if (!info || mode !== 'play' || info.leaving) return false;
@@ -3927,7 +4048,8 @@
     // A sound started or stopped: only what moves is painted again (the rings of what is heard), not the whole map.
     A.onChange = () => { V.touch(); };
     A.onMusic = (c) => { warmMusic(c.file); };
-    A.onPlace = (info) => { if (!info) { closeArrive(); return false; } return showArrive(info); };
+    A.onPlace = (info) => { if (!info) { if (!(arrive && arrive.kind)) closeArrive(); return false; } if (arrive && arrive.kind) return false; return showArrive(info); };
+    A.onOneShotEnd = oneShotEnded;
     // The sound comes back by itself after a call, a lock or another app (the shared engine's guard).
     if (window.BalladeEngine) window.BalladeEngine.guard(audio().ctx, () => screen === 'world' && mode === 'play');
 

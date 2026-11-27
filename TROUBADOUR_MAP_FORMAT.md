@@ -39,7 +39,7 @@ sounds/1/music/01-tavern-hearth.mp3
       "height": 1250,
       "player": [1000, 900],
       "general": [
-        { "name": "Abbey organ", "file": "sounds/1/music/01-abbey-organ.mp3", "zone": "music", "play": "loop", "autoplay": true, "volume": 0.6 }
+        { "name": "Dripping water", "file": "sounds/1/ambience/01-dripping-water.mp3", "zone": "ambience", "play": "loop", "autoplay": true, "volume": 0.4 }
       ],
       "walls": [
         { "points": [[400, 200], [400, 1000], [1600, 1000]] }
@@ -84,6 +84,7 @@ sounds/1/music/01-tavern-hearth.mp3
 | `soundbox` | array | Optional. Cards (zone `soundbox`, played once) at hand on every map, behind the Soundbox button. |
 | `stamps` | array | Optional. Places drawn by the troubadour, laid like the drawings of the library (an element's `shape.stamp` names one by its `id`): `{ id, name, v, strokes: [{ w, p: [[x, y], ...] }], paint: [{ c, w, p }], fills: [{ x, y, c }] }`. Points and widths run from 0 to 1 in the place's square; strokes are drawn in the map's ink, paint (the brush) under them, and each fill colours the closed shape around its point. A colour `c` is a colour of the theme (`water`, `leaf`, `stone`, `ground`, `fire`, `ambience`, `events`, `soundbox`, `music` or `hole`) or a `#rrggbb`. Older places may hold a stroke as a bare list of points (width 0.022). |
 | `music` | array | Optional. Cards (zone `music`) of the world's musics, behind the Music button at the table: heard everywhere, they play on from one map to the next. Absent, a reader builds it from every music of the story. A music card laid on a place does not sound from the map: it names the music that starts (crossfading the one playing) when the party arrives on that place. |
+| `intro`, `outro` | string | Optional. The `file` of a music of the world. At the table, with the Intro and outro setting on, the intro is offered (the arrival card) as the world opens and plays once: the ambiances and events of the map wait for its end, then fade in. The outro is offered before going back to the worlds, unless it already plays: as it starts, the ambiances and events fade out, and the app goes back to the worlds when it ends. |
 
 A **place** (one map):
 
@@ -95,7 +96,7 @@ A **place** (one map):
 | `ground` | string | Optional. What lies under the drawings of this map: `grid` (the default), `grass`, `dirt` or `empty`. |
 | `player` | [x, y] | Where the player point stood last (the editor hears from it). At the table, a map opened without a way has no party until the troubadour lays it with a long press. |
 | `ins` | array | Optional. The in portals: `{ "from": id of a place, "el": id of its element whose `link` leads here, "at": [x, y] }`, one for every way leading to this place, kept in step with the links by the apps. Taking that way, the party arrives at `at`. When a place has several, each pair (the way and its in portal) is drawn in its own colour. |
-| `general` | array of cards | Sounds of the whole place: heard everywhere at their own volume, never muffled by distance or walls. |
+| `general` | array of cards | Ambiances and events of the whole place: heard everywhere at their own volume, never muffled by distance or walls. Never a music (readers drop one: a music is laid on a place, or is the world's intro or outro). |
 | `walls` | array | Each `{ "points": [[x, y], ...] }`, an open line of 2 points or more. |
 | `elements` | array of elements | Drawn shapes and library drawings, in drawing order (the last on top). |
 

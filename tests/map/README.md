@@ -31,3 +31,11 @@ node tests/map/editor.mjs [path/to/world.troubadour-map]
 ```
 
 Undo and redo for every change (drawing, sounds, their settings), a step per change once things settle, 200 per map; what the app learns of a sound by itself (its length) is no step. The clipboard: copy, cut, paste at the pointer (on any map of the world), duplicate, Alt-drag. Snapping to the edges and middles of the other places, with a gold guide, and Ctrl held to move freely. The reach handle. The page of keys (?). 50 undos and 50 redos give the same map.
+
+## The intro and the outro
+
+```
+node tests/map/intro-outro.mjs
+```
+
+On the discovery Forest Adventure: no music on a whole map once imported. With the setting Intro and outro, the intro is offered as the world opens at the table, its ambiances and events wait silent, it plays once, and they fade in at its end; skipped, they start at once. Leaving, the outro is offered; they fade out as it starts, and the app goes back to the worlds when it ends. Off, neither is offered. Run by the Map editor workflow.

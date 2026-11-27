@@ -67,7 +67,7 @@ try {
     if (card && action !== 'skip') {
       if (spot.file) expected = spot.file;
       else expected = spots.mapMusic || null;
-    } else expected = cur; // skipped, or nothing proposed: the music heard plays on
+    } else expected = undefined; // skipped, or nothing proposed: the music heard plays on, or fades out (Autostop: no map music to come back)
     await page.waitForTimeout((action === 'wait' ? 5200 : 300) + 1500 + 900);
     const st = await page.evaluate(() => {
       const A = window.MapAudio;
@@ -75,7 +75,7 @@ try {
       const playing = w.filter((v) => v.state === 'playing');
       return { playing: playing.map((v) => v.card.file), ending: w.filter((v) => v.state === 'ending').map((v) => v.card.file), gains: playing.map((v) => +v.env.gain.value.toFixed(2)), card: !document.getElementById('mw-arrive').hidden };
     });
-    const good = st.playing.length <= 1 && !st.ending.length && st.gains.every((g) => g > 0.9) && (expected ? st.playing[0] === expected : !st.playing.length || true) && !st.card;
+    const good = st.playing.length <= 1 && !st.ending.length && st.gains.every((g) => g > 0.9) && (expected === undefined ? !st.playing.length || st.playing[0] === cur : expected ? st.playing[0] === expected : !st.playing.length) && !st.card;
     if (!good) { bad++; console.log(`FAIL step ${i}: at ${spot.name} (${card ? card.replace(/\s+/g, ' ').slice(0, 60) : 'no card'}), ${action}: expected ${expected}, heard ${JSON.stringify(st)}`); expected = st.playing[0] || null; }
   }
   ok(bad === 0, `${STEPS} stops across the world: always one music, the expected one, heard in full (${bad} wrong)`);

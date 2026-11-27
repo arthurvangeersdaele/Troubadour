@@ -23,3 +23,5 @@ jobs:
         run: node tests/map/editor.mjs
       - name: The music follows the party (a walk of 40 stops)
         run: node tests/map/music-walk.mjs 40
+      - name: The intro and the outro
+        run: node tests/map/intro-outro.mjs

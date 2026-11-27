@@ -36,7 +36,7 @@
   const MASTER_FADE = 3000;
   const RANDOM_TOP = 30;
   /** How a voice plays: with the waiting queue (setting), a music has no loop (a looping one plays once); 1× and 2× stay. */
-  const playOf = (v) => (v.world && settings.musicQueue && v.card.play === 'loop' ? 'once' : v.card.play);
+  const playOf = (v) => (v.oneShot ? 'once' : v.world && settings.musicQueue && v.card.play === 'loop' ? 'once' : v.card.play);
   const randomMax = () => Math.min(RANDOM_TOP, Math.max(1, Math.round(+settings.randomMax || 17)));
   /** A card's own longest pause (1 to 30 s), else the one of the settings. */
   const ownPause = (card) => { const n = Number(card && card.randomMax); return n >= 1 && n <= RANDOM_TOP ? n : null; };
@@ -80,9 +80,41 @@
     p.elements.forEach((e) => e.cards.forEach((c) => { if (!isMusic(c)) out.push({ card: c, el: e }); }));
     return out;
   }
-  /** The music of the map: the first music laid on it (the whole map first), or null. */
+  /** The music of the map: the first music laid on one of its places, or null. */
   function themeOf(p) {
-    return p.general.find(isMusic) || p.elements.reduce((f, e) => f || e.cards.find(isMusic), null) || null;
+    return p.elements.reduce((f, e) => f || e.cards.find(isMusic), null) || null;
+  }
+
+  /* ---------- Intro and outro: the map's ambiances and events wait for the intro, and leave as the outro starts ---------- */
+  let hold = false;
+  /** Holds the sounds of the map: those playing fade out (the outro), and none starts until release(). */
+  function holdMap(fadeMs = settings.fade) {
+    hold = true;
+    voices.forEach((v) => { if (!v.world) { v.rnd = false; v.next = 0; end(v, fadeMs); } });
+    pausedByAll = pausedByAll.filter((v) => v.world); heldRandom = heldRandom.filter((v) => v.world);
+    changed();
+  }
+  /** The sounds of the map come in: each card fades in (the fade-in of the settings, events too). */
+  function release() {
+    if (!hold) return;
+    hold = false;
+    if (!place) return;
+    voices.forEach((v) => { if (!v.world && (v.state === 'idle' || v.state === 'ending')) play(v, startFade()); });
+    // The music of where the party stands may be offered now.
+    zoneKey = 'intro';
+    followZone();
+    changed();
+  }
+  /** Plays a music of the world once (1×, whatever its loop), crossfading the one heard. */
+  function playOnce(card) {
+    const v = voices.get(card);
+    if (!v) return false;
+    audio(true);
+    v.oneShot = true;
+    if (v.src) v.src.loop = false;
+    if (v.state !== 'playing') toggleVoice(v);
+    changed();
+    return true;
   }
 
   /* ---------- The world's musics: one voice each, heard everywhere, kept from one map to the next ---------- */
@@ -464,6 +496,8 @@
   }
   function reset(v) {
     clearTimeout(v.timer);
+    // The intro or the outro is over (played through, stopped, or crossfaded by another music).
+    if (v.oneShot) { v.oneShot = false; const c = v.card; setTimeout(() => { if (api.onOneShotEnd) api.onOneShotEnd(c); }, 0); }
     // A music let go for another one keeps where it was, for when the party comes back (S6).
     if (v.keepOnReset) { v.keep = { offset: position(v), plays: v.plays }; v.keepOnReset = false; }
     v.fadingOut = null;
@@ -479,14 +513,14 @@
     if (playOf(v) === 'loop' && v.state === 'playing' && !(v.world && queue.length)) { stopSource(v); startSource(v, headOf(v)); return; }
     v.plays += 1;
     if (playOf(v) === 'twice' && v.plays < 2 && v.active) { stopSource(v); startSource(v, 0); return; }
-    const natural = v.state === 'playing';
+    const natural = v.state === 'playing', looped = playOf(v) === 'loop';
     reset(v);
     // The world's music, at its end (1× or 2× played through, or the round of a loop when musics wait): the next one
     // of the queue; with nothing queued, a loop plays on and the others stop there.
     if (natural && v.world) {
       const next = queue.length ? voices.get(queue.shift()) : null;
       if (next && next !== v) toggleVoice(next);
-      else if (next === v || playOf(v) === 'loop') play(v, 0.03);
+      else if (next === v || looped) play(v, 0.03);
       changed();
       return;
     }
@@ -701,11 +735,12 @@
     audio(true);
     // Every card starts with its map (with the fade-in of Play; events strike at once): the map decides how much of
     // an element is heard.
-    voices.forEach((v) => { if (!v.world) play(v, v.card.zone === 'ambience' ? startFade() : 0.03); });
-    // A music laid on the map starts as the party arrives (crossfading the one playing), unless it already plays:
-    // the one of the place the party stands in, else the one of the whole map.
+    // Held for the intro: they wait, silent, and fade in at its end (release).
+    if (!hold) voices.forEach((v) => { if (!v.world) play(v, v.card.zone === 'ambience' ? startFade() : 0.03); });
+    // A music laid on the place the party stands in starts as it arrives (crossfading the one playing), unless it
+    // already plays, or the intro plays.
     zoneKey = undefined; lastZoneEl = null;
-    const theme = zoneMusic() || p.general.find(isMusic) || null;
+    const theme = hold ? null : zoneMusic();
     zoneKey = theme ? theme.file : 'map'; moving = false;
     lastEls = zoneEl ? [zoneEl] : [];
     const tv = theme && [...voices.values()].find((o) => o.world && o.card.file === theme.file);
@@ -764,15 +799,13 @@
     return on.concat(near.sort((a, b) => a[1] - b[1]).map((x) => x[0]));
   }
   let lastEls = [];
-  /** The music heard gives way as its place is left (setting Autostop): the map's music comes back, else it fades. */
+  /** The music heard gives way as its place is left (setting Autostop): it fades out. */
   function giveWay(cur) {
     if (settings.musicStop === false || !cur) return;
-    const target = place.general.find(isMusic) || null;
-    if (target && target.file === cur.file) return;
-    if (target) startZone(target.file); else fadeMusic();
+    fadeMusic();
   }
   function followZone() {
-    if (!place || zoneKey === undefined) return;
+    if (!place || zoneKey === undefined || hold) return;
     if (settings.musicSuggest === false) { if (zoneKey !== 'map') zoneKey = 'map'; if (api.onPlace) api.onPlace(null); return; }
     const inArea = settings.musicIn === 'circle' ? 'circle' : 'place';
     const outArea = settings.musicOut === 'place' ? 'place' : 'circle';
@@ -822,7 +855,8 @@
 
   /** Everything stops: the world is left, or drawn. */
   function close(ms = settings.fade) {
-    voices.forEach((v) => drop(v, ms));
+    hold = false;
+    voices.forEach((v) => { v.oneShot = false; drop(v, ms); });
     voices.clear();
     pausedByAll = []; heldRandom = []; queue = [];
     place = null;
@@ -922,7 +956,7 @@
     if (card.zone !== 'music' || !world) return [card];
     const all = new Set([card]);
     (world.music || []).forEach((c) => all.add(c));
-    world.places.forEach((p) => p.general.concat(...p.elements.map((e) => e.cards)).forEach((c) => { if (c.zone === 'music') all.add(c); }));
+    world.places.forEach((p) => p.elements.forEach((e) => e.cards.forEach((c) => { if (c.zone === 'music') all.add(c); })));
     return [...all];
   }
   /** The simple buttons: a 25 % step, glided over 2 s. */
@@ -955,6 +989,7 @@
   Object.assign(api, {
     open, close, sync, hear, setMusic, currentMusic, themeOf, queueAdd, queueRemove, queueMove, queueClear, loopsNow, playMusic, queue: () => queue.slice(), toggle, stop, progress, setVolume, setMusicVolume, musicVolume, stepVolume, shownVolume, living,
     pauseAll, stopAll, stopMusic, resumePending, fadeAll, list, voices: () => [...voices.values()], evenOut, jump: (card, left) => { const v = voices.get(card); if (v && v.src) { const at = Math.max(0, turnOf(v) - left); stopSource(v); startSource(v, at); } }, streams: () => [...voices.values()].filter((v) => v.src && v.src.media).map((v) => ({ name: v.card.name, t: Math.round(v.src.media.currentTime * 10) / 10, paused: v.src.media.paused, heard: Math.round(v.heard * 100) / 100 })), voice: voiceOf, curve, MASTER_FADE, randomMax, RANDOM_TOP, lifeEvery,
+    holdMap, release, playOnce, holding: () => hold,
     isOpen: () => !!place, point: () => point, prime: (c) => prime(c), unprime: (c) => unprime(c), position: (card) => { const v = voices.get(card); return v ? position(v) : 0; }, heardNow,
   });
   global.MapAudio = api;
