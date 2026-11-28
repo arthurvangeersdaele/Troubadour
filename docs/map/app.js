@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.2';
+  const VERSION = '261128.3';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1377,6 +1377,7 @@
     }
     else if (sel) playElement(box, sel); else playPlace(box, p);
     paintEdView();
+    paintAddTray();
     paintRanges(box);
     refreshLive();
     requestAnimationFrame(() => rollTitles(box));
@@ -1843,6 +1844,166 @@
       after();
     } catch (e) { idle(); toast(`Could not keep the sounds: ${e.message || e}`, 4200); }
   }
+
+  /* ================= Sounds of the computer: the Add sounds tray, and files dropped on the page ================= */
+  const ADD_ICON = {
+    music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5.5l11-2.5v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
+    ambience: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M3 9c3-3 6 3 9 0s6-3 9 0"/><path d="M3 15c3-3 6 3 9 0s6-3 9 0"/></svg>',
+    events: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+    soundbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
+  };
+  // [kind, label, colour, what it does on a place, what it does in the world]
+  const ADD_KINDS = [
+    ['music', 'Music', 'var(--music)', 'Starts when the party walks in', 'Behind the Music button'],
+    ['ambience', 'Ambiances', 'var(--amb)', 'Loop where they are heard', 'Ready to lay on a place'],
+    ['events', 'Events', 'var(--evt)', 'Come back at random', 'Ready to lay on a place'],
+    ['soundbox', 'Soundbox', 'var(--blue)', 'Played by hand, at any time', 'Played by hand, at any time'],
+  ];
+  const AUDIO_ACCEPT = 'audio/*,.mp3,.ogg,.m4a,.wav';
+  const audioOnly = (files) => [...files].filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
+  /** Where a sound of the computer goes: the element selected, or the world. */
+  const addTarget = () => (mode === 'edit' && !edView ? V.selected() : null) || null;
+
+  /** Audio files of the computer join the world as `kind`; music, ambiances and events also join `onto` when given.
+   *  Musics go to the Music of the world, the soundbox to its Soundbox, ambiances and events to its sounds. */
+  async function importSounds(list, kind, onto) {
+    const files = audioOnly(list);
+    if (!files.length) { toast('No audio file there: MP3, OGG, M4A or WAV.', 2600); return; }
+    if (kind === 'soundbox') onto = null;
+    try {
+      const ch = M.ownChapter(rec.story);
+      const music = kind === 'music' ? worldMusic() : null;
+      const box = kind === 'soundbox' ? (rec.world.soundbox || (rec.world.soundbox = [])) : null;
+      let n = 0;
+      for (const f of files) {
+        n += 1;
+        busy('Keeping the sounds on this computer', `${n} of ${files.length}`, (n - 1) / files.length);
+        let duration = 0;
+        try { duration = Math.round((await decode(f)).duration * 10) / 10; } catch (e) { /* unreadable: no length */ }
+        const ext = (f.name.split('.').pop() || 'mp3').toLowerCase();
+        const name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 80) || 'Sound';
+        const path = freePath(`sounds/map/${kind}/${window.Troubadour.slug(name, 'sound')}.${ext}`);
+        rec.files[path] = await DB.putBlob(f);
+        const sound = { name, file: path, zone: kind, volume: 0.75 };
+        if (music) music.push(Object.assign(M.card(sound, { play: 'loop' }), { size: f.size, duration }));
+        else if (box) box.push(Object.assign(M.card(sound, { play: 'once' }), { size: f.size, duration }));
+        else ch[kind].push({ name, file: path, loop: kind === 'events' ? 'random' : 'infinite', volume: 0.75 });
+        if (onto) onto.cards.push(M.card(sound));
+      }
+      idle();
+      flush();
+      syncAudio();
+      renderPanel(); renderLayers(); V.redraw();
+      const what = plural(files.length, { music: 'music', ambience: 'ambiance', events: 'event', soundbox: 'effect' }[kind]);
+      toast(onto ? `${what} added to ${elName(onto)}.` : kind === 'music' ? `${what} added to the Music of the world.` : kind === 'soundbox' ? `${what} added to the Soundbox of the world.` : `${what} added to the sounds of the world: lay them on a place.`, 3200);
+    } catch (e) { idle(); toast(`Could not keep the sounds: ${e.message || e}`, 4200); }
+  }
+
+  /** The Add sounds tray, at the foot of the layers: four tiles to click or to drop files on. */
+  function paintAddTray() {
+    const tray = $('#mw-add');
+    if (!tray || !rec) return;
+    const to = addTarget();
+    if (!tray.firstChild) {
+      const head = el('div', 'ad-head');
+      head.append(el('h3', '', 'Add sounds'), el('span', 'ad-to'));
+      const grid = el('div', 'ad-grid');
+      ADD_KINDS.forEach(([k, label, colour]) => {
+        const b = el('button', 'ad-z');
+        b.type = 'button';
+        b.dataset.kind = k;
+        b.style.setProperty('--z', colour);
+        b.innerHTML = `${ADD_ICON[k]}<span>${label}</span>`;
+        b.addEventListener('click', async () => { const files = await chooseFiles(AUDIO_ACCEPT, true); if (files.length) importSounds(files, k, addTarget()); });
+        b.addEventListener('dragover', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; b.classList.add('hot'); dropSeen(); });
+        b.addEventListener('dragleave', () => b.classList.remove('hot'));
+        b.addEventListener('drop', (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); b.classList.remove('hot'); endDrop(); importSounds(e.dataTransfer.files, k, addTarget()); });
+        grid.append(b);
+      });
+      tray.append(head, grid, el('p', 'ad-hint', 'Click, or drop audio files'));
+    }
+    tray.querySelector('.ad-to').textContent = to ? `To ${elName(to)}` : 'To this world';
+    tray.querySelectorAll('.ad-z').forEach((b) => { b.title = b.dataset.kind === 'soundbox' ? 'To the Soundbox of the world' : to ? `To ${elName(to)}` : 'To this world'; });
+  }
+
+  /* Files dragged over the editor: the panel on the right becomes four zones to drop them on, and a place of the
+   * map takes them too (its kind asked on the drop). */
+  const hasFiles = (e) => !!(e.dataTransfer && [...e.dataTransfer.types].includes('Files'));
+  let dropOn = false, dropTimer = 0, dropHit;
+  function dropSeen() {
+    clearTimeout(dropTimer);
+    // No dragover for a moment: the files left the window, or the drag was given up.
+    dropTimer = setTimeout(endDrop, 160);
+  }
+  function startDrop() {
+    if (dropOn) return;
+    dropOn = true;
+    const to = addTarget();
+    const box = $('#mw-drop');
+    box.textContent = '';
+    const h = el('h3', '', to ? `Add to ${elName(to)}` : 'Add to this world');
+    h.dataset.base = h.textContent;
+    box.append(h);
+    ADD_KINDS.forEach(([k, label, colour, onPlace, inWorld]) => {
+      const z = el('div', 'dr-z');
+      z.dataset.kind = k;
+      z.style.setProperty('--z', colour);
+      const t = el('span', 'dr-t');
+      t.append(el('b', '', label), el('small', '', k === 'soundbox' && to ? 'Soundbox of the world' : to ? onPlace : inWorld));
+      z.innerHTML = ADD_ICON[k];
+      z.append(t);
+      box.append(z);
+    });
+    box.append(el('p', 'dr-hint', 'Or drop them on a place of the map.'));
+    box.hidden = false;
+    $('#world').classList.add('dropping');
+  }
+  function endDrop() {
+    clearTimeout(dropTimer);
+    if (!dropOn) return;
+    dropOn = false;
+    dropHit = undefined;
+    V.hover(null);
+    $('#mw-drop').hidden = true;
+    $('#world').classList.remove('dropping');
+    document.querySelectorAll('.ad-z.hot').forEach((b) => b.classList.remove('hot'));
+  }
+  const dropReady = () => screen === 'world' && mode === 'edit' && !!rec;
+  document.addEventListener('dragover', (e) => {
+    if (!hasFiles(e) || !dropReady()) return;
+    e.preventDefault();
+    startDrop();
+    dropSeen();
+    const zone = e.target.closest && e.target.closest('.dr-z');
+    $('#mw-drop').querySelectorAll('.dr-z').forEach((z) => z.classList.toggle('hot', z === zone));
+    const hit = zone ? undefined : V.elementAtClient(e.clientX, e.clientY);
+    if (hit !== dropHit) {
+      dropHit = hit;
+      V.hover(hit || null);
+      // Over a place of the map: dropped there, the files are its own (their kind asked).
+      const h = $('#mw-drop h3');
+      if (h) h.textContent = hit ? `Drop on ${elName(hit)}` : h.dataset.base;
+      $('#mw-drop').classList.toggle('on-map', !!hit);
+    }
+    e.dataTransfer.dropEffect = zone || hit ? 'copy' : 'none';
+  });
+  document.addEventListener('drop', async (e) => {
+    if (!hasFiles(e) || !dropReady()) return;
+    e.preventDefault();
+    const zone = e.target.closest && e.target.closest('.dr-z');
+    const hit = zone ? undefined : V.elementAtClient(e.clientX, e.clientY);
+    const to = addTarget();
+    const files = [...e.dataTransfer.files];
+    endDrop();
+    if (zone) { importSounds(files, zone.dataset.kind, to); return; }
+    if (!hit) return; // on the ground, or beside the map: nothing
+    const n = audioOnly(files).length;
+    if (!n) { toast('No audio file there: MP3, OGG, M4A or WAV.', 2600); return; }
+    const kind = await ask(n > 1 ? `${n} sounds for ${elName(hit)}: what are they?` : `${files[0].name} for ${elName(hit)}: what is it?`, 'Its colour, and how it plays: music starts as the party walks in, ambiances loop, events come back at random.', [
+      { label: 'Music', value: 'music' }, { label: 'Ambiance', value: 'ambience' }, { label: 'Event', value: 'events', cls: 'primary' },
+    ]);
+    if (kind) importSounds(files, kind, hit);
+  });
 
   /** Every sound of another .troubadour story joins the world, in a chapter named after it. */
   async function addFromStory(after) {

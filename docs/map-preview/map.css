@@ -1035,3 +1035,30 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 /* Full screen is chosen in Settings only. */
 #mw-mus-full, #mw-sbx-full { display: none !important; }
 #mw-mus-btn.t-io-dot { position: relative; }
+
+/* Sounds of the computer (Nov 2026): the Add sounds tray at the foot of the layers, and the panel turned into
+ * four zones while files are dragged over the editor. */
+.ly-add { flex: none; padding: 10px 10px 12px; border-top: 1px solid var(--line); }
+.ly-add .ad-head { display: flex; align-items: baseline; gap: 8px; margin: 0 2px 8px; min-width: 0; }
+.ly-add h3 { margin: 0; flex: none; font: 600 13px/1 'Barlow Semi Condensed', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.ly-add .ad-to { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-add .ad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ad-z { height: 58px; display: grid; justify-items: center; align-content: center; gap: 4px; border-radius: 12px; border: 1.5px dashed var(--z); background: color-mix(in srgb, var(--z) 10%, transparent); color: var(--z); font: 600 13px 'Barlow Semi Condensed', system-ui, sans-serif; cursor: pointer; }
+.ad-z svg { width: 20px; height: 20px; }
+.ad-z:hover, .ad-z.hot { background: color-mix(in srgb, var(--z) 24%, transparent); border-style: solid; }
+.ad-z:focus-visible { outline: 2px solid var(--z); outline-offset: 2px; }
+.ly-add .ad-hint { margin: 8px 2px 0; text-align: center; font-size: 12px; color: var(--muted); }
+@media (min-width: 901px) { .mp-side { position: relative; } }
+.mp-drop { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--bar); }
+.mp-drop[hidden] { display: none; }
+.mp-drop h3 { margin: 2px 2px 4px; font: 600 20px/1.2 'Cormorant SC', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-z { flex: 1; min-height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 18px; border-radius: 12px; border: 1.5px dashed var(--z); background: color-mix(in srgb, var(--z) 10%, transparent); color: var(--z); transition: background .12s, box-shadow .12s; }
+.dr-z svg { width: 30px; height: 30px; flex: none; pointer-events: none; }
+.dr-z .dr-t { display: grid; gap: 2px; pointer-events: none; }
+.dr-z b { font: 600 18px 'Barlow Semi Condensed', system-ui, sans-serif; }
+.dr-z small { font-size: 13px; color: var(--muted); }
+.dr-z.hot { background: color-mix(in srgb, var(--z) 28%, transparent); border-style: solid; box-shadow: 0 0 0 3px color-mix(in srgb, var(--z) 30%, transparent); }
+.mp-drop .dr-hint { margin: 2px; text-align: center; font-size: 13px; color: var(--muted); }
+@media (max-width: 900px) { .mp-world[data-mode="edit"].dropping .mp-side { transform: none; } }
+.mp-drop.on-map h3 { color: var(--accent); }
+.mp-drop.on-map .dr-z { opacity: .45; }
