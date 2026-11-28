@@ -1130,3 +1130,4 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 .tl-tip kbd { flex: none; font: 600 11px/1 'Barlow Semi Condensed', system-ui, sans-serif; padding: 3px 6px; border-radius: 6px; background: color-mix(in srgb, var(--bg) 18%, transparent); border: 1px solid color-mix(in srgb, var(--bg) 30%, transparent); }
 @keyframes tl-tip-in { from { opacity: 0; transform: var(--tt, none); } }
 @media (min-width: 901px) { .mp-world[data-mode="edit"] .mp-stage.zoom-up .mp-zoom { bottom: 72px; } }
+#ask-acts .k-cancel { margin-right: auto; }
