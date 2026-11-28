@@ -140,7 +140,7 @@
       const e = place.elements[i], s = e.shape;
       if (untouchable(e)) continue;
       if (s.type === 'stamp') { if (Math.hypot(p[0] - s.x, p[1] - s.y) <= s.size / 2 + tol * 0.5) return e; }
-      else if ((s.closed && M.inside(p, s.points)) || nearPath(p, s.points, s.closed, tol)) return e;
+      else if ((s.closed && M.inside(p, s.points)) || nearPath(p, s.points, s.closed, s.trail ? Math.max(tol, trailWidth(place) * 0.65) : tol)) return e;
     }
     return null;
   }
@@ -240,11 +240,53 @@
     return true;
   }
   function edited() { dirty = true; commitSoon(); if (api.onEdit) api.onEdit(); }
+  /** What a step of the history changed, between the state `from` and the state `to`: { what, el } for a tooltip.
+   *  `what`: lay, erase, move, turn, resize, rename, sounds, reach, way, wall, unwall, party, order, change. */
+  function stepBetween(from, to) {
+    try {
+      const a = JSON.parse(from), b = JSON.parse(to);
+      const ia = new Map(a.elements.map((e) => [e.id, e])), ib = new Map(b.elements.map((e) => [e.id, e]));
+      const added = b.elements.filter((e) => !ia.has(e.id)), gone = a.elements.filter((e) => !ib.has(e.id));
+      if (added.length) return { what: 'lay', el: added[0], n: added.length };
+      if (gone.length) return { what: 'erase', el: gone[0], n: gone.length };
+      if (b.walls.length > a.walls.length) return { what: 'wall' };
+      if (b.walls.length < a.walls.length) return { what: 'unwall' };
+      if (JSON.stringify(a.walls) !== JSON.stringify(b.walls)) return { what: 'wall' };
+      const moved = [];
+      for (const e of b.elements) {
+        const o = ia.get(e.id);
+        if (JSON.stringify(o) === JSON.stringify(e)) continue;
+        const so = o.shape, se = e.shape;
+        if ((so.rotation || 0) !== (se.rotation || 0)) return { what: 'turn', el: e };
+        if (so.size !== se.size) return { what: 'resize', el: e };
+        if (JSON.stringify(so) !== JSON.stringify(se)) { moved.push(e); continue; }
+        if (o.title !== e.title) return { what: 'rename', el: e };
+        if (JSON.stringify(o.cards) !== JSON.stringify(e.cards)) return { what: 'sounds', el: e };
+        if (o.radius !== e.radius) return { what: 'reach', el: e };
+        if (o.link !== e.link) return { what: 'way', el: e };
+        return { what: 'change', el: e };
+      }
+      if (moved.length) return { what: 'move', el: moved[0], n: moved.length };
+      if (a.elements.map((e) => e.id).join() !== b.elements.map((e) => e.id).join()) return { what: 'order' };
+      if (JSON.stringify(a.player) !== JSON.stringify(b.player)) return { what: 'party' };
+    } catch (e) { /* a state not read: no words for it */ }
+    return { what: 'change' };
+  }
+  /** The step Undo would take back, and the one Redo would bring again (null: none). */
+  function nextSteps() {
+    if (!place) return { undo: null, redo: null };
+    const now = stateOf();
+    // A change not yet a step of its own (it becomes one in a moment): Undo takes it back first.
+    const u = base !== null && now !== base ? stepBetween(base, now) : undoStack.length ? stepBetween(undoStack[undoStack.length - 1], now) : null;
+    const r = redoStack.length ? stepBetween(now, redoStack[redoStack.length - 1]) : null;
+    return { undo: u, redo: r };
+  }
 
   /* ---------- Clipboard: copy, cut, paste, duplicate (Alt-drag too) ---------- */
   // Kept for the session, across the maps of the world (the sounds are the world's).
   let clip = null; // { world, el (JSON) }
   let pointerW = null; // the pointer on the map, where a paste lands
+  let ghostOn = false; // the pointer over the map: the armed place shows under it
   function shiftShape(sh, dx, dy) {
     if (sh.type === 'stamp') { sh.x += dx; sh.y += dy; } else sh.points.forEach((q) => { q[0] += dx; q[1] += dy; });
   }
@@ -607,7 +649,8 @@
       gesture = { kind: 'pan', last: s };
       return;
     }
-    if (tool === 'wall' || tool === 'pen') { gesture = { kind: 'stroke', tool, pts: [w], shift: e.shiftKey }; dirty = true; return; }
+    if (tool === 'wall' || tool === 'pen' || tool === 'trail') { gesture = { kind: 'stroke', tool, pts: [w], shift: e.shiftKey }; dirty = true; return; }
+    if (tool === 'stamp' && !stamp) return; // the library open, no place picked yet
     if (tool === 'stamp') {
       snapshot();
       const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'stamp', stamp, x: w[0], y: w[1], size: stampSizer ? stampSizer(stamp, place) : Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
@@ -755,6 +798,20 @@
       edited();
       return;
     }
+    if (g.tool === 'trail') {
+      pts = M.simplify(pts, 4);
+      let n = 0;
+      for (let i = 1; i < pts.length; i++) n += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      if (pts.length < 2 || n < 20) return;
+      snapshot();
+      // A path lies under everything else: first of the elements.
+      const el = M.cleanElement({ id: M.shortId(), title: '', radius: 0, cards: [], shape: { type: 'path', closed: false, trail: true, points: pts.map((p) => [Math.round(p[0]), Math.round(p[1])]) } }, place.width, place.height);
+      place.elements.unshift(el);
+      select(el);
+      edited();
+      if (api.onCreate) api.onCreate(el);
+      return;
+    }
     pts = M.simplify(pts, 3);
     if (pts.length < 2) return;
     // A shape that ends near where it began is closed: an area. Otherwise it is a line (a river, a road).
@@ -790,6 +847,7 @@
     const s = local(e);
     const w = toWorld(s[0], s[1]);
     pointerW = w;
+    if (mode === 'edit' && tool === 'stamp' && stamp) { ghostOn = true; dirty = true; }
     let cur = '';
     if (spaceDown || (mode === 'edit' && tool === 'hand')) cur = 'grab';
     else if (onPlayer(s[0], s[1]) && (mode === 'play' || tool === 'select')) cur = 'grab';
@@ -837,9 +895,56 @@
     ctx.restore();
   }
 
+  /** A little path of packed earth, its edges darker, small stones along it (the same stones every time). */
+  const TRAIL = { edge: '#6E5238', earth: '#A07B54', light: '#C7A57A', stone: '#B8B0A3', stoneDark: '#7B746A' };
+  const trailWidth = (p) => Math.max(10, Math.round((p ? p.width : 1600) * 0.011));
+  function smoothPath(c, pts) {
+    c.beginPath();
+    c.moveTo(pts[0][0], pts[0][1]);
+    if (pts.length === 2) { c.lineTo(pts[1][0], pts[1][1]); return; }
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+      c.quadraticCurveTo(pts[i][0], pts[i][1], mx, my);
+    }
+    const l = pts[pts.length - 1];
+    c.lineTo(l[0], l[1]);
+  }
+  function drawTrail(c, pts, wd, seedText) {
+    if (!pts || pts.length < 2) return;
+    c.save();
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    smoothPath(c, pts);
+    c.strokeStyle = alpha(TRAIL.edge, 0.55); c.lineWidth = wd * 1.3; c.stroke();
+    c.strokeStyle = TRAIL.earth; c.lineWidth = wd; c.stroke();
+    c.strokeStyle = alpha(TRAIL.light, 0.45); c.lineWidth = wd * 0.32; c.setLineDash([wd * 0.9, wd * 0.7]); c.stroke(); c.setLineDash([]);
+    // Small stones, a few along the way, scattered the same each time (seeded by the path).
+    let seed = 7;
+    for (const ch of String(seedText || '')) seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const step = wd * 0.85;
+    let carry = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      if (!len) continue;
+      const nx = -(y1 - y0) / len, ny = (x1 - x0) / len;
+      for (let d = carry; d < len; d += step) {
+        if (rnd() < 0.45) continue;
+        const f = d / len, side = (rnd() - 0.5) * wd * 0.8, r = wd * (0.07 + rnd() * 0.09);
+        const x = x0 + (x1 - x0) * f + nx * side, y = y0 + (y1 - y0) * f + ny * side;
+        c.beginPath(); c.ellipse(x, y, r * 1.25, r, rnd() * Math.PI, 0, Math.PI * 2);
+        c.fillStyle = rnd() < 0.5 ? TRAIL.stone : TRAIL.stoneDark; c.fill();
+        c.beginPath(); c.arc(x - r * 0.3, y - r * 0.35, r * 0.35, 0, Math.PI * 2); c.fillStyle = 'rgba(255,255,255,.35)'; c.fill();
+      }
+      carry = (carry - len) % step; if (carry < 0) carry += step;
+    }
+    c.restore();
+  }
+
   function drawElement(el) {
     const sh = el.shape;
     const c = zoneColour(el);
+    if (sh.trail) { drawTrail(ctx, sh.points, trailWidth(place), el.id); return; }
     ctx.save();
     if (sh.type === 'stamp') {
       ctx.translate(sh.x, sh.y);
@@ -1028,7 +1133,14 @@
     if (gesture && gesture.kind === 'stroke') {
       const pts = gesture.tool === 'wall' && gesture.shift ? [gesture.pts[0], gesture.pts[gesture.pts.length - 1]] : gesture.pts;
       if (gesture.tool === 'wall') drawWall({ points: pts }, true);
+      else if (gesture.tool === 'trail') drawTrail(ctx, M.simplify(pts, 2), trailWidth(place), 'new');
       else { ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; tracePath(pts, false); ctx.stroke(); ctx.restore(); }
+    }
+
+    // The place armed in the library, under the pointer, where a click lays it.
+    if (mode === 'edit' && tool === 'stamp' && stamp && ghostOn && pointerW && !pointers.size) {
+      const size = stampSizer ? stampSizer(stamp, place) : 160;
+      ctx.save(); ctx.globalAlpha = 0.55; ctx.translate(pointerW[0], pointerW[1]); S.draw(ctx, stamp, size, pal); ctx.restore();
     }
 
     // In screen pixels from here: the long press on a way, the selection, the party.
@@ -1229,6 +1341,7 @@
     p.elements.forEach((el) => {
       const sh = el.shape;
       if (sh.type === 'stamp') { c.save(); c.translate(sh.x, sh.y); c.rotate((sh.rotation * Math.PI) / 180); c.globalAlpha = 0.95; S.draw(c, sh.stamp, sh.size, wire); c.restore(); return; }
+      if (sh.trail) { c.beginPath(); sh.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.strokeStyle = alpha(gold, 0.5); c.lineWidth = px(big ? 2.4 : 1.6); c.setLineDash([px(4), px(3)]); c.stroke(); c.setLineDash([]); return; }
       c.beginPath(); sh.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); if (sh.closed) c.closePath();
       if (sh.closed) { c.fillStyle = alpha(tint, 0.16); c.fill(); }
       c.strokeStyle = alpha(gold, sh.closed ? 0.9 : 0.75); c.lineWidth = px(big ? 1.7 : 1.1); c.stroke();
@@ -1271,6 +1384,7 @@
     p.elements.forEach((el) => {
       const sh = el.shape;
       if (sh.type === 'stamp') { c.save(); c.translate(sh.x, sh.y); c.rotate((sh.rotation * Math.PI) / 180); S.draw(c, sh.stamp, sh.size, pal); c.restore(); return; }
+      if (sh.trail) { drawTrail(c, sh.points, trailWidth(p), el.id); return; }
       c.beginPath(); sh.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); if (sh.closed) c.closePath();
       const z = el.cards[0] ? pal[el.cards[0].zone] || pal.accent : pal.ink;
       if (sh.closed) { c.fillStyle = alpha(z, 0.3); c.fill(); }
@@ -1289,7 +1403,7 @@
     cv.addEventListener('pointermove', move);
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
-    cv.addEventListener('pointerleave', () => { if (!pointers.size) cv.style.cursor = ''; });
+    cv.addEventListener('pointerleave', () => { if (!pointers.size) cv.style.cursor = ''; if (ghostOn) { ghostOn = false; dirty = true; } });
     cv.addEventListener('wheel', wheel, { passive: false });
     cv.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -1385,7 +1499,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, layStampAt, viewScale, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, layStampAt, viewScale, nextSteps, stamp: () => stamp, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),

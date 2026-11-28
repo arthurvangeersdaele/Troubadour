@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.8';
+  const VERSION = '261128.9';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -954,9 +954,113 @@
   function paintHistory() {
     const h = V.history ? V.history() : { undo: 0, redo: 0 };
     const u = document.querySelector('#mw-tools [data-act="undo"]'), r = document.querySelector('#mw-tools [data-act="redo"]');
-    if (u) { u.disabled = !h.undo; u.title = h.undo ? `Undo (Ctrl+Z): ${h.undo} step${h.undo > 1 ? 's' : ''}` : 'Nothing to undo'; }
-    if (r) { r.disabled = !h.redo; r.title = h.redo ? `Redo (Ctrl+Shift+Z): ${h.redo} step${h.redo > 1 ? 's' : ''}` : 'Nothing to redo'; }
+    if (u) { u.disabled = !h.undo; u.dataset.tip = h.undo ? 'Undo' : 'Nothing to undo'; }
+    if (r) { r.disabled = !h.redo; r.dataset.tip = h.redo ? 'Redo' : 'Nothing to redo'; }
+    paintSelTools();
   }
+  /** In words, a step of the history: "move The tavern", "lay 3 places", "draw a wall"... */
+  function stepWords(st) {
+    if (!st) return '';
+    const n = st.el ? elName(st.el) : '';
+    switch (st.what) {
+      case 'lay': return st.n > 1 ? `lay ${st.n} places` : st.el && st.el.shape.trail ? 'draw a path' : `lay ${n}`;
+      case 'erase': return st.n > 1 ? `erase ${st.n} places` : `erase ${n}`;
+      case 'wall': return 'draw a wall';
+      case 'unwall': return 'erase a wall';
+      case 'move': return st.n > 1 ? `move ${st.n} places` : `move ${n}`;
+      case 'turn': return `turn ${n}`;
+      case 'resize': return `resize ${n}`;
+      case 'rename': return `rename ${n}`;
+      case 'sounds': return `the sounds of ${n}`;
+      case 'reach': return `the reach of ${n}`;
+      case 'way': return `the way of ${n}`;
+      case 'order': return 'the order of the places';
+      case 'party': return 'move the party';
+      default: return n ? `change ${n}` : 'the last change';
+    }
+  }
+  /** The toolbar's tooltips, drawn by the app (above the tools at the foot, beside them on a phone):
+   *  a name, its key, and for Undo and Redo the step they take. */
+  function wireToolTips() {
+    const tip = el('div', 'tl-tip');
+    tip.setAttribute('role', 'tooltip');
+    tip.hidden = true;
+    document.body.append(tip);
+    const tools = $('#mw-tools');
+    tools.querySelectorAll('button').forEach((b) => {
+      if (b.title) { b.dataset.tip = b.title; b.setAttribute('aria-label', b.title); b.removeAttribute('title'); }
+    });
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+    const C = mac ? '⌘' : 'Ctrl+';
+    let on = null;
+    const show = (b) => {
+      on = b;
+      tip.textContent = '';
+      let text = b.dataset.tip || '';
+      const act = b.dataset.act;
+      if ((act === 'undo' || act === 'redo') && !b.disabled) {
+        const st = V.nextSteps()[act];
+        const words = stepWords(st);
+        tip.append(el('span', '', ''), el('kbd', '', act === 'undo' ? `${C}Z` : `${C}Shift+Z`));
+        tip.firstChild.append(el('b', '', `${act === 'undo' ? 'Undo' : 'Redo'}${words ? ': ' : ''}`), document.createTextNode(words));
+      } else {
+        // "Name (K). More": the key apart, in its own chip.
+        const m = text.match(/^(.*?)\s*\(([^)]+)\)(.*)$/);
+        if (m) { tip.append(el('span', '', `${m[1]}${m[3]}`), el('kbd', '', m[2].replace(/^Ctrl\+/, C))); }
+        else tip.append(el('span', '', text));
+      }
+      tip.hidden = false;
+      const r = b.getBoundingClientRect(), flat = tools.offsetWidth > tools.offsetHeight;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let x = flat ? r.left + r.width / 2 - tw / 2 : r.right + 10, y = flat ? r.top - th - 10 : r.top + r.height / 2 - th / 2;
+      x = Math.max(8, Math.min(innerWidth - tw - 8, x)); y = Math.max(8, y);
+      tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+      tip.classList.toggle('above', flat);
+    };
+    const hide = () => { on = null; tip.hidden = true; };
+    tools.addEventListener('pointerover', (e) => { const b = e.target.closest('button'); if (b && e.pointerType === 'mouse' && b !== on) show(b); });
+    tools.addEventListener('pointerleave', hide);
+    tools.addEventListener('pointerdown', hide);
+    tools.addEventListener('focusin', (e) => { const b = e.target.closest('button'); if (b && b.matches(':focus-visible')) show(b); });
+    tools.addEventListener('focusout', hide);
+  }
+
+  /** The actions on what is selected, in the toolbar while something is: duplicate, turn, forward, backward, delete. */
+  function paintSelTools() {
+    const g = $('#mw-tl-sel');
+    if (!g) return;
+    const sel = mode === 'edit' ? V.selected() : null;
+    if (g.hidden !== !sel) { g.hidden = !sel; const t = $('#mw-tools'); placeTools(t.offsetLeft, t.offsetTop); }
+    if (!sel) return;
+    const els = place().elements, many = V.selection().length > 1, i = els.indexOf(sel);
+    g.querySelector('[data-sel="turn"]').disabled = many;
+    g.querySelector('[data-sel="front"]').disabled = many || i === els.length - 1;
+    g.querySelector('[data-sel="back"]').disabled = many || i <= 0;
+  }
+  function selAction(k) {
+    const sel = V.selected();
+    if (!sel || mode !== 'edit') return;
+    const els = place().elements;
+    if (k === 'dup') { if (V.selection().length > 1) { V.duplicate(); V.selection().forEach((x) => numbered(x)); } else duplicateElement(sel); }
+    else if (k === 'del') { V.deleteSelected(); }
+    else if (k === 'turn') {
+      V.snapshot();
+      const was = sel.shape.rotation || 0;
+      let r = Math.round((was + 15) / 15) * 15;
+      if (r > 180) r -= 360;
+      if (sel.shape.type !== 'stamp') { const a = ((r - was) * Math.PI) / 180, co = Math.cos(a), si = Math.sin(a); transformPath(sel, (x, y) => [x * co - y * si, x * si + y * co]); }
+      sel.shape.rotation = r;
+      V.edited();
+    } else if (k === 'front' || k === 'back') {
+      const i = els.indexOf(sel), j = i + (k === 'front' ? 1 : -1);
+      if (j < 0 || j >= els.length) return;
+      V.snapshot();
+      els.splice(i, 1); els.splice(j, 0, sel);
+      V.edited();
+    }
+    save(); V.redraw(); renderPanel(); renderLayers(); renderPlaces(); paintSelTools();
+  }
+
   /** A pasted or duplicated element takes the next number of its kind. */
   function numbered(c, from) {
     const kind = (c.title || '').replace(/\s+\d+$/, '') || elName(from || c);
@@ -988,7 +1092,7 @@
     const mac = /Mac|iPhone|iPad/.test(navigator.platform || '');
     const C = mac ? 'Cmd' : 'Ctrl';
     const groups = [
-      ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['L', 'Places: the library'], ['E', 'Eraser']]],
+      ['Tools', [['V', 'Select and move'], ['H, or hold Space', 'Move the map'], ['W', 'Wall (Shift: a straight one)'], ['P', 'Path'], ['L', 'Places: the library'], ['E', 'Eraser']]],
       ['Editing', [[`${C}+Z`, 'Undo'], [`${C}+Shift+Z, ${C}+Y`, 'Redo'], [`${C}+C`, 'Copy the place'], [`${C}+X`, 'Cut the place'], [`${C}+V`, 'Paste at the pointer (on any map of the world)'], [`${C}+D`, 'Duplicate the place'], [`${C}+A`, 'Select every place'], ['Shift + click', 'Add a place to the selection, or take it away'], ['Shift + drag on the map', 'Select every place in a band'], ['Arrows', 'Move the selection (Shift: further)'], ['Alt + drag', 'Move a copy'], ['Drag the round handle', 'The reach of the selected place'], ['Delete', 'Delete the place'], ['Escape', 'Select nothing']]],
       ['Sound', [['S', 'Hear what the party hears, from the golden point']]],
       ['View', [['+ and -', 'Zoom'], ['F', 'The whole map'], ['?', 'This page']]],
@@ -1394,6 +1498,7 @@
     else if (sel) playElement(box, sel); else playPlace(box, p);
     paintEdView();
     paintAddTray();
+    paintSelTools();
     paintRanges(box);
     refreshLive();
     requestAnimationFrame(() => rollTitles(box));
@@ -1414,7 +1519,7 @@
     });
   }
   const stampLabel = (id) => { const c = window.MapStamps.custom(id); return c ? c.name : (window.MapStamps.LIST.find((s) => s.id === id) || { label: id }).label; };
-  const elName = (e) => e.title || (e.shape.type === 'stamp' ? stampLabel(e.shape.stamp) : e.shape.closed ? 'Drawn area' : 'Drawn line');
+  const elName = (e) => e.title || (e.shape.type === 'stamp' ? stampLabel(e.shape.stamp) : e.shape.trail ? 'Path' : e.shape.closed ? 'Drawn area' : 'Drawn line');
 
   /* The world's soundbox and music, in the editor: behind the Soundbox and Music buttons of its top bar. */
   let edView = null; // null (the map or the element selected), 'soundbox' or 'music'
@@ -1564,7 +1669,7 @@
     box.append(ground);
 
     const how = inTab(section('Drawing'), 'map');
-    how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Element: draw a shape that ends near its start for an area, or a line for a river or a road. Library: lakes, mountains, forests and more. Double tap an element (with the select tool) to give it sounds, a reach and a way to another place.'));
+    how.append(el('p', '', 'Wall: draws walls (Shift for a straight one). Path: draws a little path of earth and stones. Places: lakes, mountains, forests and more, to click or drag onto the map. Double click a place (with the select tool) to give it sounds, a reach and a way to another place.'));
     box.append(how);
 
     const acts = section('This map');
@@ -1612,7 +1717,7 @@
     t.addEventListener('input', () => { e.title = t.value.trim(); $('#mw-side-title').textContent = e.title || 'Element'; V.redraw(); save(); });
     id.append(t);
     id.append(sizeStepper(e), turnStepper(e));
-    if (sh.type !== 'stamp' && sh.points.length > 2) {
+    if (sh.type !== 'stamp' && !sh.trail && sh.points.length > 2) {
       const l = el('label', 'row-set toggle');
       const span = el('span', '', 'Closed shape');
       span.append(el('small', '', 'An area (inside it, its sounds are at full volume), or a line'));
@@ -2476,10 +2581,17 @@
   }
 
   /* ================= Tools ================= */
-  const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, stamp: ICON.stamp, eraser: ICON.eraser };
+  const TRAIL_ICON = svg('<path d="M6 21c0-4 3-5.5 6-7s5-3.5 5-7.5V3"/><path d="M11 21c0-3 2-4 4.5-5.2S20 13 20 8.5V3" opacity=".55"/><circle cx="8.6" cy="15.8" r=".9" fill="currentColor"/><circle cx="14.3" cy="10.6" r=".9" fill="currentColor"/><circle cx="17.6" cy="5.6" r=".8" fill="currentColor"/>', 19);
+  const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, trail: TRAIL_ICON, stamp: ICON.stamp, eraser: ICON.eraser };
+  const SEL_ICON = {
+    dup: ICON.copy,
+    turn: ICON.turn,
+    front: svg('<path d="M12 4l-6 6h4v6h4v-6h4z" fill="currentColor" stroke="none" opacity=".9"/><path d="M5 20h14"/>', 18),
+    back: svg('<path d="M12 20l-6-6h4V8h4v6h4z" fill="currentColor" stroke="none" opacity=".9"/><path d="M5 4h14"/>', 18),
+    del: window.TroubadourUI && window.TroubadourUI.ICON && window.TroubadourUI.ICON.trash ? window.TroubadourUI.ICON.trash : svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', 18),
+  };
   function paintTools(t) {
-    const lib = !$('#mw-stamps').hidden;
-    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t || (b.dataset.tool === 'stamp' && lib))));
+    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
   }
   function buildStamps() {
     const box = $('#mw-stamps');
@@ -2526,7 +2638,7 @@
     const head = el('div', 'st-head');
     const shut = el('button', 'ico small');
     shut.type = 'button'; shut.innerHTML = ICON.close; shut.title = 'Close the places'; shut.setAttribute('aria-label', 'Close the places');
-    shut.addEventListener('click', () => { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); });
+    shut.addEventListener('click', closeLibrary);
     head.append(el('h3', '', 'Places'), el('span', 'grow'), shut);
     box.prepend(head);
     S.LIST.forEach((s) => {
@@ -2581,6 +2693,23 @@
       window.addEventListener('pointercancel', up);
     });
   }
+  /** The library of places: open, the Places tool is in hand, nothing armed until a place is picked. */
+  function openLibrary() {
+    const box = $('#mw-stamps');
+    setLeftMin(false);
+    paintStamps(null);
+    V.setStamp(null);
+    box.hidden = false;
+    placeFloats();
+    renderOpts('stamp');
+    box.scrollTop = 0;
+  }
+  function closeLibrary() {
+    const box = $('#mw-stamps');
+    box.hidden = true;
+    paintStamps(null);
+    if (V.tool() === 'stamp') V.setTool('select'); else { paintTools(V.tool()); renderOpts(V.tool()); }
+  }
   /* The size a place is laid at: Auto gives each its natural size (a bush small, a kingdom huge); the others
    * give every place the same share of the map's width. Changed afterwards on the place itself, in % of the map. */
   const PLACE_SIZES = [['auto', 'Auto', 'Each place at its natural size'], ['s', 'S', '6 % of the map'], ['m', 'M', '10 % of the map'], ['l', 'L', '16 % of the map'], ['xl', 'XL', '25 % of the map']];
@@ -2603,7 +2732,25 @@
     return seg;
   }
   let currentStamp = null;
-  function paintStamps(id) { currentStamp = id; document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); setTimeout(() => { if (mode === 'edit' && (V.tool() === 'stamp' || !$('#mw-stamps').hidden)) renderOpts('stamp'); }, 0); }
+  /** The Places button shows the place armed (a click on the map lays it), or its own icon. */
+  function paintPlacesBtn(id) {
+    const b = document.querySelector('#mw-tools [data-tool="stamp"]');
+    if (!b) return;
+    const key = id || '';
+    if (b.dataset.armed === key) return;
+    b.dataset.armed = key;
+    b.classList.toggle('armed', !!id);
+    if (!id) { b.innerHTML = TOOL_ICON.stamp; b.dataset.tip = 'Places: the library, and your own (L)'; return; }
+    const cv = el('canvas');
+    cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    c.translate(32, 32);
+    window.MapStamps.draw(c, id, 58, V.palette());
+    b.textContent = '';
+    b.append(cv);
+    b.dataset.tip = `${stampLabel(id)}: click the map to lay it. Escape stops`;
+  }
+  function paintStamps(id) { currentStamp = id; paintPlacesBtn(id); document.querySelectorAll('#mw-stamps [data-stamp]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stamp === id))); setTimeout(() => { if (mode === 'edit' && (V.tool() === 'stamp' || !$('#mw-stamps').hidden)) renderOpts('stamp'); }, 0); }
 
   /* ================= A place of your own: lines in the theme's ink, colour poured into its shapes or brushed under its lines ================= */
   const LINE_W = [0.01, 0.022, 0.036];   // fine, normal, bold
@@ -4066,8 +4213,10 @@
     if (!narrowEditor()) {
       tools.style.left = tools.style.top = ''; stage.classList.remove('tools-right'); placeLib();
       // Centred at the foot of the map, unless the zoom would be under them: then at its left.
-      const zw = ($('#mw-stage .mp-zoom') || {}).offsetWidth || 0;
-      stage.classList.toggle('tools-left', (stage.clientWidth - tools.offsetWidth) / 2 < zw + 24);
+      const zw = ($('#mw-stage .mp-zoom') || {}).offsetWidth || 0, sw = stage.clientWidth, tw = tools.offsetWidth;
+      stage.classList.toggle('tools-left', (sw - tw) / 2 < zw + 24);
+      // Still no room beside them: the zoom goes up, over the tools' corner.
+      stage.classList.toggle('zoom-up', tw + zw + 48 > sw);
       return null;
     }
     placeLib();
@@ -4207,20 +4356,15 @@
     $('#mw-tools [data-act="undo"]').innerHTML = ICON.undo;
     $('#mw-tools [data-act="redo"]').innerHTML = ICON.redo;
     $('#mw-tools [data-act="keys"]').innerHTML = ICON.keys;
+    $('#mw-tools [data-act="settings"]').innerHTML = window.TroubadourUI.ICON.gear;
+    document.querySelectorAll('#mw-tools [data-sel]').forEach((b) => { b.innerHTML = SEL_ICON[b.dataset.sel]; });
+    wireToolTips();
     $('#mw-tools').addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (!b) return;
       if (b.dataset.tool === 'stamp') {
         // The library opens with nothing picked: a place is armed only once chosen in it.
-        const box = $('#mw-stamps');
-        if (!box.hidden) { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); return; }
-        paintStamps(null);
-        box.hidden = false;
-        setLeftMin(false);
-        placeFloats();
-        renderOpts('stamp');
-        box.scrollTop = 0;
-        b.setAttribute('aria-pressed', 'true');
+        if (!$('#mw-stamps').hidden && (V.tool() === 'stamp' || narrowEditor())) closeLibrary(); else openLibrary();
         return;
       }
       if (narrowEditor()) $('#mw-stamps').hidden = true;
@@ -4228,6 +4372,8 @@
       else if (b.dataset.act === 'undo') undoRedo(true);
       else if (b.dataset.act === 'redo') undoRedo(false);
       else if (b.dataset.act === 'keys') shortcuts();
+      else if (b.dataset.act === 'settings') openSettings();
+      else if (b.dataset.sel) selAction(b.dataset.sel);
       else if (b.dataset.act === 'fit') V.fit();
 
     });
@@ -4290,7 +4436,7 @@
     // The map.
     V.mount($('#mw-canvas'));
     $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
-    V.onTool = (t) => { paintTools(t); if (t !== 'stamp' && narrowEditor()) $('#mw-stamps').hidden = true; renderOpts(t); };
+    V.onTool = (t) => { paintTools(t); if (t !== 'stamp') { if (currentStamp) paintStamps(null); if (narrowEditor()) $('#mw-stamps').hidden = true; } renderOpts(t); };
     // An element deleted (its button, the Delete key, the eraser): its panel closes, never falling back on the map's
     // panel (where the map itself can be deleted).
     let shownEl = null;
@@ -4306,7 +4452,7 @@
     // A new element: a name of its own, and its panel opens to name it and give it sounds.
     V.onCreate = (e) => {
       if (mode !== 'edit') return;
-      if (!e.title) {
+      if (!e.title && !e.shape.trail) {
         const sh = e.shape;
         const kind = sh.type === 'stamp' ? stampLabel(sh.stamp) || 'Drawing' : sh.closed ? 'Area' : 'Line';
         const same = place().elements.filter((x) => x !== e && x.title && x.title.startsWith(kind)).length;
@@ -4314,7 +4460,7 @@
         save(); V.redraw();
       }
       // A place laid: back to the select tool, to move it or open it. The panel stays as it was: open, it shows the new place.
-      if (e.shape.type === 'stamp') V.setTool('select');
+      if (e.shape.type === 'stamp' && narrowEditor()) V.setTool('select');
       edView = null;
       renderPanel();
       renderLayers();
@@ -4411,13 +4557,13 @@
       if (e.key === '+' || e.key === '=') { V.zoomBy(1.25); return; }
       if (e.key === '-') { V.zoomBy(1 / 1.25); return; }
       if (mode === 'edit') {
-        const map = { v: 'select', h: 'hand', w: 'wall', e: 'eraser' };
+        const map = { v: 'select', h: 'hand', w: 'wall', p: 'trail', e: 'eraser' };
         const k = e.key.toLowerCase();
         if (map[k]) { V.setTool(map[k]); return; }
-        if (k === 'l') { paintStamps(null); $('#mw-stamps').hidden = false; return; }
+        if (k === 'l') { if ($('#mw-stamps').hidden) openLibrary(); else closeLibrary(); return; }
         if (k === 's') { hear(!hearing); return; }
         if ((e.key === 'Delete' || e.key === 'Backspace') && V.selected()) { e.preventDefault(); V.deleteSelected(); return; }
-        if (e.key === 'Escape') { $('#mw-stamps').hidden = true; V.select(null); return; }
+        if (e.key === 'Escape') { closeLibrary(); V.select(null); return; }
         if (e.key.startsWith('Arrow') && V.selected()) {
           e.preventDefault();
           const d = e.shiftKey ? 50 : 10;

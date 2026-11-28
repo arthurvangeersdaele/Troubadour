@@ -27,5 +27,7 @@ jobs:
         run: node tests/map/intro-outro.mjs
       - name: Sounds of the computer (the tray, the drop zones, a drop on a place)
         run: node tests/map/drop.mjs
+      - name: The toolbar of the editor (path, places armed, selection, tooltips)
+        run: node tests/map/toolbar.mjs
       - name: The intro and the outro of a story (Troubadour for iPhone, web player)
         run: node tests/intro/run.mjs

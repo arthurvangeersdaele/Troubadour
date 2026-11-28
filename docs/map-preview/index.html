@@ -273,12 +273,23 @@
         <button type="button" data-tool="hand" title="Move the map (H, or hold Space)"></button>
         <i></i>
         <button type="button" data-tool="wall" title="Wall: muffles the sounds behind it (W). Shift for a straight wall"></button>
+        <button type="button" data-tool="trail" title="Path: a little path of earth and stones (P)"></button>
         <button type="button" data-tool="stamp" title="Places: the library, and your own (L)"></button>
         <button type="button" data-tool="eraser" title="Eraser (E)"></button>
+        <div class="tl-sel" id="mw-tl-sel" hidden>
+          <i></i>
+          <button type="button" data-sel="dup" title="Duplicate (Ctrl+D)"></button>
+          <button type="button" data-sel="turn" title="Turn by 15°"></button>
+          <button type="button" data-sel="front" title="Bring forward"></button>
+          <button type="button" data-sel="back" title="Send backward"></button>
+          <button type="button" data-sel="del" class="danger" title="Delete (Delete)"></button>
+        </div>
         <i></i>
         <button type="button" data-act="undo" title="Undo (Ctrl+Z)"></button>
         <button type="button" data-act="redo" title="Redo (Ctrl+Shift+Z)"></button>
         <button type="button" data-act="keys" title="Keyboard shortcuts (?)"></button>
+        <i></i>
+        <button type="button" data-act="settings" title="Settings"></button>
       </div>
       <div class="mp-opts" id="mw-opts" hidden></div>
       <div class="mp-pinstrip" id="mw-pinstrip" hidden aria-label="Pinned effects"></div>
@@ -370,7 +381,7 @@
       <div class="stepper"><button class="ico small" type="button" id="trail-hand-less" aria-label="Slower">−</button><b id="trail-hand-val">4×</b><button class="ico small" type="button" id="trail-hand-more" aria-label="Faster">+</button></div>
     </div>
     </div>
-    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall, the way goes through a door</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
+    <label class="row-set toggle"><span>The party passes through walls<small>Off: the point and its trail never go through a wall</small></span><input type="checkbox" id="opt-trail-walls"><i></i></label>
     <label class="row-set toggle"><span>Volume viewer<small>A ring around every place heard, wider as it is louder</small></span><input type="checkbox" id="opt-heard-rings"><i></i></label>
     <label class="row-set toggle"><span>Hearing circles<small>The tinted ground around every element with sounds: how far each is heard, while you play</small></span><input type="checkbox" id="opt-rings"><i></i></label>
     <label class="row-set toggle"><span>Place names<small>Written on the map, beside each place</small></span><input type="checkbox" id="opt-names"><i></i></label>

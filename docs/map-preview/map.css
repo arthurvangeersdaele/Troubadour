@@ -1115,3 +1115,18 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
   .mp-world[data-mode="edit"] .left-sizer { left: calc(var(--left-w, 190px) - 4px); }
 }
 @media (min-width: 901px) { .mp-world[data-mode="edit"] .mp-stage.tools-left .mp-tools { left: 12px !important; transform: none; } }
+
+/* The toolbar (Nov 2026): the actions on what is selected, the place armed, its own tooltips. */
+.mp-tools .tl-sel { display: flex; flex-direction: inherit; align-items: center; gap: inherit; }
+.mp-tools .tl-sel[hidden] { display: none; }
+.mp-tools button.danger { color: var(--evt); }
+.mp-tools button.armed { padding: 3px; }
+.mp-tools button.armed canvas { width: 100%; height: 100%; display: block; }
+.mp-tools button.armed[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 22%, var(--card)); border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+.tl-tip { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; display: flex; align-items: center; gap: 8px; max-width: 320px; padding: 7px 10px; border-radius: 10px; background: var(--text); color: var(--bg); font: 500 13px/1.25 'Barlow Semi Condensed', system-ui, sans-serif; box-shadow: 0 10px 30px var(--shadow); animation: tl-tip-in .12s ease-out; }
+.tl-tip[hidden] { display: none; }
+.tl-tip b { font-weight: 700; }
+.tl-tip span { min-width: 0; }
+.tl-tip kbd { flex: none; font: 600 11px/1 'Barlow Semi Condensed', system-ui, sans-serif; padding: 3px 6px; border-radius: 6px; background: color-mix(in srgb, var(--bg) 18%, transparent); border: 1px solid color-mix(in srgb, var(--bg) 30%, transparent); }
+@keyframes tl-tip-in { from { opacity: 0; transform: var(--tt, none); } }
+@media (min-width: 901px) { .mp-world[data-mode="edit"] .mp-stage.zoom-up .mp-zoom { bottom: 72px; } }

@@ -1,6 +1,6 @@
 /* Troubadour Map: keeps the app itself on the device so it opens without a connection.
  * Worlds and sounds live in IndexedDB, not here. Bump VERSION (and VERSION in app.js) to ship an update. */
-const VERSION = '261128.8';
+const VERSION = '261128.9';
 const SHELL = `troubadour-mpreview-${VERSION}`;
 const FONTS = 'troubadour-mpreview-fonts';
 const FILES = [
