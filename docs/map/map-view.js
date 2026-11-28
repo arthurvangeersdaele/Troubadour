@@ -1047,11 +1047,18 @@
       light = true;
     }
     if (hoverEl) {
-      const b = M.bounds(hoverEl.shape);
-      const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
-      ctx.save(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.fillStyle = alpha(pal.accent, 0.12);
-      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20, 12) : ctx.rect(p[0] - 10, p[1] - 10, q[0] - p[0] + 20, q[1] - p[1] + 20);
-      ctx.fill(); ctx.stroke(); ctx.restore();
+      // The place a dragged sound would join: a golden ring around it, with a soft halo.
+      const bb = M.bounds(hoverEl.shape);
+      const p = toScreen([bb[0], bb[1]]), q = toScreen([bb[2], bb[3]]);
+      const cx = (p[0] + q[0]) / 2, cy = (p[1] + q[1]) / 2;
+      const r = Math.max(22, Math.hypot(q[0] - p[0], q[1] - p[1]) / 2 + 8);
+      const gold = pal.music || pal.accent;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = alpha(gold, 0.14); ctx.fill();
+      ctx.strokeStyle = alpha(gold, 0.3); ctx.lineWidth = 9; ctx.stroke();
+      ctx.strokeStyle = gold; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.restore();
     }
     if (mode === 'edit' && group.size) {
       ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.2;

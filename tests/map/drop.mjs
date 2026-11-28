@@ -33,7 +33,7 @@ ok(await page.locator('#mw-drop[hidden]').count()===1,'zones gone after the drop
 const inWorld=await page.evaluate(async(u)=>{await new Promise(r=>setTimeout(r,800)); const r=await window.MapDB.get(u); return JSON.stringify(r.story.chapters.map(c=>(c.ambience||[]).map(s=>s.name))).includes('arrow hit');},uid);
 ok(inWorld,'dropped on Ambiances: an ambiance of the world');
 // Drop on a place of the map: the tavern around (978,590)
-await hold(978,590); await page.waitForTimeout(150); await let_go();
+await hold(978,590); await page.waitForTimeout(150); if (process.env.SHOT) await page.screenshot({path:process.env.SHOT}); await let_go();
 await fire('drop',978,590); await page.waitForTimeout(500);
 const q=await page.locator('dialog[open]').innerText().catch(()=>'' ); ok(/for/.test(q),'a drop on a place asks its kind: '+q.split('\n')[0]);
 await page.locator('dialog[open] button:has-text("Music")').click(); await page.waitForTimeout(1500);
