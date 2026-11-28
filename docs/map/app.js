@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.9';
+  const VERSION = '261128.10';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -4488,6 +4488,8 @@
     $('#mw-title-in').addEventListener('blur', (ev) => { if (rec && !rec.story.title.trim()) { rec.story.title = 'Untitled world'; ev.target.value = rec.story.title; $('#mw-title').textContent = rec.story.title; save(); } });
     $('#mw-title-in').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') ev.target.blur(); });
     V.onHistory = paintHistory;
+    // Sized or turned by the arrows of its frame: its panel shows the new size and angle.
+    V.onTransformed = () => { save(); renderPanel(); };
     V.onNoWay = () => toast('No way there: walls close it off.', 2000);
     V.onReach = reachDragged;
     V.reachLabel = (e) => `Heard up to ${fmtReach(e.radius / elSize(e))}`;

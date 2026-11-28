@@ -39,4 +39,18 @@ await page.hover('#mw-tools [data-act="undo"]'); await page.waitForTimeout(200);
 await page.hover('#mw-tools [data-tool="trail"]'); await page.waitForTimeout(200); 
 // left-min + L
 await page.mouse.click(700,760); await page.click('.left-min-btn'); await page.waitForTimeout(300); await page.keyboard.press('l'); await page.waitForTimeout(300); r=await st(); ok(r.lib && !(await page.evaluate(()=>document.getElementById('world').classList.contains('left-min'))), 'L with the left column hidden: it opens, with the library');
+// The frame's arrows, as Inkscape's: size in proportion, a click again to turn.
+await page.keyboard.press('Escape'); await page.mouse.click(968,575); await page.waitForTimeout(300);
+{ const info=()=>page.evaluate(()=>{const e=MapView.selected(); return e&&{size:e.shape.size, rot:e.shape.rotation||0, mode:MapView.handleMode(), h:MapView.__handles(), r:document.getElementById('mw-canvas').getBoundingClientRect().toJSON()};});
+  const corner=(i,k)=>[i.r.left+i.h[k][0]+(k===0||k===3?-7:7), i.r.top+i.h[k][1]+(k<2?-7:7)];
+  const i0=await info();
+  if (i0) {
+    let [x,y]=corner(i0,2); await page.mouse.move(x,y); await page.mouse.down(); for(let k=1;k<=10;k++){await page.mouse.move(x+k*4,y+k*4); await page.waitForTimeout(15);} await page.mouse.up(); await page.waitForTimeout(200);
+    const i1=await info(); ok(i1.size>i0.size && i1.rot===i0.rot, `a corner arrow sizes it (${i0.size} to ${i1.size})`);
+    await page.mouse.click(968,575); await page.waitForTimeout(450);
+    const i2=await info(); ok(i2.mode==='rotate', 'a click again on it: the arrows turn it');
+    [x,y]=corner(i2,1); await page.mouse.move(x,y); await page.mouse.down(); for(let k=1;k<=10;k++){await page.mouse.move(x+k*3,y+k*5); await page.waitForTimeout(15);} await page.mouse.up(); await page.waitForTimeout(200);
+    const i3=await info(); ok(i3.rot!==i2.rot && i3.size===i2.size, `a corner arrow turns it (${i3.rot}°)`);
+  } else ok(false, 'a place selected for the arrows');
+}
 ok(!errs.length, `no error (${errs.join(' | ')})`); if(!fails) console.log('\nAll good'); await b.close(); server.close(); process.exit(fails?1:0);

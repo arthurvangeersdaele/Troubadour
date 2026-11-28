@@ -30,7 +30,7 @@
   let dpr = 1, W = 0, H = 0, dirty = true;
   let pal = null;
   const undoStack = [], redoStack = [];
-  const api = { onLaid: null, onNoWay: null, onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
+  const api = { onTransformed: null, onLaid: null, onNoWay: null, onHold: null, onCreate: null, onSelect: null, onEdit: null, onTap: null, onOpen: null, onLink: null, onPlayer: null, onTool: null };
 
   /* ---------- Colours of the map, from the theme ---------- */
   function hex(c) {
@@ -163,6 +163,100 @@
     const q = toScreen(reachHandle(selected));
     return Math.hypot(sx - q[0], sy - q[1]) <= 18;
   }
+  /* The frame of the selected element, as Inkscape's: arrows at its corners. A first click shows the arrows that size it
+   * (in proportion only); a click again on it turns them into the arrows that turn it, round its middle. */
+  let handleMode = 'scale';
+  function frameCorners(el) {
+    const b = M.bounds(el.shape);
+    const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
+    return [[p[0] - 8, p[1] - 8], [q[0] + 8, p[1] - 8], [q[0] + 8, q[1] + 8], [p[0] - 8, q[1] + 8]];
+  }
+  function canHandle() { return !!selected && !group.size && mode === 'edit' && tool === 'select' && place.elements.includes(selected); }
+  /** The corner arrow under the pointer (0: top left, then clockwise), or -1. */
+  function handleAt(sx, sy) {
+    if (!canHandle()) return -1;
+    const cs = frameCorners(selected);
+    for (let i = 0; i < 4; i++) {
+      // Each arrow sits a little outside its corner.
+      const ox = i === 0 || i === 3 ? -7 : 7, oy = i < 2 ? -7 : 7;
+      if (Math.hypot(sx - cs[i][0] - ox, sy - cs[i][1] - oy) <= 13) return i;
+    }
+    return -1;
+  }
+  const shapeCopy = (sh) => JSON.parse(JSON.stringify(sh));
+  function transformDrag(g, w, snap) {
+    const el = g.el, o = g.orig, c = g.c;
+    if (g.kind === 'scale') {
+      const d0 = Math.max(1e-6, Math.hypot(g.w0[0] - c[0], g.w0[1] - c[1]));
+      let f = Math.hypot(w[0] - c[0], w[1] - c[1]) / d0;
+      if (o.type === 'stamp') f = Math.max(10 / o.size, Math.min(4000 / o.size, f));
+      else f = Math.max(0.05, Math.min(20, f));
+      if (snap) f = Math.max(0.1, Math.round(f * 10) / 10);
+      g.f = f;
+      if (o.type === 'stamp') el.shape.size = Math.round(o.size * f);
+      else el.shape.points = o.points.map((q) => [c[0] + (q[0] - c[0]) * f, c[1] + (q[1] - c[1]) * f]);
+      el.radius = Math.round(g.r0 * f);
+    } else {
+      const a0 = Math.atan2(g.w0[1] - c[1], g.w0[0] - c[0]), a1 = Math.atan2(w[1] - c[1], w[0] - c[0]);
+      let deg = ((a1 - a0) * 180) / Math.PI;
+      let rot = (o.rotation || 0) + deg;
+      if (snap) rot = Math.round(rot / 15) * 15;
+      rot = Math.round(rot);
+      while (rot > 180) rot -= 360;
+      while (rot <= -180) rot += 360;
+      deg = rot - (o.rotation || 0);
+      g.deg = rot;
+      if (o.type === 'stamp') el.shape.rotation = rot;
+      else {
+        const a = (deg * Math.PI) / 180, co = Math.cos(a), si = Math.sin(a);
+        el.shape.points = o.points.map((q) => [c[0] + (q[0] - c[0]) * co - (q[1] - c[1]) * si, c[1] + (q[0] - c[0]) * si + (q[1] - c[1]) * co]);
+        el.shape.rotation = rot;
+      }
+    }
+  }
+  /** The arrows: double arrows to size, curved ones to turn; a cross in the middle while turning. */
+  function drawHandles() {
+    const cs = frameCorners(selected);
+    const busy = gesture && (gesture.kind === 'scale' || gesture.kind === 'rotate');
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    cs.forEach((q, i) => {
+      const sx = i === 0 || i === 3 ? -1 : 1, sy = i < 2 ? -1 : 1;
+      const x = q[0] + sx * 7, y = q[1] + sy * 7;
+      ctx.save(); ctx.translate(x, y);
+      ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fillStyle = alpha(pal.bg, 0.92); ctx.fill();
+      ctx.lineWidth = 1.2; ctx.strokeStyle = alpha(pal.accent, 0.6); ctx.stroke();
+      ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.accent; ctx.lineWidth = 1.8;
+      if (handleMode === 'scale') {
+        // A double arrow along the diagonal.
+        ctx.rotate(Math.atan2(sy, sx));
+        ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.stroke();
+        [-1, 1].forEach((d) => { ctx.beginPath(); ctx.moveTo(d * 7.5, 0); ctx.lineTo(d * 3.5, -3.2); ctx.lineTo(d * 3.5, 3.2); ctx.closePath(); ctx.fill(); });
+      } else {
+        // A curved arrow round the corner.
+        ctx.rotate(Math.atan2(sy, sx) + Math.PI / 2);
+        ctx.beginPath(); ctx.arc(0, 6, 7, -Math.PI * 0.85, -Math.PI * 0.15); ctx.stroke();
+        const e1 = [Math.cos(-Math.PI * 0.15) * 7, 6 + Math.sin(-Math.PI * 0.15) * 7], e0 = [Math.cos(-Math.PI * 0.85) * 7, 6 + Math.sin(-Math.PI * 0.85) * 7];
+        [[e1, 1], [e0, -1]].forEach(([e, d]) => { ctx.beginPath(); ctx.moveTo(e[0] + d * 3, e[1] + 1); ctx.lineTo(e[0] - d * 1.5, e[1] - 3.4); ctx.lineTo(e[0] - d * 1.2, e[1] + 3.2); ctx.closePath(); ctx.fill(); });
+      }
+      ctx.restore();
+    });
+    if (handleMode === 'rotate') {
+      const m = toScreen(M.centre(selected.shape));
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(m[0] - 7, m[1]); ctx.lineTo(m[0] + 7, m[1]); ctx.moveTo(m[0], m[1] - 7); ctx.lineTo(m[0], m[1] + 7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(m[0], m[1], 3.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (busy && pointerS) {
+      const t = gesture.kind === 'scale' ? `${Math.round((gesture.f || 1) * 100)} %` : `${gesture.deg != null ? gesture.deg : selected.shape.rotation || 0}°`;
+      ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(t).width;
+      ctx.fillStyle = alpha(pal.bg, 0.88); ctx.fillRect(pointerS[0] + 14, pointerS[1] - 26, tw + 12, 22);
+      ctx.fillStyle = pal.ink; ctx.fillText(t, pointerS[0] + 20, pointerS[1] - 15);
+    }
+    ctx.restore();
+  }
+  let pointerS = null;
   let signTap = 0;
   /** The party stands on an element: inside its outline (a drawing, an area) or on its line, give or take its sign. */
   function partyOn(el) {
@@ -621,6 +715,13 @@
     }
     // Edit
     if (tool === 'select') {
+      // The arrows of the frame: size it (in proportion), or turn it.
+      const hc = handleAt(s[0], s[1]);
+      if (hc >= 0) {
+        snapshot();
+        gesture = { kind: handleMode, el: selected, orig: shapeCopy(selected.shape), r0: selected.radius, c: M.centre(selected.shape), w0: w, moved: false };
+        cv.classList.add('grabbing'); dirty = true; return;
+      }
       // The reach handle: drag the ring of what is heard, the number follows.
       if (onReachHandle(s[0], s[1])) { snapshot(); gesture = { kind: 'reach', el: selected }; cv.classList.add('grabbing'); dirty = true; return; }
       const inn = inAt(s[0], s[1]);
@@ -633,8 +734,9 @@
         const many = !e.altKey && (el === selected || group.has(el)) && group.size > 0;
         const dragged = e.altKey ? lay(el, null, 0) : el;
         const others = many ? selection().filter((x_) => x_ !== dragged) : [];
+        const again = el === selected && !e.altKey && !many && !group.size;
         select(dragged, many); snapshot();
-        const g = { kind: 'move', el: dragged, others, last: w, moved: false, s0: s };
+        const g = { kind: 'move', el: dragged, others, last: w, moved: false, s0: s, again };
         // A long press without moving: the menu of the element (duplicate, delete, size, turn).
         g.hold = setTimeout(() => {
           if (gesture !== g || g.moved) return;
@@ -680,7 +782,9 @@
     }
     if (press && Math.hypot(s[0] - press.s[0], s[1] - press.s[1]) > 10) endPress();
     const w = toWorld(s[0], s[1]);
+    pointerS = s;
     switch (gesture.kind) {
+      case 'scale': case 'rotate': gesture.moved = true; transformDrag(gesture, w, e.shiftKey || e.ctrlKey || e.metaKey); dirty = true; break;
       case 'pan': fillOnResize = false;
         view.x += s[0] - gesture.last[0]; view.y += s[1] - gesture.last[1]; keepOnMap(); gesture.last = s; dirty = true; break;
       case 'tap':
@@ -769,11 +873,22 @@
       if (!g.moved) {
         const t = performance.now();
         if (last.el === g.el && t - last.t < 350) { last = { t: 0, s: [0, 0], el: null }; if (api.onOpen) api.onOpen(g.el); }
-        else last = { t, s: [0, 0], el: g.el };
+        else {
+          last = { t, s: [0, 0], el: g.el };
+          // A click again on the selected element: its arrows size it, or turn it.
+          if (g.again) { handleMode = handleMode === 'scale' ? 'rotate' : 'scale'; dirty = true; }
+        }
       }
       [g.el, ...(g.others || [])].forEach((x_) => { const sh = x_.shape; if (sh.type === 'stamp') { sh.x = Math.round(sh.x); sh.y = Math.round(sh.y); } else sh.points.forEach((p) => { p[0] = Math.round(p[0]); p[1] = Math.round(p[1]); }); });
       if (g.moved || tool === 'stamp') edited();
       if (g.created && api.onCreate) api.onCreate(g.el);
+    } else if (g.kind === 'scale' || g.kind === 'rotate') {
+      if (g.moved) {
+        const sh = g.el.shape;
+        if (sh.type !== 'stamp') sh.points = sh.points.map((q) => [Math.round(q[0]), Math.round(q[1])]);
+        edited();
+        if (api.onTransformed) api.onTransformed(g.el);
+      }
     } else if (g.kind === 'reach') { if (g.moved) edited(); }
     else if (g.kind === 'portal') { if (g.moved) edited(); }
     else if (g.kind === 'band') {
@@ -853,7 +968,7 @@
     else if (onPlayer(s[0], s[1]) && (mode === 'play' || tool === 'select')) cur = 'grab';
     else if (mode === 'play' && crossAt() && Math.hypot(s[0] - crossAt()[0], s[1] - crossAt()[1]) <= 26) cur = 'grab';
     else if (mode === 'play') cur = elementAt(w) ? 'pointer' : 'crosshair';
-    else if (tool === 'select') cur = onReachHandle(s[0], s[1]) ? 'ew-resize' : elementAt(w) ? 'move' : 'default';
+    else if (tool === 'select') { const hc = handleAt(s[0], s[1]); cur = hc >= 0 ? (handleMode === 'rotate' ? 'grab' : hc % 2 ? 'nesw-resize' : 'nwse-resize') : onReachHandle(s[0], s[1]) ? 'ew-resize' : elementAt(w) ? 'move' : 'default'; }
     else if (tool === 'eraser') cur = elementAt(w) || wallAt(w) ? 'pointer' : 'default';
     else cur = 'crosshair';
     cv.style.cursor = cur;
@@ -909,7 +1024,7 @@
     const l = pts[pts.length - 1];
     c.lineTo(l[0], l[1]);
   }
-  function drawTrail(c, pts, wd, seedText) {
+  function drawEarthPath(c, pts, wd, seedText) {
     if (!pts || pts.length < 2) return;
     c.save();
     c.lineJoin = 'round'; c.lineCap = 'round';
@@ -944,7 +1059,7 @@
   function drawElement(el) {
     const sh = el.shape;
     const c = zoneColour(el);
-    if (sh.trail) { drawTrail(ctx, sh.points, trailWidth(place), el.id); return; }
+    if (sh.trail) { drawEarthPath(ctx, sh.points, trailWidth(place), el.id); return; }
     ctx.save();
     if (sh.type === 'stamp') {
       ctx.translate(sh.x, sh.y);
@@ -1133,7 +1248,7 @@
     if (gesture && gesture.kind === 'stroke') {
       const pts = gesture.tool === 'wall' && gesture.shift ? [gesture.pts[0], gesture.pts[gesture.pts.length - 1]] : gesture.pts;
       if (gesture.tool === 'wall') drawWall({ points: pts }, true);
-      else if (gesture.tool === 'trail') drawTrail(ctx, M.simplify(pts, 2), trailWidth(place), 'new');
+      else if (gesture.tool === 'trail') drawEarthPath(ctx, M.simplify(pts, 2), trailWidth(place), 'new');
       else { ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; tracePath(pts, false); ctx.stroke(); ctx.restore(); }
     }
 
@@ -1189,6 +1304,7 @@
       const p = toScreen([b[0], b[1]]), q = toScreen([b[2], b[3]]);
       ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5;
       ctx.strokeRect(p[0] - 8, p[1] - 8, q[0] - p[0] + 16, q[1] - p[1] + 16); ctx.restore();
+      if (canHandle()) drawHandles();
       if (tool === 'select' && place.elements.includes(selected) && !group.size) {
         // The reach handle, in the colour of the element's sounds; its number while it is dragged.
         const h = toScreen(reachHandle(selected)), c = zoneColour(selected);
@@ -1384,7 +1500,7 @@
     p.elements.forEach((el) => {
       const sh = el.shape;
       if (sh.type === 'stamp') { c.save(); c.translate(sh.x, sh.y); c.rotate((sh.rotation * Math.PI) / 180); S.draw(c, sh.stamp, sh.size, pal); c.restore(); return; }
-      if (sh.trail) { drawTrail(c, sh.points, trailWidth(p), el.id); return; }
+      if (sh.trail) { drawEarthPath(c, sh.points, trailWidth(p), el.id); return; }
       c.beginPath(); sh.points.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); if (sh.closed) c.closePath();
       const z = el.cards[0] ? pal[el.cards[0].zone] || pal.accent : pal.ink;
       if (sh.closed) { c.fillStyle = alpha(z, 0.3); c.fill(); }
@@ -1441,6 +1557,7 @@
     if (el) group.delete(el);
     if (selected === el) { dirty = true; return; }
     selected = el;
+    handleMode = 'scale';
     dirty = true;
     if (api.onSelect) api.onSelect(el);
   }
@@ -1499,7 +1616,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, layStampAt, viewScale, nextSteps, stamp: () => stamp, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, layStampAt, viewScale, nextSteps, stamp: () => stamp, handleMode: () => handleMode, __handles: () => (selected ? frameCorners(selected) : null), flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),
