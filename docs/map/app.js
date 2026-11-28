@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.4';
+  const VERSION = '261128.5';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -1824,7 +1824,7 @@
     const files = (await chooseFiles('audio/*,.mp3,.ogg,.m4a,.wav', true)).filter((f) => window.Troubadour.isAudio(f) || /^audio\//.test(f.type));
     if (!files.length) return;
     const zone = await ask(files.length > 1 ? `${files.length} sounds: what are they?` : `${files[0].name}: what is it?`, 'It sets their colour and how they play once laid on the map: music and ambiances loop, events come back at random.', [
-      { label: 'Music', value: 'music' }, { label: 'Ambiance', value: 'ambience' }, { label: 'Event', value: 'events', cls: 'primary' },
+      { label: 'Music', value: 'music', cls: 'k-music' }, { label: 'Ambiance', value: 'ambience', cls: 'k-ambience' }, { label: 'Event', value: 'events', cls: 'k-events' },
     ]);
     if (!zone) return;
     try {
@@ -2000,7 +2000,7 @@
     const n = audioOnly(files).length;
     if (!n) { toast('No audio file there: MP3, OGG, M4A or WAV.', 2600); return; }
     const kind = await ask(n > 1 ? `${n} sounds for ${elName(hit)}: what are they?` : `${files[0].name} for ${elName(hit)}: what is it?`, 'Its colour, and how it plays: music starts as the party walks in, ambiances loop, events come back at random.', [
-      { label: 'Music', value: 'music' }, { label: 'Ambiance', value: 'ambience' }, { label: 'Event', value: 'events', cls: 'primary' },
+      { label: 'Music', value: 'music', cls: 'k-music' }, { label: 'Ambiance', value: 'ambience', cls: 'k-ambience' }, { label: 'Event', value: 'events', cls: 'k-events' },
     ]);
     if (kind) importSounds(files, kind, hit);
   });

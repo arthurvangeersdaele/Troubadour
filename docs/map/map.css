@@ -1068,3 +1068,8 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 .st-ghost.off { opacity: .4; }
 #mw-stamps.dragging { opacity: .35; pointer-events: none; transition: opacity .15s; }
 #mw-stamps [data-stamp] { touch-action: pan-y; }
+
+/* The kind of a sound, asked: each answer in its colour. */
+#ask-acts .k-music, #ask-acts .k-ambience, #ask-acts .k-events { background: var(--z); border-color: var(--z); color: var(--on-z); }
+#ask-acts .k-music { --z: var(--music); } #ask-acts .k-ambience { --z: var(--amb); } #ask-acts .k-events { --z: var(--evt); }
+#ask-acts .k-music:hover, #ask-acts .k-ambience:hover, #ask-acts .k-events:hover { filter: brightness(1.08); }
