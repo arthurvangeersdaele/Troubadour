@@ -64,3 +64,17 @@ dialog.ask { height: fit-content; }
 .t-oneshot .os-skip { grid-column: 1 / -1; min-height: 44px; border-radius: var(--r-button); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .t-oneshot .os-skip:active { background: var(--line); }
 @media (prefers-reduced-motion: reduce) { .t-oneshot { animation: none; } }
+
+/* The Intro and outro menu of the editors (TroubadourIntro.panel). */
+.t-io { display: grid; gap: 12px; max-width: 560px; }
+.t-io-note { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.t-io-row { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px; }
+.t-io-row span { font-weight: 600; color: var(--music); }
+.t-io-row select { min-width: 0; min-height: 40px; font: inherit; font-size: 15px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-button); padding: 0 10px; }
+.t-io-alert { margin: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-button); background: color-mix(in srgb, var(--evt) 14%, transparent); border: 1px solid color-mix(in srgb, var(--evt) 45%, transparent); color: var(--text); font-size: 14px; line-height: 1.35; }
+.t-io-alert svg { flex: none; color: var(--evt); }
+.t-io-alert span { flex: 1; }
+.t-io-alert button { flex: none; min-height: 34px; padding: 0 12px; border-radius: var(--r-button); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+/* The small alert on the menu's button: an intro or outro is set, but the setting is off. */
+
+.t-io-dot::after { content: ""; position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--evt); box-shadow: 0 0 0 2px var(--bg); }

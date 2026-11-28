@@ -263,9 +263,22 @@
     renderRail();
     renderEditor();
     renderZone($('#sb-zone'), 'soundbox');
+    renderIO();
     renderTotal();
     paintPlaying();
     saveSoon();
+  }
+
+  /** The Intro and outro menu, under the Soundbox: a music of the story for each; an alert when the web player's
+   *  setting is off. */
+  function renderIO() {
+    const box = $('#io-zone');
+    if (!box) return;
+    if (!$('#io-icon').firstChild) $('#io-icon').innerHTML = window.TroubadourIntro.icon(22);
+    box.textContent = '';
+    let off = false;
+    try { off = (JSON.parse(localStorage.getItem('troubadour.web') || '{}').introOutro) === false; } catch (e) { /* none */ }
+    box.append(window.TroubadourIntro.panel(document, state.chapters, { off, onChange: () => saveSoon() }));
   }
 
   function renderRail() {
@@ -490,8 +503,6 @@
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow, blendRow, pauseRow);
-    // A music may open or close the story (its intro or outro): one of each per story.
-    if (zone === 'music') c.append(window.TroubadourIntro.roleRow(document, state.chapters, s, () => { saveSoon(); renderEditor(); }));
     c.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-troubadour-sound', s.id);
       e.dataTransfer.effectAllowed = 'move';

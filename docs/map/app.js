@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261127.1';
+  const VERSION = '261128.1';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -670,6 +670,7 @@
     $('#mw-sb .star').innerHTML = m === 'edit' ? ICON.bookStar : ICON.star;
     $('#mw-sb').title = m === 'edit' ? "This world's soundbox" : 'Soundbox';
     paintSave();
+    paintIODot();
     // At the table, the sound menu opens on a double tap only (an element, or the map itself).
     // At the table, the sound menu opens on the whole map; while drawing, the panel follows the screen's width.
     tapped = undefined;
@@ -1465,12 +1466,25 @@
       const none = el('option', '', 'None'); none.value = ''; sel.append(none);
       list.forEach((c) => { const o = el('option', '', c.name); o.value = c.file; sel.append(o); });
       sel.value = list.some((c) => c.file === rec.world[k]) ? rec.world[k] : '';
-      sel.addEventListener('change', () => { if (sel.value) rec.world[k] = sel.value; else delete rec.world[k]; save(); });
+      sel.addEventListener('change', () => { if (sel.value) rec.world[k] = sel.value; else delete rec.world[k]; save(); paintIODot(); });
       row.append(t, sel);
       s.append(row);
     });
-    if (settings.introOutro === false) s.append(el('p', 'pn-note', 'The setting Intro and outro is off: they are not offered at the table.'));
+    if (settings.introOutro === false) {
+      const al = el('p', 't-io-alert');
+      al.setAttribute('role', 'status');
+      al.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span>The setting Intro and outro is off: they are not offered at the table.</span>';
+      const b = el('button', '', 'Settings'); b.type = 'button';
+      b.addEventListener('click', () => openSettings());
+      al.append(b);
+      s.insertBefore(al, s.children[1] || null);
+    }
     return s;
+  }
+  /** The small alert on the Music button: the world has an intro or an outro, but the setting is off. */
+  function paintIODot() {
+    const b = $('#mw-mus-btn');
+    if (b) b.classList.toggle('t-io-dot', !!rec && settings.introOutro === false && !!(rec.world.intro || rec.world.outro));
   }
 
   /* The inspector, as an editor's: what is selected in tabs. A place: Place, Sounds, Way. The map: Map, Sounds. */
@@ -2724,7 +2738,7 @@
     // The checkbox says the party passes through walls: the setting keeps the old sense (walls stop it).
     $('#opt-trail-walls').addEventListener('change', (e) => { settings.trailWalls = !e.target.checked; saveSettings(); });
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; saveSettings(); if (A.isOpen()) A.evenOut(); });
-    $('#opt-intro-outro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; saveSettings(); if (!e.target.checked && arrive && arrive.kind === 'intro') closeArrive(); });
+    $('#opt-intro-outro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; saveSettings(); if (!e.target.checked && arrive && arrive.kind === 'intro') closeArrive(); paintIODot(); if (mode === 'edit' && edView === 'music') renderPanel(); });
     $('#opt-music-suggest').addEventListener('change', (e) => { settings.musicSuggest = e.target.checked; saveSettings(); closeSuggest(); paintSettings(); });
     $('#opt-music-auto').addEventListener('change', (e) => { settings.musicAuto = e.target.checked; saveSettings(); closeSuggest(); paintSettings(); });
     $('#opt-music-stop').addEventListener('change', (e) => { settings.musicStop = e.target.checked; saveSettings(); paintSettings(); });

@@ -1034,3 +1034,4 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 
 /* Full screen is chosen in Settings only. */
 #mw-mus-full, #mw-sbx-full { display: none !important; }
+#mw-mus-btn.t-io-dot { position: relative; }

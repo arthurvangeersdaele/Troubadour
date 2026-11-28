@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '261127.1';
+  const VERSION = '261128.1';
   const root = document.documentElement;
   if (!root.classList.contains('mode-app')) {
     // In a browser tab or on another device the page only shows its notice: register nothing, store nothing.
@@ -228,10 +228,10 @@
 
   async function routeRest(h) {
     let m;
-    if ((m = h.match(/^#\/edit\/([^/]+)(?:\/(\d+|soundbox))?/))) {
+    if ((m = h.match(/^#\/edit\/([^/]+)(?:\/(\d+|soundbox|io))?/))) {
       const s = await liveStory(decodeURIComponent(m[1]));
       if (!s) { location.replace('#/'); return; }
-      openEditor(s, m[2] === 'soundbox' ? 'soundbox' : Math.max(0, parseInt(m[2] || '1', 10) - 1));
+      openEditor(s, m[2] === 'soundbox' || m[2] === 'io' ? m[2] : Math.max(0, parseInt(m[2] || '1', 10) - 1));
       return;
     }
     leaveEditor();
@@ -828,13 +828,20 @@
     else if (v === 'retry') { saveSoon(); saveSoon.flush(); }
   }
   function paintSbx() {
-    const b = document.querySelector('.ed-sbx');
+    const b = document.querySelector('.ed-sbx:not(.ed-io)');
     if (b) b.setAttribute('aria-pressed', String(!!ed && ed.ch === 'soundbox'));
+    const io = document.querySelector('.ed-io');
+    if (io) {
+      io.setAttribute('aria-pressed', String(!!ed && ed.ch === 'io'));
+      // The small alert: an intro or outro is set, but the setting is off.
+      const set = !!ed && TroubadourIntro.ROLES.some((r) => TroubadourIntro.find(ed.story.chapters, r));
+      io.classList.toggle('t-io-dot', set && settings.introOutro === false);
+    }
   }
   function openEditor(story, ch) {
     const fresh = !ed || ed.story.uid !== story.uid;
     if (fresh) { stopPreview(); ed = { story, ch: 0 }; forgeTip(); }
-    ed.ch = ch === 'soundbox' ? 'soundbox' : Math.min(ch, story.chapters.length - 1);
+    ed.ch = ch === 'soundbox' || ch === 'io' ? ch : Math.min(ch, story.chapters.length - 1);
     show('editor');
     document.title = `${story.title} | Troubadour`;
     const t = $('#ed-title');
@@ -865,8 +872,8 @@
   }
   function goEd(ch) {
     if (!ed) return;
-    if (ch !== 'soundbox') ed.last = ch;
-    history.replaceState(null, '', `#/edit/${encodeURIComponent(ed.story.uid)}/${ch === 'soundbox' ? 'soundbox' : ch + 1}`);
+    if (ch !== 'soundbox' && ch !== 'io') ed.last = ch;
+    history.replaceState(null, '', `#/edit/${encodeURIComponent(ed.story.uid)}/${ch === 'soundbox' || ch === 'io' ? ch : ch + 1}`);
     openEditor(ed.story, ch);
   }
 
@@ -926,6 +933,14 @@
       main.append(top);
       main.append(el('p', 'muted small ed-note', 'Quick effects for this story only. They sit next to your shared soundbox on the table.'));
       main.append(zoneRow(SOUNDBOX_ZONE, ed.story.soundbox));
+      return;
+    }
+    if (ed.ch === 'io') {
+      const top = el('div', 'ed-top');
+      top.innerHTML = `<span class="n star-n">${TroubadourIntro.icon(22)}</span>`;
+      top.append(el('h2', 'ed-h', 'Intro and outro'));
+      main.append(top);
+      main.append(TroubadourIntro.panel(document, ed.story.chapters, { off: settings.introOutro === false, onSettings: () => openSettings(), onChange: () => { dirty(); paintSbx(); } }));
       return;
     }
     const ch = ed.story.chapters[ed.ch];
@@ -1050,8 +1065,6 @@
     });
     volRow.append(vr, vp);
     c.append(top, bottom, volRow, pauseRow);
-    // A music may open or close the story (its intro or outro): one of each per story.
-    if (zone.id === 'music') c.append(TroubadourIntro.roleRow(document, ed.story.chapters, s, () => { dirty(); rerender(); }));
     return c;
   }
 
@@ -2063,7 +2076,7 @@
     // Even out the loudness: each sound takes it at its next start (never a change of level while it is heard).
     $('#opt-even').addEventListener('change', (e) => { settings.even = e.target.checked; save(); });
     $('#opt-silence').addEventListener('change', (e) => { settings.silence = e.target.checked; save(); });
-    $('#opt-intro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; save(); });
+    $('#opt-intro').addEventListener('change', (e) => { settings.introOutro = e.target.checked; save(); if (ed) { paintSbx(); if (ed.ch === 'io') renderEdMain(); } });
     $('#opt-awake').addEventListener('change', (e) => { settings.awake = e.target.checked; save(); settings.awake ? acquireWake() : releaseWake(); });
     $('#opt-silent').addEventListener('change', (e) => { settings.silent = e.target.checked; save(); applyAudioSession(); });
     document.querySelectorAll('[id^="vol-"][data-zone]').forEach((g) => g.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
@@ -2200,7 +2213,8 @@
     document.querySelectorAll('.sbx-toggle').forEach((b) => (b.innerHTML = ICON.starFill));
     document.querySelectorAll('#soundbox [data-action="soundbox"], .set-head .ico').forEach((b) => (b.innerHTML = ICON.close));
     $('[data-action="story-info"]').innerHTML = ICON.info;
-    $('.ed-sbx').innerHTML = ICON.bookStar;
+    $('.ed-sbx:not(.ed-io)').innerHTML = ICON.bookStar;
+    $('.ed-io').innerHTML = TroubadourIntro.icon(22);
     $('.ed-play').innerHTML = ICON.play;
     $('#sb-toggle .star').innerHTML = ICON.starFill;
     $('[data-action="stop-all"]').innerHTML = ICON.stop;
@@ -2226,6 +2240,7 @@
       case 'story-info': openStoryInfo(); break;
       case 'save-state': saveState(); break;
       case 'edit-soundbox': if (ed) goEd(ed.ch === 'soundbox' ? (ed.last ?? 0) : 'soundbox'); break;
+      case 'edit-io': if (ed) goEd(ed.ch === 'io' ? (ed.last ?? 0) : 'io'); break;
       case 'play-current':
         if (ed) { saveSoon.flush(); audio(); const ch = ed.ch === 'soundbox' ? 1 : ed.ch + 1; location.hash = `#/play/${encodeURIComponent(ed.story.uid)}/${ch}`; }
         break;

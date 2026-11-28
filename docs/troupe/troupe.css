@@ -686,6 +686,10 @@ html.tablet .oath { max-width: 640px; }
 /* Until the builders and the online players work in a tablet's browser, a tablet shows the apps to install and the
    same quiet line as a phone, never a door to a page that only asks to install. */
 html.tablet .pc-info { max-width: 520px; }
-.sc .edrole { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
-.sc .edrole .vl { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.sc .edrole select { flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; }
+
+/* The Intro and outro menu, under the Soundbox. */
+.bld .soundbox > * { flex: none; }
+.soundbox .io-head { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 0 12px 0 16px; color: var(--music); }
+.soundbox #io-zone { padding: 8px 12px 16px 16px; }
+.soundbox .io-head h2 { margin: 0; color: var(--text); }
+.soundbox .t-io-row { grid-template-columns: 54px 1fr; }

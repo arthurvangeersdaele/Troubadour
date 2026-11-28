@@ -641,7 +641,7 @@ class AppModel(private val app: Context, private val host: Host, val scope: Coro
             ed = EditorState(s, chapter.coerceIn(-1, s.chapters.lastIndex))
             exportTip(storyUid)
         } else {
-            ed!!.chapter = chapter.coerceIn(-1, ed!!.story.chapters.lastIndex)
+            ed!!.chapter = chapter.coerceIn(-2, ed!!.story.chapters.lastIndex)
         }
         screen = Screen.Editor
     }

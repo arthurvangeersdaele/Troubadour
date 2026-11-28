@@ -33,6 +33,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -94,7 +96,9 @@ fun EditorScreen(m: AppModel) {
         Row(Modifier.fillMaxSize()) {
             EditorRail(m, e)
             Column(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp, top = 8.dp, bottom = 8.dp)) {
-                if (e.chapter < 0) {
+                if (e.chapter == IO_PAGE) {
+                    IntroOutroPage(m, story)
+                } else if (e.chapter < 0) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(BIcons.starFill, null, tint = C.accent, modifier = Modifier.size(20.dp))
                         Title("Story soundbox", 22)
@@ -139,6 +143,89 @@ fun EditorScreen(m: AppModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+/** The editor's page for the intro and outro: a music of the story for each, and an alert when the setting is off. */
+const val IO_PAGE = -2
+
+@Composable
+private fun IntroOutroPage(m: AppModel, story: com.troubadour.app.data.Story) {
+    Column(Modifier.fillMaxSize().padding(end = 10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IntroOutroIcon(C.music, Modifier.size(22.dp))
+            Title("Intro and outro", 22)
+        }
+        if (!m.settings.introOutro) {
+            val shape = RoundedCornerShape(12.dp)
+            Row(
+                Modifier.fillMaxWidth().clip(shape).background(C.evt.copy(alpha = 0.14f)).border(1.dp, C.evt.copy(alpha = 0.45f), shape).padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                T("⚠", color = C.evt, size = 16.sp, weight = FontWeight.SemiBold)
+                T("The setting Intro and outro is off: they are not offered at the table.", size = 14.sp, modifier = Modifier.weight(1f))
+                Btn("Settings", height = 34.dp) { m.settingsOpen = true }
+            }
+        }
+        T(
+            "The intro is offered as the story opens at the table, the outro before leaving it. Each plays once, whatever its loop, and as the outro starts every other sound fades out.",
+            color = C.muted, size = 14.sp,
+        )
+        val musics = story.chapters.flatMapIndexed { i, c -> c.music.map { s -> Triple(i, c, s) } }
+        if (musics.isEmpty()) T("Add a music to a chapter first.", color = C.muted, size = 14.sp)
+        musics.forEach { (i, c, s) ->
+            val shape = RoundedCornerShape(12.dp)
+            Row(
+                Modifier.fillMaxWidth().clip(shape).background(C.card).border(1.dp, if (s.role != null) C.music.copy(alpha = 0.6f) else C.line, shape).padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    T(s.name, weight = FontWeight.SemiBold, size = 15.sp, maxLines = 1)
+                    T(c.title.ifBlank { "Chapter ${i + 1}" }, color = C.muted, size = 12.sp, maxLines = 1)
+                }
+                listOf("intro" to "Intro", "outro" to "Outro").forEach { (r, label) ->
+                    val on = s.role == r
+                    Box(
+                        Modifier.height(34.dp).width(64.dp).clip(RoundedCornerShape(12.dp))
+                            .background(if (on) C.music else Color.Transparent)
+                            .border(1.dp, if (on) C.music else C.line, RoundedCornerShape(12.dp))
+                            .clickable(role = Role.Checkbox, onClickLabel = "$label of the story") { m.setRole(s.uid, if (on) null else r) },
+                        contentAlignment = Alignment.Center,
+                    ) { T(label, color = if (on) C.onZ else C.text, size = 14.sp, weight = FontWeight.SemiBold) }
+                }
+            }
+        }
+    }
+}
+
+/** The intro and outro icon: a note, an arrow coming in bottom left and one going out top right, with the note cut
+ *  around them (the web's TroubadourIntro.icon, on a 24 grid). */
+@Composable
+fun IntroOutroIcon(tint: Color, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Canvas(modifier.graphicsLayer(compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen)) {
+        val k = size.minDimension / 24f
+        fun p(d: String) = androidx.compose.ui.graphics.vector.PathParser().parsePathString(d).toPath()
+        val round = androidx.compose.ui.graphics.StrokeCap.Round
+        val join = androidx.compose.ui.graphics.StrokeJoin.Round
+        val line = androidx.compose.ui.graphics.drawscope.Stroke(1.9f, cap = round, join = join)
+        val cut = androidx.compose.ui.graphics.drawscope.Stroke(4.5f, cap = round, join = join)
+        val clear = androidx.compose.ui.graphics.BlendMode.Clear
+        scale(k, k, androidx.compose.ui.geometry.Offset.Zero) {
+            // The note.
+            drawPath(p("M11.4 16.2V7.4l6.5-1.5v8.8"), tint, style = line)
+            drawCircle(tint, 1.9f, androidx.compose.ui.geometry.Offset(9.5f, 16.2f), style = line)
+            drawCircle(tint, 1.9f, androidx.compose.ui.geometry.Offset(16f, 14.7f), style = line)
+            val shafts = listOf(p("M1.2 19H5"), p("M14.2 4.6h5"))
+            val heads = listOf(p("M8.4 19l-4.2-2.7v5.4z"), p("M23 4.6l-4.2-2.7v5.4z"))
+            // The gap: the arrows, wider, cut the note.
+            (shafts + heads).forEach { drawPath(it, Color.Black, style = cut, blendMode = clear) }
+            heads.forEach { drawPath(it, Color.Black, blendMode = clear) }
+            // The arrows, heads full.
+            shafts.forEach { drawPath(it, tint, style = line) }
+            heads.forEach { drawPath(it, tint); drawPath(it, tint, style = line) }
         }
     }
 }
@@ -198,7 +285,7 @@ private fun EditorRail(m: AppModel, e: EditorState) {
             Btn("Add a chapter", icon = BIcons.plus, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), height = 38.dp) { m.addChapter() }
         }
         item {
-            val on = e.chapter < 0
+            val on = e.chapter == -1
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -215,6 +302,32 @@ private fun EditorRail(m: AppModel, e: EditorState) {
                 Column {
                     T("Soundbox", weight = FontWeight.SemiBold, size = 14.sp)
                     T(plural(e.story.soundbox.size, "effect"), color = C.muted, size = 12.sp)
+                }
+            }
+        }
+        item {
+            val on = e.chapter == IO_PAGE
+            val set = e.story.chapters.any { c -> c.music.any { it.role != null } }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (on) C.card else Color.Transparent)
+                    .border(1.dp, if (on) C.line else C.line.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .clickable(role = Role.Tab) { m.selectChapter(IO_PAGE) }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box {
+                    IntroOutroIcon(C.music, Modifier.size(18.dp))
+                    // The small alert: an intro or outro is set, but the setting is off.
+                    if (set && !m.settings.introOutro) Box(Modifier.align(Alignment.TopEnd).padding(start = 12.dp).size(7.dp).clip(androidx.compose.foundation.shape.CircleShape).background(C.evt))
+                }
+                Column {
+                    T("Intro and outro", weight = FontWeight.SemiBold, size = 14.sp)
+                    T(if (set) "Set" else "None", color = C.muted, size = 12.sp)
                 }
             }
         }

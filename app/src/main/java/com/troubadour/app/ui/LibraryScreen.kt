@@ -427,10 +427,6 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
                 val i = steps.indexOf(s.ownPause).coerceAtLeast(0)
                 m.updateSound(t, s.uid) { x -> x.withOwnPause(steps[(i + 1) % steps.size]) }
             }
-            // A music may open or close the story: each tap takes the next choice (one intro, one outro per story).
-            if (t is Target.ChapterZone && t.zone == Zone.MUSIC) RoleChip(s.role, height = 24.dp) {
-                m.setRole(s.uid, when (s.role) { null -> "intro"; "intro" -> "outro"; else -> null })
-            }
         }
         // Default volume: the level the sound starts at on the table.
         Row(Modifier.height(28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -441,22 +437,6 @@ fun EditCard(m: AppModel, t: Target, s: Sound, index: Int, count: Int, z: Color,
             )
             T("${(s.volume * 100).roundToInt()}", color = C.muted, size = 12.sp, weight = FontWeight.SemiBold, align = TextAlign.End, modifier = Modifier.width(28.dp))
         }
-    }
-}
-
-/** A music's part in the story on its card: none, Intro or Outro. */
-@Composable
-fun RoleChip(role: String?, height: androidx.compose.ui.unit.Dp = 26.dp, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .height(height)
-            .width(46.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .border(1.dp, if (role != null) C.music.copy(alpha = 0.6f) else C.line, RoundedCornerShape(6.dp))
-            .clickable(role = Role.Button, onClickLabel = "Intro or outro of the story", onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        T(when (role) { "intro" -> "Intro"; "outro" -> "Outro"; else -> "–" }, color = if (role != null) C.music else C.muted, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
