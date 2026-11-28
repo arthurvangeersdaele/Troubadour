@@ -1099,3 +1099,19 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 .heard-tab > .pn:first-child { margin-top: 0; }
 /* The Heard tab: only what reaches the party. */
 .heard-tab .el-sounds.folded { display: none; }
+
+/* The left column's width, dragged by its edge (a computer only). */
+.left-sizer { display: none; }
+@media (min-width: 901px) {
+  .mp-world[data-mode="edit"] .mp-body { grid-template-columns: var(--left-w, 220px) minmax(0, 1fr) 330px; }
+  .mp-world[data-mode="edit"] .left-sizer { display: block; position: absolute; top: 0; bottom: 0; left: calc(var(--left-w, 220px) - 4px); width: 8px; cursor: col-resize; z-index: 6; touch-action: none; }
+  .mp-world[data-mode="edit"] .left-sizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background .12s; }
+  .mp-world[data-mode="edit"] .left-sizer:hover::after, .mp-world[data-mode="edit"] .left-sizer.on::after { background: var(--accent); }
+  .mp-world[data-mode="edit"].left-min .left-sizer { display: none; }
+  html.sizing, html.sizing * { cursor: col-resize !important; user-select: none; }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .mp-world[data-mode="edit"] .mp-body { grid-template-columns: var(--left-w, 190px) minmax(0, 1fr) 300px; }
+  .mp-world[data-mode="edit"] .left-sizer { left: calc(var(--left-w, 190px) - 4px); }
+}
+@media (min-width: 901px) { .mp-world[data-mode="edit"] .mp-stage.tools-left .mp-tools { left: 12px !important; transform: none; } }

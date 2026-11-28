@@ -24,7 +24,7 @@
     wall: svg('<path d="M3 6h18v12H3z"/><path d="M3 12h18M9 6v6M15 6v6M6 12v6M12 12v6M18 12v6"/>', 18),
     pen: svg('<path d="M4 20c3-1 5-4 7-7s5-7 9-8"/><path d="M16 4.5l3.5 3.5"/><circle cx="4" cy="20" r="1.2" fill="currentColor"/>', 18),
     stamp: svg('<path d="M3 19l6-10 4 6 3-4 5 8z"/><circle cx="17" cy="6" r="2"/>', 18),
-    eraser: svg('<path d="M15 4l5 5-9.5 9.5H6L3.5 16a1.5 1.5 0 0 1 0-2.1z"/><path d="M10 9l5 5M6 18.5h14"/>', 18),
+    eraser: svg('<path d="M3.5 15.5l10-10 5.5 5.5-9.5 9.5H8z"/><path d="M8.5 10.5l5.5 5.5"/><path d="M12.5 20h8"/>', 18),
     player: svg('<circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>', 18),
     link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>', 16),
     listen: svg('<path d="M4 14.5V12a8 8 0 0 1 16 0v2.5"/><rect x="3.5" y="13.5" width="4" height="6.5" rx="1.6"/><rect x="16.5" y="13.5" width="4" height="6.5" rx="1.6"/>', 18),

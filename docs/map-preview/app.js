@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.7';
+  const VERSION = '261128.8';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -799,7 +799,7 @@
     rail.textContent = '';
     const mh = el('h3', '', 'Maps');
     const min = el('button', 'ico small left-min-btn');
-    min.type = 'button'; min.innerHTML = svg('<path d="M15 6l-6 6 6 6"/><path d="M20 5v14"/>', 16); min.title = 'Hide this column'; min.setAttribute('aria-label', 'Hide the maps and the layers');
+    min.type = 'button'; min.innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/><path d="M16 10l-2 2 2 2"/>', 17); min.title = 'Hide this column'; min.setAttribute('aria-label', 'Hide the maps and the layers');
     min.addEventListener('click', () => setLeftMin(true));
     mh.append(min);
     rail.append(mh);
@@ -4010,6 +4010,44 @@
     if (was !== !!min && screen === 'world') requestAnimationFrame(() => requestAnimationFrame(() => V.fit()));
     try { localStorage.setItem(LEFT_KEY, min ? '1' : ''); } catch (e) { /* private mode */ }
   }
+  /** The width of the left column, set by dragging its edge (180 to 480 px), kept on this computer. */
+  const LEFT_W_KEY = 'troubadour.map.leftWidth';
+  function wireLeftSizer() {
+    const body = $('#world .mp-body');
+    const grip = el('div', 'left-sizer');
+    grip.setAttribute('role', 'separator');
+    grip.setAttribute('aria-orientation', 'vertical');
+    grip.title = 'Drag to widen or narrow this column (double click: back to its size)';
+    body.append(grip);
+    const setW = (w) => { w = Math.round(Math.max(180, Math.min(480, w))); body.style.setProperty('--left-w', `${w}px`); return w; };
+    let saved = 0;
+    try { saved = +localStorage.getItem(LEFT_W_KEY) || 0; } catch (e) { /* private mode */ }
+    if (saved) setW(saved);
+    const keep = (w) => { try { localStorage.setItem(LEFT_W_KEY, w ? String(w) : ''); } catch (e) { /* private mode */ } };
+    grip.addEventListener('pointerdown', (e) => {
+      if (e.button > 0) return;
+      e.preventDefault();
+      const id = e.pointerId, left = body.getBoundingClientRect().left;
+      grip.setPointerCapture(id);
+      grip.classList.add('on');
+      document.documentElement.classList.add('sizing');
+      let w = 0;
+      const move = (ev) => { if (ev.pointerId === id) w = setW(ev.clientX - left); };
+      const up = (ev) => {
+        if (ev.pointerId !== id) return;
+        grip.classList.remove('on');
+        document.documentElement.classList.remove('sizing');
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', up);
+        grip.removeEventListener('pointercancel', up);
+        if (w) { keep(w); V.fit(); }
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', up);
+      grip.addEventListener('pointercancel', up);
+    });
+    grip.addEventListener('dblclick', () => { body.style.removeProperty('--left-w'); keep(0); requestAnimationFrame(() => V.fit()); });
+  }
   /** On a computer the library of places opens in the left column, over the maps and the layers; on a phone it
    *  floats over the map beside the tools. */
   function placeLib() {
@@ -4025,7 +4063,13 @@
   function placeTools(x, y) {
     const tools = $('#mw-tools'), stage = $('#mw-stage');
     // On a computer, the tools lie at the foot of the map, and the library of places has the left column.
-    if (!narrowEditor()) { tools.style.left = tools.style.top = ''; stage.classList.remove('tools-right'); placeLib(); return null; }
+    if (!narrowEditor()) {
+      tools.style.left = tools.style.top = ''; stage.classList.remove('tools-right'); placeLib();
+      // Centred at the foot of the map, unless the zoom would be under them: then at its left.
+      const zw = ($('#mw-stage .mp-zoom') || {}).offsetWidth || 0;
+      stage.classList.toggle('tools-left', (stage.clientWidth - tools.offsetWidth) / 2 < zw + 24);
+      return null;
+    }
     placeLib();
     const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
     if (!sw || !tw) return;
@@ -4134,7 +4178,8 @@
     $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) glide(sbGain.gain, A.curve(settings.sbVolume), audio().ctx); });
     $('#mw-sbvol').addEventListener('change', saveSettings);
     wireToolsGrip();
-    $('#mw-left-open').innerHTML = svg('<path d="M9 6l6 6-6 6"/><path d="M4 5v14"/>', 18);
+    $('#mw-left-open').innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/><path d="M14 10l2 2-2 2"/>', 19);
+    wireLeftSizer();
     $('#mw-left-open').addEventListener('click', () => setLeftMin(false));
     try { if (localStorage.getItem(LEFT_KEY)) $('#world').classList.add('left-min'); } catch (e) { /* private mode */ }
     matchMedia('(max-width: 900px)').addEventListener('change', () => { placeLib(); placeTools($('#mw-tools').offsetLeft, $('#mw-tools').offsetTop); });
