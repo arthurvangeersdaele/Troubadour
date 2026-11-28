@@ -1062,3 +1062,9 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 @media (max-width: 900px) { .mp-world[data-mode="edit"].dropping .mp-side { transform: none; } }
 .mp-drop.on-map h3 { color: var(--accent); }
 .mp-drop.on-map .dr-z { opacity: .45; }
+
+/* A place of the library dragged onto the map. */
+.st-ghost { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; opacity: .85; filter: drop-shadow(0 8px 18px var(--shadow)); }
+.st-ghost.off { opacity: .4; }
+#mw-stamps.dragging { opacity: .35; pointer-events: none; transition: opacity .15s; }
+#mw-stamps [data-stamp] { touch-action: pan-y; }

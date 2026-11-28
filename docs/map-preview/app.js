@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.3';
+  const VERSION = '261128.4';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -2473,7 +2473,8 @@
       S.draw(c, id, 100, pal);
       b.append(cv, el('span', '', label));
       if (extra) b.append(extra);
-      b.addEventListener('click', () => { V.setStamp(id); paintStamps(id); box.hidden = true; });
+      b.addEventListener('click', () => { if (b.dataset.dragged) { delete b.dataset.dragged; return; } V.setStamp(id); paintStamps(id); box.hidden = true; });
+      dragStamp(b, id, cv);
       box.append(b);
     };
     // First, a new place of your own; then the places of this world; then the library.
@@ -2502,6 +2503,51 @@
       tile(s.id, s.label);
     });
     paintStamps(null);
+  }
+  /** A place of the library can also be dragged onto the map: a ghost of it, at the size it will have, follows the
+   *  pointer, and it is laid where it is let go. A click still arms it, to lay it with taps. */
+  function dragStamp(b, id, art) {
+    b.addEventListener('pointerdown', (ev) => {
+      if (ev.button > 0 || ev.target.closest('.st-edit')) return;
+      const pid = ev.pointerId, x0 = ev.clientX, y0 = ev.clientY;
+      let ghost = null;
+      const box = $('#mw-stamps');
+      const move = (e) => {
+        if (e.pointerId !== pid) return;
+        if (!ghost) {
+          if (Math.hypot(e.clientX - x0, e.clientY - y0) < 8) return;
+          const sz = Math.max(36, Math.min(320, Math.max(20, Math.round((place().width * placeShare(id)) / 5) * 5) * V.viewScale()));
+          ghost = el('canvas', 'st-ghost');
+          ghost.width = ghost.height = Math.round(sz * devicePixelRatio);
+          ghost.style.width = ghost.style.height = `${sz}px`;
+          const c = ghost.getContext('2d');
+          c.translate(ghost.width / 2, ghost.height / 2);
+          window.MapStamps.draw(c, id, ghost.width * 0.9, V.palette());
+          document.body.append(ghost);
+          box.classList.add('dragging');
+          b.dataset.dragged = '1';
+        }
+        e.preventDefault();
+        ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+        ghost.classList.toggle('off', V.elementAtClient(e.clientX, e.clientY) === undefined);
+      };
+      const up = (e) => {
+        if (e.pointerId !== pid) return;
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+        if (!ghost) return;
+        ghost.remove();
+        box.classList.remove('dragging');
+        const laid = e.type === 'pointerup' && V.layStampAt(id, e.clientX, e.clientY);
+        if (laid) { box.hidden = true; V.setTool('select'); }
+        // The click that follows the drag is not a pick.
+        setTimeout(() => { delete b.dataset.dragged; }, 0);
+      };
+      window.addEventListener('pointermove', move, { passive: false });
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
+    });
   }
   /* The size a place is laid at: Auto gives each its natural size (a bush small, a kingdom huge); the others
    * give every place the same share of the map's width. Changed afterwards on the place itself, in % of the map. */

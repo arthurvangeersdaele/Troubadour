@@ -1355,6 +1355,22 @@
     if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return undefined;
     return elementAt(toWorld(cx - r.left, cy - r.top));
   }
+  /** A place of the library dragged onto the map: laid where it is let go (cx, cy on the screen). Null beside the map. */
+  function layStampAt(id, cx, cy) {
+    if (!place || !cv) return null;
+    const r = cv.getBoundingClientRect();
+    if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) return null;
+    const w = toWorld(cx - r.left, cy - r.top);
+    snapshot();
+    const el = M.cleanElement({ id: M.shortId(), title: '', radius: Math.round(place.width * 0.1), cards: [], shape: { type: 'stamp', stamp: id, x: Math.round(w[0]), y: Math.round(w[1]), size: stampSizer ? stampSizer(id, place) : Math.round(Math.max(120, Math.min(600, 110 / view.k)) / 10) * 10, rotation: 0 } }, place.width, place.height);
+    place.elements.push(el);
+    select(el);
+    edited();
+    if (api.onCreate) api.onCreate(el);
+    return el;
+  }
+  /** How many screen pixels one unit of the map takes now. */
+  const viewScale = () => view.k;
   /** The element a dragged sound would join (null: none), outlined on the map. */
   let hoverEl = null;
   function dropHover(el) { if (hoverEl !== el) { hoverEl = el || null; light = true; } }
@@ -1362,7 +1378,7 @@
   function centreOn(p) { view.x = W / 2 - p[0] * view.k; view.y = H / 2 - p[1] * view.k; dirty = true; }
 
   Object.assign(api, {
-    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
+    mount, show, setMode, setUnplaced, unplaced: () => unplaced && mode === 'play', thumb, palette: () => { if (!pal) readPalette(); return pal; }, setTool, tool: () => tool, setStamp, setStampSizer, layers, zoomBy: (f) => { zoomAt(W / 2, H / 2, f); }, zoomShown: () => (place && W > 50 ? view.k / Math.min(W / place.width, H / place.height) : 1), select, selection, toggleSelect, selectAll, nudge, fit, fill, undo, redo, commit, commitSoon, copy, cut, paste, duplicate, hasClip: () => !!clip, elementAtClient, layStampAt, viewScale, flash, hover: dropHover, snapshot, deleteSelected, centreOn,
     storyThumb,
     __toScreen: (p) => toScreen(p), __place: () => place, __findPath: (a, b) => findPath(a, b), sendTo, __reachHandle: () => selected && reachHandle(selected), edited, __trail: () => trail && { phase: trail.phase, n: trail.pts.length, pts: trail.pts.map((q) => q.slice()) }, redraw: () => { dirty = true; }, touch: () => { light = true; }, zoom: (f) => zoomAt(W / 2, H / 2, f),
     tool: () => tool, mode: () => mode, selected: () => selected, canUndo: () => undoStack.length > 0, canRedo: () => redoStack.length > 0, history: () => ({ undo: undoStack.length, redo: redoStack.length }),

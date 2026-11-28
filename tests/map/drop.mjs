@@ -44,4 +44,13 @@ const wm=await page.evaluate(async(u)=>{const r=await window.MapDB.get(u); retur
 const tb=await page.locator('#mw-add .ad-z[data-kind="soundbox"]').boundingBox();
 await fire('dragover',tb.x+20,tb.y+20); await fire('drop',tb.x+20,tb.y+20); await page.waitForTimeout(1500);
 const sb=await page.evaluate(async(u)=>{const r=await window.MapDB.get(u); return (r.world.soundbox||[]).some(c=>c.name==='arrow hit');},uid); ok(sb,'a drop on the Soundbox tile: the Soundbox of the world');
+// A place of the library dragged onto the map: laid where it is let go.
+await page.click('#mw-tools [data-tool="stamp"]'); await page.waitForTimeout(500);
+{ const tile=page.locator('#mw-stamps [data-stamp]').nth(3); const bb=await tile.boundingBox(); const id=await tile.getAttribute('data-stamp');
+  const n0=await page.evaluate(()=>document.querySelectorAll('#mw-layers-list > *').length);
+  await page.mouse.move(bb.x+bb.width/2,bb.y+bb.height/2); await page.mouse.down();
+  for(let k=1;k<=20;k++){ await page.mouse.move(bb.x+bb.width/2+(620-bb.x-bb.width/2)*k/20, bb.y+bb.height/2+(640-bb.y-bb.height/2)*k/20); await page.waitForTimeout(15);}
+  await page.mouse.up(); await page.waitForTimeout(800);
+  const r=await page.evaluate(()=>({n:document.querySelectorAll('#mw-layers-list > *').length, tool:window.MapView.tool(), sel:window.MapView.selected()&&window.MapView.selected().shape.stamp, lib:document.getElementById('mw-stamps').hidden}));
+  ok(r.n===n0+1 && r.sel===id && r.lib && r.tool==='select', `a place dragged from the library is laid on the map (${JSON.stringify(r)})`); }
 ok(!errs.length, `no error (${errs.join(' | ')})`); if (!fails) console.log('\nAll good'); await b.close(); server.close(); process.exit(fails?1:0);
