@@ -1073,3 +1073,29 @@ html .mp-world[data-mode="play"] .mp-body .mp-sbx.full { position: absolute; ins
 #ask-acts .k-music, #ask-acts .k-ambience, #ask-acts .k-events { background: var(--z); border-color: var(--z); color: var(--on-z); }
 #ask-acts .k-music { --z: var(--music); } #ask-acts .k-ambience { --z: var(--amb); } #ask-acts .k-events { --z: var(--evt); }
 #ask-acts .k-music:hover, #ask-acts .k-ambience:hover, #ask-acts .k-events:hover { filter: brightness(1.08); }
+
+/* The editor on a computer (Nov 2026): the tools lie at the foot of the map; the library of places opens in the
+ * left column, over the maps and the layers; that column can be hidden. */
+.left-open, .left-min-btn, .mp-stamps .st-head { display: none; }
+@media (min-width: 901px) {
+  .mp-world[data-mode="edit"] .mp-tools { left: 50% !important; top: auto !important; bottom: 12px; transform: translateX(-50%); flex-direction: row; align-items: center; }
+  .mp-world[data-mode="edit"] .mp-tools .mp-grip { display: none; }
+  .mp-world[data-mode="edit"] .mp-tools i { width: 1px; height: 26px; margin: 0 3px; }
+  .mp-world[data-mode="edit"] .mp-stamps.in-left { position: relative; left: auto; top: auto; width: auto; max-height: none; grid-column: 1; grid-row: 1 / span 2; min-height: 0; border-radius: 0; border: 0; border-right: 1px solid var(--line); box-shadow: none; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); align-content: start; z-index: 3; }
+  .mp-world[data-mode="edit"] .mp-stamps.in-left .st-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: -8px -8px 0; padding: 12px 10px 4px 14px; background: var(--bar); position: sticky; top: -8px; z-index: 2; }
+  .mp-world[data-mode="edit"] .mp-stamps.in-left .st-head h3 { margin: 0; font: 600 13px/1 'Barlow Semi Condensed', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .mp-world[data-mode="edit"] .mp-stamps.in-left .st-size { top: 26px; margin-top: 0; }
+  .mp-world[data-mode="edit"] .left-min-btn { display: grid; margin-left: auto; width: 28px; height: 28px; }
+  .mp-world[data-mode="edit"] .mp-rail h3 { display: flex; align-items: center; }
+  .mp-world[data-mode="edit"].left-min .mp-body { grid-template-columns: 0 minmax(0, 1fr) 330px; }
+  .mp-world[data-mode="edit"].left-min .mp-rail, .mp-world[data-mode="edit"].left-min .mp-layers, .mp-world[data-mode="edit"].left-min .mp-stamps.in-left { display: none; }
+  .mp-world[data-mode="edit"].left-min .left-open { display: grid; position: absolute; left: 12px; top: 12px; z-index: 2; background: var(--bar); box-shadow: 0 10px 30px var(--shadow); }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .mp-world[data-mode="edit"].left-min .mp-body { grid-template-columns: 0 minmax(0, 1fr) 300px; }
+  .mp-world[data-mode="edit"] .mp-tools button { width: 36px; height: 36px; }
+  .mp-world[data-mode="edit"] .mp-zoom { bottom: 66px; }
+}
+.heard-tab > .pn:first-child { margin-top: 0; }
+/* The Heard tab: only what reaches the party. */
+.heard-tab .el-sounds.folded { display: none; }

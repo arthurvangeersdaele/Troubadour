@@ -207,7 +207,9 @@ try {
     // Shift and a band; Ctrl+A.
     await page.evaluate(() => window.MapView.select(null));
     const r = await page.evaluate(() => document.getElementById('mw-canvas').getBoundingClientRect().toJSON());
-    await page.keyboard.down('Shift'); await page.mouse.move(r.left + r.width * 0.2, r.top + r.height * 0.2); await page.mouse.down(); await page.mouse.move(r.left + r.width * 0.6, r.top + r.height * 0.7, { steps: 8 }); await page.mouse.up(); await page.keyboard.up('Shift');
+    // The band starts on the bare ground (where the map lies depends on the room the tools leave it).
+    const s0 = await page.evaluate((r) => { for (let f = 0.12; f < 0.35; f += 0.01) for (let g = 0.12; g < 0.35; g += 0.01) { const x = r.left + r.width * f, y = r.top + r.height * g; if (window.MapView.elementAtClient(x, y) === null) return [x, y]; } return [r.left + r.width * 0.2, r.top + r.height * 0.2]; }, r);
+    await page.keyboard.down('Shift'); await page.mouse.move(s0[0], s0[1]); await page.mouse.down(); await page.mouse.move(r.left + r.width * 0.6, r.top + r.height * 0.7, { steps: 8 }); await page.mouse.up(); await page.keyboard.up('Shift');
     const band = await page.evaluate(() => window.MapView.selection().length);
     ok(band >= 2, `Shift and a band select the places it touches (${band})`);
     await page.keyboard.press('Control+a');

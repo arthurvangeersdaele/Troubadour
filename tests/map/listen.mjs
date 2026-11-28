@@ -81,6 +81,8 @@ try {
   await page.click('#mw-listen');
   await page.waitForFunction(() => window.MapAudio.isOpen(), null, { timeout: 60000 });
   ok((await page.getAttribute('#mw-listen', 'aria-pressed')) === 'true', 'the headphones: the editor hears the map');
+  await page.waitForTimeout(400);
+  ok(await page.evaluate(() => { const t = document.querySelector('#mw-inspector .heard-tab'); return !!t && !t.hidden && t.querySelectorAll('.c').length > 0; }), 'hearing, the panel shows the cards heard (its Heard tab)');
   const probe = await page.evaluate(async () => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const A = window.MapAudio;

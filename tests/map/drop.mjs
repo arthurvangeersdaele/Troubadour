@@ -52,5 +52,5 @@ await page.click('#mw-tools [data-tool="stamp"]'); await page.waitForTimeout(500
   for(let k=1;k<=20;k++){ await page.mouse.move(bb.x+bb.width/2+(620-bb.x-bb.width/2)*k/20, bb.y+bb.height/2+(640-bb.y-bb.height/2)*k/20); await page.waitForTimeout(15);}
   await page.mouse.up(); await page.waitForTimeout(800);
   const r=await page.evaluate(()=>({n:document.querySelectorAll('#mw-layers-list > *').length, tool:window.MapView.tool(), sel:window.MapView.selected()&&window.MapView.selected().shape.stamp, lib:document.getElementById('mw-stamps').hidden}));
-  ok(r.n===n0+1 && r.sel===id && r.lib && r.tool==='select', `a place dragged from the library is laid on the map (${JSON.stringify(r)})`); }
+  ok(r.n===n0+1 && r.sel===id && !r.lib, `a place dragged from the library is laid on the map (${JSON.stringify(r)})`); }
 ok(!errs.length, `no error (${errs.join(' | ')})`); if (!fails) console.log('\nAll good'); await b.close(); server.close(); process.exit(fails?1:0);

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '261128.6';
+  const VERSION = '261128.7';
   const { $, el, svg, ICON, settings, saveSettings, applyTheme, toast, busy, idle, ask, deliver, audio, decode, applyAudioSession } = window.MapUI;
   const M = window.TroubadourMap;
   const DB = window.MapDB;
@@ -774,6 +774,7 @@
     if (!hearing || rec !== r0 || pi !== p0 || mode !== 'edit' || screen !== 'world') return;
     A.open(place(), rec.world, sounds);
     V.redraw();
+    if (!V.selected() && !edView) renderPanel();
   }
   function hear(on) {
     if (on && (mode !== 'edit' || !rec)) return;
@@ -783,6 +784,12 @@
     $('#mw-listen').setAttribute('aria-label', $('#mw-listen').title);
     if (on) { openHearing(); toast('You hear what the party hears. Move the golden point to walk.', 2400); }
     else { if (A.isOpen()) A.close(); V.redraw(); }
+    // The panel of the map gets a Heard tab: the cards heard from the golden point, live.
+    if (mode === 'edit') {
+      if (on) { edView = null; if (V.selected()) V.select(null); inspTab.map = 'heard'; setPanel(true); }
+      else if (inspTab.map === 'heard') inspTab.map = 'map';
+      renderPanel();
+    }
   }
 
   /** The maps of the world, as Troubadour's chapters: a numbered rail (a strip under the top bar on a narrow
@@ -790,7 +797,12 @@
   function renderPlaces() {
     const rail = $('#mw-places');
     rail.textContent = '';
-    rail.append(el('h3', '', 'Maps'));
+    const mh = el('h3', '', 'Maps');
+    const min = el('button', 'ico small left-min-btn');
+    min.type = 'button'; min.innerHTML = svg('<path d="M15 6l-6 6 6 6"/><path d="M20 5v14"/>', 16); min.title = 'Hide this column'; min.setAttribute('aria-label', 'Hide the maps and the layers');
+    min.addEventListener('click', () => setLeftMin(true));
+    mh.append(min);
+    rail.append(mh);
     const links = new Set(place().elements.map((e) => e.link).filter(Boolean));
     rec.world.places.forEach((p, i) => {
       const b = el('button', 'chap');
@@ -1093,10 +1105,12 @@
   /** A sound card, built like Troubadour's (.c: name and loop, progress, play, stop, volume as set in Settings).
    *  In the editor: preview, loop, + and −, remove. At the table, a thin meter tells how much reaches the party. */
   function cardRow(c, list, owner) {
+    // Heard in the editor (its Heard tab), a card is as at the table: live, with its controls.
+    const md = mode === 'edit' && hearing ? 'play' : mode;
     const row = el('div', 'c');
     row.style.setProperty('--z', ZONE_COLOUR[c.zone] || 'var(--accent)');
     const zoneKey = c.zone === 'soundbox' ? 'events' : c.zone;
-    const vm = mode === 'edit' ? 'simple' : ((settings.vol && settings.vol[zoneKey]) || 'simple');
+    const vm = md === 'edit' ? 'simple' : ((settings.vol && settings.vol[zoneKey]) || 'simple');
     row.classList.add(`vm-${vm}`);
 
     const head = el('div', 'ch');
@@ -1106,7 +1120,7 @@
     nm.append(el('span', '', c.name));
     head.append(nm);
     let rem = null;
-    if (mode === 'play' && vm !== 'hidden') { rem = el('small'); head.append(rem); }
+    if (md === 'play' && vm !== 'hidden') { rem = el('small'); head.append(rem); }
     // The world's musics have no loop of their own: the queue says what comes next.
     const worldMus = !!(rec && rec.world.music && list === rec.world.music);
     const loop = el('button');
@@ -1119,10 +1133,10 @@
       Object.assign(c, M.cleanCard(Object.assign({}, c, { play: next })));
       save();
       if (A.isOpen()) A.sync();
-      if (mode === 'edit') renderPanel(); else paintLoop(loop, c);
+      if (md === 'edit') renderPanel(); else paintLoop(loop, c);
     });
     head.append(loop);
-    if (mode === 'edit') {
+    if (md === 'edit') {
       const x = el('button', 'loop x');
       x.type = 'button';
       x.innerHTML = ICON.x;
@@ -1139,7 +1153,7 @@
     row.append(head);
 
     // The editor: the longest pause of a random card, as in Troubadour (0.5 s to it; Auto: the one of the settings).
-    if (mode === 'edit' && c.play === 'random') {
+    if (md === 'edit' && c.play === 'random') {
       const opts = el('div', 'opts');
       const val = el('b');
       const paintGap = () => { val.textContent = c.randomMax ? `${c.randomMax} s` : `Auto`; less.disabled = !c.randomMax; more.disabled = c.randomMax >= A.RANDOM_TOP; };
@@ -1162,7 +1176,7 @@
 
     // The progress of the sound (at the table), and how much of an element reaches the party.
     let fill = null, bar = null;
-    if (mode === 'play') {
+    if (md === 'play') {
       const track = el('div', 'track');
       fill = el('div', 'fill');
       track.append(fill);
@@ -1175,7 +1189,7 @@
     pb.innerHTML = ICON.play;
     ctrl.append(pb);
     let end = null;
-    if (mode === 'edit') {
+    if (md === 'edit') {
       pb.title = 'Listen';
       pb.setAttribute('aria-label', `Listen to ${c.name}`);
       pb.addEventListener('click', () => listen(c.file, pb));
@@ -1219,13 +1233,13 @@
       up.addEventListener('click', () => step(1));
       paintLvl();
       ctrl.append(dn, lvl, up);
-    } else if (mode === 'play') {
+    } else if (md === 'play') {
       rem = el('small');
       ctrl.append(rem);
     }
     row.append(ctrl);
 
-    if (mode === 'play') {
+    if (md === 'play') {
       liveRows.push(() => {
         // Painted as Troubadour paints its cards.
         const v = A.voice(c);
@@ -1271,12 +1285,14 @@
     return b;
   }
 
+  let tableView = false; // the Heard tab of the editor: its cards as at the table
   function cardsBlock(title, list, owner, empty, targetName) {
     // The element's name is read when the picker opens: renamed meanwhile, it shows its new name.
     const target = () => (owner ? elName(owner) : targetName || null);
-    const s = section(title, mode === 'edit' ? addSoundsButton(list, 'Add', target) : null);
+    const edit = mode === 'edit' && !tableView;
+    const s = section(title, edit ? addSoundsButton(list, 'Add', target) : null);
     if (!list.length) s.append(el('div', 'pn-empty', empty));
-    if (mode === 'edit') { editCards(s, list, target); return s; }
+    if (edit) { editCards(s, list, target); return s; }
     list.forEach((c) => s.append(cardRow(c, list, owner)));
     return s;
   }
@@ -1569,7 +1585,13 @@
     row.append(up, down, del);
     acts.append(row);
     box.append(inTab(acts, 'map'));
-    tabbed(box, 'map', [['map', 'Map'], ['sounds', 'Sounds', p.general.length]]);
+    if (hearing) {
+      const heard = inTab(el('div', 'heard-tab'), 'heard');
+      if (!A.isOpen()) heard.append(el('p', 'pn-note', 'Opening the sounds of the map...'));
+      else { tableView = true; try { playPlace(heard, p); } finally { tableView = false; } }
+      box.append(heard);
+    }
+    tabbed(box, 'map', [['map', 'Map'], ['sounds', 'Sounds', p.general.length]].concat(hearing ? [['heard', 'Heard']] : []));
   }
 
   function movePlace(d) {
@@ -1675,7 +1697,7 @@
     all.type = 'button';
     all.innerHTML = `${ICON.music}<span>All musics</span>`;
     all.addEventListener('click', openMusic);
-    s.querySelector('h3').append(all);
+    if (mode === 'play') s.querySelector('h3').append(all);
     const holder = el('div', 'el-cards');
     s.append(holder);
     let shown, rows = [];
@@ -1784,7 +1806,9 @@
     // The cards are painted only while a panel shows them (the sound menu, the musics): closed, nothing of them is
     // touched, and the map keeps the whole frame for itself.
     liveTimer = setInterval(() => {
-      if (screen !== 'world' || mode !== 'play' || document.hidden) return;
+      if (screen !== 'world' || document.hidden) return;
+      if (mode === 'edit') { if (hearing && A.isOpen() && inspTab.map === 'heard' && !V.selected() && !edView) refreshLive(); return; }
+      if (mode !== 'play') return;
       const w = $('#world').classList;
       if (w.contains('panel') || w.contains('over') || arrive) refreshLive();
       paintMaster();
@@ -2454,7 +2478,8 @@
   /* ================= Tools ================= */
   const TOOL_ICON = { select: ICON.select, hand: ICON.hand, wall: ICON.wall, pen: ICON.pen, stamp: ICON.stamp, eraser: ICON.eraser };
   function paintTools(t) {
-    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+    const lib = !$('#mw-stamps').hidden;
+    document.querySelectorAll('#mw-tools [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t || (b.dataset.tool === 'stamp' && lib))));
   }
   function buildStamps() {
     const box = $('#mw-stamps');
@@ -2473,7 +2498,7 @@
       S.draw(c, id, 100, pal);
       b.append(cv, el('span', '', label));
       if (extra) b.append(extra);
-      b.addEventListener('click', () => { if (b.dataset.dragged) { delete b.dataset.dragged; return; } V.setStamp(id); paintStamps(id); box.hidden = true; });
+      b.addEventListener('click', () => { if (b.dataset.dragged) { delete b.dataset.dragged; return; } V.setStamp(id); paintStamps(id); if (narrowEditor()) box.hidden = true; });
       dragStamp(b, id, cv);
       box.append(b);
     };
@@ -2498,6 +2523,12 @@
     const size = el('div', 'st-size');
     size.append(el('span', '', 'Size'), placeSizeSeg());
     box.prepend(size);
+    const head = el('div', 'st-head');
+    const shut = el('button', 'ico small');
+    shut.type = 'button'; shut.innerHTML = ICON.close; shut.title = 'Close the places'; shut.setAttribute('aria-label', 'Close the places');
+    shut.addEventListener('click', () => { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); });
+    head.append(el('h3', '', 'Places'), el('span', 'grow'), shut);
+    box.prepend(head);
     S.LIST.forEach((s) => {
       if (s.group !== group) { group = s.group; box.append(el('h4', 'st-g', group)); }
       tile(s.id, s.label);
@@ -2540,7 +2571,8 @@
         ghost.remove();
         box.classList.remove('dragging');
         const laid = e.type === 'pointerup' && V.layStampAt(id, e.clientX, e.clientY);
-        if (laid) { box.hidden = true; V.setTool('select'); }
+        // On a computer the library stays open beside the map, for the next one; on a phone it makes way.
+        if (laid && narrowEditor()) { box.hidden = true; V.setTool('select'); }
         // The click that follows the drag is not a pick.
         setTimeout(() => { delete b.dataset.dragged; }, 0);
       };
@@ -3969,10 +4001,32 @@
     b.setAttribute('aria-label', resume ? 'Resume everything' : 'Pause everything');
   }
 
+  /* ================= The left column of the editor on a computer: maps, layers, the library of places ================= */
+  const LEFT_KEY = 'troubadour.map.leftMin';
+  function setLeftMin(min) {
+    const was = $('#world').classList.contains('left-min');
+    $('#world').classList.toggle('left-min', !!min);
+    // The map takes the room given or taken back, the whole of it in view.
+    if (was !== !!min && screen === 'world') requestAnimationFrame(() => requestAnimationFrame(() => V.fit()));
+    try { localStorage.setItem(LEFT_KEY, min ? '1' : ''); } catch (e) { /* private mode */ }
+  }
+  /** On a computer the library of places opens in the left column, over the maps and the layers; on a phone it
+   *  floats over the map beside the tools. */
+  function placeLib() {
+    const lib = $('#mw-stamps'), body = $('#world .mp-body'), stage = $('#mw-stage');
+    const wide = !narrowEditor();
+    if (wide && lib.parentNode !== body) { body.append(lib); lib.removeAttribute('style'); }
+    else if (!wide && lib.parentNode !== stage) stage.append(lib);
+    lib.classList.toggle('in-left', wide);
+  }
+
   /* ================= The drawing tools: moved by their grip, always inside the map ================= */
   const TOOLS_KEY = 'troubadour.map.tools';
   function placeTools(x, y) {
     const tools = $('#mw-tools'), stage = $('#mw-stage');
+    // On a computer, the tools lie at the foot of the map, and the library of places has the left column.
+    if (!narrowEditor()) { tools.style.left = tools.style.top = ''; stage.classList.remove('tools-right'); placeLib(); return null; }
+    placeLib();
     const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
     if (!sw || !tw) return;
     const nx = Math.max(6, Math.min(sw - tw - 6, x)), ny = Math.max(6, Math.min(sh - th - 6, y));
@@ -3983,6 +4037,7 @@
   /** What floats over the map makes way for the tools, wherever they were dragged: the library of places opens beside
    *  them (never over them), the zoom and the layers button go to the other side. */
   function placeFloats() {
+    if (!narrowEditor()) return;
     const tools = $('#mw-tools'), stage = $('#mw-stage'), lib = $('#mw-stamps');
     const sw = stage.clientWidth, sh = stage.clientHeight, tw = tools.offsetWidth, th = tools.offsetHeight;
     if (!sw || !tw) return;
@@ -4079,6 +4134,10 @@
     $('#mw-sbvol').addEventListener('input', (e) => { settings.sbVolume = Number(e.target.value); if (sbGain) glide(sbGain.gain, A.curve(settings.sbVolume), audio().ctx); });
     $('#mw-sbvol').addEventListener('change', saveSettings);
     wireToolsGrip();
+    $('#mw-left-open').innerHTML = svg('<path d="M9 6l6 6-6 6"/><path d="M4 5v14"/>', 18);
+    $('#mw-left-open').addEventListener('click', () => setLeftMin(false));
+    try { if (localStorage.getItem(LEFT_KEY)) $('#world').classList.add('left-min'); } catch (e) { /* private mode */ }
+    matchMedia('(max-width: 900px)').addEventListener('change', () => { placeLib(); placeTools($('#mw-tools').offsetLeft, $('#mw-tools').offsetTop); });
     $('#mw-more').addEventListener('click', () => rec && worldMenu(rec, mode === 'play'));
     $('#mw-panel').innerHTML = svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M14.5 4.5v15"/>', 19);
     $('#mw-panel').addEventListener('click', () => $('#world').classList.toggle('panel'));
@@ -4112,13 +4171,14 @@
         if (!box.hidden) { box.hidden = true; paintTools(V.tool()); renderOpts(V.tool()); return; }
         paintStamps(null);
         box.hidden = false;
+        setLeftMin(false);
         placeFloats();
         renderOpts('stamp');
         box.scrollTop = 0;
         b.setAttribute('aria-pressed', 'true');
         return;
       }
-      $('#mw-stamps').hidden = true;
+      if (narrowEditor()) $('#mw-stamps').hidden = true;
       if (b.dataset.tool) V.setTool(b.dataset.tool);
       else if (b.dataset.act === 'undo') undoRedo(true);
       else if (b.dataset.act === 'redo') undoRedo(false);
@@ -4185,7 +4245,7 @@
     // The map.
     V.mount($('#mw-canvas'));
     $('#mw-canvas').addEventListener('pointerdown', () => $('#mw-play-tip').classList.add('gone'));
-    V.onTool = (t) => { paintTools(t); if (t !== 'stamp') $('#mw-stamps').hidden = true; renderOpts(t); };
+    V.onTool = (t) => { paintTools(t); if (t !== 'stamp' && narrowEditor()) $('#mw-stamps').hidden = true; renderOpts(t); };
     // An element deleted (its button, the Delete key, the eraser): its panel closes, never falling back on the map's
     // panel (where the map itself can be deleted).
     let shownEl = null;
