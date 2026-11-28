@@ -31,6 +31,8 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(`${base}/docs/${APP}/index.html`);
   await page.waitForTimeout(600);
+  // The panel layout these checks were written for (the Music in full screen is on by default since 28 Nov).
+  await page.evaluate(() => { window.MapUI.settings.musicFull = false; });
   await page.setInputFiles('#pick-file', world);
   // Imported, a world joins the list without opening.
   // (An async test function would count as true at once: the list is asked from here, every half second.)

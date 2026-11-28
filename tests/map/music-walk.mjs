@@ -31,7 +31,7 @@ try {
   await page.setInputFiles('#pick-file', path.join(ROOT, 'docs/discovery/maps/261117_the_four_lands.troubadour-map'));
   for (let t = 0; t < 600; t++) { if (await page.evaluate(async () => !!(window.MapDB && (await window.MapDB.list()).length))) break; await page.waitForTimeout(500); }
   const uid = await page.evaluate(async () => (await window.MapDB.list())[0].uid);
-  await page.evaluate((u) => { window.MapUI.settings.fade = 1500; window.MapUI.settings.musicAuto = true; location.hash = `#/play/${u}/0`; }, uid);
+  await page.evaluate((u) => { window.MapUI.settings.fade = 1500; Object.assign(window.MapUI.settings, { musicAuto: true, musicIn: 'place', musicStop: true, musicOut: 'circle', musicFull: false }); location.hash = `#/play/${u}/0`; }, uid);
   await page.waitForFunction(() => window.MapAudio && window.MapAudio.isOpen(), null, { timeout: 120000 });
   await page.waitForTimeout(3000);
   // Spots: the middle of every place with music, and spots with none.
